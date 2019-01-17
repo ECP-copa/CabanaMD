@@ -47,18 +47,6 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#ifdef MODULES_OPTION_CHECK
-      if( (strcmp(argv[i+1], "SERIAL") == 0) )
-        comm_type = COMM_SERIAL;
-#endif
-#ifdef COMM_MODULES_INSTANTIATION
-      else if(input->comm_type == COMM_SERIAL) {
-        comm = new Comm(system,input->force_cutoff + input->neighbor_skin);
-      }
-#endif
-
-
-#if !defined(MODULES_OPTION_CHECK) && !defined(COMM_MODULES_INSTANTIATION)
 #ifndef COMM_SERIAL_H
 #define COMM_SERIAL_H
 #include <types.h>
@@ -259,4 +247,3 @@ public:
   const char* name();
 };
 #endif
-#endif // MODULES_OPTION_CHECK

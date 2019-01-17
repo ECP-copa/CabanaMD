@@ -97,11 +97,7 @@ void CabanaMD::init(int argc, char* argv[]) {
   else comm->error("Invalid NeighborType");
 
   // Create Communication Submodule
-  if (false) {}
-#define COMM_MODULES_INSTANTIATION
-#include<modules_comm.h>
-#undef COMM_MODULES_INSTANTIATION
-  else comm->error("Invalid CommType");
+  comm = new Comm(system,input->force_cutoff + input->neighbor_skin);
 
   // Do some additional settings
   force->comm_newton = input->comm_newton;
