@@ -57,7 +57,7 @@
 #include<input.h>
 #include<binning_cabana.h>
 
-class ExaMiniMD {
+class CabanaMD {
   public:
     System* system;
     Integrator* integrator;
@@ -67,7 +67,7 @@ class ExaMiniMD {
     Input* input;
     Binning* binning;
 
-    ExaMiniMD();
+    CabanaMD();
 
     void init(int argc,char* argv[]);
        

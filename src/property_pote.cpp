@@ -47,7 +47,7 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <examinimd.h>
+#include <cabanamd.h>
 #include <property_pote.h>
 
 PotE::PotE(Comm* comm_):comm(comm_) {}

@@ -47,14 +47,14 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <examinimd.h>
+#include <cabanamd.h>
 #include <property_temperature.h>
 #include <property_kine.h>
 #include <property_pote.h>
 
 #define MAXPATHLEN 1024
 
-ExaMiniMD::ExaMiniMD() {
+CabanaMD::CabanaMD() {
   // First we need to create the System data structures
   // They are used by input
   system = new System();
@@ -67,7 +67,7 @@ ExaMiniMD::ExaMiniMD() {
   neighbor = NULL;
 }
 
-void ExaMiniMD::init(int argc, char* argv[]) {
+void CabanaMD::init(int argc, char* argv[]) {
 
   if(system->do_print)
     Kokkos::DefaultExecutionSpace::print_configuration(std::cout);
@@ -181,7 +181,7 @@ void ExaMiniMD::init(int argc, char* argv[]) {
 
 }
 
-void ExaMiniMD::run(int nsteps) {
+void CabanaMD::run(int nsteps) {
   T_F_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
 
   Temperature temp(comm);
@@ -301,7 +301,7 @@ void ExaMiniMD::run(int nsteps) {
   }
 }
 
-void ExaMiniMD::dump_binary(int step) {
+void CabanaMD::dump_binary(int step) {
 
   // On dump steps print configuration
 
@@ -360,7 +360,7 @@ void ExaMiniMD::dump_binary(int step) {
 //       5. basis_offset [DONE]
 //       6. correctness output to file [DONE]
 
-void ExaMiniMD::check_correctness(int step) {
+void CabanaMD::check_correctness(int step) {
 
   if(step%input->correctness_rate) return;
 
@@ -489,8 +489,8 @@ void ExaMiniMD::check_correctness(int step) {
   }
 }
 
-void ExaMiniMD::print_performance() {}
+void CabanaMD::print_performance() {}
 
-void ExaMiniMD::shutdown() {
+void CabanaMD::shutdown() {
   system->destroy();
 }

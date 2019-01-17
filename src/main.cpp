@@ -47,37 +47,37 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include<examinimd.h>
+#include<cabanamd.h>
 
-// ExaMiniMD can be used as a library
+// CabanaMD can be used as a library
 // This main file is simply a driver
 
-#ifdef EXAMINIMD_ENABLE_MPI
+#ifdef CABANAMD_ENABLE_MPI
 #include "mpi.h"
 #endif
 
 int main(int argc, char* argv[]) {
 
-   #ifdef EXAMINIMD_ENABLE_MPI
+   #ifdef CABANAMD_ENABLE_MPI
    MPI_Init(&argc,&argv);
    #endif
 
    Kokkos::initialize(argc,argv);
 
-   ExaMiniMD examinimd;
-   examinimd.init(argc,argv);
+   CabanaMD cabanamd;
+   cabanamd.init(argc,argv);
   
-   examinimd.run(examinimd.input->nsteps);
+   cabanamd.run(cabanamd.input->nsteps);
 
-   //   examinimd.check_correctness();
+   //   cabanamd.check_correctness();
 
-   examinimd.print_performance();
+   cabanamd.print_performance();
 
-   examinimd.shutdown();
+   cabanamd.shutdown();
 
    Kokkos::finalize();
 
-   #ifdef EXAMINIMD_ENABLE_MPI
+   #ifdef CABANAMD_ENABLE_MPI
    MPI_Finalize();
    #endif
 }
