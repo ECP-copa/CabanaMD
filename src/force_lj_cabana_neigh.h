@@ -47,28 +47,6 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#ifdef MODULES_OPTION_CHECK
-      if( (strcmp(argv[i+1], "NEIGH_FULL") == 0) )
-        force_iteration_type = FORCE_ITER_NEIGH_FULL;
-      if( (strcmp(argv[i+1], "NEIGH_HALF") == 0) ) {
-        force_iteration_type = FORCE_ITER_NEIGH_HALF;
-      }
-#endif
-#ifdef FORCE_MODULES_INSTANTIATION
-    else if (input->force_type == FORCE_LJ) {
-      bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
-      switch ( input->neighbor_type ) {
-        #define FORCETYPE_ALLOCATION_MACRO(NeighType)  Force<NeighType>(input->input_data.words[input->force_line],system,half_neigh)
-        #include <modules_neighbor.h>
-        #undef FORCETYPE_ALLOCATION_MACRO
-      }
-    }
-#endif
-
-
-#if !defined(MODULES_OPTION_CHECK) && \
-    !defined(FORCE_MODULES_INSTANTIATION)
-
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
 #include<vector>
@@ -158,10 +136,4 @@ public:
   const char* name();
 };
 
-#define FORCE_MODULES_EXTERNAL_TEMPLATE
-#define FORCETYPE_DECLARE_TEMPLATE_MACRO(NeighType) Force<NeighType>
-#include<modules_neighbor.h>
-#undef FORCETYPE_DECLARE_TEMPLATE_MACRO
-#undef FORCE_MODULES_EXTERNAL_TEMPLATE
-#endif
 #endif

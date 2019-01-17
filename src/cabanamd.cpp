@@ -82,15 +82,11 @@ void CabanaMD::init(int argc, char* argv[]) {
   binning = new Binning(system);
 
   // Create Force Type
-  if(false) {}
-#define FORCE_MODULES_INSTANTIATION
-#include<modules_force.h>
-#undef FORCE_MODULES_INSTANTIATION
-  else comm->error("Invalid ForceType");
+  bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
+  force = new Force<NeighType>(system,half_neigh);
   int nforce = (pow(input->ntypes, 2.0) + input->ntypes)/2;
   for(int line = 0; line < nforce; line++) {
     force->init_coeff(input->force_types[line], input->force_coeff[line]);
-
   }
 
   // Create Neighbor Instance
