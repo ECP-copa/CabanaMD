@@ -94,10 +94,13 @@ public:
   typedef Kokkos::RangePolicy<TagHalfNeighPE,Kokkos::IndexType<T_INT> > t_policy_half_neigh_pe_stackparams;
 
   bool half_neigh, comm_newton;
+  T_X_FLOAT neigh_cut;
 
   Force(System* system, bool half_neigh_);
 
-  void init_coeff(std::vector<int> force_types, std::vector<double> force_coeff);
+  void init_coeff(T_X_FLOAT neigh_cut, std::vector<int> force_types, std::vector<double> force_coeff);
+
+  void create_neigh_list(System* system);
 
   void compute(System* system, Neighbor* neighbor );
   T_F_FLOAT compute_energy(System* system, Neighbor* neighbor);

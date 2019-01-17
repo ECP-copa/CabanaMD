@@ -74,6 +74,7 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // Lets parse the command line arguments
   input->read_command_line_args(argc,argv);
+  T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
 
   // Now we know which integrator type to use
   integrator = new Integrator(system);
@@ -97,7 +98,7 @@ void CabanaMD::init(int argc, char* argv[]) {
   else comm->error("Invalid NeighborType");
 
   // Create Communication Submodule
-  comm = new Comm(system,input->force_cutoff + input->neighbor_skin);
+    comm = new Comm(system, neigh_cutoff);
 
   // Do some additional settings
   force->comm_newton = input->comm_newton;
@@ -117,7 +118,6 @@ void CabanaMD::init(int argc, char* argv[]) {
   comm->exchange(); 
 
   // Sort particles
-  T_F_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
   binning->create_binning(neigh_cutoff,neigh_cutoff,neigh_cutoff,1,true,false,true);
 
   // Set up particles

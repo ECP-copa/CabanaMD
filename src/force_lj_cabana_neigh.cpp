@@ -49,7 +49,7 @@
 
 #include<force_lj_cabana_neigh.h>
 
-Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_) {
+Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_),neigh_cut(0.0) {
   ntypes = system->ntypes;
 
   lj1 = t_fparams("ForceLJCabanaNeigh::lj1",ntypes,ntypes);
@@ -60,7 +60,8 @@ Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_) {
   step = 0;
 }
 
-void Force::init_coeff(std::vector<int> force_types, std::vector<double> force_coeff) {
+void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<int> force_types, std::vector<double> force_coeff) {
+  neigh_cut = neigh_cut_;
   step = 0;
 
   int one_based_type = 1;
@@ -77,6 +78,20 @@ void Force::init_coeff(std::vector<int> force_types, std::vector<double> force_c
       stack_cutsq[i][j] = cut*cut;
     }
   }
+}
+
+void Force::create_neigh_list(System* system) {
+  N_local = system->N_local;
+
+  double grid_min[3] = {-system->domain_x,-system->domain_y,-system->domain_z};
+  double grid_max[3] = {2*system->domain_x,2*system->domain_y,2*system->domain_z};
+
+  auto x = system->xvf.slice<Positions>();
+
+  if(half_neigh)
+    t_verletlist_half half( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
+  else
+    t_verletlist_full full( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
 }
 
 void Force::compute(System* system, Neighbor* neighbor_ ) {
