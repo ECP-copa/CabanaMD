@@ -59,17 +59,15 @@ enum {LATTICE_SC,LATTICE_FCC};
 // Integrator Type
 enum {INTEGRATOR_NVE};
 // Binning Type
-enum {BINNING_KKSORT};
+enum {BINNING_CABANA};
 // Comm Type
-enum {COMM_SERIAL,COMM_MPI};
+enum {COMM_SERIAL};
 // Force Type
-enum {FORCE_LJ, FORCE_LJ_IDIAL, FORCE_SNAP};
+enum {FORCE_LJ_CABANA_NEIGH};
 // Force Iteration Type
-enum {FORCE_ITER_CELL_FULL, FORCE_ITER_NEIGH_FULL, FORCE_ITER_NEIGH_HALF};
+enum {FORCE_ITER_NEIGH_FULL, FORCE_ITER_NEIGH_HALF};
 // Neighbor Type
-enum {NEIGH_NONE, NEIGH_CSR, NEIGH_CSR_MAPCONSTR, NEIGH_2D};
-// Input File Type
-enum {INPUT_LAMMPS};
+enum {NEIGH_CABANA_VERLET};
 
 // Macros to work around the fact that std::max/min is not available on GPUs
 #define MAX(a,b) (a>b?a:b)
