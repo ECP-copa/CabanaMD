@@ -59,6 +59,8 @@ class Comm {
   T_INT N_ghost;
 
   System s;
+  t_slice_x x;
+  t_slice_x f;
 
   // Owned Variables
 
@@ -103,17 +105,17 @@ public:
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagExchangeSelf, 
                    const T_INT& i) const {
-    const T_X_FLOAT x = s.x(i,0);
-    if(x>s.domain_x) s.x(i,0) -= s.domain_x;
-    if(x<0)          s.x(i,0) += s.domain_x;
+    const T_X_FLOAT x1 = x(i,0);
+    if(x1>s.domain_x) x(i,0) -= s.domain_x;
+    if(x1<0)          x(i,0) += s.domain_x;
 
-    const T_X_FLOAT y = s.x(i,1);
-    if(y>s.domain_y) s.x(i,1) -= s.domain_y;
-    if(y<0)          s.x(i,1) += s.domain_y;
+    const T_X_FLOAT y1 = x(i,1);
+    if(y1>s.domain_y) x(i,1) -= s.domain_y;
+    if(y1<0)          x(i,1) += s.domain_y;
 
-    const T_X_FLOAT z = s.x(i,2);
-    if(z>s.domain_z) s.x(i,2) -= s.domain_z;
-    if(z<0)          s.x(i,2) += s.domain_z;
+    const T_X_FLOAT z1 = x(i,2);
+    if(z1>s.domain_z) x(i,2) -= s.domain_z;
+    if(z1<0)          x(i,2) += s.domain_z;
   }
 
 
@@ -121,68 +123,68 @@ public:
   void operator() (const TagHaloSelf,
                    const T_INT& i) const {
     if(phase == 0) {
-      if( s.x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
+      if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.x -= s.domain_x;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,0) -= s.domain_x;
         }
       }
     }
     if(phase == 1) {
-      if( s.x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
+      if( x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.x += s.domain_x;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,0) += s.domain_x;
         }
       }
     }
     if(phase == 2) {
-      if( s.x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
+      if( x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.y -= s.domain_y;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,1) -= s.domain_y;
         }
       }
     }
     if(phase == 3) {
-      if( s.x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
+      if( x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.y += s.domain_y;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,1) += s.domain_y;
         }
       }
     }
     if(phase == 4) {
-      if( s.x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
+      if( x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.z -= s.domain_z;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,2) -= s.domain_z;
         }
       }
     }
     if(phase == 5) {
-      if( s.x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
+      if( x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.z += s.domain_z;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,2) += s.domain_z;
         }
       }
     }
@@ -193,16 +195,16 @@ public:
   void operator() (const TagHaloUpdateSelf,
                    const T_INT& i) const {
 
-    Particle p = s.get_particle(pack_indicies(i));
+    t_particle p = s.get_particle(pack_indicies(i));
+    s.set_particle(N_local + N_ghost + i, p);
     switch (phase) {
-      case 0: p.x -= s.domain_x; break;
-      case 1: p.x += s.domain_x; break;
-      case 2: p.y -= s.domain_y; break;
-      case 3: p.y += s.domain_y; break;
-      case 4: p.z -= s.domain_z; break;
-      case 5: p.z += s.domain_z; break;
+      case 0: x(N_local + N_ghost + i,0) -= s.domain_x; break;
+      case 1: x(N_local + N_ghost + i,0) += s.domain_x; break;
+      case 2: x(N_local + N_ghost + i,1) -= s.domain_y; break;
+      case 3: x(N_local + N_ghost + i,1) += s.domain_y; break;
+      case 4: x(N_local + N_ghost + i,2) -= s.domain_z; break;
+      case 5: x(N_local + N_ghost + i,2) += s.domain_z; break;
     }
-    s.set_particle(N_local + N_ghost + i, p);     
   }
 
   KOKKOS_INLINE_FUNCTION
@@ -210,14 +212,14 @@ public:
                    const T_INT& ii) const {
 
     const T_INT i = pack_indicies(ii);
-    T_F_FLOAT fx_i = s.f(ghost_offsets[phase] + ii,0);
-    T_F_FLOAT fy_i = s.f(ghost_offsets[phase] + ii,1);
-    T_F_FLOAT fz_i = s.f(ghost_offsets[phase] + ii,2);
+    T_F_FLOAT fx_i = f(ghost_offsets[phase] + ii,0);
+    T_F_FLOAT fy_i = f(ghost_offsets[phase] + ii,1);
+    T_F_FLOAT fz_i = f(ghost_offsets[phase] + ii,2);
 
-    //printf("FORCESELF %i %i %i %lf %lf\n",i,ghost_offsets[phase] + ii,ghost_offsets[phase],s.f(i,0),fx_i);
-    s.f(i, 0) += fx_i;
-    s.f(i, 1) += fy_i;
-    s.f(i, 2) += fz_i;
+    //printf("FORCESELF %i %i %i %lf %lf\n",i,ghost_offsets[phase] + ii,ghost_offsets[phase],f(i,0),fx_i);
+    f(i, 0) += fx_i;
+    f(i, 1) += fy_i;
+    f(i, 2) += fz_i;
 
   }
 
