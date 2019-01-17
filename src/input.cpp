@@ -80,6 +80,12 @@ Input::Input(System* p):system(p) {
   lattice_offset_x = 0.0;
   lattice_offset_y = 0.0;
   lattice_offset_z = 0.0;
+  box[0] = 0;
+  box[2] = 0;
+  box[4] = 0;
+  box[1] = 40;
+  box[3] = 40;
+  box[5] = 40;
 
   units_style = UNITS_LJ;
   lattice_style = LATTICE_FCC;
@@ -205,33 +211,6 @@ void Input::check_lammps_command(int line) {
     } else {
       if(system->do_print)
         printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' in ExaMiniMD\n");
-    }
-  }
-    if(strcmp(input_data.words[line][3],"origin")==0) {
-       lattice_offset_x = atof(input_data.words[line][4]);
-       lattice_offset_y = atof(input_data.words[line][5]);
-       lattice_offset_z = atof(input_data.words[line][6]);
-    }
-  }
-  if(strcmp(input_data.words[line][0],"region")==0) {
-    if(strcmp(input_data.words[line][2],"block")==0) {
-      known = true;
-      int box[6];
-      box[0] = atoi(input_data.words[line][3]);
-      box[1] = atoi(input_data.words[line][4]);
-      box[2] = atoi(input_data.words[line][5]);
-      box[3] = atoi(input_data.words[line][6]);
-      box[4] = atoi(input_data.words[line][7]);
-      box[5] = atoi(input_data.words[line][8]);
-      if( (box[0]!=0) || (box[2]!=0) || (box[4]!=0))
-        if(system->do_print)
-          printf("Error: LAMMPS-Command: region only allows for boxes with 0,0,0 offset\n");
-      lattice_nx = box[1];
-      lattice_ny = box[3];
-      lattice_nz = box[5];
-    } else {
-      if(system->do_print)
-        printf("LAMMPS-Command: 'region' command only supports 'block' option in ExaMiniMD\n");
     }
   }
   if(strcmp(input_data.words[line][0],"create_box")==0) {

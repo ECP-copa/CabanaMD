@@ -138,6 +138,7 @@ class Input {
   int lattice_style;
   double lattice_constant, lattice_offset_x, lattice_offset_y, lattice_offset_z;
   int lattice_nx, lattice_ny, lattice_nz;
+  int box[6];
 
   double temperature_target;
   int temperature_seed;
