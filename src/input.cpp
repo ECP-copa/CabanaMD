@@ -282,13 +282,7 @@ void Input::create_lattice(Comm* comm) {
 
   System s = *system;
 
-  t_x::HostMirror h_x = Kokkos::create_mirror_view(s.x);
-  t_v::HostMirror h_v = Kokkos::create_mirror_view(s.v);
-  t_q::HostMirror h_q = Kokkos::create_mirror_view(s.q);
   t_mass::HostMirror h_mass = Kokkos::create_mirror_view(s.mass);
-  t_type::HostMirror h_type = Kokkos::create_mirror_view(s.type);
-  t_id::HostMirror h_id = Kokkos::create_mirror_view(s.id);
-
   Kokkos::deep_copy(h_mass,s.mass);
 
   // Create Simple Cubic Lattice
@@ -331,49 +325,13 @@ void Input::create_lattice(Comm* comm) {
     system->N = n;
     system->grow(n);
     s = *system;
-    h_x = Kokkos::create_mirror_view(s.x);
-    h_v = Kokkos::create_mirror_view(s.v);
-    h_q = Kokkos::create_mirror_view(s.q);
-    h_type = Kokkos::create_mirror_view(s.type);
-    h_id = Kokkos::create_mirror_view(s.id);
-
-    // Initialize system using the equivalent of the LAMMPS
-    // velocity geom option, i.e. uniform random kinetic energies.
-    // zero out momentum of the whole system afterwards, to eliminate
-    // drift (bad for energy statistics)
-
-    for(T_INT iz=iz_start; iz<=iz_end; iz++) {
-      T_FLOAT ztmp = lattice_constant * (iz+lattice_offset_z);
-      for(T_INT iy=iy_start; iy<=iy_end; iy++) {
-        T_FLOAT ytmp = lattice_constant * (iy+lattice_offset_y);
-        for(T_INT ix=ix_start; ix<=ix_end; ix++) {
-          T_FLOAT xtmp = lattice_constant * (ix+lattice_offset_x);
-          if((xtmp >= s.sub_domain_lo_x) &&
-             (ytmp >= s.sub_domain_lo_y) &&
-             (ztmp >= s.sub_domain_lo_z) &&
-             (xtmp <  s.sub_domain_hi_x) &&
-             (ytmp <  s.sub_domain_hi_y) &&
-             (ztmp <  s.sub_domain_hi_z) ) {
-            n++;
-          }
-        }
-      }
-    }
-    system->grow(n);
-    System s = *system;
-    h_x = Kokkos::create_mirror_view(s.x);
-    h_v = Kokkos::create_mirror_view(s.v);
-    h_q = Kokkos::create_mirror_view(s.q);
-    h_type = Kokkos::create_mirror_view(s.type);
-    h_id = Kokkos::create_mirror_view(s.id);
+    auto x = s.xvf.slice<Positions>();
+    auto v = s.xvf.slice<Velocities>();
+    auto id = s.xvf.slice<IDs>();
+    auto type = s.xvf.slice<Types>();
+    auto q = s.xvf.slice<Charges>();
 
     n = 0;
-
-    // Initialize system using the equivalent of the LAMMPS
-    // velocity geom option, i.e. uniform random kinetic energies.
-    // zero out momentum of the whole system afterwards, to eliminate
-    // drift (bad for energy statistics)
-
     for(T_INT iz=iz_start; iz<=iz_end; iz++) {
       T_FLOAT ztmp = lattice_constant * (iz+lattice_offset_z);
       for(T_INT iy=iy_start; iy<=iy_end; iy++) {
@@ -386,11 +344,11 @@ void Input::create_lattice(Comm* comm) {
              (xtmp <  s.sub_domain_hi_x) &&
              (ytmp <  s.sub_domain_hi_y) &&
              (ztmp <  s.sub_domain_hi_z) ) {
-            h_x(n,0) = xtmp;
-            h_x(n,1) = ytmp;
-            h_x(n,2) = ztmp;
-            h_type(n) = rand()%s.ntypes;
-            h_id(n) = n+1;
+            x(n,0) = xtmp;
+            x(n,1) = ytmp;
+            x(n,2) = ztmp;
+            type(n) = rand()%s.ntypes;
+            id(n) = n+1;
             n++;
           }
         }
@@ -402,7 +360,7 @@ void Input::create_lattice(Comm* comm) {
     T_INT N_local_offset = n;
     comm->scan_int(&N_local_offset,1);
     for(T_INT i = 0; i<n; i++)
-      h_id(i) += N_local_offset - n;
+      id(i) += N_local_offset - n;
 
     if(system->do_print)
       printf("Atoms: %i %i\n",system->N,system->N_local);
@@ -463,51 +421,14 @@ void Input::create_lattice(Comm* comm) {
     system->N = n;
     system->grow(n);
     s = *system;
-    h_x = Kokkos::create_mirror_view(s.x);
-    h_v = Kokkos::create_mirror_view(s.v);
-    h_q = Kokkos::create_mirror_view(s.q);
-    h_type = Kokkos::create_mirror_view(s.type);
-    h_id = Kokkos::create_mirror_view(s.id);
-
-    // Initialize system using the equivalent of the LAMMPS
-    // velocity geom option, i.e. uniform random kinetic energies.
-    // zero out momentum of the whole system afterwards, to eliminate
-    // drift (bad for energy statistics)
-
-    for(T_INT iz=iz_start; iz<=iz_end; iz++) {
-      for(T_INT iy=iy_start; iy<=iy_end; iy++) {
-        for(T_INT ix=ix_start; ix<=ix_end; ix++) {
-          for(int k = 0; k<4; k++) {
-            T_FLOAT xtmp = lattice_constant * (1.0*ix+basis[k][0]);
-            T_FLOAT ytmp = lattice_constant * (1.0*iy+basis[k][1]);
-            T_FLOAT ztmp = lattice_constant * (1.0*iz+basis[k][2]);
-            if((xtmp >= s.sub_domain_lo_x) &&
-               (ytmp >= s.sub_domain_lo_y) &&
-               (ztmp >= s.sub_domain_lo_z) &&
-               (xtmp <  s.sub_domain_hi_x) &&
-               (ytmp <  s.sub_domain_hi_y) &&
-               (ztmp <  s.sub_domain_hi_z) ) {
-              n++;
-            }
-          }
-        }
-      }
-    }
-    system->grow(n);
-    System s = *system;
-    h_x = Kokkos::create_mirror_view(s.x);
-    h_v = Kokkos::create_mirror_view(s.v);
-    h_q = Kokkos::create_mirror_view(s.q);
-    h_type = Kokkos::create_mirror_view(s.type);
-    h_id = Kokkos::create_mirror_view(s.id);
+    auto x = s.xvf.slice<Positions>();
+    auto v = s.xvf.slice<Velocities>();
+    auto id = s.xvf.slice<IDs>();
+    auto type = s.xvf.slice<Types>();
+    auto q = s.xvf.slice<Charges>();
 
     n = 0;
 
-    // Initialize system using the equivalent of the LAMMPS
-    // velocity geom option, i.e. uniform random kinetic energies.
-    // zero out momentum of the whole system afterwards, to eliminate
-    // drift (bad for energy statistics)
-
     for(T_INT iz=iz_start; iz<=iz_end; iz++) {
       for(T_INT iy=iy_start; iy<=iy_end; iy++) {
         for(T_INT ix=ix_start; ix<=ix_end; ix++) {
@@ -521,11 +442,11 @@ void Input::create_lattice(Comm* comm) {
                (xtmp <  s.sub_domain_hi_x) &&
                (ytmp <  s.sub_domain_hi_y) &&
                (ztmp <  s.sub_domain_hi_z) ) {
-              h_x(n,0) = xtmp;
-              h_x(n,1) = ytmp;
-              h_x(n,2) = ztmp;
-              h_type(n) = rand()%s.ntypes;
-              h_id(n) = n+1;
+              x(n,0) = xtmp;
+              x(n,1) = ytmp;
+              x(n,2) = ztmp;
+              type(n) = rand()%s.ntypes;
+              id(n) = n+1;
               n++;
             }
           }
@@ -537,7 +458,7 @@ void Input::create_lattice(Comm* comm) {
     T_INT N_local_offset = n;
     comm->scan_int(&N_local_offset,1);
     for(T_INT i = 0; i<n; i++)
-      h_id(i) += N_local_offset - n;
+      id(i) += N_local_offset - n;
 
     comm->reduce_int(&system->N,1);
 
@@ -551,6 +472,11 @@ void Input::create_lattice(Comm* comm) {
   
   {  // Scope s
     System s = *system;
+    auto x = s.xvf.slice<Positions>();
+    auto v = s.xvf.slice<Velocities>();
+    auto type = s.xvf.slice<Types>();
+    auto q = s.xvf.slice<Charges>();
+
     T_FLOAT total_mass = 0.0;
     T_FLOAT total_momentum_x = 0.0;
     T_FLOAT total_momentum_y = 0.0;
@@ -558,24 +484,24 @@ void Input::create_lattice(Comm* comm) {
 
     for(T_INT i=0; i<system->N_local; i++) {
       LAMMPS_RandomVelocityGeom random;
-      double x[3] = {h_x(i,0),h_x(i,1),h_x(i,2)};
-      random.reset(temperature_seed,x);
+      double x_i[3] = {x(i,0),x(i,1),x(i,2)};
+      random.reset(temperature_seed,x_i);
 
-      T_FLOAT mass_i = h_mass(h_type(i));
+      T_FLOAT mass_i = h_mass(type(i));
       T_FLOAT vx = random.uniform()-0.5;
       T_FLOAT vy = random.uniform()-0.5;
       T_FLOAT vz = random.uniform()-0.5;
 
-      h_v(i,0) = vx/sqrt(mass_i);
-      h_v(i,1) = vy/sqrt(mass_i);
-      h_v(i,2) = vz/sqrt(mass_i);
+      v(i,0) = vx/sqrt(mass_i);
+      v(i,1) = vy/sqrt(mass_i);
+      v(i,2) = vz/sqrt(mass_i);
 
-      h_q(i) = 0.0;
+      q(i) = 0.0;
 
       total_mass += mass_i;
-      total_momentum_x += mass_i * h_v(i,0);
-      total_momentum_y += mass_i * h_v(i,1);
-      total_momentum_z += mass_i * h_v(i,2);
+      total_momentum_x += mass_i * v(i,0);
+      total_momentum_y += mass_i * v(i,1);
+      total_momentum_z += mass_i * v(i,2);
 
     }
     comm->reduce_float(&total_momentum_x,1);
@@ -588,26 +514,21 @@ void Input::create_lattice(Comm* comm) {
     T_FLOAT system_vz = total_momentum_z / total_mass;
 
     for(T_INT i=0; i<system->N_local; i++) {
-      h_v(i,0) -= system_vx;
-      h_v(i,1) -= system_vy;
-      h_v(i,2) -= system_vz;
+      v(i,0) -= system_vx;
+      v(i,1) -= system_vy;
+      v(i,2) -= system_vz;
     }
 
-    Kokkos::deep_copy(s.v,h_v);
     Temperature temp(comm);
     T_V_FLOAT T = temp.compute(system);
 
     T_V_FLOAT T_init_scale = sqrt(temperature_target/T);
 
     for(T_INT i=0; i<system->N_local; i++) {
-      h_v(i,0) *= T_init_scale;
-      h_v(i,1) *= T_init_scale;
-      h_v(i,2) *= T_init_scale;
+      v(i,0) *= T_init_scale;
+      v(i,1) *= T_init_scale;
+      v(i,2) *= T_init_scale;
     }
-    Kokkos::deep_copy(s.x,h_x);
-    Kokkos::deep_copy(s.v,h_v);
-    Kokkos::deep_copy(s.q,h_q);
-    Kokkos::deep_copy(s.type,h_type);
-    Kokkos::deep_copy(s.id,h_id);
+
   }
 }
