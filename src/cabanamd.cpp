@@ -83,7 +83,7 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // Create Force Type
   bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
-  force = new Force<NeighType>(system,half_neigh);
+  force = new Force(system,half_neigh);
   int nforce = (pow(input->ntypes, 2.0) + input->ntypes)/2;
   for(int line = 0; line < nforce; line++) {
     force->init_coeff(input->force_types[line], input->force_coeff[line]);

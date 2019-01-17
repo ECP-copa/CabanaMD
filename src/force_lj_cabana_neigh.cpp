@@ -49,8 +49,7 @@
 
 #include<force_lj_cabana_neigh.h>
 
-template<class NeighborClass>
-Force<NeighborClass>::Force(System* system, bool half_neigh_):half_neigh(half_neigh_) {
+Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_) {
   ntypes = system->ntypes;
   use_stackparams = (ntypes <= MAX_TYPES_STACKPARAMS);
   if (!use_stackparams) {
@@ -64,8 +63,7 @@ Force<NeighborClass>::Force(System* system, bool half_neigh_):half_neigh(half_ne
   step = 0;
 }
 
-template<class NeighborClass>
-void Force<NeighborClass>::init_coeff(std::vector<int> force_types, std::vector<double> force_coeff) {
+void Force::init_coeff(std::vector<int> force_types, std::vector<double> force_coeff) {
   step = 0;
 
   int one_based_type = 1;
@@ -108,8 +106,7 @@ void Force<NeighborClass>::init_coeff(std::vector<int> force_types, std::vector<
   }
 };
 
-template<class NeighborClass>
-void Force<NeighborClass>::compute(System* system, Binning* binning, Neighbor* neighbor_ ) {
+void Force::compute(System* system, Binning* binning, Neighbor* neighbor_ ) {
   // Set internal data handles
   NeighborClass* neighbor = (NeighborClass*) neighbor_;
   neigh_list = neighbor->get_neigh_list();
@@ -136,8 +133,7 @@ void Force<NeighborClass>::compute(System* system, Binning* binning, Neighbor* n
   step++;
 }
 
-template<class NeighborClass>
-T_V_FLOAT Force<NeighborClass>::compute_energy(System* system, Binning* binning, Neighbor* neighbor_ ) {
+T_V_FLOAT Force::compute_energy(System* system, Binning* binning, Neighbor* neighbor_ ) {
   // Set internal data handles
   NeighborClass* neighbor = (NeighborClass*) neighbor_;
   neigh_list = neighbor->get_neigh_list();
@@ -166,13 +162,11 @@ T_V_FLOAT Force<NeighborClass>::compute_energy(System* system, Binning* binning,
   return energy;
 }
 
-template<class NeighborClass>
-const char* Force<NeighborClass>::name() { return half_neigh?"ForceLJCabanaNeighHalf":"ForceLJCabanaNeighFull"; }
+const char* Force::name() { return half_neigh?"ForceLJCabanaNeighHalf":"ForceLJCabanaNeighFull"; }
 
-template<class NeighborClass>
 template<bool STACKPARAMS>
 KOKKOS_INLINE_FUNCTION
-void Force<NeighborClass>::operator() (TagFullNeigh<STACKPARAMS>, const T_INT& i) const {
+void Force::operator() (TagFullNeigh<STACKPARAMS>, const T_INT& i) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
@@ -216,10 +210,9 @@ void Force<NeighborClass>::operator() (TagFullNeigh<STACKPARAMS>, const T_INT& i
 
 }
 
-template<class NeighborClass>
 template<bool STACKPARAMS>
 KOKKOS_INLINE_FUNCTION
-void Force<NeighborClass>::operator() (TagHalfNeigh<STACKPARAMS>, const T_INT& i) const {
+void Force::operator() (TagHalfNeigh<STACKPARAMS>, const T_INT& i) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
@@ -264,10 +257,9 @@ void Force<NeighborClass>::operator() (TagHalfNeigh<STACKPARAMS>, const T_INT& i
 
 }
 
-template<class NeighborClass>
 template<bool STACKPARAMS>
 KOKKOS_INLINE_FUNCTION
-void Force<NeighborClass>::operator() (TagFullNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& PE) const {
+void Force::operator() (TagFullNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& PE) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
@@ -306,10 +298,9 @@ void Force<NeighborClass>::operator() (TagFullNeighPE<STACKPARAMS>, const T_INT&
   }
 }
 
-template<class NeighborClass>
 template<bool STACKPARAMS>
 KOKKOS_INLINE_FUNCTION
-void Force<NeighborClass>::operator() (TagHalfNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& PE) const {
+void Force::operator() (TagHalfNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& PE) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);

@@ -55,7 +55,6 @@
 #include<binning.h>
 #include<neighbor.h>
 
-template<class NeighborClass>
 class Force {
 private:
   int N_local,ntypes;
