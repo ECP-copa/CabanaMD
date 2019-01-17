@@ -76,9 +76,13 @@ Input::Input(System* p):system(p) {
   dumpbinaryflag = false;
   correctnessflag = false;
   timestepflag = false;
+
   lattice_offset_x = 0.0;
   lattice_offset_y = 0.0;
   lattice_offset_z = 0.0;
+
+  units_style = UNITS_LJ;
+
   comm_newton = 0;
 }
 
@@ -89,6 +93,8 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       if(system->do_print) {
         printf("CabanaMD 0.1 \n\n");
         printf("Options:\n");
+        printf("  --units-style [TYPE]:       Specify units \n");
+        printf("                              (metal, real, lj)\n");
         printf("  --dumpbinary [N] [PATH]:    Request that binary output files PATH/output* be generated every N steps\n");
         printf("                              (N = positive integer)\n");
         printf("                              (PATH = location of directory)\n");
@@ -115,6 +121,17 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       i += 3;
     }
 
+    else if( (strcmp(argv[i],"--units-type")==0)) {
+      if(strcmp(argv[i+1],"metal")==0) {
+	units_style = UNITS_METAL;
+      } else if(strcmp(argv[i+1],"real")==0) {
+        units_style = UNITS_REAL;
+      } else if(strcmp(argv[i+1],"lj")==0) {
+        units_style = UNITS_LJ;
+      }
+      ++i;
+    }
+
     else if( (strstr(argv[i], "--kokkos-") == NULL) ) {
       if(system->do_print)
         printf("ERROR: Unknown command line argument: %s\n",argv[i]);
@@ -122,6 +139,28 @@ void Input::read_command_line_args(int argc, char* argv[]) {
     }
 
   }
+
+  // Constants dependent on units
+  if (units_style == UNITS_METAL) {
+    system->boltz = 8.617343e-5;
+    //hplanck = 95.306976368;
+    system->mvv2e = 1.0364269e-4;
+    if (!timestepflag)
+      system->dt = 0.001;
+  } else if (units_style == UNITS_REAL) {
+    system->boltz = 0.0019872067;
+    //hplanck = 95.306976368;
+    system->mvv2e = 48.88821291 * 48.88821291;
+    if (!timestepflag)
+      system->dt = 1.0;
+  } else if (units_style == UNITS_LJ) {
+    system->boltz = 1.0;
+    //hplanck = 0.18292026;
+    system->mvv2e = 1.0;
+    if (!timestepflag)
+      system->dt = 0.005;
+  }
+
 }
 
 void Input::check_lammps_command(int line) {
@@ -132,35 +171,6 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"variable")==0) {
     if(system->do_print)
       printf("LAMMPS-Command: 'variable' keyword is not supported in ExaMiniMD\n");
-  }
-  if(strcmp(input_data.words[line][0],"units")==0) {
-    if(strcmp(input_data.words[line][1],"metal")==0) {
-      known = true;
-      units = UNITS_METAL;
-      system->boltz = 8.617343e-5;
-      //hplanck = 95.306976368;
-      system->mvv2e = 1.0364269e-4;
-      system->dt = 0.001;
-    } else if(strcmp(input_data.words[line][1],"real")==0) {
-      known = true;
-      units = UNITS_REAL;
-      system->boltz = 0.0019872067;
-      //hplanck = 95.306976368;
-      system->mvv2e = 48.88821291 * 48.88821291;
-      if (!timestepflag)
-        system->dt = 1.0;
-    } else if(strcmp(input_data.words[line][1],"lj")==0) {
-      known = true;
-      units = UNITS_LJ;
-      system->boltz = 1.0;
-      //hplanck = 0.18292026;
-      system->mvv2e = 1.0;
-      if (!timestepflag)
-        system->dt = 0.005;
-    } else {
-      if(system->do_print)
-        printf("LAMMPS-Command: 'units' command only supports 'real' and 'lj' in ExaMiniMD\n");
-    }
   }
   if(strcmp(input_data.words[line][0],"atom_style")==0) {
     if(strcmp(input_data.words[line][1],"atomic")==0) {

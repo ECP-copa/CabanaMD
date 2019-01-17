@@ -134,8 +134,7 @@ class Input {
  public:
   System* system;
   
-  int units;
-
+  int units_style;
   int lattice_style;
   double lattice_constant, lattice_offset_x, lattice_offset_y, lattice_offset_z;
   int lattice_nx, lattice_ny, lattice_nz;
