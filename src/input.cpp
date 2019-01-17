@@ -82,6 +82,8 @@ Input::Input(System* p):system(p) {
   lattice_offset_z = 0.0;
 
   units_style = UNITS_LJ;
+  lattice_style = LATTICE_FCC;
+  lattice_constant = 0.8442;
 
   comm_newton = 0;
 }
@@ -95,6 +97,10 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("Options:\n");
         printf("  --units-style [TYPE]:       Specify units \n");
         printf("                              (metal, real, lj)\n");
+        printf("  --lattice [TYPE] [CONSTANT] [NX] [NY] [NZ]:  Specify lattice \n");
+        printf("                              (TYPE = fcc)\n");
+        printf("                              (CONSTANT = float lattice constant)\n");
+        printf("                              (NX, NY, NZ = integer unit cells per dimension)\n");
         printf("  --dumpbinary [N] [PATH]:    Request that binary output files PATH/output* be generated every N steps\n");
         printf("                              (N = positive integer)\n");
         printf("                              (PATH = location of directory)\n");
@@ -132,6 +138,20 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       ++i;
     }
 
+    else if( (strcmp(argv[i],"--lattice")==0)) {
+      if(strcmp(argv[i+1],"fcc")==0) {
+        lattice_style = LATTICE_FCC;
+      } else if(strcmp(argv[i+1],"sc")==0) {
+        lattice_style = LATTICE_SC;
+      }
+      lattice_constant = atof(argv[i+2]);
+
+      box[1] = atoi(argv[i+3]);
+      box[3] = atoi(argv[i+4]);
+      box[5] = atoi(argv[i+5]);
+      i += 5;
+    }
+
     else if( (strstr(argv[i], "--kokkos-") == NULL) ) {
       if(system->do_print)
         printf("ERROR: Unknown command line argument: %s\n",argv[i]);
@@ -161,6 +181,13 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       system->dt = 0.005;
   }
 
+  lattice_nx = box[1];
+  lattice_ny = box[3];
+  lattice_nz = box[5];
+  if(lattice_style == LATTICE_FCC)
+    lattice_constant = std::pow((4.0 / lattice_constant), (1.0 / 3.0));
+
+
 }
 
 void Input::check_lammps_command(int line) {
@@ -180,19 +207,6 @@ void Input::check_lammps_command(int line) {
         printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' in ExaMiniMD\n");
     }
   }
-  if(strcmp(input_data.words[line][0],"lattice")==0) {
-    if(strcmp(input_data.words[line][1],"sc")==0) {
-      known = true;
-      lattice_style = LATTICE_SC;
-      lattice_constant = atof(input_data.words[line][2]);
-    } else if(strcmp(input_data.words[line][1],"fcc")==0) {
-      known = true;
-      lattice_style = LATTICE_FCC;
-      lattice_constant = std::pow((4.0 / atof(input_data.words[line][2])), (1.0 / 3.0));
-    } else {
-      if(system->do_print)
-        printf("LAMMPS-Command: 'lattice' command only supports 'sc' and 'fcc' in ExaMiniMD\n");
-    }
     if(strcmp(input_data.words[line][3],"origin")==0) {
        lattice_offset_x = atof(input_data.words[line][4]);
        lattice_offset_y = atof(input_data.words[line][5]);
