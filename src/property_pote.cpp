@@ -52,9 +52,9 @@
 
 PotE::PotE(Comm* comm_):comm(comm_) {}
 
-T_F_FLOAT PotE::compute(System* system, Binning* binning, Force* force) {
+T_F_FLOAT PotE::compute(System* system, Force* force) {
   T_F_FLOAT PE; 
-  PE = force->compute_energy(system,binning);
+  PE = force->compute_energy(system);
   comm->reduce_float(&PE,1);
   return PE;
 }
