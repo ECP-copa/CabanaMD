@@ -56,11 +56,12 @@
 class Force {
 private:
   int N_local,ntypes;
-  t_x_const_rnd x;
-  t_f f;
-  t_f_atomic f_a;
-  t_id id;
-  t_type_const_rnd type;
+  t_slice_x x;
+  t_slice_x f;
+  t_slice_x_atomic f_a;
+  t_slice_int id;
+  t_slice_int type;
+
   int step;
 
   t_verletlist_full init_fullneigh_list();

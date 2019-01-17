@@ -115,13 +115,12 @@ void Force::create_neigh_list(System* system) {
 }
 
 void Force::compute(System* system) {
-  // Set internal data handles
   N_local = system->N_local;
-  x = system->x;
-  f = system->f;
-  f_a = system->f;
-  type = system->type;
-  id = system->id;
+  x = system->xvf.slice<Positions>();
+  f = system->xvf.slice<Forces>();
+  f_a = system->xvf.slice<Forces>();
+  id = system->xvf.slice<IDs>();
+  type = system->xvf.slice<Types>();
 
   if(half_neigh)
     Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh_stackparams(0, system->N_local), *this);
@@ -134,13 +133,13 @@ void Force::compute(System* system) {
 }
 
 T_V_FLOAT Force::compute_energy(System* system) {
-  // Set internal data handles
   N_local = system->N_local;
-  x = system->x;
-  f = system->f;
-  f_a = system->f;
-  type = system->type;
-  id = system->id;
+  x = system->xvf.slice<Positions>();
+  f = system->xvf.slice<Forces>();
+  f_a = system->xvf.slice<Forces>();
+  id = system->xvf.slice<IDs>();
+  type = system->xvf.slice<Types>();
+
   T_V_FLOAT energy;
 
   if(half_neigh)
