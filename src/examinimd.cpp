@@ -72,8 +72,7 @@ void ExaMiniMD::init(int argc, char* argv[]) {
     integrator = new IntegratorNVE(system);
   
   // Fill some binning
-  if(input->binning_type == BINNING_KKSORT)
-    binning = new BinningKKSort(system);
+  binning = new Binning(system);
 
   // Create Force Type
   if(false) {}

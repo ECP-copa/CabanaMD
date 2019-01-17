@@ -38,7 +38,7 @@
 
 #include<binning_kksort.h>
 
-BinningKKSort::BinningKKSort(System* s): Binning(s) {}
+Binning::Binning(System* s):system(s) {}
 
 namespace {
   //This needs to be multi dimensional Range Policy later
@@ -68,7 +68,7 @@ namespace {
   };
 }
 
-void BinningKKSort::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, int halo_depth, bool do_local, bool do_ghost, bool sort) {
+void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, int halo_depth, bool do_local, bool do_ghost, bool sort) {
   if(do_local||do_ghost) {
     nhalo = halo_depth;
     std::pair<T_INT,T_INT> range(do_local?0:system->N_local,
@@ -139,5 +139,5 @@ void BinningKKSort::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT d
   }
 }
 
-const char* BinningKKSort::name() { return "BinningKKSort"; }
+const char* Binning::name() { return "BinningKKSort"; }
 
