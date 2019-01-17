@@ -52,9 +52,7 @@
 
 Input::Input(System* p):system(p) {
 
-  nsteps = 0;
-
-  //#ifdef EXAMINIMD_ENABLE_MPI
+  //#ifdef CABANAMD_ENABLE_MPI
   //comm_type = COMM_MPI;
   //#else
   comm_type = COMM_SERIAL;
@@ -64,10 +62,8 @@ Input::Input(System* p):system(p) {
   force_type = FORCE_LJ_CABANA_NEIGH;
   force_iteration_type = FORCE_ITER_NEIGH_FULL;
   binning_type = BINNING_CABANA;
-  comm_exchange_rate = 20;
 
-  // set defaults
-
+  // set defaults (matches ExaMiniMD LJ example)
   thermo_rate = 0;
   dumpbinary_rate = 0;
   correctness_rate = 0;
@@ -116,11 +112,11 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("Options:\n");
         printf("  --units-style [TYPE]:       Specify units \n");
         printf("                              (metal, real, lj)\n");
-        printf("  --lattice [TYPE] [CONSTANT] [NX] [NY] [NZ]:  Specify lattice \n");
+        printf("  --lattice [TYPE] [CONSTANT] [NX] [NY] [NZ]:    Specify lattice \n");
         printf("                              (TYPE = fcc)\n");
         printf("                              (CONSTANT = float lattice constant)\n");
         printf("                              (NX, NY, NZ = integer unit cells per dimension)\n");
-        printf("  --temperature [TARGET] [SEED]:     System temperature \n");
+        printf("  --temperature [TARGET] [SEED]:    System temperature \n");
         printf("                              (TARGET = float temperature (K))\n");
         printf("                              (SEED = random seed)\n");
         printf("  --run [STEPS] [PRINT]:      simulation run parameters \n");
@@ -130,7 +126,7 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("                              (SKIN = neighbor list skin distance)\n");
         printf("                              (EXCHANGE = neighbor list build frequency)\n");
         printf("                              (NEWTON = (0 or 1) full or half neighbor lists)\n");
-        printf("  --pair-coeff [N] [CUTOFF] [MASS]xN [COEFF]x(N**2+N)/2x4:      Per type/pair parameters \n");
+        printf("  --pair-coeff [N] [CUTOFF] [MASS]xN [COEFF]x(N**2+N)/2x4:    Per type/pair parameters \n");
         printf("                              (N = number of types)\n");
         printf("                              (CUTOFF = force distance cutoff)\n");
         printf("                              (MASS = One mass per type)\n");
@@ -279,45 +275,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
     Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
     T_V_FLOAT mass = mass_vec[type];
     Kokkos::deep_copy(mass_one,mass);
-  }
-
-}
-
-void Input::check_lammps_command(int line) {
-  bool known = false;
-  
-  if(input_data.words[line][0][0]==0) { known = true; }
-  if(strstr(input_data.words[line][0],"#")) { known = true; }
-  if(strcmp(input_data.words[line][0],"variable")==0) {
-    if(system->do_print)
-      printf("LAMMPS-Command: 'variable' keyword is not supported in ExaMiniMD\n");
-  }
-  if(strcmp(input_data.words[line][0],"atom_style")==0) {
-    if(strcmp(input_data.words[line][1],"atomic")==0) {
-      known = true;
-    } else {
-      if(system->do_print)
-        printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' in ExaMiniMD\n");
-    }
-  }
-  if(strcmp(input_data.words[line][0],"create_atoms")==0) {
-    known = true;
-  }
-  if(strcmp(input_data.words[line][0],"fix")==0) {
-    if(strcmp(input_data.words[line][3],"nve")==0) {
-      known = true;
-      integrator_type = INTEGRATOR_NVE;
-    } else {
-      if(system->do_print)
-        printf("LAMMPS-Command: 'fix' command only supports 'nve' style in ExaMiniMD\n");
-    }
-  }
-  if(input_data.words[line][0][0]=='#') {
-    known = true;
-  }
-  if(!known && system->do_print) {
-    printf("ERROR: unknown keyword\n");
-    input_data.print_line(line);
   }
 }
 

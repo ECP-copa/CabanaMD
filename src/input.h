@@ -172,6 +172,5 @@ class Input {
 public:
   Input(System* s);
   void read_command_line_args(int argc, char* argv[]);
-  void check_lammps_command(int line);
   void create_lattice(Comm* comm);
 };

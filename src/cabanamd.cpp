@@ -75,9 +75,6 @@ void CabanaMD::init(int argc, char* argv[]) {
   // Lets parse the command line arguments
   input->read_command_line_args(argc,argv);
 
-  // Read input file 
-  input->read_file();
-
   // Now we know which integrator type to use
   integrator = new Integrator(system);
   
