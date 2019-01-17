@@ -50,7 +50,7 @@
 #include<force_lj_cabana_neigh.h>
 
 template<class NeighborClass>
-Force<NeighborClass>::Force(char** args, System* system, bool half_neigh_):half_neigh(half_neigh_) {
+Force<NeighborClass>::Force(System* system, bool half_neigh_):half_neigh(half_neigh_) {
   ntypes = system->ntypes;
   use_stackparams = (ntypes <= MAX_TYPES_STACKPARAMS);
   if (!use_stackparams) {
@@ -65,15 +65,15 @@ Force<NeighborClass>::Force(char** args, System* system, bool half_neigh_):half_
 }
 
 template<class NeighborClass>
-void Force<NeighborClass>::init_coeff(int nargs, char** args) {
+void Force<NeighborClass>::init_coeff(std::vector<int> force_types, std::vector<double> force_coeff) {
   step = 0;
 
   int one_based_type = 1;
-  int t1 = atoi(args[1])-one_based_type;
-  int t2 = atoi(args[2])-one_based_type;
-  double eps = atof(args[3]);
-  double sigma = atof(args[4]);
-  double cut = atof(args[5]);
+  int t1 = force_types[0]-one_based_type;
+  int t2 = force_types[1]-one_based_type;
+  double eps = force_coeff[0];
+  double sigma = force_coeff[1];
+  double cut = force_coeff[2];
 
   if (use_stackparams) {
     for (int i = 0; i < ntypes; i++) {

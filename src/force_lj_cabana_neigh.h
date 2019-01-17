@@ -71,6 +71,7 @@
 
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
+#include<vector>
 #include<types.h>
 #include<system.h>
 #include<binning.h>
@@ -131,9 +132,9 @@ public:
 
   bool half_neigh, comm_newton;
 
-  Force (char** args, System* system, bool half_neigh_);
+  Force(System* system, bool half_neigh_);
 
-  void init_coeff(int nargs, char** args);
+  void init_coeff(std::vector<int> force_types, std::vector<double> force_coeff);
 
   void compute(System* system, Binning* binning, Neighbor* neighbor );
   T_F_FLOAT compute_energy(System* system, Binning* binning, Neighbor* neighbor);

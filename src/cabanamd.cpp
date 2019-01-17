@@ -90,11 +90,10 @@ void CabanaMD::init(int argc, char* argv[]) {
 #include<modules_force.h>
 #undef FORCE_MODULES_INSTANTIATION
   else comm->error("Invalid ForceType");
-  for(int line = 0; line < input->force_coeff_lines.dimension_0(); line++) {
-    //input->input_data.print_line(input->force_coeff_lines(line));
-    //printf("init_coeff: %i %i\n",line,input->input_data.words_in_line(input->force_coeff_lines(line)));
-    force->init_coeff(input->input_data.words_in_line(input->force_coeff_lines(line)),
-                      input->input_data.words[input->force_coeff_lines(line)]);
+  int nforce = (pow(input->ntypes, 2.0) + input->ntypes)/2;
+  for(int line = 0; line < nforce; line++) {
+    force->init_coeff(input->force_types[line], input->force_coeff[line]);
+
   }
 
   // Create Neighbor Instance

@@ -47,6 +47,7 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
+#include <vector>
 #include <types.h>
 #include <system.h>
 #include <comm_serial.h>
@@ -155,10 +156,7 @@ class Input {
 
   int force_type;
   int force_iteration_type;
-  int force_line;
   T_F_FLOAT force_cutoff;
-  Kokkos::View<int*,Kokkos::HostSpace> force_coeff_lines;
-
 
   T_F_FLOAT neighbor_skin; 
   int neighbor_type;
@@ -167,6 +165,10 @@ class Input {
   bool dumpbinaryflag, correctnessflag;
   char *dumpbinary_path, *reference_path, *correctness_file;
  
+  std::vector<double> mass_vec;
+  std::vector<std::vector<int>> force_types;
+  std::vector<std::vector<double>> force_coeff;
+
 public:
   Input(System* s);
   void read_command_line_args(int argc, char* argv[]);

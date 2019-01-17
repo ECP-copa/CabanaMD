@@ -53,8 +53,6 @@
 Input::Input(System* p):system(p) {
 
   nsteps = 0;
-  force_coeff_lines = Kokkos::View<int*,Kokkos::HostSpace>("Input::force_coeff_lines",0);
-
 
   //#ifdef EXAMINIMD_ENABLE_MPI
   //comm_type = COMM_MPI;
@@ -94,6 +92,10 @@ Input::Input(System* p):system(p) {
   comm_newton = 0;
 
   ntypes = 1;
+  mass_vec = {2.0};
+  force_types = {{1, 1}};
+  force_coeff = {{1.0, 1.0, 2.5}};
+  force_cutoff = 2.5;
 }
 
 void Input::read_command_line_args(int argc, char* argv[]) {
@@ -109,8 +111,11 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("                              (TYPE = fcc)\n");
         printf("                              (CONSTANT = float lattice constant)\n");
         printf("                              (NX, NY, NZ = integer unit cells per dimension)\n");
-        printf("  --pair-coeff [N]:           Per type/pair parameters \n");
+        printf("  --pair-coeff [N] [CUTOFF] [MASS]xN [COEFF]x(N**2+N)/2x4:      Per type/pair parameters \n");
         printf("                              (N = number of types)\n");
+        printf("                              (CUTOFF = force distance cutoff)\n");
+        printf("                              (MASS = One mass per type)\n");
+	printf("                              (COEFF = Two types and two force coefficients per type (type1, type2, epsilon, sigma))\n");
 	printf("  --dumpbinary [N] [PATH]:    Request that binary output files PATH/output* be generated every N steps\n");
         printf("                              (N = positive integer)\n");
         printf("                              (PATH = location of directory)\n");
@@ -164,9 +169,29 @@ void Input::read_command_line_args(int argc, char* argv[]) {
 
     else if( (strcmp(argv[i],"--pair-coeff")==0)) {
       ntypes = atoi(argv[i+1]);
-      ++i;
-    }
+      force_cutoff = atof(argv[i+2]);
+      i += 2;
 
+      int nforce = (pow(ntypes, 2.0) + ntypes)/2;
+      force_types.resize(nforce, std::vector<int>(2));
+      force_coeff.resize(nforce, std::vector<double>(2));
+
+      for (int type = 0; type < ntypes; type++){
+        mass_vec[type] = atof(argv[i]);
+        ++i;
+      }
+      for (int force = 0; force < nforce; force++){
+        for (int type = 0; type < 2; type++){
+          i++;
+          force_types[force][type] = atoi(argv[i]);
+        }
+        for (int coeff = 0; coeff < 2; coeff++){
+          i++;
+          force_coeff[force][coeff] = atof(argv[i]);
+        }
+      }
+    }
+  
     else if( (strstr(argv[i], "--kokkos-") == NULL) ) {
       if(system->do_print)
         printf("ERROR: Unknown command line argument: %s\n",argv[i]);
@@ -203,6 +228,12 @@ void Input::read_command_line_args(int argc, char* argv[]) {
     lattice_constant = std::pow((4.0 / lattice_constant), (1.0 / 3.0));
 
   system->ntypes = ntypes;
+  system->mass = t_mass("System::mass",system->ntypes);
+  for (int type = 0; type < ntypes; type++){
+    Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
+    T_V_FLOAT mass = mass_vec[type];
+    Kokkos::deep_copy(mass_one,mass);
+  }
 
 }
 
@@ -225,41 +256,6 @@ void Input::check_lammps_command(int line) {
   }
   if(strcmp(input_data.words[line][0],"create_atoms")==0) {
     known = true;
-  }
-  if(strcmp(input_data.words[line][0],"mass")==0) {
-    known = true;
-    int type = atoi(input_data.words[line][1])-1;
-    Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
-    T_V_FLOAT mass = atof(input_data.words[line][2]);
-    Kokkos::deep_copy(mass_one,mass);
-  }
-  if(strcmp(input_data.words[line][0],"pair_style")==0) {
-    if(strcmp(input_data.words[line][1],"lj/cut/idial")==0) {
-      known = true;
-      force_type = FORCE_LJ_IDIAL;
-      force_cutoff = atof(input_data.words[line][2]);
-      force_line = line;
-    } else if(strcmp(input_data.words[line][1],"lj/cut")==0) {
-      known = true;
-      force_type = FORCE_LJ;
-      force_cutoff = atof(input_data.words[line][2]);
-      force_line = line;
-    } 
-    if(strcmp(input_data.words[line][1],"snap")==0) {
-      known = true;
-      force_type = FORCE_SNAP;
-      force_cutoff = 4.73442;// atof(input_data.words[line][2]);
-      force_line = line;
-    }
-    if(system->do_print && !known)
-      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut', 'lj/cut/idial', and 'snap' style in ExaMiniMD\n");
-  }
-  if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
-    known = true;
-    int n_coeff_lines = force_coeff_lines.dimension_0();
-    Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
-    force_coeff_lines( n_coeff_lines) = line;
-    n_coeff_lines++;
   }
   if(strcmp(input_data.words[line][0],"velocity")==0) {
     known = true;
