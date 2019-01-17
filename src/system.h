@@ -75,15 +75,7 @@ public:
   int ntypes;
 
   // Per Particle Property
-  t_x x;         // Positions
-  t_v v;         // Velocities
-  t_f f;         // Forces
-
-  t_type type;   // Particle Type
-  t_id   id;     // Particle ID
-    
-  t_q q;         // Charge
-
+  AoSoA xvf;
   // Per Type Property
   t_mass mass;
 

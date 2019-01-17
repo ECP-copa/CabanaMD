@@ -57,12 +57,7 @@ System::System() {
   N_local = 0;
   N_ghost = 0;
   ntypes = 1;
-  x = t_x();
-  v = t_v();
-  f = t_f();
-  id = t_id();
-  type = t_type();
-  q = t_q();
+
   mass = t_mass();
   domain_x = domain_y = domain_z = 0.0;
   sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
@@ -80,12 +75,7 @@ System::System() {
 }
 
 void System::init() {
-  x = t_x("System::x",N_max);
-  v = t_v("System::v",N_max);
-  f = t_f("System::f",N_max);
-  id = t_id("System::id",N_max);
-  type = t_type("System::type",N_max);
-  q = t_q("System::q",N_max);
+  AoSoA xvf ( N_max );
   mass = t_mass("System::mass",ntypes);
 }
 
@@ -94,28 +84,14 @@ void System::destroy() {
   N_local = 0;
   N_ghost = 0;
   ntypes = 1;
-  x = t_x();
-  v = t_v();
-  f = t_f();
-  id = t_id();
-  type = t_type();
-  q = t_q();
+  AoSoA xvf( 0 );
   mass = t_mass();
 }
 
 void System::grow(T_INT N_new) {
   if(N_new > N_max) {
     N_max = N_new; // Number of global Particles
-
-    Kokkos::resize(x,N_max);      // Positions
-    Kokkos::resize(v,N_max);      // Velocities
-    Kokkos::resize(f,N_max);      // Forces
-
-    Kokkos::resize(id,N_max);     // Id
-
-    Kokkos::resize(type,N_max);   // Particle Type
-
-    Kokkos::resize(q,N_max);      // Charge
+    xvf.resize( N_max );
   }
 }
 
