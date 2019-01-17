@@ -1,27 +1,35 @@
-#Kokkos root path
-KOKKOS_PATH = ${HOME}/kokkos
-
-#Backend and architecture configuration
-KOKKOS_DEVICES=OpenMP
-KOKKOS_ARCH = ""
+KOKKOS_PATH = ${HOME}/build/install/kokkos
+CABANA_PATH = ${HOME}/build/install/cabana
+KOKKOS_LIB = ${KOKKOS_PATH}/lib
+KOKKOS_INCLUDE = ${KOKKOS_PATH}/include
+CABANA_LIB = ${CABANA_PATH}/lib64
+CABANA_INCLUDE = ${CABANA_PATH}/include
 
 #MPI On or off (1/0)
-MPI = 1
+MPI = 0
 
 MAKEFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
-EXAMINIMD_PATH = $(subst Makefile,,$(MAKEFILE_PATH))/..
+CABANAMD_PATH = $(subst Makefile,,$(MAKEFILE_PATH))/..
 
 default: build
 	echo "Start Build"
 
 
-EXE = ExaMiniMD
+EXE = CabanaMD
 CXXFLAGS = -O3 -g
 LINKFLAGS = -O3 -g
 
+CXXFLAGS += -I${KOKKOS_INCLUDE}
+LDFLAGS = -L${KOKKOS_LIB} -lkokkos
+
+#CXXFLAGS += `pkg-config --cflags Cabana`
+CXXFLAGS += -I${CABANA_INCLUDE} --std=c++11 -fopenmp
+#LDFLAGS = `pkg-config --libs Cabana`
+LDFLAGS += -L${CABANA_LIB} -lcabanacore -ldl -fopenmp
+
 ifeq ($(MPI), 1)
   CXX = mpicxx
-  CXXFLAGS += -DEXAMINIMD_ENABLE_MPI
+  CXXFLAGS += -DCABANAMD_ENABLE_MPI
 else
   ifneq (,$(findstring Cuda,$(KOKKOS_DEVICES)))
     CXX = $(KOKKOS_PATH)/bin/nvcc_wrapper
@@ -36,47 +44,26 @@ KOKKOS_OPTIONS=aggressive_vectorization
 
 DEPFLAGS = -M
 
-vpath %.cpp $(EXAMINIMD_PATH)/src
-SRC =  $(wildcard $(EXAMINIMD_PATH)/src/*.cpp) 
-HEADERS = $(wildcard $(EXAMINIMD_PATH)/src/*.h) 
-CXXFLAGS += -I$(EXAMINIMD_PATH)/src
-
-vpath %.cpp $(EXAMINIMD_PATH)/src/force_types
-SRC += $(wildcard $(EXAMINIMD_PATH)/src/force_types/*.cpp)
-HEADERS += $(wildcard $(EXAMINIMD_PATH)/src/force_types/*.h)
-CXXFLAGS += -I$(EXAMINIMD_PATH)/src/force_types
-
-vpath %.cpp $(EXAMINIMD_PATH)/src/comm_types
-SRC += $(wildcard $(EXAMINIMD_PATH)/src/comm_types/*.cpp)
-HEADERS += $(wildcard $(EXAMINIMD_PATH)/src/comm_types/*.h)
-CXXFLAGS += -I$(EXAMINIMD_PATH)/src/comm_types
-
-vpath %.cpp $(EXAMINIMD_PATH)/src/neighbor_types
-SRC += $(wildcard $(EXAMINIMD_PATH)/src/neighbor_types/*.cpp)
-HEADERS += $(wildcard $(EXAMINIMD_PATH)/src/neighbor_types/*.h)
-CXXFLAGS += -I$(EXAMINIMD_PATH)/src/neighbor_types
-
-vpath %.cpp $(EXAMINIMD_PATH)/src/binning_types
-SRC += $(wildcard $(EXAMINIMD_PATH)/src/binning_types/*.cpp)
-HEADERS += $(wildcard $(EXAMINIMD_PATH)/src/binning_types/*.h)
-CXXFLAGS += -I$(EXAMINIMD_PATH)/src/binning_types
+vpath %.cpp $(CABANAMD_PATH)/src
+SRC =  $(wildcard $(CABANAMD_PATH)/src/*.cpp)
+HEADERS = $(wildcard $(CABANAMD_PATH)/src/*.h)
+CXXFLAGS += -I$(CABANAMD_PATH)/src
 
 SRC_NOTDIR = $(notdir $(SRC))
 OBJ = $(SRC_NOTDIR:.cpp=.o)
 LIB =
 
-include $(KOKKOS_PATH)/Makefile.kokkos
 
 build: $(EXE)
 
-$(EXE): $(OBJ) $(KOKKOS_LINK_DEPENDS)
-	$(LINK) $(KOKKOS_LDFLAGS) $(LINKFLAGS) $(EXTRA_PATH) $(OBJ) $(KOKKOS_LIBS) $(LIB) -o $(EXE)
+$(EXE): $(OBJ)
+	$(LINK) $(LINKFLAGS) $(EXTRA_PATH) $(OBJ) $(LDFLAGS) $(LIB) -o $(EXE)
 
-clean: kokkos-clean 
+clean:
 	rm -f *.o $(EXE)
 
 # Compilation rules
 
-%.o:%.cpp $(KOKKOS_CPP_DEPENDS) ${HEADERS}
-	$(CXX) $(KOKKOS_CPPFLAGS) $(KOKKOS_CXXFLAGS) $(CXXFLAGS) $(EXTRA_INC) -c $<
+%.o:%.cpp ${HEADERS}
+	$(CXX) $(CXXFLAGS) $(EXTRA_INC) -c $<
 
