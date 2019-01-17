@@ -53,9 +53,10 @@
 
 class Temperature {
   private:
-    t_v v;
+    t_slice_x v;
+    t_slice_int type;
     t_mass mass;
-    t_type type;
+
     Comm* comm;
   public:
     Temperature(Comm* comm_);

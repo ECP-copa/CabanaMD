@@ -54,9 +54,10 @@
 
 class KinE {
   private:
-    t_v v;
+    t_slice_x v;
+    t_slice_int type;
     t_mass mass;
-    t_type type;
+
     Comm* comm;
   public:
     KinE(Comm* comm_);
