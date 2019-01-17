@@ -56,21 +56,26 @@ Integrator::Integrator(System* p):system(p) {
 
 namespace {
   struct InitialIntegrateFunctor {
-    t_x x;
-    t_v v;
-    t_f_const f;
-    t_type_const type;
+    AoSoA xvf;
+    t_slice_x x;
+    t_slice_x v;
+    t_slice_x f;
+    t_slice_int type;
     t_mass_const mass;
-    t_id id;
-    int step;
 
+    int step;
     T_V_FLOAT dtf,dtv;
     InitialIntegrateFunctor(
-      t_x& x_, t_v& v_, t_f& f_,
-      t_type type_, t_mass mass_, t_id id_,
-      T_V_FLOAT dtf_, T_V_FLOAT dtv_, int step_
-    ):x(x_),v(v_),f(f_),type(type_),mass(mass_),
-      id(id_),dtf(dtf_),dtv(dtv_),step(step_) {}
+      AoSoA& xvf_,
+      t_mass mass_, T_V_FLOAT dtf_, T_V_FLOAT dtv_, int step_
+    ): xvf(xvf_),
+      mass(mass_),dtf(dtf_),dtv(dtv_),step(step_)
+      {
+      x = xvf.slice<Positions>();
+      v = xvf.slice<Velocities>();
+      f = xvf.slice<Forces>();
+      type = xvf.slice<Types>();
+    }
 
     KOKKOS_INLINE_FUNCTION
     void operator() (const T_INT& i) const {
@@ -88,30 +93,35 @@ namespace {
 void Integrator::initial_integrate() {
   static int step =1;
   Kokkos::parallel_for("IntegratorNVE::initial_integrate",system->N_local,
-                       InitialIntegrateFunctor(system->x, system->v, system->f,
-                                               system->type, system->mass, system->id, dtf, dtv, step));
+                       InitialIntegrateFunctor(system->xvf, system->mass, dtf, dtv, step));
   step++;
 }
 
 
 namespace {
   struct FinalIntegrateFunctor {
-    t_v v;
-    t_f_const f;
-    t_type_const type;
+    AoSoA xvf;
+    t_slice_x x;
+    t_slice_x v;
+    t_slice_x f;
+    t_slice_int type;
     t_mass_const mass;
-    t_id id;
-    int step;
-    t_x x;
 
+    int step;
     T_V_FLOAT dtf,dtv;
+
+
     FinalIntegrateFunctor(
-      t_v& v_, t_f& f_,
-      t_type type_, t_mass mass_,
-      T_V_FLOAT dtf_, T_V_FLOAT dtv_,
-      t_id id_, int step_, t_x x_
-    ):v(v_),f(f_),type(type_),mass(mass_),
-      dtf(dtf_),dtv(dtv_),id(id_),step(step_),x(x_) {}
+      AoSoA& xvf_,
+      t_mass mass_, T_V_FLOAT dtf_, T_V_FLOAT dtv_, int step_
+    ): xvf(xvf_), mass(mass_),
+      dtf(dtf_),dtv(dtv_),step(step_)
+      {
+      x = xvf.slice<Positions>();
+      v = xvf.slice<Velocities>();
+      f = xvf.slice<Forces>();
+      type = xvf.slice<Types>();
+    }
 
     KOKKOS_INLINE_FUNCTION
     void operator() (const T_INT& i) const {
@@ -126,8 +136,7 @@ namespace {
 void Integrator::final_integrate() {
   static int step = 1;
   Kokkos::parallel_for("IntegratorNVE::final_integrate",system->N_local, 
-                       FinalIntegrateFunctor(system->v, system->f,
-                                             system->type, system->mass, dtf, dtv, system->id, step, system->x));
+                       FinalIntegrateFunctor(system->xvf, system->mass, dtf, dtv, step));
   step++;
 }
 
