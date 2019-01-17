@@ -51,22 +51,6 @@
 #include <system.h>
 #include <comm_serial.h>
 
-class ItemizedFile {
-public:
-  char*** words;
-  int max_nlines;
-  int nlines;
-  int words_per_line;
-  int max_word_size;
-  ItemizedFile();
-  void allocate_words(int num_lines);
-  void free_words();
-  void print_line(int line);
-  int words_in_line(int line);
-  void print();
-  void add_line(const char* const line);
-};
-
 // Class replicating LAMMPS Random velocity initialization with GEOM option
 #define IA 16807
 #define IM 2147483647
