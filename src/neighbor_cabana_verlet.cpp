@@ -36,10 +36,10 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <neighbor_csr.h>
+#include <neighbor_cabana_verlet.h>
 
 Neighbor::Neighbor():neigh_cut(0.0) {
-  neigh_type = NEIGH_CSR;
+  neigh_type = NEIGH_CABANA_VERLET;
 };
 ~Neighbor::Neighbor() {};
 
@@ -111,4 +111,4 @@ void Neighbor::create_neigh_list(System* system, Binning* binning, bool half_nei
 }
 
 t_neigh_list Neighbor::get_neigh_list() { return neigh_list; }
-const char* Neighbor::name() {return "NeighborCSR";}
+const char* Neighbor::name() {return "NeighborCabanaVerlet";}

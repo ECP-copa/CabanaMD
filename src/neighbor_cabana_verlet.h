@@ -71,12 +71,12 @@
     !defined(FORCE_MODULES_INSTANTIATION) && \
     !defined(FORCE_MODULES_EXTERNAL_TEMPLATE) && \
     !defined(FORCE_MODULES_TEMPLATE)
-#ifndef NEIGHBOR_CSR_H
-#define NEIGHBOR_CSR_H
+#ifndef NEIGHBOR_CABANA_H
+#define NEIGHBOR_CABANA_H
 #include <Kokkos_StaticCrsGraph.hpp>
 #include <types.h>
 #include <system.h>
-#include <binning.h>
+#include <binning_cabana.h>
 
 template<class MemorySpace>
 struct NeighListCSR : public Kokkos::StaticCrsGraph<T_INT,Kokkos::LayoutLeft,MemorySpace,T_INT> {
@@ -376,5 +376,5 @@ struct NeighborAdaptor<NEIGH_CSR> {
 };
 
 extern template struct NeighborCSR<t_neigh_mem_space>;
-#endif // #define NEIGHBOR_CSR_H
+#endif // #define NEIGHBOR_CABANA_H
 #endif // MODULES_OPTION_CHECK / MODULES_INSTANTIATION
