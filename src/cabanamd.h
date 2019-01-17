@@ -67,6 +67,8 @@ class CabanaMD {
     Input* input;
     Binning* binning;
 
+    t_slice_x f;
+
     CabanaMD();
 
     void init(int argc,char* argv[]);

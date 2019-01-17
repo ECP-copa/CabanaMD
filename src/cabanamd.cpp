@@ -131,7 +131,12 @@ void CabanaMD::init(int argc, char* argv[]) {
     neighbor->create_neigh_list(system,binning,force->half_neigh,false);
 
   // Compute initial forces
-  Kokkos::deep_copy(system->f,0.0);
+  f = system->xvf.slice<Forces>();
+  for(int i = 0; i < f.size(); i++) {
+    for(int j = 0; j < 3; j++) {
+      f(i,j) = 0.0;
+    }
+  }
   force->compute(system,neighbor);
 
   if(input->comm_newton) {
@@ -225,8 +230,12 @@ void CabanaMD::run(int nsteps) {
 
     // Zero out forces 
     force_timer.reset();
-    Kokkos::deep_copy(system->f,0.0);
-   
+    f = system->xvf.slice<Forces>();
+    for(int i = 0; i < f.size(); i++) {
+      for(int j = 0; j < 3; j++) {
+	f(i,j) = 0.0;
+      }
+    }
     // Compute Short Range Force
     force->compute(system,neighbor);
     force_time += force_timer.seconds();
