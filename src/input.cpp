@@ -50,20 +50,22 @@
 #include <input.h>
 #include <property_temperature.h>
 
-Input::Input(System* p):system(p),integrator_type(INTEGRATOR_NVE) {
+Input::Input(System* p):system(p) {
 
   nsteps = 0;
   force_coeff_lines = Kokkos::View<int*,Kokkos::HostSpace>("Input::force_coeff_lines",0);
 
 
-#ifdef EXAMINIMD_ENABLE_MPI
-  comm_type = COMM_MPI;
-#else
+  //#ifdef EXAMINIMD_ENABLE_MPI
+  //comm_type = COMM_MPI;
+  //#else
   comm_type = COMM_SERIAL;
-#endif
-  neighbor_type = NEIGH_2D;
+  //#endif
+  integrator_type = INTEGRATOR_NVE;
+  neighbor_type = NEIGH_CABANA_VERLET;
+  force_type = FORCE_LJ_CABANA_NEIGH;
   force_iteration_type = FORCE_ITER_NEIGH_FULL;
-  binning_type = BINNING_KKSORT;
+  binning_type = BINNING_CABANA;
   comm_exchange_rate = 20;
 
   // set defaults
