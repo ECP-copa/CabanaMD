@@ -51,20 +51,6 @@
 #define SYSTEM_H
 #include<types.h>
 
-struct Particle {
-  KOKKOS_INLINE_FUNCTION
-  Particle() {
-    x=y=z=vx=vy=vz=mass=q=0.0;
-    id = type = 0;
-  }
-
-  T_X_FLOAT x,y,z;
-  T_V_FLOAT vx,vy,vz,mass;
-  T_FLOAT q;
-  T_INT id;
-  int type;
-};
-
 class System {
 public:
   T_INT N;       // Number of Global Particles
@@ -103,23 +89,13 @@ public:
   void grow(T_INT new_N);
 
   KOKKOS_INLINE_FUNCTION
-  Particle get_particle(const T_INT& i) const {
-    Particle p;
-    p.x  = x(i,0); p.y  = x(i,1); p.z  = x(i,2);
-    p.vx = v(i,0); p.vy = v(i,1); p.vz = v(i,2);
-    p.q = q(i);
-    p.id = id(i);
-    p.type = type(i);
-    return p;
+  t_particle get_particle(const T_INT& i) const {
+    return xvf.getTuple(i);
   }
 
   KOKKOS_INLINE_FUNCTION
-  void set_particle(const T_INT& i, const Particle& p) const {
-    x(i,0) = p.x;  x(i,1) = p.y;  x(i,2) = p.z;
-    v(i,0) = p.vx; v(i,1) = p.vy; v(i,2) = p.vz;
-    q(i) = p.q;
-    id(i) = p.id;
-    type(i) = p.type;
+  void set_particle(const T_INT& i, const t_particle& p) const {
+    xvf.setTuple(i, p);
   }
 
   KOKKOS_INLINE_FUNCTION
