@@ -36,8 +36,8 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#ifndef BINNING_KKSORT_H
-#define BINNING_KKSORT_H
+#ifndef BINNING_CABANA_H
+#define BINNING_CABANA_H
 #include<Kokkos_Sort.hpp>
 #include <types.h>
 #include <system.h>

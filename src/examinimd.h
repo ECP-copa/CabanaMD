@@ -44,7 +44,7 @@
 #include<neighbor.h>
 #include<comm.h>
 #include<input.h>
-#include<binning.h>
+#include<binning_cabana.h>
 
 class ExaMiniMD {
   public:

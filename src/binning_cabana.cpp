@@ -36,7 +36,7 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include<binning_kksort.h>
+#include<binning_cabana.h>
 
 Binning::Binning(System* s):system(s) {}
 
@@ -139,5 +139,5 @@ void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, 
   }
 }
 
-const char* Binning::name() { return "BinningKKSort"; }
+const char* Binning::name() { return "BinningCabana"; }
 
