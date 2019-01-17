@@ -107,7 +107,7 @@ void ExaMiniMD::init(int argc, char* argv[]) {
 
   // system->print_particles();
   if(system->do_print) {
-    printf("Using: %s %s %s %s\n",force->name(),neighbor->name(),comm->name(),binning->name());
+    printf("Using: %s %s %s %s %s\n",force->name(),neighbor->name(),comm->name(),binning->name(),integrator->name());
   }
 
   // Ok lets go ahead and create the particles if that didn't happen yet

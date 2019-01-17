@@ -39,7 +39,7 @@
 #include <types.h>
 
 #include<system.h>
-#include<integrator.h>
+#include<integrator_nve.h>
 #include<force_lj_cabana_neigh.h>
 #include<neighbor.h>
 #include<comm.h>
