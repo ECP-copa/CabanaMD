@@ -89,6 +89,9 @@ Input::Input(System* p):system(p) {
   lattice_style = LATTICE_FCC;
   lattice_constant = 0.8442;
 
+  temperature_target = 1.4;
+  temperature_seed = 87287;
+
   comm_newton = 0;
 
   ntypes = 1;
@@ -111,6 +114,9 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("                              (TYPE = fcc)\n");
         printf("                              (CONSTANT = float lattice constant)\n");
         printf("                              (NX, NY, NZ = integer unit cells per dimension)\n");
+        printf("  --temperature [TARGET] [SEED]:     System temperature \n");
+        printf("                              (TARGET = float temperature (K))\n");
+        printf("                              (SEED = random seed)\n");
         printf("  --pair-coeff [N] [CUTOFF] [MASS]xN [COEFF]x(N**2+N)/2x4:      Per type/pair parameters \n");
         printf("                              (N = number of types)\n");
         printf("                              (CUTOFF = force distance cutoff)\n");
@@ -165,6 +171,12 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       box[3] = atoi(argv[i+4]);
       box[5] = atoi(argv[i+5]);
       i += 5;
+    }
+
+    else if( (strcmp(argv[i],"--temperature")==0)) {
+      temperature_target = atof(argv[i+1]);
+      temperature_seed = atoi(argv[i+2]);
+      i += 2;
     }
 
     else if( (strcmp(argv[i],"--pair-coeff")==0)) {
@@ -256,19 +268,6 @@ void Input::check_lammps_command(int line) {
   }
   if(strcmp(input_data.words[line][0],"create_atoms")==0) {
     known = true;
-  }
-  if(strcmp(input_data.words[line][0],"velocity")==0) {
-    known = true;
-    if(strcmp(input_data.words[line][1],"all")!=0) {
-      if(system->do_print)
-        printf("Error: LAMMPS-Command: 'velocity' command can only be applied to 'all'\n");
-    }
-    if(strcmp(input_data.words[line][2],"create")!=0) {
-      if(system->do_print)
-        printf("Error: LAMMPS-Command: 'velocity' command can only be used with option 'create'\n");
-    }
-    temperature_target = atof(input_data.words[line][3]);
-    temperature_seed = atoi(input_data.words[line][4]);
   }
   if(strcmp(input_data.words[line][0],"neighbor")==0) {
     known = true;
