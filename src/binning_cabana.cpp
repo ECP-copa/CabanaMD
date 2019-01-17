@@ -51,34 +51,6 @@
 
 Binning::Binning(System* s):system(s) {}
 
-namespace {
-  //This needs to be multi dimensional Range Policy later
-  template<class BinCount1D, class BinOffsets1D, class BinCount3D, class BinOffsets3D>
-  struct BinningKKSort_AssignOffsets {
-    BinCount1D bin_count_1d;
-    BinOffsets1D bin_offsets_1d;
-    BinCount3D bin_count_3d;
-    BinOffsets3D bin_offsets_3d;
-
-    T_INT nbinx,nbiny,nbinz;
-    BinningKKSort_AssignOffsets(BinCount1D bc1d, BinOffsets1D bo1d, 
-                                BinCount3D bc3d, BinOffsets3D bo3d,
-                                T_INT nx, T_INT ny, T_INT nz):
-            bin_count_1d(bc1d),bin_offsets_1d(bo1d),bin_count_3d(bc3d),bin_offsets_3d(bo3d),
-            nbinx(nx),nbiny(ny),nbinz(nz) {}
-
-    KOKKOS_INLINE_FUNCTION
-    void operator() (const T_INT& i) const {
-      T_INT ix = i/(nbiny*nbinz);
-      T_INT iy = (i/nbinz)%nbiny;
-      T_INT iz = i%nbinz;
-
-      bin_offsets_3d(ix,iy,iz) = bin_offsets_1d(i);
-      bin_count_3d(ix,iy,iz) = bin_count_1d(i);
-    }
-  };
-}
-
 void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, int halo_depth, bool do_local, bool do_ghost, bool sort) {
   if(do_local||do_ghost) {
     nhalo = halo_depth;
