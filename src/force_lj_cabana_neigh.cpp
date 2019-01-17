@@ -51,12 +51,11 @@
 
 Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_) {
   ntypes = system->ntypes;
-  use_stackparams = (ntypes <= MAX_TYPES_STACKPARAMS);
-  if (!use_stackparams) {
-    lj1 = t_fparams("ForceLJCabanaNeigh::lj1",ntypes,ntypes);
-    lj2 = t_fparams("ForceLJCabanaNeigh::lj2",ntypes,ntypes);
-    cutsq = t_fparams("ForceLJCabanaNeigh::cutsq",ntypes,ntypes);
-  }
+
+  lj1 = t_fparams("ForceLJCabanaNeigh::lj1",ntypes,ntypes);
+  lj2 = t_fparams("ForceLJCabanaNeigh::lj2",ntypes,ntypes);
+  cutsq = t_fparams("ForceLJCabanaNeigh::cutsq",ntypes,ntypes);
+
   nbinx = nbiny = nbinz = 0;
   N_local = 0;
   nhalo = 0;
@@ -73,38 +72,14 @@ void Force::init_coeff(std::vector<int> force_types, std::vector<double> force_c
   double sigma = force_coeff[1];
   double cut = force_coeff[2];
 
-  if (use_stackparams) {
-    for (int i = 0; i < ntypes; i++) {
-      for (int j = 0; j < ntypes; j++) {
-        stack_lj1[i][j] = 48.0 * eps * pow(sigma,12.0);
-        stack_lj2[i][j] = 24.0 * eps * pow(sigma,6.0);
-        stack_cutsq[i][j] = cut*cut;
-      }
+  for (int i = 0; i < ntypes; i++) {
+    for (int j = 0; j < ntypes; j++) {
+      stack_lj1[i][j] = 48.0 * eps * pow(sigma,12.0);
+      stack_lj2[i][j] = 24.0 * eps * pow(sigma,6.0);
+      stack_cutsq[i][j] = cut*cut;
     }
-  } else {
-    t_fparams::HostMirror h_lj1 = Kokkos::create_mirror_view(lj1);
-    t_fparams::HostMirror h_lj2 = Kokkos::create_mirror_view(lj2);
-    t_fparams::HostMirror h_cutsq = Kokkos::create_mirror_view(cutsq);
-    Kokkos::deep_copy(h_lj1,lj1);
-    Kokkos::deep_copy(h_lj2,lj2);
-    Kokkos::deep_copy(h_cutsq,cutsq);
-
-    h_lj1(t1,t2) = 48.0 * eps * pow(sigma,12.0);
-    h_lj2(t1,t2) = 24.0 * eps * pow(sigma,6.0);
-    h_lj1(t2,t1) = h_lj1(t1,t2);
-    h_lj2(t2,t1) = h_lj2(t1,t2);
-    h_cutsq(t1,t2) = cut*cut;
-    h_cutsq(t2,t1) = cut*cut;
-
-    Kokkos::deep_copy(lj1,h_lj1);
-    Kokkos::deep_copy(lj2,h_lj2);
-    Kokkos::deep_copy(cutsq,h_cutsq);
-
-    rnd_lj1 = lj1;
-    rnd_lj2 = lj2;
-    rnd_cutsq = cutsq;
   }
-};
+}
 
 void Force::compute(System* system, Binning* binning, Neighbor* neighbor_ ) {
   // Set internal data handles
@@ -117,17 +92,12 @@ void Force::compute(System* system, Binning* binning, Neighbor* neighbor_ ) {
   f_a = system->f;
   type = system->type;
   id = system->id;
-  if (use_stackparams) {
-    if(half_neigh)
-      Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh_stackparams(0, system->N_local), *this);
-    else
-      Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_neigh_stackparams(0, system->N_local), *this);
-  } else {
-    if(half_neigh)
-      Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh(0, system->N_local), *this);
-    else
-      Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_neigh(0, system->N_local), *this);
-  }
+
+  if(half_neigh)
+    Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh_stackparams(0, system->N_local), *this);
+  else
+    Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_neigh_stackparams(0, system->N_local), *this);
+
   Kokkos::fence();
 
   step++;
@@ -145,17 +115,12 @@ T_V_FLOAT Force::compute_energy(System* system, Binning* binning, Neighbor* neig
   type = system->type;
   id = system->id;
   T_V_FLOAT energy;
-  if (use_stackparams) {
-    if(half_neigh)
-      Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_half_neigh_pe_stackparams(0, system->N_local), *this, energy);
-    else
-      Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_full_neigh_pe_stackparams(0, system->N_local), *this, energy);
-  } else {
-    if(half_neigh)
-      Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_half_neigh_pe(0, system->N_local), *this, energy);
-    else
-      Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_full_neigh_pe(0, system->N_local), *this, energy);
-  }
+
+  if(half_neigh)
+    Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_half_neigh_pe_stackparams(0, system->N_local), *this, energy);
+  else
+    Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_full_neigh_pe_stackparams(0, system->N_local), *this, energy);
+
   Kokkos::fence();
 
   step++;
@@ -164,9 +129,8 @@ T_V_FLOAT Force::compute_energy(System* system, Binning* binning, Neighbor* neig
 
 const char* Force::name() { return half_neigh?"ForceLJCabanaNeighHalf":"ForceLJCabanaNeighFull"; }
 
-template<bool STACKPARAMS>
 KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagFullNeigh<STACKPARAMS>, const T_INT& i) const {
+void Force::operator() (TagFullNeigh, const T_INT& i) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
@@ -189,11 +153,11 @@ void Force::operator() (TagFullNeigh<STACKPARAMS>, const T_INT& i) const {
     const int type_j = type(j);
     const T_F_FLOAT rsq = dx*dx + dy*dy + dz*dz;
 
-    const T_F_FLOAT cutsq_ij = STACKPARAMS?stack_cutsq[type_i][type_j]:rnd_cutsq(type_i,type_j);
+    const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
 
     if( rsq < cutsq_ij ) {
-      const T_F_FLOAT lj1_ij = STACKPARAMS?stack_lj1[type_i][type_j]:rnd_lj1(type_i,type_j);
-      const T_F_FLOAT lj2_ij = STACKPARAMS?stack_lj2[type_i][type_j]:rnd_lj2(type_i,type_j);
+      const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
+      const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
 
       T_F_FLOAT r2inv = 1.0/rsq;
       T_F_FLOAT r6inv = r2inv*r2inv*r2inv;
@@ -210,9 +174,8 @@ void Force::operator() (TagFullNeigh<STACKPARAMS>, const T_INT& i) const {
 
 }
 
-template<bool STACKPARAMS>
 KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagHalfNeigh<STACKPARAMS>, const T_INT& i) const {
+void Force::operator() (TagHalfNeigh, const T_INT& i) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
@@ -234,11 +197,11 @@ void Force::operator() (TagHalfNeigh<STACKPARAMS>, const T_INT& i) const {
     const int type_j = type(j);
     const T_F_FLOAT rsq = dx*dx + dy*dy + dz*dz;
 
-    const T_F_FLOAT cutsq_ij = STACKPARAMS?stack_cutsq[type_i][type_j]:rnd_cutsq(type_i,type_j);
+    const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
 
     if( rsq < cutsq_ij ) {
-      const T_F_FLOAT lj1_ij = STACKPARAMS?stack_lj1[type_i][type_j]:rnd_lj1(type_i,type_j);
-      const T_F_FLOAT lj2_ij = STACKPARAMS?stack_lj2[type_i][type_j]:rnd_lj2(type_i,type_j);
+      const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
+      const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
 
       T_F_FLOAT r2inv = 1.0/rsq;
       T_F_FLOAT r6inv = r2inv*r2inv*r2inv;
@@ -257,9 +220,8 @@ void Force::operator() (TagHalfNeigh<STACKPARAMS>, const T_INT& i) const {
 
 }
 
-template<bool STACKPARAMS>
 KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagFullNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& PE) const {
+void Force::operator() (TagFullNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
@@ -279,11 +241,11 @@ void Force::operator() (TagFullNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& 
     const int type_j = type(j);
     const T_F_FLOAT rsq = dx*dx + dy*dy + dz*dz;
 
-    const T_F_FLOAT cutsq_ij = STACKPARAMS?stack_cutsq[type_i][type_j]:rnd_cutsq(type_i,type_j);
+    const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
 
     if( rsq < cutsq_ij ) {
-      const T_F_FLOAT lj1_ij = STACKPARAMS?stack_lj1[type_i][type_j]:rnd_lj1(type_i,type_j);
-      const T_F_FLOAT lj2_ij = STACKPARAMS?stack_lj2[type_i][type_j]:rnd_lj2(type_i,type_j);
+      const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
+      const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
 
       T_F_FLOAT r2inv = 1.0/rsq;
       T_F_FLOAT r6inv = r2inv*r2inv*r2inv;
@@ -298,9 +260,8 @@ void Force::operator() (TagFullNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& 
   }
 }
 
-template<bool STACKPARAMS>
 KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagHalfNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& PE) const {
+void Force::operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
@@ -320,11 +281,11 @@ void Force::operator() (TagHalfNeighPE<STACKPARAMS>, const T_INT& i, T_V_FLOAT& 
     const int type_j = type(j);
     const T_F_FLOAT rsq = dx*dx + dy*dy + dz*dz;
 
-    const T_F_FLOAT cutsq_ij = STACKPARAMS?stack_cutsq[type_i][type_j]:rnd_cutsq(type_i,type_j);
+    const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
 
     if( rsq < cutsq_ij ) {
-      const T_F_FLOAT lj1_ij = STACKPARAMS?stack_lj1[type_i][type_j]:rnd_lj1(type_i,type_j);
-      const T_F_FLOAT lj2_ij = STACKPARAMS?stack_lj2[type_i][type_j]:rnd_lj2(type_i,type_j);
+      const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
+      const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
 
       T_F_FLOAT r2inv = 1.0/rsq;
       T_F_FLOAT r6inv = r2inv*r2inv*r2inv;
