@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
    MPI_Init(&argc,&argv);
    #endif
 
-   Kokkos::initialize(argc,argv);
+   Cabana::initialize(argc,argv);
 
    CabanaMD cabanamd;
    cabanamd.init(argc,argv);
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 
    cabanamd.shutdown();
 
-   Kokkos::finalize();
+   Cabana::finalize();
 
    #ifdef CABANAMD_ENABLE_MPI
    MPI_Finalize();
