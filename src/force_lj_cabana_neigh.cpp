@@ -162,16 +162,15 @@ void Force::operator() (TagFullNeigh, const T_INT& i) const {
   const T_F_FLOAT z_i = x(i,2);
   const int type_i = type(i);
 
-  typename t_neigh_list::t_neighs neighs_i = neigh_list.get_neighs(i);
-
-  const int num_neighs = neighs_i.get_num_neighs();
+  int num_neighs = Cabana::NeighborList<t_verletlist_full>::numNeighbor(neigh_list_full, i);
 
   T_F_FLOAT fxi = 0.0;
   T_F_FLOAT fyi = 0.0;
   T_F_FLOAT fzi = 0.0;
 
   for(int jj = 0; jj < num_neighs; jj++) {
-    T_INT j = neighs_i(jj);
+    int j = Cabana::NeighborList<t_verletlist_full>::getNeighbor(neigh_list_full, i, jj);
+
     const T_F_FLOAT dx = x_i - x(j,0);
     const T_F_FLOAT dy = y_i - x(j,1);
     const T_F_FLOAT dz = z_i - x(j,2);
@@ -207,15 +206,14 @@ void Force::operator() (TagHalfNeigh, const T_INT& i) const {
   const T_F_FLOAT z_i = x(i,2);
   const int type_i = type(i);
 
-  typename t_neigh_list::t_neighs neighs_i = neigh_list.get_neighs(i);
-
-  const int num_neighs = neighs_i.get_num_neighs();
+  int num_neighs = Cabana::NeighborList<t_verletlist_half>::numNeighbor(neigh_list_half, i);
 
   T_F_FLOAT fxi = 0.0;
   T_F_FLOAT fyi = 0.0;
   T_F_FLOAT fzi = 0.0;
   for(int jj = 0; jj < num_neighs; jj++) {
-    T_INT j = neighs_i(jj);
+    int j = Cabana::NeighborList<t_verletlist_half>::getNeighbor(neigh_list_half, i, jj);
+
     const T_F_FLOAT dx = x_i - x(j,0);
     const T_F_FLOAT dy = y_i - x(j,1);
     const T_F_FLOAT dz = z_i - x(j,2);
@@ -254,12 +252,11 @@ void Force::operator() (TagFullNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
   const int type_i = type(i);
   const bool shift_flag = true;
 
-  typename t_neigh_list::t_neighs neighs_i = neigh_list.get_neighs(i);
-
-  const int num_neighs = neighs_i.get_num_neighs();
+  int num_neighs = Cabana::NeighborList<t_verletlist_full>::numNeighbor(neigh_list_full, i);
 
   for(int jj = 0; jj < num_neighs; jj++) {
-    T_INT j = neighs_i(jj);
+    int j = Cabana::NeighborList<t_verletlist_full>::getNeighbor(neigh_list_full, i, jj);
+
     const T_F_FLOAT dx = x_i - x(j,0);
     const T_F_FLOAT dy = y_i - x(j,1);
     const T_F_FLOAT dz = z_i - x(j,2);
@@ -294,12 +291,11 @@ void Force::operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
   const int type_i = type(i);
   const bool shift_flag = true;
 
-  typename t_neigh_list::t_neighs neighs_i = neigh_list.get_neighs(i);
-
-  const int num_neighs = neighs_i.get_num_neighs();
+  int num_neighs = Cabana::NeighborList<t_verletlist_half>::numNeighbor(neigh_list_half, i);
 
   for(int jj = 0; jj < num_neighs; jj++) {
-    T_INT j = neighs_i(jj);
+    int j = Cabana::NeighborList<t_verletlist_half>::getNeighbor(neigh_list_half, i, jj);
+
     const T_F_FLOAT dx = x_i - x(j,0);
     const T_F_FLOAT dy = y_i - x(j,1);
     const T_F_FLOAT dz = z_i - x(j,2);
