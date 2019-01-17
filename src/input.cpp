@@ -92,6 +92,8 @@ Input::Input(System* p):system(p) {
   lattice_constant = 0.8442;
 
   comm_newton = 0;
+
+  ntypes = 1;
 }
 
 void Input::read_command_line_args(int argc, char* argv[]) {
@@ -107,7 +109,9 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("                              (TYPE = fcc)\n");
         printf("                              (CONSTANT = float lattice constant)\n");
         printf("                              (NX, NY, NZ = integer unit cells per dimension)\n");
-        printf("  --dumpbinary [N] [PATH]:    Request that binary output files PATH/output* be generated every N steps\n");
+        printf("  --pair-coeff [N]:           Per type/pair parameters \n");
+        printf("                              (N = number of types)\n");
+	printf("  --dumpbinary [N] [PATH]:    Request that binary output files PATH/output* be generated every N steps\n");
         printf("                              (N = positive integer)\n");
         printf("                              (PATH = location of directory)\n");
         printf("  --correctness [N] [PATH] [FILE]:   Request that correctness check against files PATH/output* be performed every N steps, correctness data written to FILE\n");
@@ -158,6 +162,11 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       i += 5;
     }
 
+    else if( (strcmp(argv[i],"--pair-coeff")==0)) {
+      ntypes = atoi(argv[i+1]);
+      ++i;
+    }
+
     else if( (strstr(argv[i], "--kokkos-") == NULL) ) {
       if(system->do_print)
         printf("ERROR: Unknown command line argument: %s\n",argv[i]);
@@ -193,6 +202,7 @@ void Input::read_command_line_args(int argc, char* argv[]) {
   if(lattice_style == LATTICE_FCC)
     lattice_constant = std::pow((4.0 / lattice_constant), (1.0 / 3.0));
 
+  system->ntypes = ntypes;
 
 }
 
@@ -212,11 +222,6 @@ void Input::check_lammps_command(int line) {
       if(system->do_print)
         printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' in ExaMiniMD\n");
     }
-  }
-  if(strcmp(input_data.words[line][0],"create_box")==0) {
-    known = true;
-    system->ntypes = atoi(input_data.words[line][1]);
-    system->mass = t_mass("System::mass",system->ntypes);
   }
   if(strcmp(input_data.words[line][0],"create_atoms")==0) {
     known = true;

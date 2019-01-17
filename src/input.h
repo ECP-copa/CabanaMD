@@ -145,6 +145,7 @@ class Input {
 
   int integrator_type;
   int nsteps;
+  int ntypes; 
 
   int binning_type;
 
