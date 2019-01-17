@@ -134,10 +134,6 @@ class Input {
  public:
   System* system;
   
-  char* input_file;
-  int input_file_type;
-  ItemizedFile input_data;
-
   int units;
 
   int lattice_style;
@@ -173,8 +169,6 @@ class Input {
 public:
   Input(System* s);
   void read_command_line_args(int argc, char* argv[]);
-  void read_file(const char* filename = NULL);
-  void read_lammps_file(const char* filename);
   void check_lammps_command(int line);
   void create_lattice(Comm* comm);
 };

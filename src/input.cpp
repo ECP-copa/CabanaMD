@@ -50,11 +50,10 @@
 #include <input.h>
 #include <property_temperature.h>
 
-Input::Input(System* p):system(p),input_data(ItemizedFile()),integrator_type(INTEGRATOR_NVE) {
+Input::Input(System* p):system(p),integrator_type(INTEGRATOR_NVE) {
 
   nsteps = 0;
   force_coeff_lines = Kokkos::View<int*,Kokkos::HostSpace>("Input::force_coeff_lines",0);
-  input_file_type = -1;
 
 
 #ifdef EXAMINIMD_ENABLE_MPI
@@ -89,7 +88,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       if(system->do_print) {
         printf("ExaMiniMD 1.0 (Kokkos Reference Version)\n\n");
         printf("Options:\n");
-        printf("  -il [file] / --input-lammps [FILE]: Provide LAMMPS input file\n");
         printf("  --force-iteration [TYPE]:   Specify which iteration style to use\n");
         printf("                              for force calculations (CELL_FULL, NEIGH_FULL, NEIGH_HALF)\n");
         printf("  --comm-type [TYPE]:         Specify Communication Routines implementation \n");
@@ -103,12 +101,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("  --neigh-type [TYPE]:        Specify Neighbor Routines implementation \n");
         printf("                              (2D, CSR, CSR_MAPCONSTR)\n");
       }
-    }
-
-    // Read Lammps input deck
-    else if( (strcmp(argv[i], "-il") == 0) || (strcmp(argv[i], "--input-lammps") == 0) ) {
-      input_file = argv[++i];
-      input_file_type = INPUT_LAMMPS;
     }
 
     // Force Iteration Type Related
@@ -154,45 +146,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
 
   }
 #undef MODULES_OPTION_CHECK
-}
-
-void Input::read_file(const char* filename) {
-  if( filename == NULL )
-    filename = input_file;
-  if( input_file_type == INPUT_LAMMPS ) {
-    read_lammps_file(filename);
-    return;
-  }
-  if(system->do_print)
-    printf("ERROR: Unknown input file type\n");
-  exit(1);
-}
-
-void Input::read_lammps_file(const char* filename) {
-  input_data.allocate_words(100);
-
-
-  std::ifstream file(filename);
-  char* line = new char[512];
-  line[0] = 0;
-  file.getline(line,std::streamsize(511));
-  while(file.good()) {
-    input_data.add_line(line);
-    line[0] = 0;
-    file.getline(line,511);
-  }
-  if(system->do_print) {
-    printf("\n");
-    printf("#InputFile:\n");
-    printf("#=========================================================\n");
-
-    input_data.print();
-
-    printf("#=========================================================\n");
-    printf("\n");
-  }
-  for(int l = 0; l<input_data.nlines; l++)
-    check_lammps_command(l);
 }
 
 void Input::check_lammps_command(int line) {
