@@ -54,8 +54,8 @@ Binning::Binning(System* s):system(s) {}
 void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, int halo_depth, bool do_local, bool do_ghost, bool sort) {
   if(do_local||do_ghost) {
     nhalo = halo_depth;
-    std::pair<T_INT,T_INT> range(do_local?0:system->N_local,
-                                 do_ghost?system->N_local+system->N_ghost:system->N_local);
+    int begin = do_local?0:system->N_local;
+    int end = do_ghost?system->N_local+system->N_ghost:system->N_local;
 
     nbinx = T_INT(system->sub_domain_x/dx_in);
     nbiny = T_INT(system->sub_domain_y/dy_in);
@@ -69,10 +69,6 @@ void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, 
     T_X_FLOAT dy = system->sub_domain_y/nbiny;
     T_X_FLOAT dz = system->sub_domain_z/nbinz;
 
-    nbinx += 2*halo_depth;
-    nbiny += 2*halo_depth;
-    nbinz += 2*halo_depth;
-
     T_X_FLOAT eps = dx/1000;
     minx = -dx * halo_depth - eps + system->sub_domain_lo_x;
     maxx =  dx * halo_depth + eps + system->sub_domain_hi_x;
@@ -81,43 +77,16 @@ void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, 
     minz = -dz * halo_depth - eps + system->sub_domain_lo_z;
     maxz =  dz * halo_depth + eps + system->sub_domain_hi_z;
 
-    T_INT nbin[3] = {nbinx,nbiny,nbinz};
+    T_X_FLOAT delta[3] = {dx,dy,dz};
     T_X_FLOAT min[3] = {minx,miny,minz};
     T_X_FLOAT max[3] = {maxx,maxy,maxz};
 
-    t_binop binop(nbin,min,max);
+    x = system->xvf.slice<Positions>();
 
-    auto x = Kokkos::subview(system->x,range,Kokkos::ALL);
+    Cabana::LinkedCellList<MemorySpace> cell_list(x, begin, end, delta, min, max );
 
-    sorter = t_sorter(x,binop);
-
-    sorter.create_permute_vector();
-
-    permute_vector = sorter.get_permute_vector();
-
-    typename t_sorter::bin_count_type bin_count_1d = sorter.get_bin_count();
-    typename t_sorter::offset_type bin_offsets_1d = sorter.get_bin_offsets();
-
-    bincount = t_bincount("Binning::bincount",nbinx,nbiny,nbinz);
-    binoffsets = t_binoffsets("Binning::binoffsets",nbinx,nbiny,nbinz);
-
-    Kokkos::parallel_for("Binning::AssignOffsets",nbinx*nbiny*nbinz,
-                    BinningKKSort_AssignOffsets<t_sorter::bin_count_type,t_sorter::offset_type,
-                                                t_bincount, t_binoffsets>(bin_count_1d,bin_offsets_1d,
-                                                                          bincount,binoffsets,
-                                                                          nbinx,nbiny,nbinz));
     if(sort) {
-      sorter.sort(x);
-      auto v = Kokkos::subview(system->v,range,Kokkos::ALL);
-      sorter.sort(v);
-      auto f = Kokkos::subview(system->f,range,Kokkos::ALL);
-      sorter.sort(f);
-      t_type type(system->type,range);
-      sorter.sort(type);
-      t_id id(system->id,range);
-      sorter.sort(id);
-      t_q q(system->q,range);
-      sorter.sort(q);
+      Cabana::permute( cell_list, system->xvf );
     }
   }
 }
