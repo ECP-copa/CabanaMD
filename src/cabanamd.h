@@ -52,7 +52,6 @@
 #include<system.h>
 #include<integrator_nve.h>
 #include<force_lj_cabana_neigh.h>
-#include<neighbor.h>
 #include<comm_serial.h>
 #include<input.h>
 #include<binning_cabana.h>
@@ -62,7 +61,6 @@ class CabanaMD {
     System* system;
     Integrator* integrator;
     Force* force;
-    Neighbor* neighbor;
     Comm* comm;
     Input* input;
     Binning* binning;

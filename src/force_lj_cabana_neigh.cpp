@@ -94,11 +94,8 @@ void Force::create_neigh_list(System* system) {
     t_verletlist_full full( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
 }
 
-void Force::compute(System* system, Neighbor* neighbor_ ) {
+void Force::compute(System* system) {
   // Set internal data handles
-  NeighborClass* neighbor = (NeighborClass*) neighbor_;
-  neigh_list = neighbor->get_neigh_list();
-
   N_local = system->N_local;
   x = system->x;
   f = system->f;
@@ -116,11 +113,8 @@ void Force::compute(System* system, Neighbor* neighbor_ ) {
   step++;
 }
 
-T_V_FLOAT Force::compute_energy(System* system, Neighbor* neighbor_ ) {
+T_V_FLOAT Force::compute_energy(System* system) {
   // Set internal data handles
-  NeighborClass* neighbor = (NeighborClass*) neighbor_;
-  neigh_list = neighbor->get_neigh_list();
-
   N_local = system->N_local;
   x = system->x;
   f = system->f;

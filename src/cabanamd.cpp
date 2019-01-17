@@ -64,7 +64,6 @@ CabanaMD::CabanaMD() {
   // so we can init it in constructor
   input = new Input(system);
 
-  neighbor = NULL;
 }
 
 void CabanaMD::init(int argc, char* argv[]) {
@@ -87,27 +86,18 @@ void CabanaMD::init(int argc, char* argv[]) {
   force = new Force(system,half_neigh);
   int nforce = (pow(input->ntypes, 2.0) + input->ntypes)/2;
   for(int line = 0; line < nforce; line++) {
-    force->init_coeff(input->force_types[line], input->force_coeff[line]);
+    force->init_coeff(neigh_cutoff, input->force_types[line], input->force_coeff[line]);
   }
-
-  // Create Neighbor Instance
-  if (false) {}
-#define NEIGHBOR_MODULES_INSTANTIATION
-#include<modules_neighbor.h>
-#undef NEIGHBOR_MODULES_INSTANTIATION
-  else comm->error("Invalid NeighborType");
 
   // Create Communication Submodule
     comm = new Comm(system, neigh_cutoff);
 
   // Do some additional settings
   force->comm_newton = input->comm_newton;
-  if(neighbor)
-    neighbor->comm_newton = input->comm_newton;
 
   // system->print_particles();
   if(system->do_print) {
-    printf("Using: %s %s %s %s %s\n",force->name(),neighbor->name(),comm->name(),binning->name(),integrator->name());
+    printf("Using: %s %s %s %s\n",force->name(),comm->name(),binning->name(),integrator->name());
   }
 
   // Ok lets go ahead and create the particles if that didn't happen yet
@@ -123,12 +113,8 @@ void CabanaMD::init(int argc, char* argv[]) {
   // Set up particles
   comm->exchange_halo();
 
-  // Create binning for neighborlist construction
-  binning->create_binning(neigh_cutoff,neigh_cutoff,neigh_cutoff,1,true,true,false);
-
   // Compute NeighList
-  if(neighbor)
-    neighbor->create_neigh_list(system,binning,force->half_neigh,false);
+  force->create_neigh_list(system);
 
   // Compute initial forces
   f = system->xvf.slice<Forces>();
@@ -137,7 +123,7 @@ void CabanaMD::init(int argc, char* argv[]) {
       f(i,j) = 0.0;
     }
   }
-  force->compute(system,neighbor);
+  force->compute(system);
 
   if(input->comm_newton) {
     // Reverse Communicate Force Update on Halo
@@ -151,7 +137,7 @@ void CabanaMD::init(int argc, char* argv[]) {
     PotE pote(comm);
     KinE kine(comm);
     T_FLOAT T = temp.compute(system);
-    T_FLOAT PE = pote.compute(system,binning,neighbor,force)/system->N;
+    T_FLOAT PE = pote.compute(system,binning,force)/system->N;
     T_FLOAT KE = kine.compute(system)/system->N;
     if(system->do_print) {
       if (!system->print_lammps) {
@@ -213,13 +199,9 @@ void CabanaMD::run(int nsteps) {
       comm->exchange_halo();
       comm_time += comm_timer.seconds();
       
-      // Create binning for neighborlist construction
+      // Compute Neighbor List 
       neigh_timer.reset();
-      binning->create_binning(neigh_cutoff,neigh_cutoff,neigh_cutoff,1,true,true,false);
-
-      // Compute Neighbor List if necessary
-      if(neighbor)
-        neighbor->create_neigh_list(system,binning,force->half_neigh,false);
+      force->create_neigh_list(system);
       neigh_time += neigh_timer.seconds();
     } else {
       // Exchange Halo
@@ -237,7 +219,7 @@ void CabanaMD::run(int nsteps) {
       }
     }
     // Compute Short Range Force
-    force->compute(system,neighbor);
+    force->compute(system);
     force_time += force_timer.seconds();
 
     // This is where Bonds, Angles and KSpace should go eventually 
@@ -256,7 +238,7 @@ void CabanaMD::run(int nsteps) {
     // On output steps print output
     if(step%input->thermo_rate==0) {
       T_FLOAT T = temp.compute(system);
-      T_FLOAT PE = pote.compute(system,binning,neighbor,force)/system->N;
+      T_FLOAT PE = pote.compute(system,binning,force)/system->N;
       T_FLOAT KE = kine.compute(system)/system->N;
       if(system->do_print) {
         if (!system->print_lammps) {
@@ -282,7 +264,7 @@ void CabanaMD::run(int nsteps) {
 
   double time = timer.seconds();
   T_FLOAT T = temp.compute(system);
-  T_FLOAT PE = pote.compute(system,binning,neighbor,force)/system->N;
+  T_FLOAT PE = pote.compute(system,binning,force)/system->N;
   T_FLOAT KE = kine.compute(system)/system->N;
 
   if(system->do_print) {

@@ -52,7 +52,6 @@
 #include<vector>
 #include<types.h>
 #include<system.h>
-#include<neighbor.h>
 
 class Force {
 private:
@@ -73,9 +72,6 @@ private:
   T_F_FLOAT stack_lj1[MAX_TYPES_STACKPARAMS+1][MAX_TYPES_STACKPARAMS+1]; // hardwired space for 12 atom types
   T_F_FLOAT stack_lj2[MAX_TYPES_STACKPARAMS+1][MAX_TYPES_STACKPARAMS+1];
   T_F_FLOAT stack_cutsq[MAX_TYPES_STACKPARAMS+1][MAX_TYPES_STACKPARAMS+1];
-
-  typedef typename NeighborClass::t_neigh_list t_neigh_list;
-  t_neigh_list neigh_list;
 
 public:
   typedef T_V_FLOAT value_type;
@@ -102,8 +98,8 @@ public:
 
   void create_neigh_list(System* system);
 
-  void compute(System* system, Neighbor* neighbor );
-  T_F_FLOAT compute_energy(System* system, Neighbor* neighbor);
+  void compute(System* system);
+  T_F_FLOAT compute_energy(System* system);
 
   KOKKOS_INLINE_FUNCTION
   void operator() (TagFullNeigh, const T_INT& i) const;
