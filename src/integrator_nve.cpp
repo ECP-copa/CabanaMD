@@ -38,7 +38,7 @@
 
 #include <integrator_nve.h>
 
-IntegratorNVE::IntegratorNVE(System* s):Integrator(s) {
+Integrator::Integrator(System* p):system(p) {
   dtv = system->dt;
   dtf = 0.5 * system->dt / system->mvv2e;
 }
@@ -74,7 +74,7 @@ namespace {
   };
 }
 
-void IntegratorNVE::initial_integrate() {
+void Integrator::initial_integrate() {
   static int step =1;
   Kokkos::parallel_for("IntegratorNVE::initial_integrate",system->N_local,
                        InitialIntegrateFunctor(system->x, system->v, system->f,
@@ -112,7 +112,7 @@ namespace {
   };
 }
 
-void IntegratorNVE::final_integrate() {
+void Integrator::final_integrate() {
   static int step = 1;
   Kokkos::parallel_for("IntegratorNVE::final_integrate",system->N_local, 
                        FinalIntegrateFunctor(system->v, system->f,
@@ -120,3 +120,4 @@ void IntegratorNVE::final_integrate() {
   step++;
 }
 
+const char* Integrator::name() { return "IntegratorNVE"; }

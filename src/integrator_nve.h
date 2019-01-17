@@ -40,14 +40,21 @@
 #define INTEGRATOR_NVE_H
 
 #include <types.h>
-#include <integrator.h>
+#include <system.h>
 
-class IntegratorNVE: public Integrator {
+class Integrator {
   T_V_FLOAT dtv, dtf;
 
 public:
-  IntegratorNVE(System* s);
+  System* system;
+
+  Integrator(System* s);
+  ~Integrator();
+  T_V_FLOAT timestep_size;
+
   void initial_integrate();
   void final_integrate();
+
+  const char* name();
 };
 #endif

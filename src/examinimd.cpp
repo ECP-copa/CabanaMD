@@ -68,8 +68,7 @@ void ExaMiniMD::init(int argc, char* argv[]) {
   input->read_file();
 
   // Now we know which integrator type to use
-  if(input->integrator_type == INTEGRATOR_NVE)
-    integrator = new IntegratorNVE(system);
+  integrator = new Integrator(system);
   
   // Fill some binning
   binning = new Binning(system);
