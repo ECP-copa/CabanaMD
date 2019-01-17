@@ -59,15 +59,17 @@ void Neighbor::init(T_X_FLOAT neigh_cut_) { neigh_cut = neigh_cut_; };
 void Neighbor::create_neigh_list(System* system, Binning* binning, bool half_neigh_, bool) {
   // Get some data handles
   N_local = system->N_local;
-  x = system->x;
-  type = system->type;
-  id = system->id;
+  auto x = system->xvf.slice<Positions>();
+
+  double grid_min[3] = {0.0,0.0,0.0};
+  double grid_max[3] = {system->domain_x,system->domain_y,system->domain_z};
+
   half_neigh = half_neigh_;
 
   if(half_neigh)
-    Kokkos::parallel_for("NeighborCSR::fill_neigh_list_half",t_policy_fnlh(nbins,Kokkos::AUTO,8),*this);
+    t_verletlist_half verlet_list_half( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
   else
-    Kokkos::parallel_for("NeighborCSR::fill_neigh_list_full",t_policy_fnlf(nbins,Kokkos::AUTO,8),*this);
+    t_verletlist_full verlet_list_full( x, 0, system->N, neigh_cut, 1.0, grid_min, grid_max );
 
   Kokkos::fence();
 

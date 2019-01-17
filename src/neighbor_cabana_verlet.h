@@ -57,9 +57,6 @@ class Neighbor {
 
 protected:
   T_X_FLOAT neigh_cut;
-  t_x x;
-  t_type type;
-  t_id id;
 
   T_INT N_local;
 
