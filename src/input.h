@@ -38,7 +38,7 @@
 
 #include <types.h>
 #include <system.h>
-#include <comm.h>
+#include <comm_serial.h>
 
 class ItemizedFile {
 public:

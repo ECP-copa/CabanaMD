@@ -42,7 +42,7 @@
 #include<integrator_nve.h>
 #include<force_lj_cabana_neigh.h>
 #include<neighbor.h>
-#include<comm.h>
+#include<comm_serial.h>
 #include<input.h>
 #include<binning_cabana.h>
 
