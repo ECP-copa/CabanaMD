@@ -92,6 +92,10 @@ Input::Input(System* p):system(p) {
   temperature_target = 1.4;
   temperature_seed = 87287;
 
+  nsteps = 100;
+  thermo_rate = 10;
+  //timestep = 1;
+
   neighbor_skin = 0.3;
   comm_exchange_rate = 20;
   comm_newton = 0;
@@ -119,6 +123,9 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("  --temperature [TARGET] [SEED]:     System temperature \n");
         printf("                              (TARGET = float temperature (K))\n");
         printf("                              (SEED = random seed)\n");
+        printf("  --run [STEPS] [PRINT]:      simulation run parameters \n");
+        printf("                              (STEPS = number of timesteps)\n");
+        printf("                              (PRINT = thermo print frequency)\n");
         printf("  --neighbor [SKIN] [EXCHANGE] [NEWTON]:    neighbor list parameters \n");
         printf("                              (SKIN = neighbor list skin distance)\n");
         printf("                              (EXCHANGE = neighbor list build frequency)\n");
@@ -182,6 +189,13 @@ void Input::read_command_line_args(int argc, char* argv[]) {
     else if( (strcmp(argv[i],"--temperature")==0)) {
       temperature_target = atof(argv[i+1]);
       temperature_seed = atoi(argv[i+2]);
+      i += 2;
+    }
+
+    else if( (strcmp(argv[i],"--run")==0)) {
+      nsteps = atoi(argv[i+1]);
+      thermo_rate = atoi(argv[i+2]);
+      //timestep = atof(argv[i+3]); // determined by units_type
       i += 2;
     }
 
@@ -256,6 +270,9 @@ void Input::read_command_line_args(int argc, char* argv[]) {
   if(lattice_style == LATTICE_FCC)
     lattice_constant = std::pow((4.0 / lattice_constant), (1.0 / 3.0));
 
+  //if (timestepflag)
+  //  system->dt = timestep;
+
   system->ntypes = ntypes;
   system->mass = t_mass("System::mass",system->ntypes);
   for (int type = 0; type < ntypes; type++){
@@ -294,19 +311,6 @@ void Input::check_lammps_command(int line) {
       if(system->do_print)
         printf("LAMMPS-Command: 'fix' command only supports 'nve' style in ExaMiniMD\n");
     }
-  }
-  if(strcmp(input_data.words[line][0],"run")==0) {
-    known = true;
-    nsteps = atoi(input_data.words[line][1]);    
-  }
-  if(strcmp(input_data.words[line][0],"thermo")==0) {
-    known = true;
-    thermo_rate = atoi(input_data.words[line][1]);
-  }
-  if(strcmp(input_data.words[line][0],"timestep")==0) {
-    known = true;
-    system->dt = atof(input_data.words[line][1]);
-    timestepflag = true;
   }
   if(input_data.words[line][0][0]=='#') {
     known = true;
