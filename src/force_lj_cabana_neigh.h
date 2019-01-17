@@ -58,8 +58,8 @@
 #if !defined(MODULES_OPTION_CHECK) && \
     !defined(FORCE_MODULES_INSTANTIATION)
 
-#ifndef FORCE_LJ_NEIGH_H
-#define FORCE_LJ_NEIGH_H
+#ifndef FORCE_LJ_CABANA_NEIGH_H
+#define FORCE_LJ_CABANA_NEIGH_H
 #include<types.h>
 #include<system.h>
 #include<binning.h>

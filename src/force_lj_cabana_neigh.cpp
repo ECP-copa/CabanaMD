@@ -36,16 +36,16 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include<force_lj_neigh.h>
+#include<force_lj_cabana_neigh.h>
 
 template<class NeighborClass>
 Force<NeighborClass>::Force(char** args, System* system, bool half_neigh_):half_neigh(half_neigh_) {
   ntypes = system->ntypes;
   use_stackparams = (ntypes <= MAX_TYPES_STACKPARAMS);
   if (!use_stackparams) {
-    lj1 = t_fparams("ForceLJNeigh::lj1",ntypes,ntypes);
-    lj2 = t_fparams("ForceLJNeigh::lj2",ntypes,ntypes);
-    cutsq = t_fparams("ForceLJNeigh::cutsq",ntypes,ntypes);
+    lj1 = t_fparams("ForceLJCabanaNeigh::lj1",ntypes,ntypes);
+    lj2 = t_fparams("ForceLJCabanaNeigh::lj2",ntypes,ntypes);
+    cutsq = t_fparams("ForceLJCabanaNeigh::cutsq",ntypes,ntypes);
   }
   nbinx = nbiny = nbinz = 0;
   N_local = 0;
@@ -111,14 +111,14 @@ void Force<NeighborClass>::compute(System* system, Binning* binning, Neighbor* n
   id = system->id;
   if (use_stackparams) {
     if(half_neigh)
-      Kokkos::parallel_for("ForceLJNeigh::compute", t_policy_half_neigh_stackparams(0, system->N_local), *this);
+      Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh_stackparams(0, system->N_local), *this);
     else
-      Kokkos::parallel_for("ForceLJNeigh::compute", t_policy_full_neigh_stackparams(0, system->N_local), *this);
+      Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_neigh_stackparams(0, system->N_local), *this);
   } else {
     if(half_neigh)
-      Kokkos::parallel_for("ForceLJNeigh::compute", t_policy_half_neigh(0, system->N_local), *this);
+      Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh(0, system->N_local), *this);
     else
-      Kokkos::parallel_for("ForceLJNeigh::compute", t_policy_full_neigh(0, system->N_local), *this);
+      Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_neigh(0, system->N_local), *this);
   }
   Kokkos::fence();
 
@@ -140,14 +140,14 @@ T_V_FLOAT Force<NeighborClass>::compute_energy(System* system, Binning* binning,
   T_V_FLOAT energy;
   if (use_stackparams) {
     if(half_neigh)
-      Kokkos::parallel_reduce("ForceLJNeigh::compute_energy", t_policy_half_neigh_pe_stackparams(0, system->N_local), *this, energy);
+      Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_half_neigh_pe_stackparams(0, system->N_local), *this, energy);
     else
-      Kokkos::parallel_reduce("ForceLJNeigh::compute_energy", t_policy_full_neigh_pe_stackparams(0, system->N_local), *this, energy);
+      Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_full_neigh_pe_stackparams(0, system->N_local), *this, energy);
   } else {
     if(half_neigh)
-      Kokkos::parallel_reduce("ForceLJNeigh::compute_energy", t_policy_half_neigh_pe(0, system->N_local), *this, energy);
+      Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_half_neigh_pe(0, system->N_local), *this, energy);
     else
-      Kokkos::parallel_reduce("ForceLJNeigh::compute_energy", t_policy_full_neigh_pe(0, system->N_local), *this, energy);
+      Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_full_neigh_pe(0, system->N_local), *this, energy);
   }
   Kokkos::fence();
 
@@ -156,7 +156,7 @@ T_V_FLOAT Force<NeighborClass>::compute_energy(System* system, Binning* binning,
 }
 
 template<class NeighborClass>
-const char* Force<NeighborClass>::name() { return half_neigh?"ForceLJNeighHalf":"ForceLJNeighFull"; }
+const char* Force<NeighborClass>::name() { return half_neigh?"ForceLJCabanaNeighHalf":"ForceLJCabanaNeighFull"; }
 
 template<class NeighborClass>
 template<bool STACKPARAMS>
