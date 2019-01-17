@@ -42,7 +42,7 @@
 #endif
 #ifdef COMM_MODULES_INSTANTIATION
       else if(input->comm_type == COMM_SERIAL) {
-        comm = new CommSerial(system,input->force_cutoff + input->neighbor_skin);
+        comm = new Comm(system,input->force_cutoff + input->neighbor_skin);
       }
 #endif
 
@@ -50,12 +50,12 @@
 #if !defined(MODULES_OPTION_CHECK) && !defined(COMM_MODULES_INSTANTIATION)
 #ifndef COMM_SERIAL_H
 #define COMM_SERIAL_H
-#include<comm.h>
+#include <types.h>
+#include <system.h>
 
-class CommSerial: public Comm {
+class Comm {
 
   // Variables Comm doesn't own but requires for computations
-
   T_INT N_local;
   T_INT N_ghost;
 
@@ -74,6 +74,10 @@ class CommSerial: public Comm {
   Kokkos::View<T_INT**,Kokkos::LayoutRight> pack_indicies_all;
   Kokkos::View<T_INT*,Kokkos::LayoutRight,Kokkos::MemoryTraits<Kokkos::Unmanaged> > pack_indicies;
 
+protected:
+  System* system;
+
+  T_X_FLOAT comm_depth;
 
 public:
 
@@ -85,10 +89,16 @@ public:
   struct TagHaloUpdateSelf {};
   struct TagHaloForceSelf {};
 
-  CommSerial(System* s, T_X_FLOAT comm_depth_);
+  Comm(System* s, T_X_FLOAT comm_depth_);
+  ~Comm();
+
+  // Move particles which left local domain
   void exchange();
+  // Exchange ghost particles
   void exchange_halo();
+  // Update ghost particles
   void update_halo();
+  // Reverse communication of forces
   void update_force();
 
   KOKKOS_INLINE_FUNCTION
@@ -211,6 +221,29 @@ public:
     s.f(i, 2) += fz_i;
 
   }
+
+  // Do a sum reduction over floats
+  void reduce_float(T_FLOAT* values, T_INT N);
+  // Do a sum reduction over integers
+  void reduce_int(T_INT* values, T_INT N);
+  // Do a max reduction over floats
+  void reduce_max_float(T_FLOAT* values, T_INT N);
+  // Do a max reduction over integers
+  void reduce_max_int(T_INT* values, T_INT N);
+  // Do a min reduction over floats
+  void reduce_min_float(T_FLOAT* values, T_INT N);
+  // Do a min reduction over integers
+  void reduce_min_int(T_INT* values, T_INT N);
+  // Do an inclusive scan over integers
+  void scan_int(T_INT* values, T_INT N);
+  // Do a sum reduction over floats with weights
+  void weighted_reduce_float(T_FLOAT* values, T_INT* weight, T_INT N);
+  // Create a processor grid
+  void create_domain_decomposition();
+  // Get Processor rank
+  int process_rank();
+  // Get number of processors
+  int num_processes();
 
   const char* name();
 };

@@ -38,13 +38,13 @@
 
 #include<comm_serial.h>
 
-CommSerial::CommSerial(System* s, T_X_FLOAT comm_depth):Comm(s,comm_depth) {
-  printf("CommSerial\n");
+Comm::Comm(System* s, T_X_FLOAT comm_depth_):system(s),comm_depth(comm_depth_) {
   pack_count = Kokkos::View<int>("CommSerial::pack_count");
   pack_indicies_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommSerial::pack_indicies_all",6,0);
 }
+Comm::~Comm() {}
 
-void CommSerial::exchange() {
+void Comm::exchange() {
   s = *system;
   N_local = system->N_local;
 
@@ -52,7 +52,7 @@ void CommSerial::exchange() {
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
 };
 
-void CommSerial::exchange_halo() {
+void Comm::exchange_halo() {
 
   N_local = system->N_local;
   N_ghost = 0;
@@ -96,7 +96,7 @@ void CommSerial::exchange_halo() {
   system->N_ghost = N_ghost;
 };
 
-void CommSerial::update_halo() {
+void Comm::update_halo() {
   N_ghost = 0;
   s=*system;
   for(phase = 0; phase<6; phase++) {
@@ -109,7 +109,7 @@ void CommSerial::update_halo() {
   }
 };
 
-void CommSerial::update_force() {
+void Comm::update_force() {
   //printf("Update Force\n");
   s=*system;
   ghost_offsets[0] = s.N_local;
@@ -126,4 +126,24 @@ void CommSerial::update_force() {
   }
 };
 
-const char* CommSerial::name() { return "CommSerial"; }
+void Comm::reduce_float(T_FLOAT*, T_INT) {};
+void Comm::reduce_int(T_INT*, T_INT) {};
+void Comm::reduce_max_float(T_FLOAT*, T_INT) {};
+void Comm::reduce_max_int(T_INT*, T_INT) {};
+void Comm::reduce_min_float(T_FLOAT*, T_INT) {};
+void Comm::reduce_min_int(T_INT*, T_INT) {};
+void Comm::scan_int(T_INT*, T_INT) {};
+void Comm::weighted_reduce_float(T_FLOAT* , T_INT* , T_INT ) {};
+
+void Comm::create_domain_decomposition() {
+  system->sub_domain_lo_x = 0.0;
+  system->sub_domain_lo_y = 0.0;
+  system->sub_domain_lo_z = 0.0;
+  system->sub_domain_x = system->sub_domain_hi_x = system->domain_x;
+  system->sub_domain_y = system->sub_domain_hi_y = system->domain_y;
+  system->sub_domain_z = system->sub_domain_hi_z = system->domain_z;
+};
+int Comm::process_rank() {return 0;}
+int Comm::num_processes() {return 1;}
+
+const char* Comm::name() { return "CommSerial"; }
