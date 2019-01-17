@@ -96,6 +96,13 @@ void System::grow(T_INT N_new) {
 }
 
 void System::print_particles() {
+
+  auto x = xvf.slice<Positions>();
+  auto v = xvf.slice<Velocities>();
+  auto f = xvf.slice<Forces>();
+  auto type = xvf.slice<Types>();
+  auto q = xvf.slice<Charges>();
+
   printf("Print all particles: \n");
   printf("  Owned: %d\n",N_local);
   for(T_INT i=0;i<N_local;i++) {

@@ -100,6 +100,12 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   void copy(T_INT dest, T_INT src, int nx, int ny, int nz) const {
+    auto x = xvf.slice<Positions>();
+    auto v = xvf.slice<Velocities>();
+    auto q = xvf.slice<Charges>();
+    auto id = xvf.slice<IDs>();
+    auto type = xvf.slice<Types>();
+
     x(dest,0) = x(src,0) + domain_x * nx;
     x(dest,1) = x(src,1) + domain_y * ny;
     x(dest,2) = x(src,2) + domain_z * nz;
@@ -113,6 +119,8 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   void copy_halo_update(T_INT dest, T_INT src, int nx, int ny, int nz) const {
+    auto x = xvf.slice<Positions>();
+
     x(dest,0) = x(src,0) + domain_x * nx;
     x(dest,1) = x(src,1) + domain_y * ny;
     x(dest,2) = x(src,2) + domain_z * nz;
