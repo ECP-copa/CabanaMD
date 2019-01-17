@@ -56,7 +56,7 @@ Neighbor::Neighbor():neigh_cut(0.0) {
 
 void Neighbor::init(T_X_FLOAT neigh_cut_) { neigh_cut = neigh_cut_; };
 
-void Neighbor::create_neigh_list(System* system, Binning* binning, bool half_neigh_, bool) {
+void Neighbor::create_neigh_list(System* system, bool half_neigh_, bool) {
   // Get some data handles
   N_local = system->N_local;
   auto x = system->xvf.slice<Positions>();

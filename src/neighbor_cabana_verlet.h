@@ -51,7 +51,6 @@
 #define NEIGHBOR_CABANA_H
 #include <types.h>
 #include <system.h>
-#include <binning_cabana.h>
 
 class Neighbor {
 
@@ -69,7 +68,7 @@ public:
 
   void init(T_X_FLOAT neigh_cut_);
 
-  void create_neigh_list(System* system, Binning* binning, bool half_neigh_, bool);
+  void create_neigh_list(System* system, bool half_neigh_, bool);
 
   const char* name();
 };
