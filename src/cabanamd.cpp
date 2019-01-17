@@ -132,7 +132,7 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // Compute initial forces
   Kokkos::deep_copy(system->f,0.0);
-  force->compute(system,binning,neighbor);
+  force->compute(system,neighbor);
 
   if(input->comm_newton) {
     // Reverse Communicate Force Update on Halo
@@ -228,7 +228,7 @@ void CabanaMD::run(int nsteps) {
     Kokkos::deep_copy(system->f,0.0);
    
     // Compute Short Range Force
-    force->compute(system,binning,neighbor);
+    force->compute(system,neighbor);
     force_time += force_timer.seconds();
 
     // This is where Bonds, Angles and KSpace should go eventually 

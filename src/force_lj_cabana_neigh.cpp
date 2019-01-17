@@ -56,9 +56,7 @@ Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_) {
   lj2 = t_fparams("ForceLJCabanaNeigh::lj2",ntypes,ntypes);
   cutsq = t_fparams("ForceLJCabanaNeigh::cutsq",ntypes,ntypes);
 
-  nbinx = nbiny = nbinz = 0;
   N_local = 0;
-  nhalo = 0;
   step = 0;
 }
 
@@ -81,7 +79,7 @@ void Force::init_coeff(std::vector<int> force_types, std::vector<double> force_c
   }
 }
 
-void Force::compute(System* system, Binning* binning, Neighbor* neighbor_ ) {
+void Force::compute(System* system, Neighbor* neighbor_ ) {
   // Set internal data handles
   NeighborClass* neighbor = (NeighborClass*) neighbor_;
   neigh_list = neighbor->get_neigh_list();
@@ -103,7 +101,7 @@ void Force::compute(System* system, Binning* binning, Neighbor* neighbor_ ) {
   step++;
 }
 
-T_V_FLOAT Force::compute_energy(System* system, Binning* binning, Neighbor* neighbor_ ) {
+T_V_FLOAT Force::compute_energy(System* system, Neighbor* neighbor_ ) {
   // Set internal data handles
   NeighborClass* neighbor = (NeighborClass*) neighbor_;
   neigh_list = neighbor->get_neigh_list();

@@ -52,7 +52,6 @@
 #include<vector>
 #include<types.h>
 #include<system.h>
-#include<binning.h>
 #include<neighbor.h>
 
 class Force {
@@ -63,9 +62,6 @@ private:
   t_f_atomic f_a;
   t_id id;
   t_type_const_rnd type;
-  Binning::t_bincount bin_count;
-  Binning::t_binoffsets bin_offsets;
-  T_INT nbinx,nbiny,nbinz,nhalo;
   int step;
 
   typedef Kokkos::View<T_F_FLOAT**> t_fparams;
@@ -103,8 +99,8 @@ public:
 
   void init_coeff(std::vector<int> force_types, std::vector<double> force_coeff);
 
-  void compute(System* system, Binning* binning, Neighbor* neighbor );
-  T_F_FLOAT compute_energy(System* system, Binning* binning, Neighbor* neighbor);
+  void compute(System* system, Neighbor* neighbor );
+  T_F_FLOAT compute_energy(System* system, Neighbor* neighbor);
 
   KOKKOS_INLINE_FUNCTION
   void operator() (TagFullNeigh, const T_INT& i) const;
