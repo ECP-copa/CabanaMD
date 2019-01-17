@@ -45,24 +45,24 @@
 // Instantiation and Init of this class
 #ifdef NEIGHBOR_MODULES_INSTANTIATION
     else if (input->neighbor_type == NEIGH_CSR) {
-      neighbor = new NeighborCSR<t_neigh_mem_space>();
+      neighbor = new Neighbor<t_neigh_mem_space>();
       neighbor->init(input->force_cutoff + input->neighbor_skin);
     }
 #endif
 
 // Add Force Instantiation case
 #if defined(FORCE_MODULES_INSTANTIATION)
-      case NEIGH_CSR: force = new FORCETYPE_ALLOCATION_MACRO(NeighborCSR<t_neigh_mem_space>); break;
+      case NEIGH_CSR: force = new FORCETYPE_ALLOCATION_MACRO(Neighbor<t_neigh_mem_space>); break;
 #endif
 
 // Add Force declaration line
 #if defined(FORCE_MODULES_EXTERNAL_TEMPLATE)
-      extern template class FORCETYPE_DECLARE_TEMPLATE_MACRO(NeighborCSR<t_neigh_mem_space>);
+      extern template class FORCETYPE_DECLARE_TEMPLATE_MACRO(Neighbor<t_neigh_mem_space>);
 #endif
 
 // Add Force Template Instantiation line
 #if defined(FORCE_MODULES_TEMPLATE)
-      template class FORCETYPE_DECLARE_TEMPLATE_MACRO(NeighborCSR<t_neigh_mem_space>);
+      template class FORCETYPE_DECLARE_TEMPLATE_MACRO(Neighbor<t_neigh_mem_space>);
 #endif
 
 // Making sure we are not just instantiating some Option
@@ -71,10 +71,10 @@
     !defined(FORCE_MODULES_INSTANTIATION) && \
     !defined(FORCE_MODULES_EXTERNAL_TEMPLATE) && \
     !defined(FORCE_MODULES_TEMPLATE)
-#include <neighbor.h>
 #ifndef NEIGHBOR_CSR_H
 #define NEIGHBOR_CSR_H
 #include <Kokkos_StaticCrsGraph.hpp>
+#include <types.h>
 #include <system.h>
 #include <binning.h>
 
@@ -124,7 +124,7 @@ struct NeighListCSR : public Kokkos::StaticCrsGraph<T_INT,Kokkos::LayoutLeft,Mem
 };
 
 template<class MemorySpace>
-class NeighborCSR: public Neighbor {
+class Neighbor {
 
 protected:
   T_X_FLOAT neigh_cut;
@@ -164,13 +164,10 @@ public:
 
   t_neigh_list neigh_list;
 
+  Neighbor();
+  ~Neighbor();
 
-  NeighborCSR():neigh_cut(0.0) {
-    neigh_type = NEIGH_CSR;
-  };
-  ~NeighborCSR() {};
-
-  void init(T_X_FLOAT neigh_cut_) { neigh_cut = neigh_cut_; };
+  void init(T_X_FLOAT neigh_cut_);
 
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagCountNeighsFull&, const typename t_policy_cnf::member_type& team) const {
@@ -367,75 +364,10 @@ public:
     offset += count_i;
   }
 
-  void create_neigh_list(System* system, Binning* binning, bool half_neigh_, bool) {
-    // Get some data handles
-    N_local = system->N_local;
-    x = system->x;
-    type = system->type;
-    id = system->id;
-    half_neigh = half_neigh_;
+  void create_neigh_list(System* system, Binning* binning, bool half_neigh_, bool);
 
-    T_INT total_num_neighs;
-
-
-    // Reset the neighbor count array
-    if( num_neighs.extent(0) < N_local + 1 ) {
-      num_neighs = Kokkos::View<T_INT*, MemorySpace>("NeighborsCSR::num_neighs", N_local + 1);
-      neigh_offsets = Kokkos::View<T_INT*, MemorySpace>("NeighborsCSR::neigh_offsets", N_local + 1);
-    } else
-      Kokkos::deep_copy(num_neighs,0);
-    num_neighs_atomic = num_neighs;
-
-
-    // Create the pair list
-    nhalo = binning->nhalo;
-    nbinx = binning->nbinx - 2*nhalo;
-    nbiny = binning->nbiny - 2*nhalo;
-    nbinz = binning->nbinz - 2*nhalo;
-
-    T_INT nbins = nbinx*nbiny*nbinz;
-
-    bin_offsets = binning->binoffsets;
-    bin_count = binning->bincount;
-    permute_vector = binning->permute_vector;
-
-    if(half_neigh)
-      Kokkos::parallel_for("NeighborCSR::count_neighbors_half", t_policy_cnh(nbins,Kokkos::AUTO,8),*this);
-    else
-      Kokkos::parallel_for("NeighborCSR::count_neighbors_full", t_policy_cnf(nbins,Kokkos::AUTO,8),*this);
-    Kokkos::fence();
-
-    // Create the Offset list for neighbors of atoms
-    Kokkos::parallel_scan("NeighborCSR::create_offsets", t_policy_co(0, N_local), *this);
-    Kokkos::fence();
-
-    // Get the total neighbor count
-    Kokkos::View<T_INT,MemorySpace> d_total_num_neighs(neigh_offsets,N_local);
-    Kokkos::deep_copy(total_num_neighs,d_total_num_neighs);
-
-    // Resize NeighborList
-    if( neighs.extent(0) < total_num_neighs )
-      neighs = Kokkos::View<T_INT*, MemorySpace> ("NeighborCSR::neighs", total_num_neighs);
-
-    // Copy entries from the PairList to the actual NeighborList
-    Kokkos::deep_copy(num_neighs,0);
-
-    if(half_neigh)
-      Kokkos::parallel_for("NeighborCSR::fill_neigh_list_half",t_policy_fnlh(nbins,Kokkos::AUTO,8),*this);
-    else
-      Kokkos::parallel_for("NeighborCSR::fill_neigh_list_full",t_policy_fnlf(nbins,Kokkos::AUTO,8),*this);
-
-    Kokkos::fence();
-
-    // Create actual CSR NeighList
-    neigh_list = t_neigh_list(
-        Kokkos::View<T_INT*, MemorySpace>( neighs,     Kokkos::pair<T_INT,T_INT>(0,total_num_neighs)),
-        Kokkos::View<T_INT*, MemorySpace>( neigh_offsets, Kokkos::pair<T_INT,T_INT>(0,N_local+1)));
-
-  }
-
-  t_neigh_list get_neigh_list() { return neigh_list; }
-  const char* name() {return "NeighborCSR";}
+  t_neigh_list get_neigh_list();
+  const char* name();
 };
 
 template<>
