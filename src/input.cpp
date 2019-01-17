@@ -83,44 +83,19 @@ Input::Input(System* p):system(p) {
 }
 
 void Input::read_command_line_args(int argc, char* argv[]) {
-#define MODULES_OPTION_CHECK
   for(int i = 1; i < argc; i++) {
     // Help command
     if( (strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "--help") == 0) ) {
       if(system->do_print) {
-        printf("ExaMiniMD 1.0 (Kokkos Reference Version)\n\n");
+        printf("CabanaMD 0.1 \n\n");
         printf("Options:\n");
-        printf("  --force-iteration [TYPE]:   Specify which iteration style to use\n");
-        printf("                              for force calculations (CELL_FULL, NEIGH_FULL, NEIGH_HALF)\n");
-        printf("  --comm-type [TYPE]:         Specify Communication Routines implementation \n");
-        printf("                              (MPI, SERIAL)\n");
         printf("  --dumpbinary [N] [PATH]:    Request that binary output files PATH/output* be generated every N steps\n");
         printf("                              (N = positive integer)\n");
         printf("                              (PATH = location of directory)\n");
         printf("  --correctness [N] [PATH] [FILE]:   Request that correctness check against files PATH/output* be performed every N steps, correctness data written to FILE\n");
         printf("                              (N = positive integer)\n");
         printf("                              (PATH = location of directory)\n");
-        printf("  --neigh-type [TYPE]:        Specify Neighbor Routines implementation \n");
-        printf("                              (2D, CSR, CSR_MAPCONSTR)\n");
       }
-    }
-
-    // Force Iteration Type Related
-    else if( (strcmp(argv[i], "--force-iteration") == 0) ) {
-     #include<modules_force.h>
-      ++i;
-    }
-
-    // Communication Type
-    else if( (strcmp(argv[i], "--comm-type") == 0) ) {
-     #include<modules_comm.h>
-      ++i;
-    }
-
-    // Neighbor Type
-    else if( (strcmp(argv[i], "--neigh-type") == 0) ) {
-     #include<modules_neighbor.h>
-      ++i;
     }
 
     // Dump Binary
@@ -147,7 +122,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
     }
 
   }
-#undef MODULES_OPTION_CHECK
 }
 
 void Input::check_lammps_command(int line) {
