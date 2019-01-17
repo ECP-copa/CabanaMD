@@ -47,7 +47,7 @@
     else if (input->force_type == FORCE_LJ) {
       bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
       switch ( input->neighbor_type ) {
-        #define FORCETYPE_ALLOCATION_MACRO(NeighType)  ForceLJNeigh<NeighType>(input->input_data.words[input->force_line],system,half_neigh)
+        #define FORCETYPE_ALLOCATION_MACRO(NeighType)  Force<NeighType>(input->input_data.words[input->force_line],system,half_neigh)
         #include <modules_neighbor.h>
         #undef FORCETYPE_ALLOCATION_MACRO
       }
@@ -60,10 +60,13 @@
 
 #ifndef FORCE_LJ_NEIGH_H
 #define FORCE_LJ_NEIGH_H
-#include<force.h>
+#include<types.h>
+#include<system.h>
+#include<binning.h>
+#include<neighbor.h>
 
 template<class NeighborClass>
-class ForceLJNeigh: public Force {
+class Force {
 private:
   int N_local,ntypes;
   t_x_const_rnd x;
@@ -115,7 +118,9 @@ public:
   typedef Kokkos::RangePolicy<TagFullNeighPE<true>,Kokkos::IndexType<T_INT> > t_policy_full_neigh_pe_stackparams;
   typedef Kokkos::RangePolicy<TagHalfNeighPE<true>,Kokkos::IndexType<T_INT> > t_policy_half_neigh_pe_stackparams;
 
-  ForceLJNeigh (char** args, System* system, bool half_neigh_);
+  bool half_neigh, comm_newton;
+
+  Force (char** args, System* system, bool half_neigh_);
 
   void init_coeff(int nargs, char** args);
 
@@ -142,7 +147,7 @@ public:
 };
 
 #define FORCE_MODULES_EXTERNAL_TEMPLATE
-#define FORCETYPE_DECLARE_TEMPLATE_MACRO(NeighType) ForceLJNeigh<NeighType>
+#define FORCETYPE_DECLARE_TEMPLATE_MACRO(NeighType) Force<NeighType>
 #include<modules_neighbor.h>
 #undef FORCETYPE_DECLARE_TEMPLATE_MACRO
 #undef FORCE_MODULES_EXTERNAL_TEMPLATE
