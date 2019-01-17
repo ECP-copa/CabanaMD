@@ -92,6 +92,8 @@ Input::Input(System* p):system(p) {
   temperature_target = 1.4;
   temperature_seed = 87287;
 
+  neighbor_skin = 0.3;
+  comm_exchange_rate = 20;
   comm_newton = 0;
 
   ntypes = 1;
@@ -117,6 +119,10 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("  --temperature [TARGET] [SEED]:     System temperature \n");
         printf("                              (TARGET = float temperature (K))\n");
         printf("                              (SEED = random seed)\n");
+        printf("  --neighbor [SKIN] [EXCHANGE] [NEWTON]:    neighbor list parameters \n");
+        printf("                              (SKIN = neighbor list skin distance)\n");
+        printf("                              (EXCHANGE = neighbor list build frequency)\n");
+        printf("                              (NEWTON = (0 or 1) full or half neighbor lists)\n");
         printf("  --pair-coeff [N] [CUTOFF] [MASS]xN [COEFF]x(N**2+N)/2x4:      Per type/pair parameters \n");
         printf("                              (N = number of types)\n");
         printf("                              (CUTOFF = force distance cutoff)\n");
@@ -177,6 +183,17 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       temperature_target = atof(argv[i+1]);
       temperature_seed = atoi(argv[i+2]);
       i += 2;
+    }
+
+    else if( (strcmp(argv[i],"--neighbor")==0)) {
+      neighbor_skin = atof(argv[i+1]);
+      comm_exchange_rate = atoi(argv[i+2]);
+      comm_newton = atoi(argv[i+3]);
+      if (comm_newton == 0)
+        force_iteration_type = FORCE_ITER_NEIGH_FULL;
+      else
+	force_iteration_type = FORCE_ITER_NEIGH_HALF;
+      i += 3;
     }
 
     else if( (strcmp(argv[i],"--pair-coeff")==0)) {
@@ -269,17 +286,6 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"create_atoms")==0) {
     known = true;
   }
-  if(strcmp(input_data.words[line][0],"neighbor")==0) {
-    known = true;
-    neighbor_skin = atof(input_data.words[line][1]);
-  }
-  if(strcmp(input_data.words[line][0],"neigh_modify")==0) {
-    known = true;
-    for(int i=1; i<input_data.words_per_line-1;i++)
-      if(strcmp(input_data.words[line][i],"every")==0) {
-        comm_exchange_rate = atoi(input_data.words[line][i+1]);
-      }
-  }
   if(strcmp(input_data.words[line][0],"fix")==0) {
     if(strcmp(input_data.words[line][3],"nve")==0) {
       known = true;
@@ -301,17 +307,6 @@ void Input::check_lammps_command(int line) {
     known = true;
     system->dt = atof(input_data.words[line][1]);
     timestepflag = true;
-  }
-  if(strcmp(input_data.words[line][0],"newton")==0) {
-    known = true;
-    if(strcmp(input_data.words[line][1],"on")==0) {
-      comm_newton=1;
-    } else if(strcmp(input_data.words[line][1],"off")==0) {
-      comm_newton=0;
-    } else {
-      if(system->do_print)
-        printf("LAMMPS-Command: 'newton' must be followed by 'on' or 'off'\n");
-    }
   }
   if(input_data.words[line][0][0]=='#') {
     known = true;
