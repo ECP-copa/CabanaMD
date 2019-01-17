@@ -63,6 +63,9 @@ private:
   t_type_const_rnd type;
   int step;
 
+  t_verletlist_full init_fullneigh_list();
+  t_verletlist_half init_halfneigh_list();
+
   typedef Kokkos::View<T_F_FLOAT**> t_fparams;
   typedef Kokkos::View<const T_F_FLOAT**,
       Kokkos::MemoryTraits<Kokkos::RandomAccess>> t_fparams_rnd;
@@ -91,6 +94,9 @@ public:
 
   bool half_neigh, comm_newton;
   T_X_FLOAT neigh_cut;
+
+  t_verletlist_full neigh_list_full;
+  t_verletlist_half neigh_list_half;
 
   Force(System* system, bool half_neigh_);
 
