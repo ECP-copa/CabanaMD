@@ -88,11 +88,12 @@ void System::destroy() {
   mass = t_mass();
 }
 
-void System::grow(T_INT N_new) {
+void System::resize(T_INT N_new) {
   if(N_new > N_max) {
     N_max = N_new; // Number of global Particles
-    xvf.resize( N_max );
   }
+  // Grow/shrink, slice.size() needs to be accurate
+  xvf.resize( N_new );
 }
 
 void System::print_particles() {

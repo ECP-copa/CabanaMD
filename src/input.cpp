@@ -323,7 +323,7 @@ void Input::create_lattice(Comm* comm) {
     }
     system->N_local = n;
     system->N = n;
-    system->grow(n);
+    system->resize(n);
     s = *system;
     auto x = s.xvf.slice<Positions>();
     auto v = s.xvf.slice<Velocities>();
@@ -419,7 +419,7 @@ void Input::create_lattice(Comm* comm) {
 
     system->N_local = n;
     system->N = n;
-    system->grow(n);
+    system->resize(n);
     s = *system;
     auto x = s.xvf.slice<Positions>();
     auto v = s.xvf.slice<Velocities>();

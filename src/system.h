@@ -86,7 +86,7 @@ public:
   void init();
   void destroy();
 
-  void grow(T_INT new_N);
+  void resize(T_INT new_N);
 
   KOKKOS_INLINE_FUNCTION
   t_particle get_particle(const T_INT& i) const {

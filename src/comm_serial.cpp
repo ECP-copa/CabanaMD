@@ -85,7 +85,7 @@ void Comm::exchange_halo() {
     Kokkos::deep_copy(count,pack_count);
     bool redo = false;
     if(N_local+N_ghost+count>x.size()) {
-      system->grow(N_local + N_ghost + count);
+      system->resize(N_local + N_ghost + count);
       s = *system;
       x = s.xvf.slice<Positions>(); // reslice after resize
       redo = true;
@@ -106,8 +106,11 @@ void Comm::exchange_halo() {
 
     N_ghost += count;
   }
-
   system->N_ghost = N_ghost;
+
+  if (x.size() > N_local+N_ghost) {
+    system->resize(N_local+N_ghost);
+  }
 };
 
 void Comm::update_halo() {
