@@ -15,6 +15,15 @@ https://github.com/ECP-copa/ExaMiniMD
 
 # Build instructions
 
+CabanaMD has the following dependencies:
+
+|Dependency | Version | Required | Details|
+|---------- | ------- |--------  |------- |
+|CMake      | 3.9+    | Yes      | Build system
+|Kokkos     | 2.7.0   | Yes      | Provides portable on-node parallelism
+|Cabana     | 0.1     | Yes      | Performance portable particle algorithms
+
+
 Build Kokkos, followed by Cabana:
 https://github.com/ECP-copa/Cabana/wiki/Build-Instructions
 
