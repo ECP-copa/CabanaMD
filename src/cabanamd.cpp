@@ -118,11 +118,12 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // Compute initial forces
   f = system->xvf.slice<Forces>();
-  for(int i = 0; i < f.size(); i++) {
-    for(int j = 0; j < 3; j++) {
+  auto reset_force = KOKKOS_LAMBDA(int i){
+    for ( int j = 0; j < 3; j++ )
       f(i,j) = 0.0;
-    }
-  }
+  };
+  Kokkos::parallel_for(f.size(), reset_force);
+  Kokkos::fence();
   force->compute(system);
 
   if(input->comm_newton) {
@@ -213,11 +214,13 @@ void CabanaMD::run(int nsteps) {
     // Zero out forces 
     force_timer.reset();
     f = system->xvf.slice<Forces>();
-    for(int i = 0; i < f.size(); i++) {
-      for(int j = 0; j < 3; j++) {
+    auto reset_force = KOKKOS_LAMBDA(int i){
+      for ( int j = 0; j < 3; j++ )
 	f(i,j) = 0.0;
-      }
-    }
+    };
+    Kokkos::parallel_for(f.size(), reset_force);
+    Kokkos::fence();
+
     // Compute Short Range Force
     force->compute(system);
     force_time += force_timer.seconds();
