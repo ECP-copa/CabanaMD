@@ -38,6 +38,7 @@ endif()
 option(Cabana_ENABLE_Cuda "Build CabanaMD with Cuda support" OFF)
 if( Cabana_ENABLE_Cuda )
   enable_language( CUDA )
+  add_definitions(-DCabanaMD_ENABLE_Cuda)
 endif()
 
 set(CABANA_SUPPORTED_DEVICES Serial Pthread OpenMP Cuda)
