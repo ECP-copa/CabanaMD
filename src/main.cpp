@@ -52,13 +52,13 @@
 // CabanaMD can be used as a library
 // This main file is simply a driver
 
-#ifdef Cabana_ENABLE_MPI
+#ifdef CabanaMD_ENABLE_MPI
 #include "mpi.h"
 #endif
 
 int main(int argc, char* argv[]) {
 
-   #ifdef Cabana_ENABLE_MPI
+   #ifdef CabanaMD_ENABLE_MPI
    MPI_Init(&argc,&argv);
    #endif
 
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
 
    Cabana::finalize();
 
-   #ifdef Cabana_ENABLE_MPI
+   #ifdef CabanaMD_ENABLE_MPI
    MPI_Finalize();
    #endif
 }
