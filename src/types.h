@@ -105,7 +105,12 @@ using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
 enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
                  Types = 3, IDs = 4, Charges = 5 };
 
+#ifdef CabanaMD_ENABLE_Cuda
+using MemorySpace = Cabana::CudaUVMSpace;
+#else
 using MemorySpace = Cabana::HostSpace;
+#endif
+
 using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
 using AoSoA = Cabana::AoSoA<t_tuple,MemorySpace,VECLEN>;

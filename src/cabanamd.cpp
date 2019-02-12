@@ -117,12 +117,6 @@ void CabanaMD::init(int argc, char* argv[]) {
   force->create_neigh_list(system);
 
   // Compute initial forces
-  f = system->xvf.slice<Forces>();
-  for(int i = 0; i < f.size(); i++) {
-    for(int j = 0; j < 3; j++) {
-      f(i,j) = 0.0;
-    }
-  }
   force->compute(system);
 
   if(input->comm_newton) {
@@ -170,18 +164,19 @@ void CabanaMD::run(int nsteps) {
   double force_time = 0;
   double comm_time  = 0;
   double neigh_time = 0;
+  double integrate_time = 0;
   double other_time = 0;
 
-  double last_time;
-  Kokkos::Timer timer,force_timer,comm_timer,neigh_timer,other_timer;
+  double last_time = 0;
+  Kokkos::Timer timer,force_timer,comm_timer,neigh_timer,integrate_timer,other_timer;
 
   // Timestep Loop
   for(int step = 1; step <= nsteps; step++ ) {
     
     // Do first part of the verlet time step integration 
-    other_timer.reset();
+    integrate_timer.reset();
     integrator->initial_integrate();
-    other_time += other_timer.seconds();
+    integrate_time += integrate_timer.seconds();
 
     if(step%input->comm_exchange_rate==0 && step >0) {
       // Exchange particles
@@ -210,15 +205,9 @@ void CabanaMD::run(int nsteps) {
       comm_time += comm_timer.seconds();
     }
 
-    // Zero out forces 
-    force_timer.reset();
-    f = system->xvf.slice<Forces>();
-    for(int i = 0; i < f.size(); i++) {
-      for(int j = 0; j < 3; j++) {
-	f(i,j) = 0.0;
-      }
-    }
+    // Zero out forces in compute
     // Compute Short Range Force
+    force_timer.reset();
     force->compute(system);
     force_time += force_timer.seconds();
 
@@ -232,9 +221,11 @@ void CabanaMD::run(int nsteps) {
     }
 
     // Do second part of the verlet time step integration 
-    other_timer.reset();
+    integrate_timer.reset();
     integrator->final_integrate();
+    integrate_time += integrate_timer.seconds();
 
+    other_timer.reset();
     // On output steps print output
     if(step%input->thermo_rate==0) {
       T_FLOAT T = temp.compute(system);
@@ -270,10 +261,12 @@ void CabanaMD::run(int nsteps) {
   if(system->do_print) {
     if (!system->print_lammps) {
       printf("\n");
-      printf("#Procs Particles | Time T_Force T_Neigh T_Comm T_Other | Steps/s Atomsteps/s Atomsteps/(proc*s)\n");
-      printf("%i %i | %lf %lf %lf %lf %lf | %lf %e %e PERFORMANCE\n",comm->num_processes(),system->N,time,
-        force_time,neigh_time,comm_time,other_time,
+      printf("#Procs Particles | Time T_Force T_Neigh T_Comm T_Int T_Other | Steps/s Atomsteps/s Atomsteps/(proc*s)\n");
+      printf("%i %i | %lf %lf %lf %lf %lf %lf | %lf %e %e PERFORMANCE\n",comm->num_processes(),system->N,time,
+        force_time,neigh_time,comm_time,integrate_time,other_time,
         1.0*nsteps/time,1.0*system->N*nsteps/time,1.0*system->N*nsteps/time/comm->num_processes());
+      printf("%i %i | %lf %lf %lf %lf %lf %lf | FRACTION\n",comm->num_processes(),system->N,1.0,
+        force_time/time,neigh_time/time,comm_time/time,integrate_time/time,other_time/time);
     } else {
       printf("Loop time of %f on %i procs for %i steps with %i atoms\n",time,comm->num_processes(),nsteps,system->N);
     }
