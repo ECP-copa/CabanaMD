@@ -120,6 +120,11 @@ include_directories(${CABANA_INCLUDE_DIRS})
 link_directories(${CABANA_LIBRARY_DIRS})
 add_executable(CabanaMD ${SOURCES} ${HEADERS_PUBLIC})
 
-target_link_libraries(CabanaMD PkgConfig::CABANA Kokkos::kokkos)
+if(Cabana_ENABLE_MPI)
+  target_link_libraries(CabanaMD PkgConfig::CABANA Kokkos::kokkos MPI::MPI_CXX)
+  add_definitions(-DCabanaMD_ENABLE_MPI)
+else()
+  target_link_libraries(CabanaMD PkgConfig::CABANA Kokkos::kokkos)
+endif()
 
 install(TARGETS CabanaMD DESTINATION bin)
