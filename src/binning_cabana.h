@@ -49,7 +49,7 @@
 
 #ifndef BINNING_CABANA_H
 #define BINNING_CABANA_H
-#include<Kokkos_Sort.hpp>
+//#include<Kokkos_Sort.hpp>
 #include <types.h>
 #include <system.h>
 
