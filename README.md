@@ -71,3 +71,9 @@ cmake \
     \
     .. ;
 ```
+
+## MPI Build
+After building Kokkos and Cabana with MPI:
+https://github.com/ECP-copa/Cabana/wiki/Build-Instructions#Building-Cabana-with-MPI
+
+an MPI build is identical to either above, with ``-D Cabana_ENABLE_MPI=ON``
