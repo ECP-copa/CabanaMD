@@ -38,15 +38,17 @@
 
 #ifndef COMM_MPI_H
 #define COMM_MPI_H
-#include<comm.h>
 
 #ifndef EXAMINIMD_ENABLE_MPI
-#error "Trying to compile CommMPI without MPI"
+#error "Trying to compile Comm without MPI"
 #endif
+
+#include <types.h>
+#include <system.h>
 
 #include "mpi.h"
 
-class CommMPI: public Comm {
+class Comm {
 
   // Variables Comm doesn't own but requires for computations
 
@@ -82,6 +84,11 @@ class CommMPI: public Comm {
   Kokkos::View<T_INT*,Kokkos::LayoutRight,Kokkos::MemoryTraits<Kokkos::Unmanaged> > pack_indicies;
   Kokkos::View<T_INT*,Kokkos::LayoutRight > exchange_dest_list;
 
+protected:
+  System* system;
+
+  T_X_FLOAT comm_depth;
+
 public:
 
   struct TagUnpack {};
@@ -103,7 +110,7 @@ public:
 
   struct TagPermuteIndexList {};
 
-  CommMPI(System* s, T_X_FLOAT comm_depth_);
+  Comm(System* s, T_X_FLOAT comm_depth_);
   void init();
   void create_domain_decomposition();
   void permute_index_lists(Binning::t_permute_vector& permute_vector);

@@ -39,7 +39,7 @@
 #ifdef EXAMINIMD_ENABLE_MPI
 #include<comm_mpi.h>
 
-CommMPI::CommMPI(System* s, T_X_FLOAT comm_depth):Comm(s,comm_depth) {
+Comm::Comm(System* s, T_X_FLOAT comm_depth_):system(s),comm_depth(comm_depth_) {
   pack_count = Kokkos::View<int>("CommMPI::pack_count");
   pack_buffer = Kokkos::View<Particle*>("CommMPI::pack_buffer",200);
   unpack_buffer = Kokkos::View<Particle*>("CommMPI::pack_buffer",200);
@@ -47,9 +47,9 @@ CommMPI::CommMPI(System* s, T_X_FLOAT comm_depth):Comm(s,comm_depth) {
   exchange_dest_list = Kokkos::View<T_INT*,Kokkos::LayoutRight >("CommMPI::exchange_dest_list",200);
 }
 
-void CommMPI::init() {};
+void Comm::init() {};
 
-void CommMPI::create_domain_decomposition() {
+void Comm::create_domain_decomposition() {
 
   //printf("Domain b: %p %lf %lf %lf\n",system,system->domain_x ,system->domain_y ,system->domain_z);
 
@@ -147,50 +147,50 @@ void CommMPI::create_domain_decomposition() {
 }
 
 
-void CommMPI::scan_int(T_INT* vals, T_INT count) {
+void Comm::scan_int(T_INT* vals, T_INT count) {
   if(std::is_same<T_INT,int>::value) {
     MPI_Scan(MPI_IN_PLACE,vals,count,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
   }
 }
 
-void CommMPI::reduce_int(T_INT* vals, T_INT count) {
+void Comm::reduce_int(T_INT* vals, T_INT count) {
   if(std::is_same<T_INT,int>::value) {
     MPI_Allreduce(MPI_IN_PLACE,vals,count,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
   }
 }
 
-void CommMPI::reduce_float(T_FLOAT* vals, T_INT count) {
+void Comm::reduce_float(T_FLOAT* vals, T_INT count) {
   if(std::is_same<T_FLOAT,double>::value) {
     // This generates MPI_ERR_BUFFER for count>1
     MPI_Allreduce(MPI_IN_PLACE,vals,count,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
   }
 }
 
-void CommMPI::reduce_max_int(T_INT* vals, T_INT count) {
+void Comm::reduce_max_int(T_INT* vals, T_INT count) {
   if(std::is_same<T_INT,int>::value) {
     MPI_Allreduce(MPI_IN_PLACE,vals,count,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
   }
 }
 
-void CommMPI::reduce_max_float(T_FLOAT* vals, T_INT count) {
+void Comm::reduce_max_float(T_FLOAT* vals, T_INT count) {
   if(std::is_same<T_FLOAT,double>::value) {
     MPI_Allreduce(MPI_IN_PLACE,vals,count,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
   }
 }
 
-void CommMPI::reduce_min_int(T_INT* vals, T_INT count) {
+void Comm::reduce_min_int(T_INT* vals, T_INT count) {
   if(std::is_same<T_INT,int>::value) {
     MPI_Allreduce(MPI_IN_PLACE,vals,count,MPI_INT,MPI_MAX,MPI_COMM_WORLD);
   }
 }
 
-void CommMPI::reduce_min_float(T_FLOAT* vals, T_INT count) {
+void Comm::reduce_min_float(T_FLOAT* vals, T_INT count) {
   if(std::is_same<T_FLOAT,double>::value) {
     MPI_Allreduce(MPI_IN_PLACE,vals,count,MPI_DOUBLE,MPI_MAX,MPI_COMM_WORLD);
   }
 }
 
-void CommMPI::exchange() {
+void Comm::exchange() {
 
   Kokkos::Profiling::pushRegion("Comm::exchange");
 
@@ -288,7 +288,7 @@ void CommMPI::exchange() {
   Kokkos::Profiling::popRegion();
 };
 
-void CommMPI::exchange_halo() {
+void Comm::exchange_halo() {
 
   Kokkos::Profiling::pushRegion("Comm::exchange_halo");
 
@@ -379,7 +379,7 @@ void CommMPI::exchange_halo() {
   Kokkos::Profiling::popRegion();
 };
 
-void CommMPI::update_halo() {
+void Comm::update_halo() {
 
   Kokkos::Profiling::pushRegion("Comm::update_halo");
 
@@ -422,7 +422,7 @@ void CommMPI::update_halo() {
   Kokkos::Profiling::popRegion();
 };
 
-void CommMPI::update_force() {
+void Comm::update_force() {
 
   Kokkos::Profiling::pushRegion("Comm::update_force");
 
@@ -465,11 +465,11 @@ void CommMPI::update_force() {
   Kokkos::Profiling::popRegion();
 };
 
-const char* CommMPI::name() { return "CommMPI"; }
+const char* Comm::name() { return "CommMPI"; }
 
-int CommMPI::process_rank() { return proc_rank; }
-int CommMPI::num_processes() { return proc_size; }
-void CommMPI::error(const char *errormsg) {
+int Comm::process_rank() { return proc_rank; }
+int Comm::num_processes() { return proc_size; }
+void Comm::error(const char *errormsg) {
   if(proc_rank==0)
   printf("%s\n",errormsg);
   MPI_Abort(MPI_COMM_WORLD,1);
