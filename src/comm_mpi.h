@@ -1,3 +1,14 @@
+/****************************************************************************
+ * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * All rights reserved.                                                     *
+ *                                                                          *
+ * This file is part of the Cabana library. Cabana is distributed under a   *
+ * BSD 3-clause license. For the licensing terms see the LICENSE file in    *
+ * the top-level directory.                                                 *
+ *                                                                          *
+ * SPDX-License-Identifier: BSD-3-Clause                                    *
+ ****************************************************************************/
+
 //************************************************************************
 //  ExaMiniMD v. 1.0
 //  Copyright (2018) National Technology & Engineering Solutions of Sandia,
@@ -39,7 +50,7 @@
 #ifndef COMM_MPI_H
 #define COMM_MPI_H
 
-#ifndef EXAMINIMD_ENABLE_MPI
+#ifndef CabanaMD_ENABLE_MPI
 #error "Trying to compile Comm without MPI"
 #endif
 
