@@ -36,18 +36,6 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#ifdef MODULES_OPTION_CHECK
-   if( (strcmp(argv[i+1], "MPI") == 0) )
-     comm_type = COMM_MPI;
-#endif
-#ifdef COMM_MODULES_INSTANTIATION
-   else if(input->comm_type == COMM_MPI) {
-     comm = new CommMPI(system,input->force_cutoff + input->neighbor_skin);
-   }
-#endif
-
-
-#if !defined(MODULES_OPTION_CHECK) && !defined(COMM_MODULES_INSTANTIATION)
 #ifndef COMM_MPI_H
 #define COMM_MPI_H
 #include<comm.h>
@@ -503,5 +491,3 @@ public:
 };
 
 #endif
-#endif // MODULES_OPTION_CHECK
-
