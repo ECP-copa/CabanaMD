@@ -50,7 +50,7 @@
 #include <vector>
 #include <types.h>
 #include <system.h>
-#include <comm_serial.h>
+#include <comm_mpi.h>
 
 // Class replicating LAMMPS Random velocity initialization with GEOM option
 #define IA 16807

@@ -52,11 +52,7 @@
 
 Input::Input(System* p):system(p) {
 
-  //#ifdef Cabana_ENABLE_MPI
-  //comm_type = COMM_MPI;
-  //#else
-  comm_type = COMM_SERIAL;
-  //#endif
+  comm_type = COMM_MPI;
   integrator_type = INTEGRATOR_NVE;
   neighbor_type = NEIGH_CABANA_VERLET;
   force_type = FORCE_LJ_CABANA_NEIGH;

@@ -63,7 +63,7 @@ enum {INTEGRATOR_NVE};
 // Binning Type
 enum {BINNING_CABANA};
 // Comm Type
-enum {COMM_SERIAL};
+enum {COMM_MPI};
 // Force Type
 enum {FORCE_LJ_CABANA_NEIGH};
 // Force Iteration Type

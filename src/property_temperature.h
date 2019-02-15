@@ -49,7 +49,7 @@
 
 #include <types.h>
 #include <system.h>
-#include <comm_serial.h>
+#include <comm_mpi.h>
 
 class Temperature {
   private:
