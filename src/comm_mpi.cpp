@@ -52,8 +52,8 @@
 
 Comm::Comm(System* s, T_X_FLOAT comm_depth_):system(s),comm_depth(comm_depth_) {
   pack_count = Kokkos::View<int>("CommMPI::pack_count");
-  pack_buffer = Kokkos::View<Particle*>("CommMPI::pack_buffer",200);
-  unpack_buffer = Kokkos::View<Particle*>("CommMPI::pack_buffer",200);
+  pack_buffer = Kokkos::View<t_particle*>("CommMPI::pack_buffer",200);
+  unpack_buffer = Kokkos::View<t_particle*>("CommMPI::pack_buffer",200);
   pack_indicies_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_indicies_all",6,200);
   exchange_dest_list = Kokkos::View<T_INT*,Kokkos::LayoutRight >("CommMPI::exchange_dest_list",200);
 }
@@ -208,6 +208,11 @@ void Comm::exchange() {
   s = *system;
   N_local = system->N_local;
   N_ghost = 0;
+  x = s.xvf.slice<Positions>();
+  v = s.xvf.slice<Velocities>();
+  q = s.xvf.slice<Charges>();
+  id = s.xvf.slice<IDs>();
+  type = s.xvf.slice<Types>();
   //printf("System A: %i %lf %lf %lf %i\n",s.N_local,s.x(21,0),s.x(21,1),s.x(21,2),s.type(21));
   Kokkos::parallel_for("CommMPI::exchange_self",
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
@@ -241,7 +246,7 @@ void Comm::exchange() {
       }
       proc_num_send[phase] = count;
       if(pack_buffer.extent(0)<count)
-        pack_buffer = Kokkos::View<Particle*>("Comm::pack_buffer",count);
+        pack_buffer = Kokkos::View<t_particle*>("Comm::pack_buffer",count);
       MPI_Request request;
       MPI_Irecv(&proc_num_recv[phase],1,MPI_INT, proc_neighbors_recv[phase],100001,MPI_COMM_WORLD,&request);
       MPI_Send(&proc_num_send[phase],1,MPI_INT, proc_neighbors_send[phase],100001,MPI_COMM_WORLD);
@@ -250,14 +255,16 @@ void Comm::exchange() {
       count = proc_num_recv[phase];
       //printf("Recv Count: %i\n",count);
       if(unpack_buffer.extent(0)<count) {
-        unpack_buffer = Kokkos::View<Particle*>("Comm::unpack_buffer",count);
+        unpack_buffer = Kokkos::View<t_particle*>("Comm::unpack_buffer",count);
       }
       if(proc_num_recv[phase]>0)
-        MPI_Irecv(unpack_buffer.data(),proc_num_recv[phase]*sizeof(Particle)/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD,&request);
+        MPI_Irecv(unpack_buffer.data(),proc_num_recv[phase]*sizeof(t_particle)/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD,&request);
       if(proc_num_send[phase]>0)
-        MPI_Send (pack_buffer.data(),proc_num_send[phase]*sizeof(Particle)/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD);
-      system->grow(N_local + N_ghost + count);
+        MPI_Send (pack_buffer.data(),proc_num_send[phase]*sizeof(t_particle)/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD);
+      system->resize(N_local + N_ghost + count);
       s = *system;
+      x = s.xvf.slice<Positions>();
+      type = s.xvf.slice<Types>();
       if(proc_num_recv[phase]>0)
         MPI_Wait(&request,&status);
       Kokkos::parallel_for("CommMPI::exchange_unpack",
@@ -267,6 +274,10 @@ void Comm::exchange() {
     }
 
     N_ghost += count;
+    if (x.size() > N_local+N_ghost) {
+      system->resize(N_local+N_ghost);
+    }
+
     N_total_recv += proc_num_recv[phase];
     N_total_send += proc_num_send[phase];
   }
@@ -307,6 +318,7 @@ void Comm::exchange_halo() {
   N_ghost = 0;
 
   s = *system;
+  x = s.xvf.slice<Positions>();
 
   for(phase = 0; phase < 6; phase ++) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
@@ -331,7 +343,7 @@ void Comm::exchange_halo() {
       }
       proc_num_send[phase] = count;
       if(pack_buffer.extent(0)<count)
-        pack_buffer = Kokkos::View<Particle*>("Comm::pack_buffer",count);
+        pack_buffer = Kokkos::View<t_particle*>("Comm::pack_buffer",count);
       MPI_Request request;
       MPI_Irecv(&proc_num_recv[phase],1,MPI_INT, proc_neighbors_recv[phase],100001,MPI_COMM_WORLD,&request);
       MPI_Send(&proc_num_send[phase],1,MPI_INT, proc_neighbors_send[phase],100001,MPI_COMM_WORLD);
@@ -339,12 +351,13 @@ void Comm::exchange_halo() {
       MPI_Wait(&request,&status);
       count = proc_num_recv[phase];
       if(unpack_buffer.extent(0)<count) {
-        unpack_buffer = Kokkos::View<Particle*>("Comm::unpack_buffer",count);
+        unpack_buffer = Kokkos::View<t_particle*>("Comm::unpack_buffer",count);
       }
-      MPI_Irecv(unpack_buffer.data(),proc_num_recv[phase]*sizeof(Particle)/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD,&request);
-      MPI_Send (pack_buffer.data(),proc_num_send[phase]*sizeof(Particle)/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD);
-      system->grow(N_local + N_ghost + count);
+      MPI_Irecv(unpack_buffer.data(),proc_num_recv[phase]*sizeof(t_particle)/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD,&request);
+      MPI_Send (pack_buffer.data(),proc_num_send[phase]*sizeof(t_particle)/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD);
+      system->resize(N_local + N_ghost + count);
       s = *system;
+      x = s.xvf.slice<Positions>();
       MPI_Wait(&request,&status);
       Kokkos::parallel_for("CommMPI::halo_exchange_unpack",
                 Kokkos::RangePolicy<TagUnpack, Kokkos::IndexType<T_INT> >(0,proc_num_recv[phase]),
@@ -357,9 +370,10 @@ void Comm::exchange_halo() {
                 *this);
       Kokkos::deep_copy(count,pack_count);
       bool redo = false;
-      if(N_local+N_ghost+count>s.x.extent(0)) {
-        system->grow(N_local + N_ghost + count);
+      if(N_local+N_ghost+count>x.size()) {
+        system->resize(N_local + N_ghost + count);
         s = *system;
+	x = s.xvf.slice<Positions>(); // reslice after resize
         redo = true;
       }
       if(count > pack_indicies.extent(0)) {
@@ -381,6 +395,10 @@ void Comm::exchange_halo() {
 
     num_ghost[phase] = count;
     N_ghost += count;
+    if (x.size() > N_local+N_ghost) {
+      system->resize(N_local+N_ghost);
+    }
+
   }
   static int step = 0;
   step++;
@@ -396,6 +414,7 @@ void Comm::update_halo() {
 
   N_ghost = 0;
   s=*system;
+  x = s.xvf.slice<Positions>();
 
   pack_buffer_update = t_buffer_update((T_X_FLOAT*)pack_buffer.data(),pack_indicies_all.extent(1));
   unpack_buffer_update = t_buffer_update((T_X_FLOAT*)unpack_buffer.data(),pack_indicies_all.extent(1));
@@ -412,6 +431,7 @@ void Comm::update_halo() {
       MPI_Irecv(unpack_buffer.data(),proc_num_recv[phase]*sizeof(T_X_FLOAT)*3/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD,&request);
       MPI_Send (pack_buffer.data(),proc_num_send[phase]*sizeof(T_X_FLOAT)*3/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD);
       s = *system;
+      x = s.xvf.slice<Positions>();
       MPI_Wait(&request,&status);
       const int count = proc_num_recv[phase];
       if(unpack_buffer_update.extent(0)<count) {
@@ -428,6 +448,10 @@ void Comm::update_halo() {
         *this);
     }
     N_ghost += proc_num_recv[phase];
+    if (x.size() > N_local+N_ghost) {
+      system->resize(N_local+N_ghost);
+    }
+
   }
 
   Kokkos::Profiling::popRegion();
@@ -439,6 +463,7 @@ void Comm::update_force() {
 
   N_ghost = 0;
   s=*system;
+  f = s.xvf.slice<Forces>();
 
   ghost_offsets[0] = s.N_local;
   for(phase = 1; phase<6; phase++) {
@@ -460,6 +485,7 @@ void Comm::update_force() {
       MPI_Irecv(pack_buffer.data(),proc_num_send[phase]*sizeof(T_X_FLOAT)*3/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD,&request);
       MPI_Send (unpack_buffer.data(),proc_num_recv[phase]*sizeof(T_X_FLOAT)*3/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD);
       s = *system;
+      f = s.xvf.slice<Forces>();
       MPI_Wait(&request,&status);
       Kokkos::parallel_for("CommMPI::halo_force_unpack",
                 Kokkos::RangePolicy<TagHaloForceUnpack, Kokkos::IndexType<T_INT> >(0,proc_num_send[phase]),

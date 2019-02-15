@@ -56,7 +56,6 @@
 
 #include <types.h>
 #include <system.h>
-
 #include "mpi.h"
 
 class Comm {
@@ -67,7 +66,12 @@ class Comm {
   T_INT N_ghost;
 
   System s;
-
+  t_slice_x x;
+  t_slice_x f;
+  t_slice_x v;
+  t_slice_int id;
+  t_slice_int type;
+  t_slice_fl q;
   // Owned Variables
 
   int phase; // Communication Phase
@@ -85,8 +89,8 @@ class Comm {
 
   T_INT num_packed;
   Kokkos::View<int, Kokkos::MemoryTraits<Kokkos::Atomic> > pack_count;
-  Kokkos::View<Particle*> pack_buffer;
-  Kokkos::View<Particle*> unpack_buffer;
+  Kokkos::View<t_particle*> pack_buffer;
+  Kokkos::View<t_particle*> unpack_buffer;
   typedef Kokkos::View<T_X_FLOAT*[3], Kokkos::LayoutRight, Kokkos::MemoryTraits<Kokkos::Unmanaged>> t_buffer_update;
   t_buffer_update pack_buffer_update;
   t_buffer_update unpack_buffer_update;
@@ -119,12 +123,9 @@ public:
   struct TagHaloForcePack {};
   struct TagHaloForceUnpack {};
 
-  struct TagPermuteIndexList {};
-
   Comm(System* s, T_X_FLOAT comm_depth_);
   void init();
   void create_domain_decomposition();
-  void permute_index_lists(Binning::t_permute_vector& permute_vector);
   void exchange();
   void exchange_halo();
   void update_halo();
@@ -141,92 +142,93 @@ public:
   void operator() (const TagExchangeSelf, 
                    const T_INT& i) const {
     if(proc_grid[0]==1) {
-      const T_X_FLOAT x = s.x(i,0);
-      if(x>s.domain_x) s.x(i,0) -= s.domain_x;
-      if(x<0)          s.x(i,0) += s.domain_x;
+      const T_X_FLOAT x1 = x(i,0);
+      if(x1>s.domain_x) x(i,0) -= s.domain_x;
+      if(x1<0)          x(i,0) += s.domain_x;
     }
     if(proc_grid[1]==1) {
-      const T_X_FLOAT y = s.x(i,1);
-      if(y>s.domain_y) s.x(i,1) -= s.domain_y;
-      if(y<0)          s.x(i,1) += s.domain_y;
+      const T_X_FLOAT y1 = x(i,1);
+      if(y1>s.domain_y) x(i,1) -= s.domain_y;
+      if(y1<0)          x(i,1) += s.domain_y;
     }
     if(proc_grid[2]==1) {
-      const T_X_FLOAT z = s.x(i,2);
-      if(z>s.domain_z) s.x(i,2) -= s.domain_z;
-      if(z<0)          s.x(i,2) += s.domain_z;
+      const T_X_FLOAT z1 = x(i,2);
+      if(z1>s.domain_z) x(i,2) -= s.domain_z;
+      if(z1<0)          x(i,2) += s.domain_z;
     }   
   }
 
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagExchangePack, 
                    const T_INT& i) const {
-    if(s.type(i)<0) return;
-    if( (phase == 0) && (s.x(i,0)>s.sub_domain_hi_x)) {
+    if(type(i)<0) return;
+    if( (phase == 0) && (x(i,0)>s.sub_domain_hi_x)) {
       const int pack_idx = pack_count()++;
       if( pack_idx < pack_indicies.extent(0) ) {
         pack_indicies(pack_idx) = i; 
-        Particle p = s.get_particle(i);
-        s.type(i) = -1;
+        t_particle p = s.get_particle(i);
+        type(i) = -1;
         if(proc_pos[0] == proc_grid[0]-1)
-          p.x -= s.domain_x;
+          p.get<Positions>(0) -= s.domain_x;
+        //t_particle p = s.get_particle(i);
         pack_buffer(pack_idx) = p;
       }
     }  
 
-    if( (phase == 1) && (s.x(i,0)<s.sub_domain_lo_x)) {
+    if( (phase == 1) && (x(i,0)<s.sub_domain_lo_x)) {
       const int pack_idx = pack_count()++;
       if( pack_idx < pack_indicies.extent(0) ) {
         pack_indicies(pack_idx) = i;
-        Particle p = s.get_particle(i);
-        s.type(i) = -1;
+	t_particle p = s.get_particle(i);
+        type(i) = -1;
         if(proc_pos[0] == 0)
-          p.x += s.domain_x;
+          p.get<Positions>(0) += s.domain_x;
         pack_buffer(pack_idx) = p;
       }
     }
 
-    if( (phase == 2) && (s.x(i,1)>s.sub_domain_hi_y)) {
+    if( (phase == 2) && (x(i,1)>s.sub_domain_hi_y)) {
       const int pack_idx = pack_count()++;
       if( pack_idx < pack_indicies.extent(0) ) {
         pack_indicies(pack_idx) = i;
-        Particle p = s.get_particle(i);
-        s.type(i) = -1;
+        t_particle p = s.get_particle(i);
+        type(i) = -1;
         if(proc_pos[1] == proc_grid[1]-1)
-          p.y -= s.domain_y;
+          p.get<Positions>(1) -= s.domain_y;
         pack_buffer(pack_idx) = p;
       }
     }
-    if( (phase == 3) && (s.x(i,1)<s.sub_domain_lo_y)) {
+    if( (phase == 3) && (x(i,1)<s.sub_domain_lo_y)) {
       const int pack_idx = pack_count()++;
       if( pack_idx < pack_indicies.extent(0) ) {
         pack_indicies(pack_idx) = i;
-        Particle p = s.get_particle(i);
-        s.type(i) = -1;
+        t_particle p = s.get_particle(i);
+        type(i) = -1;
         if(proc_pos[1] == 0)
-          p.y += s.domain_y;
+          p.get<Positions>(1) += s.domain_y;
         pack_buffer(pack_idx) = p;
       }
     }
 
-    if( (phase == 4) && (s.x(i,2)>s.sub_domain_hi_z)) {
+    if( (phase == 4) && (x(i,2)>s.sub_domain_hi_z)) {
       const int pack_idx = pack_count()++;
       if( pack_idx < pack_indicies.extent(0) ) {
         pack_indicies(pack_idx) = i;
-        Particle p = s.get_particle(i);
-        s.type(i) = -1;
+        t_particle p = s.get_particle(i);
+        type(i) = -1;
         if(proc_pos[2] == proc_grid[2]-1)
-          p.z -= s.domain_z;
+          p.get<Positions>(2) -= s.domain_z;
         pack_buffer(pack_idx) = p;
       }
     }
-    if( (phase == 5) && (s.x(i,2)<s.sub_domain_lo_z)) {
+    if( (phase == 5) && (x(i,2)<s.sub_domain_lo_z)) {
       const int pack_idx = pack_count()++;
       if( pack_idx < pack_indicies.extent(0) ) {
         pack_indicies(pack_idx) = i;
-        Particle p = s.get_particle(i);
-        s.type(i) = -1;
+        t_particle p = s.get_particle(i);
+        type(i) = -1;
         if(proc_pos[2] == 0)
-          p.z += s.domain_z;
+          p.get<Positions>(2) += s.domain_z;
         pack_buffer(pack_idx) = p;
       }
     }
@@ -235,7 +237,7 @@ public:
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagExchangeCreateDestList,
                    const T_INT& i, T_INT& c, const bool final) const {
-    if(s.type(i)<0) {
+    if(type(i)<0) {
       if(final) {
         exchange_dest_list(c) = i;
       }
@@ -247,9 +249,23 @@ public:
   void operator() (const TagExchangeCompact,
                    const T_INT& ii, T_INT& c, const bool final) const {
     const T_INT i = N_local+N_ghost-1-ii;
-    if(s.type(i)>=0) {
+    if(type(i)>=0) {
       if(final) {
-        s.copy(exchange_dest_list(c),i,0,0,0);
+        //s.copy(exchange_dest_list(c),i,0,0,0);
+	const T_INT dest = exchange_dest_list(c);
+	const T_INT src = i;
+	const T_INT nx = 0;
+        const T_INT ny = 0;
+        const T_INT nz = 0;
+	x(dest,0) = x(src,0) + s.domain_x * nx;
+	x(dest,1) = x(src,1) + s.domain_y * ny;
+	x(dest,2) = x(src,2) + s.domain_z * nz;
+	v(dest,0) = v(src,0);
+	v(dest,1) = v(src,1);
+	v(dest,2) = v(src,2);
+	type(dest) = type(src);
+	id(dest) = id(src);
+	q(dest) = q(src);
       }
       c++;
     }
@@ -260,68 +276,68 @@ public:
   void operator() (const TagHaloSelf,
                    const T_INT& i) const {
     if(phase == 0) {
-      if( s.x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
+      if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.x -= s.domain_x;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,0) -= s.domain_x;
         }
       }
     }
     if(phase == 1) {
-      if( s.x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
+      if( x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.x += s.domain_x;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,0) += s.domain_x;
         }
       }
     }
     if(phase == 2) {
-      if( s.x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
+      if( x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.y -= s.domain_y;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,1) -= s.domain_y;
         }
       }
     }
     if(phase == 3) {
-      if( s.x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
+      if( x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.y += s.domain_y;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,1) += s.domain_y;
         }
       }
     }
     if(phase == 4) {
-      if( s.x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
+      if( x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.z -= s.domain_z;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,2) -= s.domain_z;
         }
       }
     }
     if(phase == 5) {
-      if( s.x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
+      if( x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< s.x.extent(0))) {
+        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
-          p.z += s.domain_z;
+          t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
+          x(N_local + N_ghost + pack_idx,2) += s.domain_z;
         }
       }
     }
@@ -332,73 +348,73 @@ public:
   void operator() (const TagHaloPack,
                    const T_INT& i) const {
     if(phase == 0) {
-      if( s.x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
+      if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
+          t_particle p = s.get_particle(i);
           if(proc_pos[0] == proc_grid[0]-1)
-            p.x -= s.domain_x;
+            p.get<Positions>(0) -= s.domain_x;
           pack_buffer(pack_idx) = p;
         }
       }
     }
     if(phase == 1) {
-      if( s.x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
+      if( x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
+          t_particle p = s.get_particle(i);
           if(proc_pos[0] == 0)
-            p.x += s.domain_x;
+            p.get<Positions>(0) += s.domain_x;
           pack_buffer(pack_idx) = p;
         }
       }
     }
     if(phase == 2) {
-      if( s.x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
+      if( x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
+          t_particle p = s.get_particle(i);
           if(proc_pos[1] == proc_grid[1]-1)
-            p.y -= s.domain_y;
+            p.get<Positions>(1) -= s.domain_y;
           pack_buffer(pack_idx) = p;
         }
       }
     }
     if(phase == 3) {
-      if( s.x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
+      if( x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
+          t_particle p = s.get_particle(i);
           if(proc_pos[1] == 0)
-            p.y += s.domain_y;
+            p.get<Positions>(1) += s.domain_y;
           pack_buffer(pack_idx) = p;
         }
       }
     }
     if(phase == 4) {
-      if( s.x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
+      if( x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
+          t_particle p = s.get_particle(i);
           if(proc_pos[2] == proc_grid[2]-1)
-            p.z -= s.domain_z;
+            p.get<Positions>(2) -= s.domain_z;
           pack_buffer(pack_idx) = p;
         }
       }
     }
     if(phase == 5) {
-      if( s.x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
+      if( x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          Particle p = s.get_particle(i);
+          t_particle p = s.get_particle(i);
           if(proc_pos[2] == 0)
-            p.z += s.domain_z;
+            p.get<Positions>(2) += s.domain_z;
           pack_buffer(pack_idx) = p;
         }
       }
@@ -417,9 +433,9 @@ public:
                    const T_INT& ii) const {
 
     const T_INT i = pack_indicies(ii);
-    T_X_FLOAT x_i = s.x(i,0);
-    T_X_FLOAT y_i = s.x(i,1);
-    T_X_FLOAT z_i = s.x(i,2);
+    T_X_FLOAT x_i = x(i,0);
+    T_X_FLOAT y_i = x(i,1);
+    T_X_FLOAT z_i = x(i,2);
 
     switch (phase) {
       case 0: x_i -= s.domain_x; break;
@@ -429,9 +445,9 @@ public:
       case 4: z_i -= s.domain_z; break;
       case 5: z_i += s.domain_z; break;
     }
-    s.x(N_local + N_ghost + ii, 0) = x_i;
-    s.x(N_local + N_ghost + ii, 1) = y_i;
-    s.x(N_local + N_ghost + ii, 2) = z_i;
+    x(N_local + N_ghost + ii, 0) = x_i;
+    x(N_local + N_ghost + ii, 1) = y_i;
+    x(N_local + N_ghost + ii, 2) = z_i;
   }
 
   KOKKOS_INLINE_FUNCTION
@@ -439,9 +455,9 @@ public:
                    const T_INT& ii) const {
 
     const T_INT i = pack_indicies(ii);
-    T_X_FLOAT x_i = s.x(i,0);
-    T_X_FLOAT y_i = s.x(i,1);
-    T_X_FLOAT z_i = s.x(i,2);
+    T_X_FLOAT x_i = x(i,0);
+    T_X_FLOAT y_i = x(i,1);
+    T_X_FLOAT z_i = x(i,2);
 
     switch (phase) {
       case 0: if(proc_pos[0] == proc_grid[0]-1) x_i -= s.domain_x; break;
@@ -459,9 +475,9 @@ public:
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagHaloUpdateUnpack,
                    const T_INT& ii) const {
-    s.x(N_local + N_ghost + ii, 0) = unpack_buffer_update(ii, 0);
-    s.x(N_local + N_ghost + ii, 1) = unpack_buffer_update(ii, 1);
-    s.x(N_local + N_ghost + ii, 2) = unpack_buffer_update(ii, 2);
+    x(N_local + N_ghost + ii, 0) = unpack_buffer_update(ii, 0);
+    x(N_local + N_ghost + ii, 1) = unpack_buffer_update(ii, 1);
+    x(N_local + N_ghost + ii, 2) = unpack_buffer_update(ii, 2);
   }
 
   KOKKOS_INLINE_FUNCTION
@@ -469,22 +485,22 @@ public:
                    const T_INT& ii) const {
 
     const T_INT i = pack_indicies(ii);
-    T_F_FLOAT fx_i = s.f(ghost_offsets[phase] + ii,0);
-    T_F_FLOAT fy_i = s.f(ghost_offsets[phase] + ii,1);
-    T_F_FLOAT fz_i = s.f(ghost_offsets[phase] + ii,2);
+    T_F_FLOAT fx_i = f(ghost_offsets[phase] + ii,0);
+    T_F_FLOAT fy_i = f(ghost_offsets[phase] + ii,1);
+    T_F_FLOAT fz_i = f(ghost_offsets[phase] + ii,2);
 
-    s.f(i, 0) += fx_i;
-    s.f(i, 1) += fy_i;
-    s.f(i, 2) += fz_i;
+    f(i, 0) += fx_i;
+    f(i, 1) += fy_i;
+    f(i, 2) += fz_i;
   }
 
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagHaloForcePack,
                    const T_INT& ii) const {
 
-    T_F_FLOAT fx_i = s.f(ghost_offsets[phase] + ii,0);
-    T_F_FLOAT fy_i = s.f(ghost_offsets[phase] + ii,1);
-    T_F_FLOAT fz_i = s.f(ghost_offsets[phase] + ii,2);
+    T_F_FLOAT fx_i = f(ghost_offsets[phase] + ii,0);
+    T_F_FLOAT fy_i = f(ghost_offsets[phase] + ii,1);
+    T_F_FLOAT fz_i = f(ghost_offsets[phase] + ii,2);
 
     unpack_buffer_update(ii, 0) = fx_i;
     unpack_buffer_update(ii, 1) = fy_i;
@@ -497,9 +513,9 @@ public:
 
     const T_INT i = pack_indicies(ii);
 
-    s.f(i, 0) += pack_buffer_update(ii, 0);
-    s.f(i, 1) += pack_buffer_update(ii, 1);
-    s.f(i, 2) += pack_buffer_update(ii, 2);
+    f(i, 0) += pack_buffer_update(ii, 0);
+    f(i, 1) += pack_buffer_update(ii, 1);
+    f(i, 2) += pack_buffer_update(ii, 2);
   }
 
   const char* name();
