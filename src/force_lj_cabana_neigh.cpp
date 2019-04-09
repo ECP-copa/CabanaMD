@@ -85,13 +85,13 @@ void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<int> force_types, std::
 // No default constructor for Cabana::VerletList
 t_verletlist_full Force::init_fullneigh_list() {
   AoSoA xvf (1);
-  t_slice_x x = xvf.slice<Positions>();
+  auto x = xvf.slice<Positions>();
   t_verletlist_full neigh_list_full( x, 0, x.size(), 1.0, 1.0, (const double[]){0.0,0.0,0.0}, (const double[]){1.0,1.0,1.0} );
   return neigh_list_full;
 }
 t_verletlist_half Force::init_halfneigh_list() {
   AoSoA xvf (1);
-  t_slice_x x = xvf.slice<Positions>();
+  auto x = xvf.slice<Positions>();
   t_verletlist_half neigh_list_half( x, 0, x.size(), 1.0, 1.0, (const double[]){0.0,0.0,0.0}, (const double[]){1.0,1.0,1.0} );
   return neigh_list_half;
 }

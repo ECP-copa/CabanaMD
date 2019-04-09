@@ -57,10 +57,11 @@ Integrator::Integrator(System* p):system(p) {
 namespace {
   struct InitialIntegrateFunctor {
     AoSoA xvf;
-    t_slice_x x;
-    t_slice_x v;
-    t_slice_x f;
-    t_slice_int type;
+    typename AoSoA::member_slice_type<Positions> x;
+    typename AoSoA::member_slice_type<Velocities> v;
+    typename AoSoA::member_slice_type<Forces> f;
+    typename AoSoA::member_slice_type<Types> type;
+
     t_mass_const mass;
 
     int step;
@@ -101,10 +102,11 @@ void Integrator::initial_integrate() {
 namespace {
   struct FinalIntegrateFunctor {
     AoSoA xvf;
-    t_slice_x x;
-    t_slice_x v;
-    t_slice_x f;
-    t_slice_int type;
+    typename AoSoA::member_slice_type<Positions> x;
+    typename AoSoA::member_slice_type<Velocities> v;
+    typename AoSoA::member_slice_type<Forces> f;
+    typename AoSoA::member_slice_type<Types> type;
+
     t_mass_const mass;
 
     int step;

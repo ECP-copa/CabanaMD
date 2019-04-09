@@ -56,11 +56,11 @@
 class Force {
 private:
   int N_local,ntypes;
-  t_slice_x x;
-  t_slice_x f;
-  t_slice_x_atomic f_a;
-  t_slice_int id;
-  t_slice_int type;
+  typename AoSoA::member_slice_type<Positions> x;
+  typename AoSoA::member_slice_type<Forces> f;
+  typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
+  typename AoSoA::member_slice_type<IDs> id;
+  typename AoSoA::member_slice_type<Types> type;
 
   int step;
 
