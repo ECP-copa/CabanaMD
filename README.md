@@ -23,7 +23,7 @@ CabanaMD has the following dependencies:
 |---------- | ------- |--------  |------- |
 |CMake      | 3.9+    | Yes      | Build system
 |Kokkos     | 2.7.0   | Yes      | Provides portable on-node parallelism
-|Cabana     | 0.1     | Yes      | Performance portable particle algorithms
+|Cabana     | 0.2     | Yes      | Performance portable particle algorithms
 
 
 Build Kokkos, followed by Cabana:
