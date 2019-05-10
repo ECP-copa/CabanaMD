@@ -123,11 +123,9 @@ void Force::compute(System* system) {
   type = system->xvf.slice<Types>();
 
   if(half_neigh) {
-    Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_reset(0, f.size()), *this);
     Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh_stackparams(0, system->N_local), *this);
   }
   else {
-    Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_reset(0, f.size()), *this);
     Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_neigh_stackparams(0, system->N_local), *this);
   }
   Kokkos::fence();
@@ -328,18 +326,4 @@ void Force::operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
     }
   }
 
-}
-
-KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagFullNeighReset, const T_INT& i) const {
-  for ( int j = 0; j < 3; j++ ) {
-    f(i,j) = 0.0;
-  }
-}
-
-KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagHalfNeighReset, const T_INT& i) const {
-  for ( int j = 0; j < 3; j++ ) {
-    f_a(i,j) = 0.0;
-  }
 }
