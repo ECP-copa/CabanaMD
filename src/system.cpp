@@ -98,11 +98,11 @@ void System::resize(T_INT N_new) {
 
 void System::print_particles() {
 
-  auto x = xvf.slice<Positions>();
-  auto v = xvf.slice<Velocities>();
-  auto f = xvf.slice<Forces>();
-  auto type = xvf.slice<Types>();
-  auto q = xvf.slice<Charges>();
+  auto x = Cabana::slice<Positions>(xvf);
+  auto v = Cabana::slice<Velocities>(xvf);
+  auto f = Cabana::slice<Forces>(xvf);
+  auto type = Cabana::slice<Types>(xvf);
+  auto q = Cabana::slice<Charges>(xvf);
 
   printf("Print all particles: \n");
   printf("  Owned: %d\n",N_local);
