@@ -75,7 +75,7 @@ System::System() {
 }
 
 void System::init() {
-  AoSoA xvf ( N_max );
+  AoSoA xvf ( "All", N_max );
   mass = t_mass("System::mass",ntypes);
 }
 
@@ -84,7 +84,7 @@ void System::destroy() {
   N_local = 0;
   N_ghost = 0;
   ntypes = 1;
-  AoSoA xvf( 0 );
+  AoSoA xvf( "All", 0 );
   mass = t_mass();
 }
 
