@@ -100,11 +100,11 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   void copy(T_INT dest, T_INT src, int nx, int ny, int nz) const {
-    auto x = xvf.slice<Positions>();
-    auto v = xvf.slice<Velocities>();
-    auto q = xvf.slice<Charges>();
-    auto id = xvf.slice<IDs>();
-    auto type = xvf.slice<Types>();
+    auto x = Cabana::slice<Positions>(xvf);
+    auto v = Cabana::slice<Velocities>(xvf);
+    auto q = Cabana::slice<Charges>(xvf);
+    auto id = Cabana::slice<IDs>(xvf);
+    auto type = Cabana::slice<Types>(xvf);
 
     x(dest,0) = x(src,0) + domain_x * nx;
     x(dest,1) = x(src,1) + domain_y * ny;
@@ -119,7 +119,7 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   void copy_halo_update(T_INT dest, T_INT src, int nx, int ny, int nz) const {
-    auto x = xvf.slice<Positions>();
+    auto x = Cabana::slice<Positions>(xvf);
 
     x(dest,0) = x(src,0) + domain_x * nx;
     x(dest,1) = x(src,1) + domain_y * ny;

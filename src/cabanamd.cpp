@@ -117,7 +117,7 @@ void CabanaMD::init(int argc, char* argv[]) {
   force->create_neigh_list(system);
 
   // Compute initial forces
-  auto f = system->xvf.slice<Forces>();
+  auto f = Cabana::slice<Forces>(system->xvf);
   Cabana::deep_copy(f, 0.0);
   force->compute(system);
 
@@ -209,7 +209,7 @@ void CabanaMD::run(int nsteps) {
 
     // Zero out forces
     force_timer.reset();
-    auto f = system->xvf.slice<Forces>();
+    auto f = Cabana::slice<Forces>(system->xvf);
     Cabana::deep_copy(f, 0.0);
 
     // Compute Short Range Force
@@ -298,12 +298,12 @@ void CabanaMD::dump_binary(int step) {
   }
 
   System s = *system;
-  auto h_id = s.xvf.slice<IDs>();
-  auto h_type = s.xvf.slice<Types>();
-  auto h_q = s.xvf.slice<Charges>();
-  auto h_x = s.xvf.slice<Positions>();
-  auto h_v = s.xvf.slice<Velocities>();
-  auto h_f = s.xvf.slice<Forces>();
+  auto h_id = Cabana::slice<IDs>(s.xvf);
+  auto h_type = Cabana::slice<Types>(s.xvf);
+  auto h_q = Cabana::slice<Charges>(s.xvf);
+  auto h_x = Cabana::slice<Positions>(s.xvf);
+  auto h_v = Cabana::slice<Velocities>(s.xvf);
+  auto h_f = Cabana::slice<Forces>(s.xvf);
 
   fwrite(&n,sizeof(T_INT),1,fp);
   fwrite(h_id.data(),sizeof(T_INT),n,fp);
@@ -331,12 +331,12 @@ void CabanaMD::check_correctness(int step) {
   T_INT n = system->N_local;
   T_INT ntmp;
 
-  auto x = system->xvf.slice<Positions>();
-  auto v = system->xvf.slice<Velocities>();
-  auto f = system->xvf.slice<Forces>();
-  auto id = system->xvf.slice<IDs>();
-  auto type = system->xvf.slice<Types>();
-  auto q = system->xvf.slice<Charges>();
+  auto x = Cabana::slice<Positions>(system->xvf);
+  auto v = Cabana::slice<Velocities>(system->xvf);
+  auto f = Cabana::slice<Forces>(system->xvf);
+  auto id = Cabana::slice<IDs>(system->xvf);
+  auto type = Cabana::slice<Types>(system->xvf);
+  auto q = Cabana::slice<Charges>(system->xvf);
 
   char* filename = new char[MAXPATHLEN];
   sprintf(filename,"%s%s.%010d.%03d",input->reference_path,
@@ -355,12 +355,12 @@ void CabanaMD::check_correctness(int step) {
   }
   
   AoSoA xvf_ref( n );
-  auto xref = xvf_ref.slice<Positions>();
-  auto vref = xvf_ref.slice<Velocities>();
-  auto fref = xvf_ref.slice<Forces>();
-  auto idref = xvf_ref.slice<IDs>();
-  auto typeref = xvf_ref.slice<Types>();
-  auto qref = xvf_ref.slice<Charges>();
+  auto xref = Cabana::slice<Positions>(xvf_ref);
+  auto vref = Cabana::slice<Velocities>(xvf_ref);
+  auto fref = Cabana::slice<Forces>(xvf_ref);
+  auto idref = Cabana::slice<IDs>(xvf_ref);
+  auto typeref = Cabana::slice<Types>(xvf_ref);
+  auto qref = Cabana::slice<Charges>(xvf_ref);
   
   fread(idref.data(),sizeof(T_INT),n,fpref);
   fread(typeref.data(),sizeof(T_INT),n,fpref); 
@@ -369,12 +369,12 @@ void CabanaMD::check_correctness(int step) {
   fread(vref.data(),sizeof(T_V_FLOAT),3*n,fpref);
   fread(fref.data(),sizeof(T_F_FLOAT),3*n,fpref);
   
-  xref = xvf_ref.slice<Positions>();
-  vref = xvf_ref.slice<Velocities>();
-  fref = xvf_ref.slice<Forces>();
-  idref = xvf_ref.slice<IDs>();
-  typeref = xvf_ref.slice<Types>();
-  qref = xvf_ref.slice<Charges>();
+  xref = Cabana::slice<Positions>(xvf_ref);
+  vref = Cabana::slice<Velocities>(xvf_ref);
+  fref = Cabana::slice<Forces>(xvf_ref);
+  idref = Cabana::slice<IDs>(xvf_ref);
+  typeref = Cabana::slice<Types>(xvf_ref);
+  qref = Cabana::slice<Charges>(xvf_ref);
 
   T_FLOAT sumdelrsq = 0.0;
   T_FLOAT sumdelvsq = 0.0;
