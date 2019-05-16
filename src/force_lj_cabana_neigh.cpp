@@ -102,7 +102,7 @@ void Force::create_neigh_list(System* system) {
   double grid_min[3] = {-system->domain_x,-system->domain_y,-system->domain_z};
   double grid_max[3] = {2*system->domain_x,2*system->domain_y,2*system->domain_z};
 
-  auto x = system->xvf.slice<Positions>();
+  auto x = Cabana::slice<Positions>(system->xvf);
 
   if(half_neigh) {
     t_verletlist_half half( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
@@ -116,11 +116,11 @@ void Force::create_neigh_list(System* system) {
 
 void Force::compute(System* system) {
   N_local = system->N_local;
-  x = system->xvf.slice<Positions>();
-  f = system->xvf.slice<Forces>();
-  f_a = system->xvf.slice<Forces>();
-  id = system->xvf.slice<IDs>();
-  type = system->xvf.slice<Types>();
+  x = Cabana::slice<Positions>(system->xvf);
+  f = Cabana::slice<Forces>(system->xvf);
+  f_a = Cabana::slice<Forces>(system->xvf);
+  id = Cabana::slice<IDs>(system->xvf);
+  type = Cabana::slice<Types>(system->xvf);
 
   if(half_neigh) {
     Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh_stackparams(0, system->N_local), *this);
@@ -135,11 +135,11 @@ void Force::compute(System* system) {
 
 T_V_FLOAT Force::compute_energy(System* system) {
   N_local = system->N_local;
-  x = system->xvf.slice<Positions>();
-  f = system->xvf.slice<Forces>();
-  f_a = system->xvf.slice<Forces>();
-  id = system->xvf.slice<IDs>();
-  type = system->xvf.slice<Types>();
+  x = Cabana::slice<Positions>(system->xvf);
+  f = Cabana::slice<Forces>(system->xvf);
+  f_a = Cabana::slice<Forces>(system->xvf);
+  id = Cabana::slice<IDs>(system->xvf);
+  type = Cabana::slice<Types>(system->xvf);
 
   T_V_FLOAT energy;
 

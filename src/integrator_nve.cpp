@@ -72,10 +72,10 @@ namespace {
     ): xvf(xvf_),
       mass(mass_),dtf(dtf_),dtv(dtv_),step(step_)
       {
-      x = xvf.slice<Positions>();
-      v = xvf.slice<Velocities>();
-      f = xvf.slice<Forces>();
-      type = xvf.slice<Types>();
+      x = Cabana::slice<Positions>(xvf);
+      v = Cabana::slice<Velocities>(xvf);
+      f = Cabana::slice<Forces>(xvf);
+      type = Cabana::slice<Types>(xvf);
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -119,10 +119,10 @@ namespace {
     ): xvf(xvf_), mass(mass_),
       dtf(dtf_),dtv(dtv_),step(step_)
       {
-      x = xvf.slice<Positions>();
-      v = xvf.slice<Velocities>();
-      f = xvf.slice<Forces>();
-      type = xvf.slice<Types>();
+      x = Cabana::slice<Positions>(xvf);
+      v = Cabana::slice<Velocities>(xvf);
+      f = Cabana::slice<Forces>(xvf);
+      type = Cabana::slice<Types>(xvf);
     }
 
     KOKKOS_INLINE_FUNCTION

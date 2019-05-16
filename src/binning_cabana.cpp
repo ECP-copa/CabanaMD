@@ -81,7 +81,7 @@ void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, 
     T_X_FLOAT min[3] = {minx,miny,minz};
     T_X_FLOAT max[3] = {maxx,maxy,maxz};
 
-    x = system->xvf.slice<Positions>();
+    x = Cabana::slice<Positions>(system->xvf);
 
     Cabana::LinkedCellList<MemorySpace> cell_list(x, begin, end, delta, min, max );
 
