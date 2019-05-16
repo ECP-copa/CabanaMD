@@ -56,11 +56,11 @@
 class Force {
 private:
   int N_local,ntypes;
-  t_slice_x x;
-  t_slice_x f;
-  t_slice_x_atomic f_a;
-  t_slice_int id;
-  t_slice_int type;
+  typename AoSoA::member_slice_type<Positions> x;
+  typename AoSoA::member_slice_type<Forces> f;
+  typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
+  typename AoSoA::member_slice_type<IDs> id;
+  typename AoSoA::member_slice_type<Types> type;
 
   int step;
 
@@ -88,16 +88,10 @@ public:
 
   struct TagHalfNeighPE {};
 
-  struct TagFullNeighReset {};
-  struct TagHalfNeighReset {};
-
   typedef Kokkos::RangePolicy<TagFullNeigh,Kokkos::IndexType<T_INT> > t_policy_full_neigh_stackparams;
   typedef Kokkos::RangePolicy<TagHalfNeigh,Kokkos::IndexType<T_INT> > t_policy_half_neigh_stackparams;
   typedef Kokkos::RangePolicy<TagFullNeighPE,Kokkos::IndexType<T_INT> > t_policy_full_neigh_pe_stackparams;
   typedef Kokkos::RangePolicy<TagHalfNeighPE,Kokkos::IndexType<T_INT> > t_policy_half_neigh_pe_stackparams;
-
-  typedef Kokkos::RangePolicy<TagFullNeighReset,Kokkos::IndexType<T_INT> > t_policy_full_reset;
-  typedef Kokkos::RangePolicy<TagHalfNeighReset,Kokkos::IndexType<T_INT> > t_policy_half_reset;
 
   bool half_neigh, comm_newton;
   T_X_FLOAT neigh_cut;
@@ -125,11 +119,6 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   void operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const;
-
-  KOKKOS_INLINE_FUNCTION
-    void operator() (TagFullNeighReset, const T_INT& i) const;
-  KOKKOS_INLINE_FUNCTION
-    void operator() (TagHalfNeighReset, const T_INT& i) const;
 
   const char* name();
 };

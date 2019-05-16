@@ -85,13 +85,13 @@ void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<int> force_types, std::
 // No default constructor for Cabana::VerletList
 t_verletlist_full Force::init_fullneigh_list() {
   AoSoA xvf (1);
-  t_slice_x x = xvf.slice<Positions>();
+  auto x = xvf.slice<Positions>();
   t_verletlist_full neigh_list_full( x, 0, x.size(), 1.0, 1.0, (const double[]){0.0,0.0,0.0}, (const double[]){1.0,1.0,1.0} );
   return neigh_list_full;
 }
 t_verletlist_half Force::init_halfneigh_list() {
   AoSoA xvf (1);
-  t_slice_x x = xvf.slice<Positions>();
+  auto x = xvf.slice<Positions>();
   t_verletlist_half neigh_list_half( x, 0, x.size(), 1.0, 1.0, (const double[]){0.0,0.0,0.0}, (const double[]){1.0,1.0,1.0} );
   return neigh_list_half;
 }
@@ -123,11 +123,9 @@ void Force::compute(System* system) {
   type = system->xvf.slice<Types>();
 
   if(half_neigh) {
-    Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_reset(0, f.size()), *this);
     Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_half_neigh_stackparams(0, system->N_local), *this);
   }
   else {
-    Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_reset(0, f.size()), *this);
     Kokkos::parallel_for("ForceLJCabanaNeigh::compute", t_policy_full_neigh_stackparams(0, system->N_local), *this);
   }
   Kokkos::fence();
@@ -328,18 +326,4 @@ void Force::operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
     }
   }
 
-}
-
-KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagFullNeighReset, const T_INT& i) const {
-  for ( int j = 0; j < 3; j++ ) {
-    f(i,j) = 0.0;
-  }
-}
-
-KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagHalfNeighReset, const T_INT& i) const {
-  for ( int j = 0; j < 3; j++ ) {
-    f_a(i,j) = 0.0;
-  }
 }

@@ -62,11 +62,11 @@ int main(int argc, char* argv[]) {
    MPI_Init(&argc,&argv);
    #endif
 
-   Cabana::initialize(argc,argv);
+   Kokkos::ScopeGuard scope_guard(argc, argv);
 
    CabanaMD cabanamd;
    cabanamd.init(argc,argv);
-  
+
    cabanamd.run(cabanamd.input->nsteps);
 
    //   cabanamd.check_correctness();
@@ -74,8 +74,6 @@ int main(int argc, char* argv[]) {
    cabanamd.print_performance();
 
    cabanamd.shutdown();
-
-   Cabana::finalize();
 
    #ifdef CabanaMD_ENABLE_MPI
    MPI_Finalize();

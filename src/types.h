@@ -115,13 +115,9 @@ using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
 using AoSoA = Cabana::AoSoA<t_tuple,MemorySpace,VECLEN>;
 using t_particle = Cabana::Tuple<t_tuple>;
-using t_slice_x = Cabana::Slice<T_FLOAT[3],MemorySpace,MemoryAccess,VECLEN>;
-using t_slice_x_atomic = Cabana::Slice<T_FLOAT[3],MemorySpace,AtomicAccess,VECLEN>;
-using t_slice_int = Cabana::Slice<T_INT,MemorySpace,MemoryAccess,VECLEN>;
-using t_slice_fl = Cabana::Slice<T_FLOAT,MemorySpace,MemoryAccess,VECLEN>;
 
-using t_verletlist_full = Cabana::VerletList<MemorySpace,Cabana::FullNeighborTag>;
-using t_verletlist_half = Cabana::VerletList<MemorySpace,Cabana::HalfNeighborTag>;
+using t_verletlist_full = Cabana::VerletList<MemorySpace,Cabana::FullNeighborTag,Cabana::VerletLayoutCSR>;
+using t_verletlist_half = Cabana::VerletList<MemorySpace,Cabana::HalfNeighborTag,Cabana::VerletLayoutCSR>;
 
 #endif
 

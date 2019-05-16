@@ -59,8 +59,8 @@ class Comm {
   T_INT N_ghost;
 
   System s;
-  t_slice_x x;
-  t_slice_x f;
+  typename AoSoA::member_slice_type<Positions> x;
+  typename AoSoA::member_slice_type<Forces> f;
 
   // Owned Variables
 
