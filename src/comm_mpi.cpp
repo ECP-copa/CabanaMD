@@ -62,8 +62,6 @@ void Comm::init() {};
 
 void Comm::create_domain_decomposition() {
 
-  //printf("Domain b: %p %lf %lf %lf\n",system,system->domain_x ,system->domain_y ,system->domain_z);
-
   MPI_Comm_size(MPI_COMM_WORLD, &proc_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_rank);
   int ipx = 1;
@@ -149,12 +147,6 @@ void Comm::create_domain_decomposition() {
   system->sub_domain_hi_x = ( proc_pos[0] + 1 ) * system->sub_domain_x;
   system->sub_domain_hi_y = ( proc_pos[1] + 1 ) * system->sub_domain_y;
   system->sub_domain_hi_z = ( proc_pos[2] + 1 ) * system->sub_domain_z;
-
-  /*printf("MyRank: %i MyPos: %i %i %i Grid: %i %i %i Neighbors: %i %i , %i %i , %i %i\n",proc_rank,proc_pos[0],
-      proc_pos[1],proc_pos[2],proc_grid[0],proc_grid[1],proc_grid[2],
-      proc_neighbors_send[0],proc_neighbors_send[1],
-      proc_neighbors_send[2],proc_neighbors_send[3],
-      proc_neighbors_send[4],proc_neighbors_send[5]);*/
 }
 
 
@@ -213,14 +205,12 @@ void Comm::exchange() {
   q = s.xvf.slice<Charges>();
   id = s.xvf.slice<IDs>();
   type = s.xvf.slice<Types>();
-  //printf("System A: %i %lf %lf %lf %i\n",s.N_local,s.x(21,0),s.x(21,1),s.x(21,2),s.type(21));
   Kokkos::parallel_for("CommMPI::exchange_self",
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
 
   T_INT N_total_recv = 0;
   T_INT N_total_send = 0;
 
-  //printf("System B: %i %lf %lf %lf %i\n",s.N_local,s.x(21,0),s.x(21,1),s.x(21,2),s.type(21));
   for(phase = 0; phase < 6; phase ++) {
     proc_num_send[phase] = 0;
     proc_num_recv[phase] = 0;
@@ -253,7 +243,7 @@ void Comm::exchange() {
       MPI_Status status;
       MPI_Wait(&request,&status);
       count = proc_num_recv[phase];
-      //printf("Recv Count: %i\n",count);
+
       if(unpack_buffer.extent(0)<count) {
         unpack_buffer = Kokkos::View<t_particle*>("Comm::unpack_buffer",count);
       }
@@ -283,7 +273,6 @@ void Comm::exchange() {
   }
   T_INT N_local_start = N_local;
   T_INT N_exchange = N_ghost;
-  //printf("System C: %i %lf %lf %lf %i\n",s.N_local,s.x(21,0),s.x(21,1),s.x(21,2),s.type(21));
 
   N_local = N_local + N_total_recv - N_total_send;
   N_ghost = N_local_start + N_exchange - N_local;
@@ -291,21 +280,15 @@ void Comm::exchange() {
   if(exchange_dest_list.extent(0)<N_ghost)
     Kokkos::realloc(exchange_dest_list,N_ghost);
 
-  //printf("ExchangeDestList: %i %i %i %i %i\n",exchange_dest_list.extent(0),N_ghost,N_total_recv,N_total_send,N_local);
-  //printf("System: %i %i\n",s.N_local,system->N_local);
   Kokkos::parallel_scan("CommMPI::exchange_create_dest_list",
             Kokkos::RangePolicy<TagExchangeCreateDestList, Kokkos::IndexType<T_INT> >(0,N_local),
             *this);
-  //printf("System D: %i %lf %lf %lf %i\n",s.N_local,s.x(21,0),s.x(21,1),s.x(21,2),s.type(21));
   Kokkos::parallel_scan("CommMPI::exchange_compact",
             Kokkos::RangePolicy<TagExchangeCompact, Kokkos::IndexType<T_INT> >(0,N_ghost),
             *this);
-  //printf("System E: %i %lf %lf %lf %i\n",s.N_local,s.x(21,0),s.x(21,1),s.x(21,2),s.type(21));
 
   system->N_local = N_local;
   system->N_ghost = 0;
-  /*for(int i=0;i<N_local;i++)
-    if(s.type(i)<0) printf("Huch: %i %i\n",i,N_local);*/
 
   Kokkos::Profiling::popRegion();
 };
@@ -388,7 +371,6 @@ void Comm::exchange_halo() {
                   Kokkos::RangePolicy<TagHaloSelf, Kokkos::IndexType<T_INT> >(0,nparticles),
                   *this);
       }
-      //printf("ExchangeHalo: %i %i %i %i\n",phase,count,pack_indicies_all.extent(1),pack_indicies.extent(0));
       proc_num_send[phase] = count;
       proc_num_recv[phase] = count;
     }
@@ -442,7 +424,6 @@ void Comm::update_halo() {
                 *this);
 
     } else {
-      //printf("HaloUpdateCopy: %i %i %i\n",phase,proc_num_send[phase],pack_indicies.extent(0));
       Kokkos::parallel_for("CommMPI::halo_update_self",
         Kokkos::RangePolicy<TagHaloUpdateSelf, Kokkos::IndexType<T_INT> >(0,proc_num_send[phase]),
         *this);
@@ -492,7 +473,6 @@ void Comm::update_force() {
                 *this);
 
     } else {
-      //printf("HaloUpdateCopy: %i %i %i\n",phase,proc_num_send[phase],pack_indicies.extent(0));
       Kokkos::parallel_for("CommMPI::halo_force_self",
         Kokkos::RangePolicy<TagHaloForceSelf, Kokkos::IndexType<T_INT> >(0,proc_num_send[phase]),
         *this);
