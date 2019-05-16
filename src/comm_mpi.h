@@ -66,12 +66,13 @@ class Comm {
   T_INT N_ghost;
 
   System s;
-  t_slice_x x;
-  t_slice_x f;
-  t_slice_x v;
-  t_slice_int id;
-  t_slice_int type;
-  t_slice_fl q;
+  typename AoSoA::member_slice_type<Positions> x;
+  typename AoSoA::member_slice_type<Forces> f;
+  typename AoSoA::member_slice_type<Velocities> v;
+  typename AoSoA::member_slice_type<IDs> id;
+  typename AoSoA::member_slice_type<Types> type;
+  typename AoSoA::member_slice_type<Charges> q;
+
   // Owned Variables
 
   int phase; // Communication Phase
