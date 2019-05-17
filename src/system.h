@@ -49,6 +49,8 @@
 
 #ifndef SYSTEM_H
 #define SYSTEM_H
+#include <Cabana_Slice.hpp>
+
 #include<types.h>
 
 class System {

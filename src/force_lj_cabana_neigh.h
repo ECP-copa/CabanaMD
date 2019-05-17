@@ -49,6 +49,9 @@
 
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
+#include <Cabana_NeighborList.hpp>
+#include <Cabana_Slice.hpp>
+
 #include<vector>
 #include<types.h>
 #include<system.h>
