@@ -49,6 +49,8 @@
 
 #ifndef COMM_SERIAL_H
 #define COMM_SERIAL_H
+#include <Cabana_Slice.hpp>
+
 #include <types.h>
 #include <system.h>
 

@@ -48,6 +48,8 @@
 //************************************************************************
 
 
+#include <Cabana_Slice.hpp>
+
 #include <types.h>
 #include <system.h>
 #include <comm_serial.h>

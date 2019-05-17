@@ -49,7 +49,9 @@
 
 #ifndef BINNING_CABANA_H
 #define BINNING_CABANA_H
-//#include<Kokkos_Sort.hpp>
+#include <Cabana_LinkedCellList.hpp>
+#include <Cabana_Slice.hpp>
+
 #include <types.h>
 #include <system.h>
 

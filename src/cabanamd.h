@@ -47,6 +47,7 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
+#include <Cabana_Slice.hpp>
 #include <types.h>
 
 #include<system.h>
