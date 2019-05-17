@@ -64,9 +64,6 @@ private:
 
   int step;
 
-  t_verletlist_full init_fullneigh_list();
-  t_verletlist_half init_halfneigh_list();
-
   typedef Kokkos::View<T_F_FLOAT**> t_fparams;
   typedef Kokkos::View<const T_F_FLOAT**,
       Kokkos::MemoryTraits<Kokkos::RandomAccess>> t_fparams_rnd;
