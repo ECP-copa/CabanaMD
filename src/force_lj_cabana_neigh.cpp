@@ -89,11 +89,11 @@ void Force::create_neigh_list(System* system) {
   auto x = Cabana::slice<Positions>(system->xvf);
 
   if(half_neigh) {
-    t_verletlist_half half( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
+    t_verletlist_half half( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
     neigh_list_half = half;
   }
   else {
-    t_verletlist_full full( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
+    t_verletlist_full full( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
     neigh_list_full = full;
   }
 }
