@@ -86,7 +86,7 @@ void CabanaMD::init(int argc, char* argv[]) {
   force = new Force(system,half_neigh);
   int nforce = (pow(input->ntypes, 2.0) + input->ntypes)/2;
   for(int line = 0; line < nforce; line++) {
-    force->init_coeff(neigh_cutoff, input->force_types[line], input->force_coeff[line]);
+    force->init_coeff(neigh_cutoff, input->force_coeff[line]);
   }
 
   // Create Communication Submodule
@@ -143,7 +143,7 @@ void CabanaMD::init(int argc, char* argv[]) {
       } else {
         printf("\n");
         printf("Step Temp E_pair TotEng CPU\n");
-        printf("     %i %lf %lf %lf %lf %e\n",step,T,PE,PE+KE,0.0);
+        printf("     %i %lf %lf %lf %e\n",step,T,PE,PE+KE,0.0);
       }
     }
   }
@@ -259,9 +259,6 @@ void CabanaMD::run(int nsteps) {
   }
 
   double time = timer.seconds();
-  T_FLOAT T = temp.compute(system);
-  T_FLOAT PE = pote.compute(system,force)/system->N;
-  T_FLOAT KE = kine.compute(system)/system->N;
 
   if(system->do_print) {
     if (!system->print_lammps) {

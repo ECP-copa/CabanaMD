@@ -60,13 +60,10 @@ Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_),neigh_cut
   step = 0;
 }
 
-void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<int> force_types, std::vector<double> force_coeff) {
+void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<double> force_coeff) {
   neigh_cut = neigh_cut_;
   step = 0;
 
-  int one_based_type = 1;
-  int t1 = force_types[0]-one_based_type;
-  int t2 = force_types[1]-one_based_type;
   double eps = force_coeff[0];
   double sigma = force_coeff[1];
   double cut = force_coeff[2];

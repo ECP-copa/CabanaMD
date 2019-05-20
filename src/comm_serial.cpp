@@ -62,7 +62,7 @@ void Comm::exchange() {
 
   Kokkos::parallel_for("CommSerial::exchange_self",
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
-};
+}
 
 void Comm::exchange_halo() {
 
@@ -84,13 +84,13 @@ void Comm::exchange_halo() {
               *this);
     Kokkos::deep_copy(count,pack_count);
     bool redo = false;
-    if(N_local+N_ghost+count>x.size()) {
+    if((unsigned) N_local+N_ghost+count > x.size()) {
       system->resize(N_local + N_ghost + count);
       s = *system;
       x = Cabana::slice<Positions>(s.xvf); // reslice after resize
       redo = true;
     }
-    if(count > pack_indicies.extent(0)) {
+    if((unsigned) count > pack_indicies.extent(0)) {
       Kokkos::resize(pack_indicies_all,6,count*1.1);
       pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
       redo = true;
@@ -108,10 +108,10 @@ void Comm::exchange_halo() {
   }
   system->N_ghost = N_ghost;
 
-  if (x.size() > N_local+N_ghost) {
+  if ((unsigned) N_local+N_ghost < x.size()) {
     system->resize(N_local+N_ghost);
   }
-};
+}
 
 void Comm::update_halo() {
   N_ghost = 0;
@@ -125,7 +125,7 @@ void Comm::update_halo() {
       *this);
     N_ghost += num_ghost[phase];
   }
-};
+}
 
 void Comm::update_force() {
   //printf("Update Force\n");
@@ -143,16 +143,16 @@ void Comm::update_force() {
       Kokkos::RangePolicy<TagHaloForceSelf, Kokkos::IndexType<T_INT> >(0,num_ghost[phase]),
       *this);
   }
-};
+}
 
-void Comm::reduce_float(T_FLOAT*, T_INT) {};
-void Comm::reduce_int(T_INT*, T_INT) {};
-void Comm::reduce_max_float(T_FLOAT*, T_INT) {};
-void Comm::reduce_max_int(T_INT*, T_INT) {};
-void Comm::reduce_min_float(T_FLOAT*, T_INT) {};
-void Comm::reduce_min_int(T_INT*, T_INT) {};
-void Comm::scan_int(T_INT*, T_INT) {};
-void Comm::weighted_reduce_float(T_FLOAT* , T_INT* , T_INT ) {};
+void Comm::reduce_float(T_FLOAT*, T_INT) {}
+void Comm::reduce_int(T_INT*, T_INT) {}
+void Comm::reduce_max_float(T_FLOAT*, T_INT) {}
+void Comm::reduce_max_int(T_INT*, T_INT) {}
+void Comm::reduce_min_float(T_FLOAT*, T_INT) {}
+void Comm::reduce_min_int(T_INT*, T_INT) {}
+void Comm::scan_int(T_INT*, T_INT) {}
+void Comm::weighted_reduce_float(T_FLOAT* , T_INT* , T_INT ) {}
 
 void Comm::create_domain_decomposition() {
   system->sub_domain_lo_x = 0.0;
@@ -161,7 +161,7 @@ void Comm::create_domain_decomposition() {
   system->sub_domain_x = system->sub_domain_hi_x = system->domain_x;
   system->sub_domain_y = system->sub_domain_hi_y = system->domain_y;
   system->sub_domain_z = system->sub_domain_hi_z = system->domain_z;
-};
+}
 int Comm::process_rank() {return 0;}
 int Comm::num_processes() {return 1;}
 

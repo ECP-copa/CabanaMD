@@ -101,7 +101,7 @@ public:
 
   Force(System* system, bool half_neigh_);
 
-  void init_coeff(T_X_FLOAT neigh_cut, std::vector<int> force_types, std::vector<double> force_coeff);
+  void init_coeff(T_X_FLOAT neigh_cut, std::vector<double> force_coeff);
 
   void create_neigh_list(System* system);
 

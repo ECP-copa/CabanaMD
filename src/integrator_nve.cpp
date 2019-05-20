@@ -50,8 +50,8 @@
 #include <integrator_nve.h>
 
 Integrator::Integrator(System* p):system(p) {
-  dtv = system->dt;
   dtf = 0.5 * system->dt / system->mvv2e;
+  dtv = system->dt;
 }
 
 namespace {
@@ -64,8 +64,9 @@ namespace {
 
     t_mass_const mass;
 
-    int step;
     T_V_FLOAT dtf,dtv;
+    int step;
+
     InitialIntegrateFunctor(
       AoSoA& xvf_,
       t_mass mass_, T_V_FLOAT dtf_, T_V_FLOAT dtv_, int step_
@@ -109,9 +110,8 @@ namespace {
 
     t_mass_const mass;
 
-    int step;
     T_V_FLOAT dtf,dtv;
-
+    int step;
 
     FinalIntegrateFunctor(
       AoSoA& xvf_,
