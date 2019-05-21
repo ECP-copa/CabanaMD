@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018 by the Cabana authors                                 *
+ * Copyright (c) 2018-2019 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -49,7 +49,9 @@
 
 #ifndef BINNING_CABANA_H
 #define BINNING_CABANA_H
-//#include<Kokkos_Sort.hpp>
+#include <Cabana_LinkedCellList.hpp>
+#include <Cabana_Slice.hpp>
+
 #include <types.h>
 #include <system.h>
 

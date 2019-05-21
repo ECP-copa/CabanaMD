@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018 by the Cabana authors                                 *
+ * Copyright (c) 2018-2019 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -49,9 +49,7 @@
 
 #include<force_lj_cabana_neigh.h>
 
-Force::Force(System* system, bool half_neigh_):neigh_list_full(init_fullneigh_list()),
-					       neigh_list_half(init_halfneigh_list()),
-					       half_neigh(half_neigh_),neigh_cut(0.0) {
+Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_),neigh_cut(0.0) {
   ntypes = system->ntypes;
 
   lj1 = t_fparams("ForceLJCabanaNeigh::lj1",ntypes,ntypes);
@@ -62,13 +60,10 @@ Force::Force(System* system, bool half_neigh_):neigh_list_full(init_fullneigh_li
   step = 0;
 }
 
-void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<int> force_types, std::vector<double> force_coeff) {
+void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<double> force_coeff) {
   neigh_cut = neigh_cut_;
   step = 0;
 
-  int one_based_type = 1;
-  int t1 = force_types[0]-one_based_type;
-  int t2 = force_types[1]-one_based_type;
   double eps = force_coeff[0];
   double sigma = force_coeff[1];
   double cut = force_coeff[2];
@@ -82,20 +77,6 @@ void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<int> force_types, std::
   }
 }
 
-// No default constructor for Cabana::VerletList
-t_verletlist_full Force::init_fullneigh_list() {
-  AoSoA xvf (1);
-  auto x = xvf.slice<Positions>();
-  t_verletlist_full neigh_list_full( x, 0, x.size(), 1.0, 1.0, (const double[]){0.0,0.0,0.0}, (const double[]){1.0,1.0,1.0} );
-  return neigh_list_full;
-}
-t_verletlist_half Force::init_halfneigh_list() {
-  AoSoA xvf (1);
-  auto x = xvf.slice<Positions>();
-  t_verletlist_half neigh_list_half( x, 0, x.size(), 1.0, 1.0, (const double[]){0.0,0.0,0.0}, (const double[]){1.0,1.0,1.0} );
-  return neigh_list_half;
-}
-
 void Force::create_neigh_list(System* system) {
   N_local = system->N_local;
 
@@ -105,11 +86,11 @@ void Force::create_neigh_list(System* system) {
   auto x = Cabana::slice<Positions>(system->xvf);
 
   if(half_neigh) {
-    t_verletlist_half half( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
+    t_verletlist_half half( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
     neigh_list_half = half;
   }
   else {
-    t_verletlist_full full( x, 0, x.size(), neigh_cut, 1.0, grid_min, grid_max );
+    t_verletlist_full full( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
     neigh_list_full = full;
   }
 }

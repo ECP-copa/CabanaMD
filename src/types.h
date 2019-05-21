@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018 by the Cabana authors                                 *
+ * Copyright (c) 2018-2019 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -50,7 +50,10 @@
 #ifndef TYPES_H
 #define TYPES_H
 #include<Kokkos_Core.hpp>
-#include<Cabana_Core.hpp>
+#include<Cabana_AoSoA.hpp>
+#include<Cabana_VerletList.hpp>
+#include<CabanaCore_config.hpp>
+
 #define VECLEN 16
 
 // Module Types etc
@@ -105,7 +108,7 @@ using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
 enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
                  Types = 3, IDs = 4, Charges = 5 };
 
-#ifdef CabanaMD_ENABLE_Cuda
+#ifdef Cabana_ENABLE_Cuda
 using MemorySpace = Cabana::CudaUVMSpace;
 #else
 using MemorySpace = Cabana::HostSpace;

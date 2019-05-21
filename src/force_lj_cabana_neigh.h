@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018 by the Cabana authors                                 *
+ * Copyright (c) 2018-2019 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -49,6 +49,9 @@
 
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
+#include <Cabana_NeighborList.hpp>
+#include <Cabana_Slice.hpp>
+
 #include<vector>
 #include<types.h>
 #include<system.h>
@@ -63,9 +66,6 @@ private:
   typename AoSoA::member_slice_type<Types> type;
 
   int step;
-
-  t_verletlist_full init_fullneigh_list();
-  t_verletlist_half init_halfneigh_list();
 
   typedef Kokkos::View<T_F_FLOAT**> t_fparams;
   typedef Kokkos::View<const T_F_FLOAT**,
@@ -101,7 +101,7 @@ public:
 
   Force(System* system, bool half_neigh_);
 
-  void init_coeff(T_X_FLOAT neigh_cut, std::vector<int> force_types, std::vector<double> force_coeff);
+  void init_coeff(T_X_FLOAT neigh_cut, std::vector<double> force_coeff);
 
   void create_neigh_list(System* system);
 
