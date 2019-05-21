@@ -93,8 +93,12 @@ class Comm {
   t_buffer_update unpack_buffer_update;
 
   Kokkos::View<T_INT**,Kokkos::LayoutRight> pack_indicies_all;
-  Kokkos::View<T_INT*,Kokkos::LayoutRight,Kokkos::MemoryTraits<Kokkos::Unmanaged> > pack_indicies;
+  Kokkos::View<T_INT*,Kokkos::LayoutRight> pack_indicies;
   Kokkos::View<T_INT*,Kokkos::LayoutRight > exchange_dest_list;
+  Kokkos::View<T_INT**,Kokkos::LayoutRight> pack_ranks_all;
+  Kokkos::View<T_INT*,MemorySpace> pack_ranks;
+  Kokkos::View<T_INT*,MemorySpace> export_ranks;
+  std::vector<int> neighbors;
 
 protected:
   System* system;

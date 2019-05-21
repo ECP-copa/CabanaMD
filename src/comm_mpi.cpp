@@ -49,12 +49,13 @@
 
 #include<comm_mpi.h>
 
-Comm::Comm(System* s, T_X_FLOAT comm_depth_):system(s),comm_depth(comm_depth_) {
+Comm::Comm(System* s, T_X_FLOAT comm_depth_):neighbors(7),system(s),comm_depth(comm_depth_) {
   pack_count = Kokkos::View<int>("CommMPI::pack_count");
   pack_buffer = Kokkos::View<t_particle*>("CommMPI::pack_buffer",200);
   unpack_buffer = Kokkos::View<t_particle*>("CommMPI::pack_buffer",200);
   pack_indicies_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_indicies_all",6,200);
   exchange_dest_list = Kokkos::View<T_INT*,Kokkos::LayoutRight >("CommMPI::exchange_dest_list",200);
+  pack_ranks_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_ranks_all",6,200);
 }
 
 void Comm::init() {};
