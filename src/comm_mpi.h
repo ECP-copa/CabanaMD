@@ -50,10 +50,6 @@
 #ifndef COMM_MPI_H
 #define COMM_MPI_H
 
-#ifndef CabanaMD_ENABLE_MPI
-#error "Trying to compile Comm without MPI"
-#endif
-
 #include <types.h>
 #include <system.h>
 #include "mpi.h"

@@ -48,9 +48,8 @@
 //************************************************************************
 
 #include<system.h>
-#ifdef Cabana_ENABLE_MPI
 #include<mpi.h>
-#endif
+
 System::System() {
   N = 0;
   N_max = 0;
@@ -64,13 +63,10 @@ System::System() {
   sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
   sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
   mvv2e = boltz = dt = 0.0;
-#ifdef Cabana_ENABLE_MPI
+
   int proc_rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_rank);
   do_print = proc_rank == 0;
-#else
-  do_print = true;
-#endif
   print_lammps = false;
 }
 

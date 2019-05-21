@@ -47,7 +47,6 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#ifdef CabanaMD_ENABLE_MPI
 #include<comm_mpi.h>
 
 Comm::Comm(System* s, T_X_FLOAT comm_depth_):system(s),comm_depth(comm_depth_) {
@@ -491,4 +490,3 @@ void Comm::error(const char *errormsg) {
   printf("%s\n",errormsg);
   MPI_Abort(MPI_COMM_WORLD,1);
 };
-#endif

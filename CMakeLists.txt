@@ -55,10 +55,7 @@ if(NOT ENABLE_DEVICES)
 endif()
 message(STATUS "Enable Devices: ${ENABLE_DEVICES}")
 
-option(Cabana_ENABLE_MPI "Build CabanaMD with MPI support" OFF)
-if(Cabana_ENABLE_MPI)
-  find_package(MPI REQUIRED)
-endif()
+find_package(MPI REQUIRED)
 
 
 #------------------------------------------------------------------------------#
@@ -119,11 +116,6 @@ include_directories(${CABANA_INCLUDE_DIRS})
 link_directories(${CABANA_LIBRARY_DIRS})
 add_executable(CabanaMD ${SOURCES} ${HEADERS_PUBLIC})
 
-if(Cabana_ENABLE_MPI)
-  target_link_libraries(CabanaMD PkgConfig::CABANA Kokkos::kokkos MPI::MPI_CXX)
-  add_definitions(-DCabanaMD_ENABLE_MPI)
-else()
-  target_link_libraries(CabanaMD PkgConfig::CABANA Kokkos::kokkos)
-endif()
+target_link_libraries(CabanaMD PkgConfig::CABANA Kokkos::kokkos MPI::MPI_CXX)
 
 install(TARGETS CabanaMD DESTINATION bin)
