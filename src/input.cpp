@@ -98,7 +98,6 @@ Input::Input(System* p):system(p) {
 
   ntypes = 1;
   mass_vec = {2.0};
-  force_types = {{1, 1}};
   force_coeff = {{1.0, 1.0, 2.5}};
   force_cutoff = 2.5;
 }
@@ -212,7 +211,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       i += 2;
 
       int nforce = (pow(ntypes, 2.0) + ntypes)/2;
-      force_types.resize(nforce, std::vector<int>(2));
       force_coeff.resize(nforce, std::vector<double>(2));
 
       for (int type = 0; type < ntypes; type++){
@@ -220,10 +218,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         ++i;
       }
       for (int force = 0; force < nforce; force++){
-        for (int type = 0; type < 2; type++){
-          i++;
-          force_types[force][type] = atoi(argv[i]);
-        }
         for (int coeff = 0; coeff < 2; coeff++){
           i++;
           force_coeff[force][coeff] = atof(argv[i]);

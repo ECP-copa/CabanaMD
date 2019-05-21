@@ -127,7 +127,8 @@ public:
     if(phase == 0) {
       if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
+        if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
+           (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
           t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
@@ -138,7 +139,8 @@ public:
     if(phase == 1) {
       if( x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
+        if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
+           (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
           t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
@@ -149,7 +151,8 @@ public:
     if(phase == 2) {
       if( x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
+        if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
+           (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
           t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
@@ -160,7 +163,8 @@ public:
     if(phase == 3) {
       if( x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
+        if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
+           (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
           t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
@@ -171,7 +175,8 @@ public:
     if(phase == 4) {
       if( x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
+        if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
+           (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
           t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
@@ -182,7 +187,8 @@ public:
     if(phase == 5) {
       if( x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
         const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
+        if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
+           (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
           t_particle p = s.get_particle(i);
           s.set_particle(N_local + N_ghost + pack_idx, p);
