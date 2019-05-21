@@ -147,6 +147,16 @@ void Comm::create_domain_decomposition() {
   system->sub_domain_hi_x = ( proc_pos[0] + 1 ) * system->sub_domain_x;
   system->sub_domain_hi_y = ( proc_pos[1] + 1 ) * system->sub_domain_y;
   system->sub_domain_hi_z = ( proc_pos[2] + 1 ) * system->sub_domain_z;
+
+  for(int p = 0; p < 6; p ++)
+    neighbors[p] = proc_neighbors_send[p];
+  neighbors[6] = proc_rank;
+
+  std::sort( neighbors.begin(), neighbors.end() );
+  auto unique_end = std::unique( neighbors.begin(), neighbors.end() );
+  neighbors.resize( std::distance(neighbors.begin(), unique_end) );
+  if (neighbors[0] < 0)
+    neighbors.erase(neighbors.begin());
 }
 
 
