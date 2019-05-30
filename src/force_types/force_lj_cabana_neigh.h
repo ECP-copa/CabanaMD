@@ -48,20 +48,35 @@
 //************************************************************************
 
 #ifdef MODULES_OPTION_CHECK
-      if( (strcmp(argv[i+1], "NEIGH_FULL") == 0) )
-        force_iteration_type = FORCE_ITER_NEIGH_FULL;
-      if( (strcmp(argv[i+1], "NEIGH_HALF") == 0) ) {
-        force_iteration_type = FORCE_ITER_NEIGH_HALF;
-      }
+  if( (strcmp(argv[i], "--force-iteration") == 0) ) {
+    if( (strcmp(argv[i+1], "NEIGH_FULL") == 0) )
+      force_iteration_type = FORCE_ITER_NEIGH_FULL;
+    if( (strcmp(argv[i+1], "NEIGH_HALF") == 0) )
+      force_iteration_type = FORCE_ITER_NEIGH_HALF;
+  }
+  if( (strcmp(argv[i], "--neigh-type") == 0) ) {
+    if( (strcmp(argv[i+1], "NEIGH_2D") == 0) )
+      neighbor_type = NEIGH_2D;
+    if( (strcmp(argv[i+1], "NEIGH_CSR") == 0) )
+      neighbor_type = NEIGH_CSR;
+  }
 #endif
 #ifdef FORCE_MODULES_INSTANTIATION
     else if (input->force_type == FORCE_LJ) {
       bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
-      switch ( input->neighbor_type ) {
-        #define FORCETYPE_ALLOCATION_MACRO(NeighType)  ForceLJNeigh<NeighType>(input->input_data.words[input->force_line],system,half_neigh)
-        #include <modules_neighbor.h>
-        #undef FORCETYPE_ALLOCATION_MACRO
+      if (input->neighbor_type == NEIGH_2D) {
+        if (half_neigh)
+          force = new ForceLJ<t_verletlist_half_2D>(system,half_neigh);
+        else
+          force = new ForceLJ<t_verletlist_full_2D>(system,half_neigh);
       }
+      else if (input->neighbor_type == NEIGH_CSR) {
+	if (half_neigh)
+          force = new ForceLJ<t_verletlist_half_CSR>(system,half_neigh);
+        else
+          force = new ForceLJ<t_verletlist_full_CSR>(system,half_neigh);
+      }
+      #undef FORCETYPE_ALLOCATION_MACRO
     }
 #endif
 
@@ -74,11 +89,12 @@
 #include <Cabana_NeighborList.hpp>
 #include <Cabana_Slice.hpp>
 
-#include<vector>
+#include<force.h>
 #include<types.h>
 #include<system.h>
 
-class Force {
+template<class t_neighbor>
+class ForceLJ: public Force {
 private:
   int N_local,ntypes;
   typename AoSoA::member_slice_type<Positions> x;
@@ -118,12 +134,11 @@ public:
   bool half_neigh, comm_newton;
   T_X_FLOAT neigh_cut;
 
-  t_verletlist_full neigh_list_full;
-  t_verletlist_half neigh_list_half;
+  t_neighbor neigh_list;
 
-  Force(System* system, bool half_neigh_);
+  ForceLJ(System* system, bool half_neigh_);
 
-  void init_coeff(T_X_FLOAT neigh_cut, std::vector<double> force_coeff);
+  void init_coeff(T_X_FLOAT neigh_cut, char** args);
 
   void create_neigh_list(System* system);
 
@@ -145,4 +160,5 @@ public:
   const char* name();
 };
 
+#endif
 #endif
