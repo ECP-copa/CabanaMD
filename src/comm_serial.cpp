@@ -164,5 +164,8 @@ void Comm::create_domain_decomposition() {
 }
 int Comm::process_rank() {return 0;}
 int Comm::num_processes() {return 1;}
-
+void Comm::error(const char *errormsg) {
+  printf("%s\n",errormsg);
+  exit(1);
+}
 const char* Comm::name() { return "CommSerial"; }
