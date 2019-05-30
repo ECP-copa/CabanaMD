@@ -55,12 +55,13 @@
 class Force {
 public:
   bool half_neigh, comm_newton;
-  Force(char** args, System* system, bool half_neigh_);
+  Force(System* system, bool half_neigh_);
 
-  virtual void init_coeff(int nargs, char** args);
+  virtual void init_coeff(T_X_FLOAT neigh_cut, char** args);
+  virtual void create_neigh_list(System* system);
 
   virtual void compute(System* system);
-  virtual T_F_FLOAT compute_energy(System* system){return 0.0;}; // Only needed for thermo output
+  virtual T_F_FLOAT compute_energy(System*){return 0.0;} // Only needed for thermo output
 
   virtual const char* name();
 };

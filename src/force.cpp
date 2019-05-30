@@ -49,9 +49,10 @@
 
 #include<force.h>
 
-Force::Force(char** args, System* system, bool half_neigh_):half_neigh(half_neigh_) {}
+Force::Force(System*, bool half_neigh_):half_neigh(half_neigh_) {}
 
-void Force::init_coeff(int nargs, char** args) {}
-void Force::compute(System*) { }
+void Force::init_coeff(T_X_FLOAT, char**) {}
+void Force::create_neigh_list(System*) {}
+void Force::compute(System*) {}
 const char* Force::name() { return "ForceNone"; }
 
