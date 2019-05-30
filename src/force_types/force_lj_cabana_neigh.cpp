@@ -49,3 +49,7 @@
 
 #include<force_lj_cabana_neigh_impl.h>
 
+template class ForceLJ<t_verletlist_half_2D>;
+template class ForceLJ<t_verletlist_full_2D>;
+template class ForceLJ<t_verletlist_half_CSR>;
+template class ForceLJ<t_verletlist_full_CSR>;
