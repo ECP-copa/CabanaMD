@@ -52,7 +52,7 @@
 
 #include<system.h>
 #include<integrator_nve.h>
-#include<force_lj_cabana_neigh.h>
+#include<force.h> // multiple options
 #include<comm_serial.h>
 #include<input.h>
 #include<binning_cabana.h>
