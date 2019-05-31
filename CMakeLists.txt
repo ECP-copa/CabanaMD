@@ -107,10 +107,10 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ## (Everything above taken from Cabana/CMakeLists.txt)
 ##---------------------------------------------------------------------------##
 #add_subdirectory(src)
-include_directories(src)
+include_directories(src src/force_types)
 
 file(GLOB HEADERS_PUBLIC src/*.h)
-file(GLOB SOURCES src/*.cpp)
+file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
 
 find_package(PkgConfig)
 pkg_check_modules(CABANA IMPORTED_TARGET Cabana)
