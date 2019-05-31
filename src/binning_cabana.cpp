@@ -91,5 +91,5 @@ void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, 
   }
 }
 
-const char* Binning::name() { return "BinningCabana"; }
+const char* Binning::name() { return "Binning:CabanaLinkedCell"; }
 

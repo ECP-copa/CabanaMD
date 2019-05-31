@@ -168,4 +168,4 @@ void Comm::error(const char *errormsg) {
   printf("%s\n",errormsg);
   exit(1);
 }
-const char* Comm::name() { return "CommSerial"; }
+const char* Comm::name() { return "Comm:Serial"; }

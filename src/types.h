@@ -64,7 +64,7 @@ enum {LATTICE_SC,LATTICE_FCC};
 // Integrator Type
 enum {INTEGRATOR_NVE};
 // Binning Type
-enum {BINNING_CABANA};
+enum {BINNING_LINKEDCELL};
 // Comm Type
 enum {COMM_SERIAL};
 // Force Type

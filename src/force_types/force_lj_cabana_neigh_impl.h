@@ -135,7 +135,7 @@ T_V_FLOAT ForceLJ<t_neighbor>::compute_energy(System* system) {
 }
 
 template<class t_neighbor>
-const char* ForceLJ<t_neighbor>::name() {return half_neigh?"ForceLJCabanaNeighHalf":"ForceLJCabanaNeighFull";}
+const char* ForceLJ<t_neighbor>::name() {return half_neigh?"Force:LJCabanaVerletHalf":"Force:LJCabanaVerletFull";}
 
 template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION

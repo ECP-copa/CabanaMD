@@ -142,4 +142,4 @@ void Integrator::final_integrate() {
   step++;
 }
 
-const char* Integrator::name() { return "IntegratorNVE"; }
+const char* Integrator::name() { return "Integrator:NVE"; }

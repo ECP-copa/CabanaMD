@@ -139,7 +139,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()) {
   neighbor_type = NEIGH_2D;
   force_type = FORCE_LJ;
   force_iteration_type = FORCE_ITER_NEIGH_FULL;
-  binning_type = BINNING_CABANA;
+  binning_type = BINNING_LINKEDCELL;
 
   // set defaults (matches ExaMiniMD LJ example)
 
