@@ -46,11 +46,11 @@ if( CabanaMD_ENABLE_Cuda )
 endif()
 
 if(NOT DEFINED CABANA_DIR)
-  set(CABANA_DIR ~/build/Cabana/)
+  set(CABANA_DIR ~/install/cabana/)
 endif()
 
 if(NOT DEFINED KOKKOS_DIR)
-  set(KOKKOS_DIR ~/build/kokkos/)
+  set(KOKKOS_DIR ~/install/kokkos/)
 endif()
 
 ##---------------------------------------------------------------------------##
