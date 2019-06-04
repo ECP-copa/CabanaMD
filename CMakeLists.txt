@@ -11,12 +11,15 @@ include(GNUInstallDirs)
 # Set up main options
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_Serial "Build CabanaMD with Serial support" ON)
-
-option(CabanaMD_ENABLE_Pthread "Build CabanaMD with Pthread support" OFF)
-if( CabanaMD_ENABLE_Pthread )
-  add_definitions(-DCabanaMD_ENABLE_Pthread=ON)
-  find_package(Threads)
+if( CabanaMD_ENABLE_Serial )
+  add_definitions(-DCabanaMD_ENABLE_Serial=ON)
 endif()
+
+#option(CabanaMD_ENABLE_Pthread "Build CabanaMD with Pthread support" OFF)
+#if( CabanaMD_ENABLE_Pthread )
+#  add_definitions(-DCabanaMD_ENABLE_Pthread=ON)
+#  find_package(Threads)
+#endif()
 
 option(CabanaMD_ENABLE_OpenMP "Build CabanaMD with OpenMP support" OFF)
 if( CabanaMD_ENABLE_OpenMP )
