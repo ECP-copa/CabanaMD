@@ -1,14 +1,13 @@
 # CabanaMD
 
-is based on ExaMiniMD, modified to replace features with
-the CoPA Cabana Particle Toolkit:
+is a proxy application for molecular dynamics (MD) based 
+on ExaMiniMD, modified to replace features with the CoPA 
+Cabana Particle Toolkit:
 https://github.com/ECP-copa/Cabana
 
 
-### ExaMiniMD
-
-ExaMiniMD is a proxy application and research vehicle for 
-particle codes, in particular Molecular Dynamics (MD): 
+ExaMiniMD is a proxy app and research vehicle for 
+MD using Kokkos:
 https://github.com/ECP-copa/ExaMiniMD
 
 
@@ -32,7 +31,7 @@ https://github.com/ECP-copa/Cabana/wiki/Build-Instructions
 Build instructions are available for both CPU and GPU
 
 ## CPU Build
-After building Kokkos and Cabana for GPU:
+After building Kokkos and Cabana for CPU:
 ```
 # Change directories as needed
 export KOKKOS_INSTALL_DIR=$HOME/install/kokkos
@@ -62,6 +61,8 @@ the GPU build is identical to that above except the options passed to CMake:
 ```
 cmake \
     -D CMAKE_CXX_COMPILER=$KOKKOS_SRC_DIR/bin/nvcc_wrapper \
+    -D KOKKOS_DIR=$KOKKOS_INSTALL_DIR \
+    -D CABANA_DIR=$CABANA_INSTALL_DIR \
     -D CabanaMD_ENABLE_Serial=OFF \
     -D CabanaMD_ENABLE_OpenMP=OFF \
     -D CabanaMD_ENABLE_Cuda=ON \
