@@ -96,10 +96,9 @@ class Comm {
 
   Kokkos::View<T_INT**,Kokkos::LayoutRight> pack_indicies_all;
   Kokkos::View<T_INT*,Kokkos::LayoutRight> pack_indicies;
-  Kokkos::View<T_INT*,Kokkos::LayoutRight > exchange_dest_list;
   Kokkos::View<T_INT**,Kokkos::LayoutRight> pack_ranks_all;
   Kokkos::View<T_INT*,MemorySpace> pack_ranks;
-  Kokkos::View<T_INT*,MemorySpace> export_ranks;
+  Kokkos::View<T_INT*,MemorySpace> pack_ranks_migrate;
   std::vector<int> neighbors;
 
 protected:
@@ -113,8 +112,6 @@ public:
 
   struct TagExchangeSelf {};
   struct TagExchangePack {};
-  struct TagExchangeCreateDestList {};
-  struct TagExchangeCompact {};
   
   struct TagHaloSelf {};
   struct TagHaloPack {};
@@ -141,6 +138,7 @@ public:
   void reduce_min_int(T_INT* vals, T_INT count);
   void reduce_min_float(T_FLOAT* vals, T_INT count);
 
+  // local atom periodic shift
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagExchangeSelf, 
                    const T_INT& i) const {
@@ -161,119 +159,62 @@ public:
     }   
   }
 
+  // Mark for Cabana-migrate (periodic shift if needed)
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagExchangePack, 
                    const T_INT& i) const {
-    if(type(i)<0) return;
     if( (phase == 0) && (x(i,0)>s.sub_domain_hi_x)) {
       const int pack_idx = pack_count()++;
-      if( pack_idx < pack_indicies.extent(0) ) {
-        pack_indicies(pack_idx) = i; 
-        t_particle p = s.get_particle(i);
-        type(i) = -1;
+      if( pack_idx < pack_ranks_migrate.extent(0) ) {
+        pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[0] == proc_grid[0]-1)
-          p.get<Positions>(0) -= s.domain_x;
-        //t_particle p = s.get_particle(i);
-        pack_buffer(pack_idx) = p;
+          x(i,0) -= s.domain_x;
       }
     }  
 
     if( (phase == 1) && (x(i,0)<s.sub_domain_lo_x)) {
       const int pack_idx = pack_count()++;
-      if( pack_idx < pack_indicies.extent(0) ) {
-        pack_indicies(pack_idx) = i;
-	t_particle p = s.get_particle(i);
-        type(i) = -1;
+      if( pack_idx < pack_ranks_migrate.extent(0) ) {
+        pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[0] == 0)
-          p.get<Positions>(0) += s.domain_x;
-        pack_buffer(pack_idx) = p;
+          x(i,0) += s.domain_x;
       }
     }
 
     if( (phase == 2) && (x(i,1)>s.sub_domain_hi_y)) {
       const int pack_idx = pack_count()++;
-      if( pack_idx < pack_indicies.extent(0) ) {
-        pack_indicies(pack_idx) = i;
-        t_particle p = s.get_particle(i);
-        type(i) = -1;
+      if( pack_idx < pack_ranks_migrate.extent(0) ) {
+        pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[1] == proc_grid[1]-1)
-          p.get<Positions>(1) -= s.domain_y;
-        pack_buffer(pack_idx) = p;
+          x(i,1) -= s.domain_y;
       }
     }
     if( (phase == 3) && (x(i,1)<s.sub_domain_lo_y)) {
       const int pack_idx = pack_count()++;
-      if( pack_idx < pack_indicies.extent(0) ) {
-        pack_indicies(pack_idx) = i;
-        t_particle p = s.get_particle(i);
-        type(i) = -1;
+      if( pack_idx < pack_ranks_migrate.extent(0) ) {
+        pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[1] == 0)
-          p.get<Positions>(1) += s.domain_y;
-        pack_buffer(pack_idx) = p;
+          x(i,1) += s.domain_y;
       }
     }
 
     if( (phase == 4) && (x(i,2)>s.sub_domain_hi_z)) {
       const int pack_idx = pack_count()++;
-      if( pack_idx < pack_indicies.extent(0) ) {
-        pack_indicies(pack_idx) = i;
-        t_particle p = s.get_particle(i);
-        type(i) = -1;
+      if( pack_idx < pack_ranks_migrate.extent(0) ) {
+        pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[2] == proc_grid[2]-1)
-          p.get<Positions>(2) -= s.domain_z;
-        pack_buffer(pack_idx) = p;
+          x(i,2) -= s.domain_z;
       }
     }
     if( (phase == 5) && (x(i,2)<s.sub_domain_lo_z)) {
       const int pack_idx = pack_count()++;
-      if( pack_idx < pack_indicies.extent(0) ) {
-        pack_indicies(pack_idx) = i;
-        t_particle p = s.get_particle(i);
-        type(i) = -1;
+      if( pack_idx < pack_ranks_migrate.extent(0) ) {
+        pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[2] == 0)
-          p.get<Positions>(2) += s.domain_z;
-        pack_buffer(pack_idx) = p;
+          x(i,2) += s.domain_z;
       }
     }
   } 
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagExchangeCreateDestList,
-                   const T_INT& i, T_INT& c, const bool final) const {
-    if(type(i)<0) {
-      if(final) {
-        exchange_dest_list(c) = i;
-      }
-      c++;
-    }
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagExchangeCompact,
-                   const T_INT& ii, T_INT& c, const bool final) const {
-    const T_INT i = N_local+N_ghost-1-ii;
-    if(type(i)>=0) {
-      if(final) {
-        //s.copy(exchange_dest_list(c),i,0,0,0);
-	const T_INT dest = exchange_dest_list(c);
-	const T_INT src = i;
-	const T_INT nx = 0;
-        const T_INT ny = 0;
-        const T_INT nz = 0;
-	x(dest,0) = x(src,0) + s.domain_x * nx;
-	x(dest,1) = x(src,1) + s.domain_y * ny;
-	x(dest,2) = x(src,2) + s.domain_z * nz;
-	v(dest,0) = v(src,0);
-	v(dest,1) = v(src,1);
-	v(dest,2) = v(src,2);
-	type(dest) = type(src);
-	id(dest) = id(src);
-	q(dest) = q(src);
-      }
-      c++;
-    }
-  }
-
   
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagHaloSelf,

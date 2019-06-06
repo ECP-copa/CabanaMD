@@ -54,7 +54,6 @@ Comm::Comm(System* s, T_X_FLOAT comm_depth_):neighbors(7),system(s),comm_depth(c
   pack_buffer = Kokkos::View<t_particle*>("CommMPI::pack_buffer",200);
   unpack_buffer = Kokkos::View<t_particle*>("CommMPI::pack_buffer",200);
   pack_indicies_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_indicies_all",6,200);
-  exchange_dest_list = Kokkos::View<T_INT*,Kokkos::LayoutRight >("CommMPI::exchange_dest_list",200);
   pack_ranks_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_ranks_all",6,200);
 }
 
@@ -207,14 +206,12 @@ void Comm::exchange() {
 
   Kokkos::Profiling::pushRegion("Comm::exchange");
 
-  s = *system;
   N_local = system->N_local;
-  N_ghost = 0;
-  x = s.xvf.slice<Positions>();
-  v = s.xvf.slice<Velocities>();
-  q = s.xvf.slice<Charges>();
-  id = s.xvf.slice<IDs>();
-  type = s.xvf.slice<Types>();
+  system->resize(N_local);
+  s = *system;
+  x = Cabana::slice<Positions>(s.xvf);
+
+  pack_ranks_migrate = Kokkos::View<T_INT*,MemorySpace>( "pack_ranks_migrate", x.size());
   Kokkos::parallel_for("CommMPI::exchange_self",
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
 
@@ -224,78 +221,41 @@ void Comm::exchange() {
   for(phase = 0; phase < 6; phase ++) {
     proc_num_send[phase] = 0;
     proc_num_recv[phase] = 0;
-    pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
+    Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
 
     T_INT count = 0;
     Kokkos::deep_copy(pack_count,0);
 
     if(proc_grid[phase/2]>1) {
+      // If a previous phase resized the AoSoA, export ranks needs to be resized as well
+      if(pack_ranks_migrate.extent(0) != x.size()) {
+        Kokkos::resize(pack_ranks_migrate, x.size());
+        Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
+      }
+
       Kokkos::parallel_for("CommMPI::exchange_pack",
-                Kokkos::RangePolicy<TagExchangePack, Kokkos::IndexType<T_INT> >(0,N_local+N_ghost),
+                Kokkos::RangePolicy<TagExchangePack, Kokkos::IndexType<T_INT> >(0,x.size()),
                 *this);
 
       Kokkos::deep_copy(count,pack_count);
-      if(count > pack_indicies.extent(0)) {
-        Kokkos::realloc(pack_buffer,count*1.1);
-        Kokkos::realloc(pack_indicies_all,6,count*1.1);
-        pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
-        Kokkos::deep_copy(pack_count,0);
-        Kokkos::parallel_for("CommMPI::exchange_pack",
-                  Kokkos::RangePolicy<TagExchangePack, Kokkos::IndexType<T_INT> >(0,N_local+N_ghost),
-                  *this);
-      }
       proc_num_send[phase] = count;
-      if(pack_buffer.extent(0)<count)
-        pack_buffer = Kokkos::View<t_particle*>("Comm::pack_buffer",count);
-      MPI_Request request;
-      MPI_Irecv(&proc_num_recv[phase],1,MPI_INT, proc_neighbors_recv[phase],100001,MPI_COMM_WORLD,&request);
-      MPI_Send(&proc_num_send[phase],1,MPI_INT, proc_neighbors_send[phase],100001,MPI_COMM_WORLD);
-      MPI_Status status;
-      MPI_Wait(&request,&status);
-      count = proc_num_recv[phase];
 
-      if(unpack_buffer.extent(0)<count) {
-        unpack_buffer = Kokkos::View<t_particle*>("Comm::unpack_buffer",count);
-      }
-      if(proc_num_recv[phase]>0)
-        MPI_Irecv(unpack_buffer.data(),proc_num_recv[phase]*sizeof(t_particle)/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD,&request);
-      if(proc_num_send[phase]>0)
-        MPI_Send (pack_buffer.data(),proc_num_send[phase]*sizeof(t_particle)/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD);
-      system->resize(N_local + N_ghost + count);
+      Cabana::Distributor<MemorySpace> distributor( MPI_COMM_WORLD, pack_ranks_migrate, neighbors );
+      Cabana::migrate( distributor, s.xvf );
+      system->resize(distributor.totalNumImport()); // Resized by migrate, but not within System
       s = *system;
-      x = s.xvf.slice<Positions>();
-      type = s.xvf.slice<Types>();
-      if(proc_num_recv[phase]>0)
-        MPI_Wait(&request,&status);
-      Kokkos::parallel_for("CommMPI::exchange_unpack",
-                Kokkos::RangePolicy<TagUnpack, Kokkos::IndexType<T_INT> >(0,proc_num_recv[phase]),
-                *this);
+      x = Cabana::slice<Positions>(s.xvf);
 
-    }
-
-    N_ghost += count;
-    if (x.size() > N_local+N_ghost) {
-      system->resize(N_local+N_ghost);
+      proc_num_recv[phase] = distributor.totalNumImport()+count-distributor.totalNumExport();
+      count = proc_num_recv[phase];
     }
 
     N_total_recv += proc_num_recv[phase];
     N_total_send += proc_num_send[phase];
   }
   T_INT N_local_start = N_local;
-  T_INT N_exchange = N_ghost;
 
   N_local = N_local + N_total_recv - N_total_send;
-  N_ghost = N_local_start + N_exchange - N_local;
-
-  if(exchange_dest_list.extent(0)<N_ghost)
-    Kokkos::realloc(exchange_dest_list,N_ghost);
-
-  Kokkos::parallel_scan("CommMPI::exchange_create_dest_list",
-            Kokkos::RangePolicy<TagExchangeCreateDestList, Kokkos::IndexType<T_INT> >(0,N_local),
-            *this);
-  Kokkos::parallel_scan("CommMPI::exchange_compact",
-            Kokkos::RangePolicy<TagExchangeCompact, Kokkos::IndexType<T_INT> >(0,N_ghost),
-            *this);
 
   system->N_local = N_local;
   system->N_ghost = 0;
@@ -320,6 +280,8 @@ void Comm::exchange_halo() {
     Kokkos::deep_copy(pack_count,0);
 
     if(proc_grid[phase/2]>1) {
+      T_INT nparticles = N_local + N_ghost - ( (phase%2==1) ? proc_num_recv[phase-1]:0 );
+      if (nparticles > x.size())
       Kokkos::parallel_for("CommMPI::halo_exchange_pack",
                 Kokkos::RangePolicy<TagHaloPack, Kokkos::IndexType<T_INT> >(0,N_local+N_ghost - ( (phase%2==1) ? proc_num_recv[phase-1]:0)),
                 *this);
