@@ -52,7 +52,7 @@
 
 Input::Input(System* p):system(p) {
 
-  //#ifdef Cabana_ENABLE_MPI
+  //#ifdef CabanaMD_ENABLE_MPI
   //comm_type = COMM_MPI;
   //#else
   comm_type = COMM_SERIAL;
