@@ -110,10 +110,16 @@ using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
 enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
                  Types = 3, IDs = 4, Charges = 5 };
 
-#ifdef Cabana_ENABLE_Cuda
-using MemorySpace = Cabana::CudaUVMSpace;
+#ifdef CabanaMD_ENABLE_Cuda
+using MemorySpace = Kokkos::CudaUVMSpace;
+using ExecutionSpace = Kokkos::Cuda;
 #else
-using MemorySpace = Cabana::HostSpace;
+using MemorySpace = Kokkos::HostSpace;
+#ifdef CabanaMD_ENABLE_Serial
+using ExecutionSpace = Kokkos::Serial;
+#else // CabanaMD_ENABLE_OpenMP
+using ExecutionSpace = Kokkos::OpenMP;
+#endif
 #endif
 
 using MemoryAccess = Cabana::DefaultAccessMemory;
