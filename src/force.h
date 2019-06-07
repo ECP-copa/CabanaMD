@@ -47,99 +47,24 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <integrator_nve.h>
+#ifndef FORCE_H
+#define FORCE_H
+#include<types.h>
+#include<system.h>
 
-Integrator::Integrator(System* p):system(p) {
-  dtf = 0.5 * system->dt / system->mvv2e;
-  dtv = system->dt;
-}
+class Force {
+public:
+  bool half_neigh, comm_newton;
+  Force(System* system, bool half_neigh_);
 
-namespace {
-  struct InitialIntegrateFunctor {
-    AoSoA xvf;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Velocities> v;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Types> type;
+  virtual void init_coeff(T_X_FLOAT neigh_cut, char** args);
+  virtual void create_neigh_list(System* system);
 
-    t_mass_const mass;
+  virtual void compute(System* system);
+  virtual T_F_FLOAT compute_energy(System*){return 0.0;} // Only needed for thermo output
 
-    T_V_FLOAT dtf,dtv;
-    int step;
+  virtual const char* name();
+};
 
-    InitialIntegrateFunctor(
-      AoSoA& xvf_,
-      t_mass mass_, T_V_FLOAT dtf_, T_V_FLOAT dtv_, int step_
-    ): xvf(xvf_),
-      mass(mass_),dtf(dtf_),dtv(dtv_),step(step_)
-      {
-      x = Cabana::slice<Positions>(xvf);
-      v = Cabana::slice<Velocities>(xvf);
-      f = Cabana::slice<Forces>(xvf);
-      type = Cabana::slice<Types>(xvf);
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator() (const T_INT& i) const {
-      const T_V_FLOAT dtfm = dtf / mass(type(i));
-      v(i,0) += dtfm * f(i,0);
-      v(i,1) += dtfm * f(i,1);
-      v(i,2) += dtfm * f(i,2);
-      x(i,0) += dtv * v(i,0);
-      x(i,1) += dtv * v(i,1);
-      x(i,2) += dtv * v(i,2);
-    }
-  };
-}
-
-void Integrator::initial_integrate() {
-  static int step =1;
-  Kokkos::parallel_for("IntegratorNVE::initial_integrate",system->N_local,
-                       InitialIntegrateFunctor(system->xvf, system->mass, dtf, dtv, step));
-  step++;
-}
-
-
-namespace {
-  struct FinalIntegrateFunctor {
-    AoSoA xvf;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Velocities> v;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Types> type;
-
-    t_mass_const mass;
-
-    T_V_FLOAT dtf,dtv;
-    int step;
-
-    FinalIntegrateFunctor(
-      AoSoA& xvf_,
-      t_mass mass_, T_V_FLOAT dtf_, T_V_FLOAT dtv_, int step_
-    ): xvf(xvf_), mass(mass_),
-      dtf(dtf_),dtv(dtv_),step(step_)
-      {
-      x = Cabana::slice<Positions>(xvf);
-      v = Cabana::slice<Velocities>(xvf);
-      f = Cabana::slice<Forces>(xvf);
-      type = Cabana::slice<Types>(xvf);
-    }
-
-    KOKKOS_INLINE_FUNCTION
-    void operator() (const T_INT& i) const {
-      const T_V_FLOAT dtfm = dtf / mass(type(i));
-      v(i,0) += dtfm * f(i,0);
-      v(i,1) += dtfm * f(i,1);
-      v(i,2) += dtfm * f(i,2);
-    }
-  };
-}
-
-void Integrator::final_integrate() {
-  static int step = 1;
-  Kokkos::parallel_for("IntegratorNVE::final_integrate",system->N_local, 
-                       FinalIntegrateFunctor(system->xvf, system->mass, dtf, dtv, step));
-  step++;
-}
-
-const char* Integrator::name() { return "Integrator:NVE"; }
+#include<modules_force.h>
+#endif

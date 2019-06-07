@@ -54,6 +54,22 @@
 #include <system.h>
 #include <comm_serial.h>
 
+class ItemizedFile {
+public:
+  char*** words;
+  int max_nlines;
+  int nlines;
+  int words_per_line;
+  int max_word_size;
+  ItemizedFile();
+  void allocate_words(int num_lines);
+  void free_words();
+  void print_line(int line);
+  int words_in_line(int line);
+  void print();
+  void add_line(const char* const line);
+};
+
 // Class replicating LAMMPS Random velocity initialization with GEOM option
 #define IA 16807
 #define IM 2147483647
@@ -143,12 +159,15 @@ class Input {
   int lattice_nx, lattice_ny, lattice_nz;
   int box[6];
 
+  char* input_file;
+  int input_file_type;
+  ItemizedFile input_data;
+
   double temperature_target;
   int temperature_seed;
 
   int integrator_type;
   int nsteps;
-  int ntypes; 
 
   int binning_type;
 
@@ -158,7 +177,10 @@ class Input {
 
   int force_type;
   int force_iteration_type;
+
   T_F_FLOAT force_cutoff;
+  int force_line;
+  Kokkos::View<int*,Kokkos::HostSpace> force_coeff_lines;
 
   T_F_FLOAT neighbor_skin; 
   int neighbor_type;
@@ -167,12 +189,11 @@ class Input {
   bool dumpbinaryflag, correctnessflag;
   char *dumpbinary_path, *reference_path, *correctness_file;
  
-  std::vector<double> mass_vec;
-  std::vector<std::vector<int>> force_types;
-  std::vector<std::vector<double>> force_coeff;
-
 public:
   Input(System* s);
   void read_command_line_args(int argc, char* argv[]);
+  void read_file(const char* filename = NULL);
+  void read_lammps_file(const char* filename);
+  void check_lammps_command(int line);
   void create_lattice(Comm* comm);
 };

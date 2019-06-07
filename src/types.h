@@ -64,15 +64,17 @@ enum {LATTICE_SC,LATTICE_FCC};
 // Integrator Type
 enum {INTEGRATOR_NVE};
 // Binning Type
-enum {BINNING_CABANA};
+enum {BINNING_LINKEDCELL};
 // Comm Type
 enum {COMM_SERIAL};
 // Force Type
-enum {FORCE_LJ_CABANA_NEIGH};
+enum {FORCE_LJ,FORCE_SNAP};
 // Force Iteration Type
 enum {FORCE_ITER_NEIGH_FULL, FORCE_ITER_NEIGH_HALF};
 // Neighbor Type
-enum {NEIGH_CABANA_VERLET};
+enum {NEIGH_2D,NEIGH_CSR};
+// Input File Type
+enum {INPUT_LAMMPS};
 
 // Macros to work around the fact that std::max/min is not available on GPUs
 #define MAX(a,b) (a>b?a:b)
@@ -125,8 +127,10 @@ using AtomicAccess = Cabana::AtomicAccessMemory;
 using AoSoA = Cabana::AoSoA<t_tuple,MemorySpace,VECLEN>;
 using t_particle = Cabana::Tuple<t_tuple>;
 
-using t_verletlist_full = Cabana::VerletList<MemorySpace,Cabana::FullNeighborTag,Cabana::VerletLayoutCSR>;
-using t_verletlist_half = Cabana::VerletList<MemorySpace,Cabana::HalfNeighborTag,Cabana::VerletLayoutCSR>;
+using t_verletlist_full_2D = Cabana::VerletList<MemorySpace,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;
+using t_verletlist_half_2D = Cabana::VerletList<MemorySpace,Cabana::HalfNeighborTag,Cabana::VerletLayout2D>;
+using t_verletlist_full_CSR = Cabana::VerletList<MemorySpace,Cabana::FullNeighborTag,Cabana::VerletLayoutCSR>;
+using t_verletlist_half_CSR = Cabana::VerletList<MemorySpace,Cabana::HalfNeighborTag,Cabana::VerletLayoutCSR>;
 
 #endif
 

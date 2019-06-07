@@ -73,6 +73,8 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // Lets parse the command line arguments
   input->read_command_line_args(argc,argv);
+  // Read input file
+  input->read_file();
   T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
 
   // Now we know which integrator type to use
@@ -82,15 +84,17 @@ void CabanaMD::init(int argc, char* argv[]) {
   binning = new Binning(system);
 
   // Create Force Type
-  bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
-  force = new Force(system,half_neigh);
-  int nforce = (pow(input->ntypes, 2.0) + input->ntypes)/2;
-  for(int line = 0; line < nforce; line++) {
-    force->init_coeff(neigh_cutoff, input->force_coeff[line]);
+  if(false) {}
+#define FORCE_MODULES_INSTANTIATION
+#include<modules_force.h>
+#undef FORCE_MODULES_INSTANTIATION
+  else comm->error("Invalid ForceType");
+  for(std::size_t line = 0; line < input->force_coeff_lines.dimension_0(); line++) {
+    force->init_coeff(neigh_cutoff,
+                      input->input_data.words[input->force_coeff_lines(line)]);
   }
-
   // Create Communication Submodule
-    comm = new Comm(system, neigh_cutoff);
+  comm = new Comm(system, neigh_cutoff);
 
   // Do some additional settings
   force->comm_newton = input->comm_newton;

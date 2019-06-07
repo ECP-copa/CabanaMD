@@ -72,8 +72,8 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-include_directories(src)
-file(GLOB SOURCES src/*.cpp)
+include_directories(src src/force_types)
+file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
 
 include_directories(SYSTEM ${KOKKOS_DIR}/include)
 link_directories(${KOKKOS_DIR}/lib)

@@ -254,6 +254,7 @@ public:
   // Get number of processors
   int num_processes();
 
+  void error(const char *);
   const char* name();
 };
 #endif
