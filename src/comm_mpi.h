@@ -117,10 +117,6 @@ public:
   struct TagHaloPackPBC {};
   struct TagHaloUpdatePBC {};
 
-  struct TagHaloForceSelf {};
-  struct TagHaloForcePack {};
-  struct TagHaloForceUnpack {};
-
   Comm(System* s, T_X_FLOAT comm_depth_);
   void init();
   void create_domain_decomposition();
@@ -339,44 +335,6 @@ public:
       case 4: if(proc_pos[2] == proc_grid[2]-1) x(i,2) -= s.domain_z; break;
       case 5: if(proc_pos[2] == 0)              x(i,2) += s.domain_z; break;
     }
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloForceSelf,
-                   const T_INT& ii) const {
-
-    const T_INT i = pack_indicies(ii);
-    T_F_FLOAT fx_i = f(ghost_offsets[phase] + ii,0);
-    T_F_FLOAT fy_i = f(ghost_offsets[phase] + ii,1);
-    T_F_FLOAT fz_i = f(ghost_offsets[phase] + ii,2);
-
-    f(i, 0) += fx_i;
-    f(i, 1) += fy_i;
-    f(i, 2) += fz_i;
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloForcePack,
-                   const T_INT& ii) const {
-
-    T_F_FLOAT fx_i = f(ghost_offsets[phase] + ii,0);
-    T_F_FLOAT fy_i = f(ghost_offsets[phase] + ii,1);
-    T_F_FLOAT fz_i = f(ghost_offsets[phase] + ii,2);
-
-    unpack_buffer_update(ii, 0) = fx_i;
-    unpack_buffer_update(ii, 1) = fy_i;
-    unpack_buffer_update(ii, 2) = fz_i;
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloForceUnpack,
-                   const T_INT& ii) const {
-
-    const T_INT i = pack_indicies(ii);
-
-    f(i, 0) += pack_buffer_update(ii, 0);
-    f(i, 1) += pack_buffer_update(ii, 1);
-    f(i, 2) += pack_buffer_update(ii, 2);
   }
 
   const char* name();

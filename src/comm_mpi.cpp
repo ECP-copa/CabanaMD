@@ -369,41 +369,25 @@ void Comm::update_force() {
 
   Kokkos::Profiling::pushRegion("Comm::update_force");
 
+  N_local = system->N_local;
   N_ghost = 0;
   s=*system;
   f = s.xvf.slice<Forces>();
 
-  ghost_offsets[0] = s.N_local;
-  for(phase = 1; phase<6; phase++) {
-    ghost_offsets[phase] = ghost_offsets[phase-1] + proc_num_recv[phase-1];
-  }
-
-  pack_buffer_update = t_buffer_update((T_X_FLOAT*)pack_buffer.data(),pack_indicies_all.extent(1));
-  unpack_buffer_update = t_buffer_update((T_X_FLOAT*)unpack_buffer.data(),pack_indicies_all.extent(1));
-
   for(phase = 5; phase>=0; phase--) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
-    if(proc_grid[phase/2]>1) {
+    Kokkos::resize(pack_indicies, proc_num_send[phase]);
+    pack_ranks = Kokkos::subview(pack_ranks_all,phase,Kokkos::ALL());
+    Kokkos::resize(pack_ranks, proc_num_send[phase]);
 
-      Kokkos::parallel_for("CommMPI::halo_force_pack",
-         Kokkos::RangePolicy<TagHaloForcePack, Kokkos::IndexType<T_INT> >(0,proc_num_recv[phase]),
-         *this);
-      MPI_Request request;
-      MPI_Status status;
-      MPI_Irecv(pack_buffer.data(),proc_num_send[phase]*sizeof(T_X_FLOAT)*3/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD,&request);
-      MPI_Send (unpack_buffer.data(),proc_num_recv[phase]*sizeof(T_X_FLOAT)*3/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD);
-      s = *system;
-      f = s.xvf.slice<Forces>();
-      MPI_Wait(&request,&status);
-      Kokkos::parallel_for("CommMPI::halo_force_unpack",
-                Kokkos::RangePolicy<TagHaloForceUnpack, Kokkos::IndexType<T_INT> >(0,proc_num_send[phase]),
-                *this);
+    Cabana::Halo<MemorySpace> halo(
+        MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
+    system->resize( halo.numLocal() + halo.numGhost() );
+    s=*system;
+    f = s.xvf.slice<Forces>();
+    Cabana::scatter( halo, f );
 
-    } else {
-      Kokkos::parallel_for("CommMPI::halo_force_self",
-        Kokkos::RangePolicy<TagHaloForceSelf, Kokkos::IndexType<T_INT> >(0,proc_num_send[phase]),
-        *this);
-    }
+    N_ghost += proc_num_recv[phase];
   }
 
   Kokkos::Profiling::popRegion();
