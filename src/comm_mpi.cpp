@@ -336,45 +336,30 @@ void Comm::update_halo() {
 
   Kokkos::Profiling::pushRegion("Comm::update_halo");
 
+  N_local = system->N_local;
   N_ghost = 0;
   s=*system;
   x = s.xvf.slice<Positions>();
 
-  pack_buffer_update = t_buffer_update((T_X_FLOAT*)pack_buffer.data(),pack_indicies_all.extent(1));
-  unpack_buffer_update = t_buffer_update((T_X_FLOAT*)unpack_buffer.data(),pack_indicies_all.extent(1));
-
   for(phase = 0; phase<6; phase++) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
-    if(proc_grid[phase/2]>1) {  
-      
-      Kokkos::parallel_for("CommMPI::halo_update_pack",
-         Kokkos::RangePolicy<TagHaloUpdatePack, Kokkos::IndexType<T_INT> >(0,proc_num_send[phase]),
-         *this);
-      MPI_Request request;
-      MPI_Status status;
-      MPI_Irecv(unpack_buffer.data(),proc_num_recv[phase]*sizeof(T_X_FLOAT)*3/sizeof(int),MPI_INT, proc_neighbors_recv[phase],100002,MPI_COMM_WORLD,&request);
-      MPI_Send (pack_buffer.data(),proc_num_send[phase]*sizeof(T_X_FLOAT)*3/sizeof(int),MPI_INT, proc_neighbors_send[phase],100002,MPI_COMM_WORLD);
-      s = *system;
-      x = s.xvf.slice<Positions>();
-      MPI_Wait(&request,&status);
-      const int count = proc_num_recv[phase];
-      if(unpack_buffer_update.extent(0)<count) {
-        unpack_buffer_update = t_buffer_update((T_X_FLOAT*)unpack_buffer.data(),count);
-      }
-      Kokkos::parallel_for("CommMPI::halo_update_unpack",
-                Kokkos::RangePolicy<TagHaloUpdateUnpack, Kokkos::IndexType<T_INT> >(0,proc_num_recv[phase]),
+    Kokkos::resize(pack_indicies, proc_num_send[phase]);
+    pack_ranks = Kokkos::subview(pack_ranks_all,phase,Kokkos::ALL());
+    Kokkos::resize(pack_ranks, proc_num_send[phase]);
+
+    Cabana::Halo<MemorySpace> halo(
+        MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
+    system->resize( halo.numLocal() + halo.numGhost() );
+    s=*system;
+    x = s.xvf.slice<Positions>();
+    Cabana::gather( halo, s.xvf );
+
+    Kokkos::parallel_for("CommMPI::halo_update_PBC",
+                Kokkos::RangePolicy<TagHaloUpdatePBC, Kokkos::IndexType<T_INT> >(
+                                  halo.numLocal(),halo.numLocal()+halo.numGhost()),
                 *this);
 
-    } else {
-      Kokkos::parallel_for("CommMPI::halo_update_self",
-        Kokkos::RangePolicy<TagHaloUpdateSelf, Kokkos::IndexType<T_INT> >(0,proc_num_send[phase]),
-        *this);
-    }
     N_ghost += proc_num_recv[phase];
-    if (x.size() > N_local+N_ghost) {
-      system->resize(N_local+N_ghost);
-    }
-
   }
 
   Kokkos::Profiling::popRegion();

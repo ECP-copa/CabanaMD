@@ -115,9 +115,7 @@ public:
   
   struct TagHaloPack {};
   struct TagHaloPackPBC {};
-  struct TagHaloUpdateSelf {};
-  struct TagHaloUpdatePack {};
-  struct TagHaloUpdateUnpack {};
+  struct TagHaloUpdatePBC {};
 
   struct TagHaloForceSelf {};
   struct TagHaloForcePack {};
@@ -330,55 +328,17 @@ public:
 
 
   KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloUpdateSelf,
-                   const T_INT& ii) const {
-
-    const T_INT i = pack_indicies(ii);
-    T_X_FLOAT x_i = x(i,0);
-    T_X_FLOAT y_i = x(i,1);
-    T_X_FLOAT z_i = x(i,2);
+  void operator() (const TagHaloUpdatePBC,
+                   const T_INT& i) const {
 
     switch (phase) {
-      case 0: x_i -= s.domain_x; break;
-      case 1: x_i += s.domain_x; break;
-      case 2: y_i -= s.domain_y; break;
-      case 3: y_i += s.domain_y; break;
-      case 4: z_i -= s.domain_z; break;
-      case 5: z_i += s.domain_z; break;
+      case 0: if(proc_pos[0] == proc_grid[0]-1) x(i,0) -= s.domain_x; break;
+      case 1: if(proc_pos[0] == 0)              x(i,0) += s.domain_x; break;
+      case 2: if(proc_pos[1] == proc_grid[1]-1) x(i,1) -= s.domain_y; break;
+      case 3: if(proc_pos[1] == 0)              x(i,1) += s.domain_y; break;
+      case 4: if(proc_pos[2] == proc_grid[2]-1) x(i,2) -= s.domain_z; break;
+      case 5: if(proc_pos[2] == 0)              x(i,2) += s.domain_z; break;
     }
-    x(N_local + N_ghost + ii, 0) = x_i;
-    x(N_local + N_ghost + ii, 1) = y_i;
-    x(N_local + N_ghost + ii, 2) = z_i;
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloUpdatePack,
-                   const T_INT& ii) const {
-
-    const T_INT i = pack_indicies(ii);
-    T_X_FLOAT x_i = x(i,0);
-    T_X_FLOAT y_i = x(i,1);
-    T_X_FLOAT z_i = x(i,2);
-
-    switch (phase) {
-      case 0: if(proc_pos[0] == proc_grid[0]-1) x_i -= s.domain_x; break;
-      case 1: if(proc_pos[0] == 0)              x_i += s.domain_x; break;
-      case 2: if(proc_pos[1] == proc_grid[1]-1) y_i -= s.domain_y; break;
-      case 3: if(proc_pos[1] == 0)              y_i += s.domain_y; break;
-      case 4: if(proc_pos[2] == proc_grid[2]-1) z_i -= s.domain_z; break;
-      case 5: if(proc_pos[2] == 0)              z_i += s.domain_z; break;
-    }
-    pack_buffer_update(ii, 0) = x_i;
-    pack_buffer_update(ii, 1) = y_i;
-    pack_buffer_update(ii, 2) = z_i;
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloUpdateUnpack,
-                   const T_INT& ii) const {
-    x(N_local + N_ghost + ii, 0) = unpack_buffer_update(ii, 0);
-    x(N_local + N_ghost + ii, 1) = unpack_buffer_update(ii, 1);
-    x(N_local + N_ghost + ii, 2) = unpack_buffer_update(ii, 2);
   }
 
   KOKKOS_INLINE_FUNCTION
