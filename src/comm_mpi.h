@@ -113,8 +113,8 @@ public:
   struct TagExchangeSelf {};
   struct TagExchangePack {};
   
-  struct TagHaloSelf {};
   struct TagHaloPack {};
+  struct TagHaloPackPBC {};
   struct TagHaloUpdateSelf {};
   struct TagHaloUpdatePack {};
   struct TagHaloUpdateUnpack {};
@@ -216,90 +216,20 @@ public:
     }
   } 
   
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloSelf,
-                   const T_INT& i) const {
-    if(phase == 0) {
-      if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
-        const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
-          pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
-          x(N_local + N_ghost + pack_idx,0) -= s.domain_x;
-        }
-      }
-    }
-    if(phase == 1) {
-      if( x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
-        const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
-          pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
-          x(N_local + N_ghost + pack_idx,0) += s.domain_x;
-        }
-      }
-    }
-    if(phase == 2) {
-      if( x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
-        const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
-          pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
-          x(N_local + N_ghost + pack_idx,1) -= s.domain_y;
-        }
-      }
-    }
-    if(phase == 3) {
-      if( x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
-        const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
-          pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
-          x(N_local + N_ghost + pack_idx,1) += s.domain_y;
-        }
-      }
-    }
-    if(phase == 4) {
-      if( x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
-        const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
-          pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
-          x(N_local + N_ghost + pack_idx,2) -= s.domain_z;
-        }
-      }
-    }
-    if(phase == 5) {
-      if( x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
-        const int pack_idx = pack_count()++;
-        if((pack_idx < pack_indicies.extent(0)) && (N_local+N_ghost+pack_idx< x.size())) {
-          pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
-          x(N_local + N_ghost + pack_idx,2) += s.domain_z;
-        }
-      }
-    }
-
-  }
-
+  // Add ghosts to Cabana-gather
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagHaloPack,
                    const T_INT& i) const {
+    int proc_send = proc_neighbors_send[phase];
+    if (proc_send < 0)
+      proc_send = proc_rank;
+
     if(phase == 0) {
       if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          if(proc_pos[0] == proc_grid[0]-1)
-            p.get<Positions>(0) -= s.domain_x;
-          pack_buffer(pack_idx) = p;
+          pack_ranks(pack_idx) = proc_send;
         }
       }
     }
@@ -308,10 +238,7 @@ public:
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          if(proc_pos[0] == 0)
-            p.get<Positions>(0) += s.domain_x;
-          pack_buffer(pack_idx) = p;
+          pack_ranks(pack_idx) = proc_send;
         }
       }
     }
@@ -320,10 +247,7 @@ public:
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          if(proc_pos[1] == proc_grid[1]-1)
-            p.get<Positions>(1) -= s.domain_y;
-          pack_buffer(pack_idx) = p;
+          pack_ranks(pack_idx) = proc_send;
         }
       }
     }
@@ -332,10 +256,7 @@ public:
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          if(proc_pos[1] == 0)
-            p.get<Positions>(1) += s.domain_y;
-          pack_buffer(pack_idx) = p;
+          pack_ranks(pack_idx) = proc_send;
         }
       }
     }
@@ -344,10 +265,7 @@ public:
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          if(proc_pos[2] == proc_grid[2]-1)
-            p.get<Positions>(2) -= s.domain_z;
-          pack_buffer(pack_idx) = p;
+          pack_ranks(pack_idx) = proc_send;
         }
       }
     }
@@ -356,11 +274,50 @@ public:
         const int pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          if(proc_pos[2] == 0)
-            p.get<Positions>(2) += s.domain_z;
-          pack_buffer(pack_idx) = p;
+          pack_ranks(pack_idx) = proc_send;
         }
+      }
+    }
+  }
+
+  // Wrap atoms after halo exchange
+  KOKKOS_INLINE_FUNCTION
+  void operator() (const TagHaloPackPBC,
+                   const T_INT& i) const {
+    if(phase == 0) {
+      if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
+        if(proc_pos[0] == 0)
+          x(i,0) -= s.domain_x;
+      }
+    }
+    if(phase == 1) {
+      if( x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
+        if(proc_pos[0] == proc_grid[0]-1)
+          x(i,0) += s.domain_x;
+      }
+    }
+    if(phase == 2) {
+      if( x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
+        if(proc_pos[1] == 0)
+          x(i,1) -= s.domain_y;
+      }
+    }
+    if(phase == 3) {
+      if( x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
+        if(proc_pos[1] == proc_grid[1]-1)
+          x(i,1) += s.domain_y;
+      }
+    }
+    if(phase == 4) {
+      if( x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
+        if(proc_pos[2] == 0)
+          x(i,2) -= s.domain_z;
+      }
+    }
+    if(phase == 5) {
+      if( x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
+        if(proc_pos[2] == proc_grid[2]-1)
+          x(i,2) += s.domain_z;
       }
     }
   }
