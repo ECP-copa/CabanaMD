@@ -100,34 +100,6 @@ public:
     xvf.setTuple(i, p);
   }
 
-  KOKKOS_INLINE_FUNCTION
-  void copy(T_INT dest, T_INT src, int nx, int ny, int nz) const {
-    auto x = Cabana::slice<Positions>(xvf);
-    auto v = Cabana::slice<Velocities>(xvf);
-    auto q = Cabana::slice<Charges>(xvf);
-    auto id = Cabana::slice<IDs>(xvf);
-    auto type = Cabana::slice<Types>(xvf);
-
-    x(dest,0) = x(src,0) + domain_x * nx;
-    x(dest,1) = x(src,1) + domain_y * ny;
-    x(dest,2) = x(src,2) + domain_z * nz;
-    v(dest,0) = v(src,0);
-    v(dest,1) = v(src,1);
-    v(dest,2) = v(src,2);
-    type(dest) = type(src);
-    id(dest) = id(src);
-    q(dest) = q(src);
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void copy_halo_update(T_INT dest, T_INT src, int nx, int ny, int nz) const {
-    auto x = Cabana::slice<Positions>(xvf);
-
-    x(dest,0) = x(src,0) + domain_x * nx;
-    x(dest,1) = x(src,1) + domain_y * ny;
-    x(dest,2) = x(src,2) + domain_z * nz;
-  }
-
   void print_particles();
 };
 #endif

@@ -51,8 +51,6 @@
 
 Comm::Comm(System* s, T_X_FLOAT comm_depth_):neighbors(7),system(s),comm_depth(comm_depth_) {
   pack_count = Kokkos::View<int>("CommMPI::pack_count");
-  pack_buffer = Kokkos::View<t_particle*>("CommMPI::pack_buffer",200);
-  unpack_buffer = Kokkos::View<t_particle*>("CommMPI::pack_buffer",200);
   pack_indicies_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_indicies_all",6,200);
   pack_ranks_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_ranks_all",6,200);
 }
@@ -321,7 +319,6 @@ void Comm::exchange_halo() {
                          halo.numLocal(),halo.numLocal()+halo.numGhost()),
                 *this);
 
-    num_ghost[phase] = count;
     N_ghost += count;
   }
   static int step = 0;

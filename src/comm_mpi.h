@@ -83,16 +83,7 @@ class Comm {
   int proc_rank;         // My Process rank
   int proc_size;         // Number of processes
 
-  T_INT num_ghost[6];
-  T_INT ghost_offsets[6];
-
-  T_INT num_packed;
   Kokkos::View<int, Kokkos::MemoryTraits<Kokkos::Atomic> > pack_count;
-  Kokkos::View<t_particle*> pack_buffer;
-  Kokkos::View<t_particle*> unpack_buffer;
-  typedef Kokkos::View<T_X_FLOAT*[3], Kokkos::LayoutRight, Kokkos::MemoryTraits<Kokkos::Unmanaged>> t_buffer_update;
-  t_buffer_update pack_buffer_update;
-  t_buffer_update unpack_buffer_update;
 
   Kokkos::View<T_INT**,Kokkos::LayoutRight> pack_indicies_all;
   Kokkos::View<T_INT*,Kokkos::LayoutRight> pack_indicies;
@@ -107,8 +98,6 @@ protected:
   T_X_FLOAT comm_depth;
 
 public:
-
-  struct TagUnpack {};
 
   struct TagExchangeSelf {};
   struct TagExchangePack {};
@@ -315,13 +304,6 @@ public:
       }
     }
   }
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagUnpack,
-                   const T_INT& i) const {
-    s.set_particle(N_local+N_ghost+i, unpack_buffer(i));
-  }
-
 
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagHaloUpdatePBC,
