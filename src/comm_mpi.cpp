@@ -55,7 +55,7 @@ Comm::Comm(System* s, T_X_FLOAT comm_depth_):neighbors(7),system(s),comm_depth(c
   pack_ranks_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_ranks_all",6,200);
 }
 
-void Comm::init() {};
+void Comm::init() {}
 
 void Comm::create_domain_decomposition() {
 
@@ -251,7 +251,6 @@ void Comm::exchange() {
     N_total_recv += proc_num_recv[phase];
     N_total_send += proc_num_send[phase];
   }
-  T_INT N_local_start = N_local;
 
   N_local = N_local + N_total_recv - N_total_send;
 
@@ -259,7 +258,7 @@ void Comm::exchange() {
   system->N_ghost = 0;
 
   Kokkos::Profiling::popRegion();
-};
+}
 
 void Comm::exchange_halo() {
 
@@ -327,7 +326,7 @@ void Comm::exchange_halo() {
   system->N_ghost = N_ghost;
 
   Kokkos::Profiling::popRegion();
-};
+}
 
 void Comm::update_halo() {
 
@@ -360,7 +359,7 @@ void Comm::update_halo() {
   }
 
   Kokkos::Profiling::popRegion();
-};
+}
 
 void Comm::update_force() {
 
@@ -388,7 +387,7 @@ void Comm::update_force() {
   }
 
   Kokkos::Profiling::popRegion();
-};
+}
 
 const char* Comm::name() { return "CommMPI"; }
 
@@ -398,4 +397,4 @@ void Comm::error(const char *errormsg) {
   if(proc_rank==0)
   printf("%s\n",errormsg);
   MPI_Abort(MPI_COMM_WORLD,1);
-};
+}

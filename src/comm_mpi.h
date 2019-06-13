@@ -147,7 +147,7 @@ public:
   void operator() (const TagExchangePack, 
                    const T_INT& i) const {
     if( (phase == 0) && (x(i,0)>s.sub_domain_hi_x)) {
-      const int pack_idx = pack_count()++;
+      const std::size_t pack_idx = pack_count()++;
       if( pack_idx < pack_ranks_migrate.extent(0) ) {
         pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[0] == proc_grid[0]-1)
@@ -156,7 +156,7 @@ public:
     }  
 
     if( (phase == 1) && (x(i,0)<s.sub_domain_lo_x)) {
-      const int pack_idx = pack_count()++;
+      const std::size_t pack_idx = pack_count()++;
       if( pack_idx < pack_ranks_migrate.extent(0) ) {
         pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[0] == 0)
@@ -165,7 +165,7 @@ public:
     }
 
     if( (phase == 2) && (x(i,1)>s.sub_domain_hi_y)) {
-      const int pack_idx = pack_count()++;
+      const std::size_t pack_idx = pack_count()++;
       if( pack_idx < pack_ranks_migrate.extent(0) ) {
         pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[1] == proc_grid[1]-1)
@@ -173,7 +173,7 @@ public:
       }
     }
     if( (phase == 3) && (x(i,1)<s.sub_domain_lo_y)) {
-      const int pack_idx = pack_count()++;
+      const std::size_t pack_idx = pack_count()++;
       if( pack_idx < pack_ranks_migrate.extent(0) ) {
         pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[1] == 0)
@@ -182,7 +182,7 @@ public:
     }
 
     if( (phase == 4) && (x(i,2)>s.sub_domain_hi_z)) {
-      const int pack_idx = pack_count()++;
+      const std::size_t pack_idx = pack_count()++;
       if( pack_idx < pack_ranks_migrate.extent(0) ) {
         pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[2] == proc_grid[2]-1)
@@ -190,7 +190,7 @@ public:
       }
     }
     if( (phase == 5) && (x(i,2)<s.sub_domain_lo_z)) {
-      const int pack_idx = pack_count()++;
+      const std::size_t pack_idx = pack_count()++;
       if( pack_idx < pack_ranks_migrate.extent(0) ) {
         pack_ranks_migrate(i) = proc_neighbors_send[phase];
         if(proc_pos[2] == 0)
@@ -209,7 +209,7 @@ public:
 
     if(phase == 0) {
       if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
-        const int pack_idx = pack_count()++;
+        const std::size_t pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
           pack_ranks(pack_idx) = proc_send;
@@ -218,7 +218,7 @@ public:
     }
     if(phase == 1) {
       if( x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
-        const int pack_idx = pack_count()++;
+        const std::size_t pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
           pack_ranks(pack_idx) = proc_send;
@@ -227,7 +227,7 @@ public:
     }
     if(phase == 2) {
       if( x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
-        const int pack_idx = pack_count()++;
+        const std::size_t pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
           pack_ranks(pack_idx) = proc_send;
@@ -236,7 +236,7 @@ public:
     }
     if(phase == 3) {
       if( x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
-        const int pack_idx = pack_count()++;
+        const std::size_t pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
           pack_ranks(pack_idx) = proc_send;
@@ -245,7 +245,7 @@ public:
     }
     if(phase == 4) {
       if( x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
-        const int pack_idx = pack_count()++;
+        const std::size_t pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
           pack_ranks(pack_idx) = proc_send;
@@ -254,7 +254,7 @@ public:
     }
     if(phase == 5) {
       if( x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
-        const int pack_idx = pack_count()++;
+        const std::size_t pack_idx = pack_count()++;
         if(pack_idx < pack_indicies.extent(0)) {
           pack_indicies(pack_idx) = i;
           pack_ranks(pack_idx) = proc_send;
