@@ -3,6 +3,10 @@ project(CabanaMD LANGUAGES CXX VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
+  #release comes with -O3 by default
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
 
 option(CMAKE_VERBOSE_MAKEFILE "Generate verbose Makefiles" OFF)
 include(GNUInstallDirs)
