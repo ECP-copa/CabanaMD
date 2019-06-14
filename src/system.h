@@ -50,8 +50,8 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 #include <Cabana_Slice.hpp>
-
 #include<types.h>
+#include <string>
 
 class System {
 public:
@@ -61,6 +61,7 @@ public:
   T_INT N_ghost; // Number of non-owned Particles
 
   int ntypes;
+  std::string atom_style; 
 
   // Per Particle Property
   AoSoA xvf;

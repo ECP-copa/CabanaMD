@@ -31,6 +31,9 @@
 #include <cstring>
 #include <string>
 #include <comm_serial.h>
+#include <iostream>
+#include <fstream>
+#include <types.h>
 
 using namespace std;
 
@@ -42,45 +45,51 @@ string read_lammps_parse_keyword(ifstream &file, System* s)
   string line, keyword;
   while(1) {
     getline(file, line);
+    //ignore anything after # by getting substring till # (takes care of comment lines too)
+    line = line.substr(0, line.find('#'));
     //for non blank lines, skip leading whitespaces and read word
     int pos = line.find_first_not_of(" \r\t\n");
     if (pos != string::npos) {
       keyword = line;
-      if (keyword != "Atoms" || keyword != "Velocities")
-        printf("ERROR: Unknown identifier in data file: %s", keyword);
-      return keyword;
+      if (keyword.compare("Atoms ") || keyword.compare("Velocities ")) 
+        return keyword;
+      else
+        printf("ERROR: Unknown identifier in data file: %s\n", keyword.data());
     }
     else
-      //skip blank lines
       continue;
+    
   }
 }
 
 void read_lammps_header(ifstream &file, System* s)
 {
   string line;
-
   // skip 1st line of file
-  string firstline;
-  getline(file, firstline);
-
-  // skip blank lines and trim anything after # (takes care of comment lines)
+  getline(file, line);
   while(1) {
+    
     getline(file, line);
+    //skip blank lines
     int pos = line.find_first_not_of(" \r\t\n");
     if (pos == string::npos)
       continue;
-    //int hash_loc = line.find('#');
-    const char* temp = line.data();
-    //temp[hash_loc] = '\0';
-
+    
+    //ignore anything after # by getting substring till # (takes care of comment lines too)
+    line = line.substr(0, line.find('#'));
+    
+    int natoms, ntypes;
     double xlo, xhi, ylo, yhi, zlo, zhi;
+    const char* temp = line.data(); //convert to C-string for sscanf utility
     // search line for header keyword and set corresponding variable
-    if(line.find("atoms") != string::npos)
-      sscanf(temp, "%i", s->N);
-    else if(line.find("atom types") != string::npos)
-      sscanf(temp, "%i", s->ntypes);
-
+    if(line.find("atoms") != string::npos) {
+      sscanf(temp, "%i", &natoms);
+      s->N = natoms;
+    }
+    else if(line.find("atom types") != string::npos) {
+      sscanf(temp, "%i", &ntypes);
+      s->ntypes = ntypes;
+    }
     else if(line.find("xlo xhi") != string::npos) {
       sscanf(temp, "%lg %lg", &xlo, &xhi);
       s->domain_x = xhi - xlo;
@@ -92,12 +101,10 @@ void read_lammps_header(ifstream &file, System* s)
     else if(line.find("zlo zhi") != string::npos) {
       sscanf(temp, "%lg %lg", &zlo, &zhi);
       s->domain_z = zhi - zlo;
-    }
-    else
       break;
-
+      //TODO: add support for triclinic boxes
+    }
   }
-
 }
     
 
@@ -105,19 +112,34 @@ void read_lammps_atoms(ifstream &file, System* s)
 {
   string line;
   auto x = Cabana::slice<Positions>(s->xvf);
+  auto v = Cabana::slice<Velocities>(s->xvf);
   auto id = Cabana::slice<IDs>(s->xvf);
   auto type = Cabana::slice<Types>(s->xvf);
   auto q = Cabana::slice<Charges>(s->xvf);
   
-  for (int n=0; n < s->N; n++) {
+  //skip any empty lines before reading in data
+  while (1) {
     getline(file, line);
+    if (!line.empty())
+      break;
+  }
+  
+  
+  T_INT id_tmp, type_tmp;
+  T_FLOAT x_tmp, y_tmp, z_tmp, q_tmp; 
+  for (int n=0; n < s->N; n++) {
     const char* temp = line.data();
     if (s->atom_style == "atomic") {
-      sscanf(temp, "%i %i %lg %lg %lg", id(n), type(n), x(n,0), x(n,1), x(n,2));
+      sscanf(temp, "%i %i %lg %lg %lg", &id_tmp, &type_tmp, &x_tmp, &y_tmp, &z_tmp);
+      id(n) = id_tmp; type(n) = type_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
       q(n) = 0;
     }
     if (s->atom_style == "charge") {
-      sscanf(temp, "%i %i %lg %lg %lg %lg", id(n), type(n), q(n), x(n,0), x(n,1), x(n,2));
+      sscanf(temp, "%i %i %lg %lg %lg %lg", &id_tmp, &type_tmp, &q_tmp, &x_tmp, &y_tmp, &z_tmp);
+      id(n) = id_tmp; type(n) = type_tmp; q(n) = q_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
+    //getline pushed to the end of loop because line already stores the 1st non-blank line
+    //after exiting while loop
+    getline(file, line); 
     }
   }
 }
@@ -126,36 +148,60 @@ void read_lammps_atoms(ifstream &file, System* s)
 void read_lammps_velocities(ifstream &file, System* s)
 {
   string line;
+  auto x = Cabana::slice<Positions>(s->xvf);
   auto v = Cabana::slice<Velocities>(s->xvf);
   auto id = Cabana::slice<IDs>(s->xvf);
+  auto type = Cabana::slice<Types>(s->xvf);
+  auto q = Cabana::slice<Charges>(s->xvf);
   
-  for (int n=0; n < s->N; n++) {
+  //skip any empty lines before reading in data
+  while (1) {
     getline(file, line);
+    if (!line.empty())
+      break;
+  }
+  
+  T_INT id_tmp;
+  T_FLOAT vx_tmp, vy_tmp, vz_tmp; 
+  for (int n=0; n < s->N; n++) {
     const char* temp = line.data();
-    sscanf(temp, "%i %lg %lg %lg", id(n), v(n,0), v(n,1), v(n,2));
+    sscanf(temp, "%i %lg %lg %lg", &id_tmp, &vx_tmp, &vy_tmp, &vz_tmp);
+    v(n,0) = vx_tmp; v(n,1) = vy_tmp; v(n,2) = vz_tmp;
+    getline(file, line);
   }
 }
 
 
-void read_lammps_data_file(string filename, System* s) {
+void read_lammps_data_file(const char* filename, System* s) {
   
   string keyword;
   ifstream file(filename);
   //TODO: error checking bad files
   //read header information
   read_lammps_header(file, s);
+  
+  s->resize(s->N);
+  auto x = Cabana::slice<Positions>(s->xvf);
+  auto v = Cabana::slice<Velocities>(s->xvf);
+  auto id = Cabana::slice<IDs>(s->xvf);
+  auto type = Cabana::slice<Types>(s->xvf);
+  auto q = Cabana::slice<Charges>(s->xvf);
+  
   //perform domain decomposition and get access to subdomains
   //comm->create_domain_decomposition(); //TODO: Look into this 
+  
   // check that exiting string is a valid section keyword
   keyword = read_lammps_parse_keyword(file, s);
+  
   //read atom information
   read_lammps_atoms(file, s);
   //TODO: catch this error: printf("Must read Atoms before Velocities\n");
+  
   keyword = read_lammps_parse_keyword(file, s);
   //read velocities
-  if(keyword.compare("Velocities") == 0) {
+  if(keyword.compare("Velocities") == 0)
     read_lammps_velocities(file, s);
-  }
+  
   //TODO: read masses from data file
   /*else if(strcmp(keyword, "Masses") == 0) {
     fgets(line, MAXLINE, fp);

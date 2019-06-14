@@ -51,6 +51,7 @@
 #include <fstream>
 #include <input.h>
 #include <property_temperature.h>
+#include "read_data.h"
 
 ItemizedFile::ItemizedFile () {
   nlines = 0;
@@ -128,7 +129,7 @@ void ItemizedFile::add_line(const char* const line) {
   nlines++;
 }
 
-Input::Input(System* p):system(p),input_data(ItemizedFile()) {
+Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(ItemizedFile()) {
 
   //#ifdef CabanaMD_ENABLE_MPI
   //comm_type = COMM_MPI;
@@ -146,6 +147,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()) {
   nsteps = 0;
   force_coeff_lines = Kokkos::View<int*,Kokkos::HostSpace>("Input::force_coeff_lines",0);
   input_file_type = -1;
+  data_file_type = -1;
 
   thermo_rate = 0;
   dumpbinary_rate = 0;
@@ -329,9 +331,14 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"atom_style")==0) {
     if(strcmp(input_data.words[line][1],"atomic")==0) {
       known = true;
-    } else {
+    }
+    else if(strcmp(input_data.words[line][1], "charge")==0) {
+      known = true;
+      system->atom_style = "charge";
+    } 
+    else {
       if(system->do_print)
-        printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' in CabanaMD\n");
+        printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' and 'charge' in CabanaMD\n");
     }
   }
   if(strcmp(input_data.words[line][0],"lattice")==0) {
@@ -389,6 +396,14 @@ void Input::check_lammps_command(int line) {
     T_V_FLOAT mass = atof(input_data.words[line][2]);
     Kokkos::deep_copy(mass_one,mass);
   }
+  if(strcmp(input_data.words[line][0],"read_data")==0) {
+    known = true;
+    const char* lammps_data_file = input_data.words[line][1];
+    read_lammps_data_file(lammps_data_file, system);
+    if (system->do_print) 
+      printf("Read LAMMPS data file\n");
+  }  
+
   if(strcmp(input_data.words[line][0],"pair_style")==0) {
     if(strcmp(input_data.words[line][1],"lj/cut")==0) {
       known = true;
@@ -402,11 +417,10 @@ void Input::check_lammps_command(int line) {
       force_cutoff = 4.73442;// atof(input_data.words[line][2]);
       force_line = line;
     }
-    if(system->do_print && !known)
-      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' style in CabanaMD\n");
   }
   if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
     known = true;
+    force_cutoff = atof(input_data.words[line][3]);
     int n_coeff_lines = force_coeff_lines.dimension_0();
     Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
     force_coeff_lines( n_coeff_lines) = line;
