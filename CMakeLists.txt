@@ -72,8 +72,8 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-include_directories(src src/force_types src/libnnp src/libnnpif)
-file(GLOB SOURCES src/*.cpp src/force_types/*.cpp src/libnnp/*.cpp src/libnnpif/*.cpp)
+include_directories(src src/force_types src/libnnp)
+file(GLOB SOURCES src/libnnp/*.cpp src/*.cpp src/force_types/*.cpp)
 
 include_directories(SYSTEM ${KOKKOS_DIR}/include)
 link_directories(${KOKKOS_DIR}/lib)

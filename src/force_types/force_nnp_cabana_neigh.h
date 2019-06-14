@@ -92,7 +92,7 @@
 #include <force.h>
 #include <types.h>
 #include <system.h>
-#include "InterfaceLammps.h"
+#include "Mode.h"
 
 template<class t_neighbor>
 class ForceNNP: public Force {
@@ -127,11 +127,11 @@ private:
   T_FLOAT cfenergy;
   T_FLOAT maxCutoffRadius;
   char* directory;
-  nnp::InterfaceLammps interface;
-  void allocate();
-  void handleExtrapolationWarnings(); 
+  
 
 public:
+  nnp::Mode* mode = new(nnp::Mode);
+  
   struct TagFullNeigh {};
 
   struct TagHalfNeigh {};
@@ -150,15 +150,12 @@ public:
 
   t_neighbor neigh_list;
 
-  //copied over from pair_nnp.h
   ForceNNP(System* system, bool half_neigh_);
-  void settings(int, char**);
-  void coeff(int, char**);
-  //void init_style();
+  void setup_pair_style(nnp::Mode* mode);
 
   void create_neigh_list(System* system);
 
-  void compute(System* system);
+  //void compute(System* system);
   //T_F_FLOAT compute_energy(System* system);
 
   /*
