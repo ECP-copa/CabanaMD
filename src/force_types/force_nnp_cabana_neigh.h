@@ -89,9 +89,10 @@
 #include <Cabana_NeighborList.hpp>
 #include <Cabana_Slice.hpp>
 
-#include<force.h>
-#include<types.h>
-#include<system.h>
+#include <force.h>
+#include <types.h>
+#include <system.h>
+#include "InterfaceLammps.h"
 
 template<class t_neighbor>
 class ForceNNP: public Force {
@@ -126,7 +127,7 @@ private:
   T_FLOAT cfenergy;
   T_FLOAT maxCutoffRadius;
   char* directory;
-  //interface;
+  nnp::InterfaceLammps interface;
   void allocate();
   void handleExtrapolationWarnings(); 
 
@@ -151,14 +152,13 @@ public:
 
   //copied over from pair_nnp.h
   ForceNNP(System* system, bool half_neigh_);
-  //void settings(int, char**);
-  //void coeff(int, char**);
+  void settings(int, char**);
+  void coeff(int, char**);
   //void init_style();
-  //void init_coeff(T_X_FLOAT neigh_cut, char** args);
 
   void create_neigh_list(System* system);
 
-  //void compute(System* system, int, int);
+  void compute(System* system);
   //T_F_FLOAT compute_energy(System* system);
 
   /*

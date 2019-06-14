@@ -187,29 +187,33 @@ void InterfaceLammps::initialize(char* const& directory,
     initialized = true;
 }
 
-void InterfaceLammps::setLocalAtoms(int              numAtomsLocal,
-                                    int const* const atomTag,
-                                    int const* const atomType)
+void InterfaceLammps::setLocalAtoms(System* s)
 {
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto v = Cabana::slice<Velocities>(s->xvf);
+    auto id = Cabana::slice<IDs>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto q = Cabana::slice<Charges>(s->xvf);
+    
     for (size_t i = 0; i < numElements; ++i)
     {
         structure.numAtomsPerElement[i] = 0;
     }
     structure.index                          = myRank;
-    structure.numAtoms                       = numAtomsLocal;
+    structure.numAtoms                       = s->N_local;
     structure.hasNeighborList                = false;
     structure.hasSymmetryFunctions           = false;
     structure.hasSymmetryFunctionDerivatives = false;
     structure.energy                         = 0.0;
-    structure.atoms.resize(numAtomsLocal);
+    structure.atoms.resize(s->N_local);
     for (size_t i = 0; i < structure.atoms.size(); i++)
     {
         Atom& a = structure.atoms[i];
         a.free(true);
         a.index                          = i;
         a.indexStructure                 = myRank;
-        a.tag                            = atomTag[i];
-        a.element                        = atomType[i] - 1;
+        a.tag                            = id(i);
+        a.element                        = type(i) - 1;
         a.numNeighbors                   = 0;
         a.hasSymmetryFunctions           = false;
         a.hasSymmetryFunctionDerivatives = false;

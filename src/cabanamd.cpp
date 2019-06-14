@@ -91,9 +91,7 @@ if(false) {}
 #define FORCE_MODULES_INSTANTIATION
 #include<modules_force.h>
 #undef FORCE_MODULES_INSTANTIATION
-//don't understand this
 else comm->error("Invalid ForceType");
-printf("Reached here\n");
 for(std::size_t line = 0; line < input->force_coeff_lines.dimension_0(); line++) {
   force->init_coeff(neigh_cutoff,
                     input->input_data.words[input->force_coeff_lines(line)]);
@@ -128,6 +126,7 @@ force->create_neigh_list(system);
 // Compute initial forces
 auto f = Cabana::slice<Forces>(system->xvf);
 Cabana::deep_copy(f, 0.0);
+//here's where all the addition goes
 force->compute(system);
 
 if(input->comm_newton) {

@@ -17,9 +17,10 @@
 #ifndef INTERFACELAMMPS_H
 #define INTERFACELAMMPS_H
 
-#include "Mode.h"
-#include "Structure.h"
+#include "libnnp/Mode.h"
+#include "libnnp/Structure.h"
 #include <cstddef> // std::size_t
+#include <system.h>
 
 namespace nnp
 {
@@ -62,9 +63,7 @@ public:
      * @param[in] atomTag LAMMPS atom tag.
      * @param[in] atomType LAMMPS atom type.
      */
-    void   setLocalAtoms(int              numAtomsLocal,
-                         int const* const atomTag,
-                         int const* const atomType);
+    void   setLocalAtoms(System* s);
     /** Add one neighbor to atom.
      *
      * @param[in] i Local atom index.
