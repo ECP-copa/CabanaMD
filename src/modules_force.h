@@ -50,3 +50,5 @@
 // Include Module header files for force
 #include <force_lj_cabana_neigh.h>
 //#include <force_snap_cabana_neigh.h>
+#include <force_nnp_cabana_neigh.h>
+

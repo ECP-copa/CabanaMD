@@ -130,7 +130,6 @@ private:
   
 
 public:
-  nnp::Mode* mode = new(nnp::Mode);
   
   struct TagFullNeigh {};
 
@@ -151,7 +150,7 @@ public:
   t_neighbor neigh_list;
 
   ForceNNP(System* system, bool half_neigh_);
-  void setup_pair_style(nnp::Mode* mode);
+  void init_coeff(T_X_FLOAT neigh_cut, char** args);
 
   void create_neigh_list(System* system);
 

@@ -399,6 +399,7 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"read_data")==0) {
     known = true;
     const char* lammps_data_file = input_data.words[line][1];
+    printf("Reading lammps\n");
     read_lammps_data_file(lammps_data_file, system);
     if (system->do_print) 
       printf("Read LAMMPS data file\n");
@@ -421,17 +422,22 @@ void Input::check_lammps_command(int line) {
       known = true;
       force_type = FORCE_NNP;
       force_line = line; //TODO: process this line to read in the right directories
+      Kokkos::resize(force_coeff_lines,1);
+      force_coeff_lines(0) = line;
     }
     if(system->do_print && !known)
       printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' and 'nnp' style in CabanaMD\n");
   }
   if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
     known = true;
-    force_cutoff = atof(input_data.words[line][3]); //TODO: hardcoded for NNP; remove and generalize
+    if (force_type == FORCE_NNP)
+      force_cutoff = atof(input_data.words[line][3]);
+    else {
     int n_coeff_lines = force_coeff_lines.dimension_0();
     Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
     force_coeff_lines( n_coeff_lines) = line;
     n_coeff_lines++;
+    }
   }
   if(strcmp(input_data.words[line][0],"velocity")==0) {
     known = true;

@@ -26,7 +26,7 @@
 #include <fstream>   // std::ifstream
 #include <limits>    // std::numeric_limits
 #include <stdexcept> // std::runtime_error
-
+#include<iostream>
 using namespace std;
 using namespace nnp;
 

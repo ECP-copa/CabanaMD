@@ -49,6 +49,7 @@
 
 #include <force_nnp_cabana_neigh.h>
 #include <string.h>
+#include <string>
 #include <iostream>
 
 template class ForceNNP<t_verletlist_half_2D>;
@@ -82,17 +83,25 @@ void ForceNNP<t_neighbor>::create_neigh_list(System* system) {
 template<class t_neighbor>
 const char* ForceNNP<t_neighbor>::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
 
-
 template<class t_neighbor>
-void ForceNNP<t_neighbor>::setup_pair_style(nnp::Mode*) {
+void ForceNNP<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut, char** args) {
+  std::cout << "Entered this function" << std::endl;
+  std::cout << args[0] << std::endl;
+  
+  nnp::Mode* mode = new(nnp::Mode);
   mode->initialize();
-  mode->loadSettingsFile("input.nn");
+  std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
+  std::cout << settingsfile << std::endl;
+  mode->loadSettingsFile(settingsfile);
   mode->setupElementMap();
   mode->setupCutoff();
-  mode->setupSymmetryFunctions();
+  //mode->setupSymmetryFunctions();
   mode->setupSymmetryFunctionGroups();
   mode->setupSymmetryFunctionStatistics(false, false, true, false);
   mode->setupNeuralNetwork();
-  mode->setupSymmetryFunctionScaling();
-  mode->setupNeuralNetworkWeights();
+  std::string scalingfile = std::string(args[3]) + "/scaling.data";
+  mode->setupSymmetryFunctionScaling(scalingfile);
+  std::string weightsfile = std::string(args[3]) + "/weights*";
+  mode->setupNeuralNetworkWeights(weightsfile);
 }
+
