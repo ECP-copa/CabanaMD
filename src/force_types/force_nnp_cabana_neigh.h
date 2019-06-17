@@ -66,15 +66,15 @@
       bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
       if (input->neighbor_type == NEIGH_2D) {
         if (half_neigh)
-          force = new ForceNNP<t_verletlist_half_2D>(system,half_neigh);
+          force = NULL;
         else
-          force = new ForceNNP<t_verletlist_full_2D>(system,half_neigh);
+          force = new ForceNNP(system,half_neigh);
       }
       else if (input->neighbor_type == NEIGH_CSR) {
 	if (half_neigh)
-          force = new ForceNNP<t_verletlist_half_CSR>(system,half_neigh);
+          force = NULL; 
         else
-          force = new ForceNNP<t_verletlist_full_CSR>(system,half_neigh);
+          force = NULL;
       }
       #undef FORCETYPE_ALLOCATION_MACRO
     }
@@ -94,7 +94,6 @@
 #include <system.h>
 #include "Mode.h"
 
-template<class t_neighbor>
 class ForceNNP: public Force {
 private:
   int N_local,ntypes;
@@ -106,15 +105,6 @@ private:
 
   int step;
 
-  typedef Kokkos::View<T_F_FLOAT**> t_fparams;
-  typedef Kokkos::View<const T_F_FLOAT**,
-      Kokkos::MemoryTraits<Kokkos::RandomAccess>> t_fparams_rnd;
-  //t_fparams lj1,lj2,cutsq;
-  //t_fparams_rnd rnd_lj1,rnd_lj2,rnd_cutsq;
-
-  //T_F_FLOAT stack_lj1[MAX_TYPES_STACKPARAMS+1][MAX_TYPES_STACKPARAMS+1]; // hardwired space for 12 atom types
-  //T_F_FLOAT stack_lj2[MAX_TYPES_STACKPARAMS+1][MAX_TYPES_STACKPARAMS+1];
-  //T_F_FLOAT stack_cutsq[MAX_TYPES_STACKPARAMS+1][MAX_TYPES_STACKPARAMS+1];
    
   //copied over from pair_nnp.h
   bool showew;
@@ -147,7 +137,7 @@ public:
   bool half_neigh, comm_newton;
   T_X_FLOAT neigh_cut;
 
-  t_neighbor neigh_list;
+  t_verletlist_full_2D neigh_list;
 
   //Constructor initializes NNP specific AoSoAs
   ForceNNP(System* system, bool half_neigh_);

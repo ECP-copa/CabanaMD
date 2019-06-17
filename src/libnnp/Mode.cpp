@@ -823,8 +823,7 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
     return;
 }
 
-template <class t_neighbor>
-void Mode::calculateSymmetryFunctionGroups(System* s, t_neighbor neigh_list, 
+void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh_list, 
                                            bool const derivatives)
 {
     std::cout << "Reached here" << std::endl;
@@ -859,7 +858,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_neighbor neigh_list,
         
 #ifndef NONEIGHCHECK
         // Check if atom has low number of neighbors.
-        int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
+        int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
         //size_t numNeighbors = a->getNumNeighbors(
         //                                    minCutoffRadius.at(e->getIndex()));
         if (num_neighs < minNeighbors.at(e->getIndex()))
@@ -875,7 +874,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_neighbor neigh_list,
         
 
         // Calculate symmetry functions (and derivatives).
-        e->calculateSymmetryFunctionGroups(*a, derivatives);
+        //e->calculateSymmetryFunctionGroups(*a, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;
@@ -888,15 +887,35 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_neighbor neigh_list,
     {
         for (size_t i = 0; i < id.size(); ++i)
         {
-            a = &(structure.atoms.at(i));
+            //a = &(structure.atoms.at(i));
             e = &(elements.at(type(i)));
-            e->updateSymmetryFunctionStatistics(*a);
+            //e->updateSymmetryFunctionStatistics(*a);
         }
     
     }
     // Remember that symmetry functions of this structure have been calculated.
     //s->hasSymmetryFunctions = true;
     //if (derivatives) s->hasSymmetryFunctionDerivatives = true;
+    return;
+}
+
+void Mode::allocate(T_INT numSymmetryFunctions, bool all)
+{
+    if (numSymmetryFunctions == 0)
+    {
+        throw range_error("ERROR: Number of symmetry functions set to"
+                          "zero, cannot allocate.\n");
+    }
+    // dGdr, G, dEdG, dGdxia
+    // Resize vectors (derivatives only if requested).
+    nnp_data.resize(numSymmetryFunctions); //TODO: maybe not need this 
+     
+    // Reset status of symmetry functions and derivatives.
+    //hasSymmetryFunctions           = false;
+    //hasSymmetryFunctionDerivatives = false;
+
+    if (all)
+        auto dGdr = Cabana::slice<0>(nnp_data);
     return;
 }
 
@@ -1228,23 +1247,3 @@ vector<size_t> Mode::pruneSymmetryFunctionsSensitivity(
     return prune;
 }
 
-
-void Mode::allocate(T_INT numSymmetryFunctions, bool all)
-{
-    if (numSymmetryFunctions == 0)
-    {
-        throw range_error("ERROR: Number of symmetry functions set to"
-                          "zero, cannot allocate.\n");
-    }
-    // G, dEdG, dGdxia, dGdr
-    // Resize vectors (derivatives only if requested).
-    symfuncs.resize(numSymmetryFunctions); //TODO: maybe not need this 
-     
-    // Reset status of symmetry functions and derivatives.
-    //hasSymmetryFunctions           = false;
-    //hasSymmetryFunctionDerivatives = false;
-
-    if (all)
-        auto dGdr = Cabana::slice<3>(symfuncs);
-    return;
-}

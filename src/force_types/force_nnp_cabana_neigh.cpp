@@ -53,22 +53,14 @@
 #include <iostream>
 #define VECLEN 16
 
-template class ForceNNP<t_verletlist_half_2D>;
-template class ForceNNP<t_verletlist_full_2D>;
-template class ForceNNP<t_verletlist_half_CSR>;
-template class ForceNNP<t_verletlist_full_CSR>;
-
-
-template<class t_neighbor>
-ForceNNP<t_neighbor>::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh_) {
+ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh_) {
   ntypes = system->ntypes;
   N_local = 0;
   step = 0;
 }
 
 
-template<class t_neighbor>
-void ForceNNP<t_neighbor>::create_neigh_list(System* system) {
+void ForceNNP::create_neigh_list(System* system) {
   N_local = system->N_local;
 
   double grid_min[3] = {-system->domain_x,-system->domain_y,-system->domain_z};
@@ -76,16 +68,14 @@ void ForceNNP<t_neighbor>::create_neigh_list(System* system) {
 
   auto x = Cabana::slice<Positions>(system->xvf);
 
-  t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
+  t_verletlist_full_2D list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
   neigh_list = list;
 }
 
 
-template<class t_neighbor>
-const char* ForceNNP<t_neighbor>::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
+const char* ForceNNP::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
 
-template<class t_neighbor>
-void ForceNNP<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut, char** args) {
+void ForceNNP::init_coeff(T_X_FLOAT neigh_cut, char** args) {
   nnp::Mode* mode = new(nnp::Mode);
   mode->initialize();
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
@@ -100,13 +90,12 @@ void ForceNNP<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut, char** args) {
   mode->setupNeuralNetwork();
   std::string scalingfile = std::string(args[3]) + "/scaling.data";
   mode->setupSymmetryFunctionScaling(scalingfile);
-  std::string weightsfile = std::string(args[3]) + "/weights*";
+  std::string weightsfile = std::string(args[3]) + "/weights.%03zu.data";
   mode->setupNeuralNetworkWeights(weightsfile);
 }
 
 
-template<class t_neighbor>
-void ForceNNP<t_neighbor>::compute(System* s) {
+void ForceNNP::compute(System* s) {
   nnp::Mode* mode = new(nnp::Mode);
   mode->calculateSymmetryFunctionGroups(s, neigh_list, true);
   //mode->calculateAtomicNeuralNetworks(s, true);
@@ -115,8 +104,7 @@ void ForceNNP<t_neighbor>::compute(System* s) {
 
 }
 
-template<class t_neighbor>
-T_V_FLOAT ForceNNP<t_neighbor>::compute_energy(System* system) {
+T_V_FLOAT ForceNNP::compute_energy(System* system) {
   N_local = system->N_local;
   x = Cabana::slice<Positions>(system->xvf);
   f = Cabana::slice<Forces>(system->xvf);

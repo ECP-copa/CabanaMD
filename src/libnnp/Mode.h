@@ -224,9 +224,8 @@ public:
      * stored in Atom::G. If derivatives are calculated, additional results are
      * stored in Atom::dGdr and Atom::Neighbor::dGdr.
      */
-    template <class t_neighbor>
     void                     calculateSymmetryFunctionGroups(
-                                                       System* s, t_neighbor neigh_list, 
+                                                       System* s, t_verletlist_full_2D neigh_list, 
                                                        bool const derivatives);
     /** Calculate atomic neural networks for all atoms in given structure.
      *
@@ -473,14 +472,10 @@ public:
     Log        log;
     
     /// AoSoAs of use to compute energy and force
-    /// Allow storage of G, dEdG, dGdr and weights
-    using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[numElements][], T_FLOAT[3], T_FLOAT, T_FLOAT, T_FLOAT>;
+    /// Allow storage of dGdr, G, dEdG, dGdxia (and weights?)
+    using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT, T_FLOAT, T_FLOAT>;
     using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
-    AoSoA_NNP nnp_data("nnp_data");
-    auto dGdr = Cabana::slice<0>(nnp_data);
-    auto G = Cabana::slice<1>(nnp_data);
-    auto dEdG = Cabana::slice<2>(nnp_data);
-    auto weights = Cabana::slice<3>(nnp_data);
+    AoSoA_NNP nnp_data;
     
 protected:
     bool                          normalize;
