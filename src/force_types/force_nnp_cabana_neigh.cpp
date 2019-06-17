@@ -51,6 +51,7 @@
 #include <string.h>
 #include <string>
 #include <iostream>
+#define VECLEN 16
 
 template class ForceNNP<t_verletlist_half_2D>;
 template class ForceNNP<t_verletlist_full_2D>;
@@ -85,18 +86,16 @@ const char* ForceNNP<t_neighbor>::name() {return half_neigh?"Force:NNPCabanaVerl
 
 template<class t_neighbor>
 void ForceNNP<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut, char** args) {
-  std::cout << "Entered this function" << std::endl;
-  std::cout << args[0] << std::endl;
-  
   nnp::Mode* mode = new(nnp::Mode);
   mode->initialize();
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
   std::cout << settingsfile << std::endl;
   mode->loadSettingsFile(settingsfile);
   mode->setupElementMap();
+  mode->setupElements();
   mode->setupCutoff();
-  //mode->setupSymmetryFunctions();
   mode->setupSymmetryFunctionGroups();
+  //mode->setupSymmetryFunctions();
   mode->setupSymmetryFunctionStatistics(false, false, true, false);
   mode->setupNeuralNetwork();
   std::string scalingfile = std::string(args[3]) + "/scaling.data";
@@ -105,3 +104,35 @@ void ForceNNP<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut, char** args) {
   mode->setupNeuralNetworkWeights(weightsfile);
 }
 
+
+template<class t_neighbor>
+void ForceNNP<t_neighbor>::compute(System* s) {
+  nnp::Mode* mode = new(nnp::Mode);
+  mode->calculateSymmetryFunctionGroups(s, neigh_list, true);
+  //mode->calculateAtomicNeuralNetworks(s, true);
+  //T_V_FLOAT energy = compute_energy(s);
+  //mode->calculateForces(s);
+
+}
+
+template<class t_neighbor>
+T_V_FLOAT ForceNNP<t_neighbor>::compute_energy(System* system) {
+  N_local = system->N_local;
+  x = Cabana::slice<Positions>(system->xvf);
+  f = Cabana::slice<Forces>(system->xvf);
+  f_a = Cabana::slice<Forces>(system->xvf);
+  id = Cabana::slice<IDs>(system->xvf);
+  type = Cabana::slice<Types>(system->xvf);
+
+  T_V_FLOAT energy;
+
+  /*if(half_neigh)
+    Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", t_policy_half_neigh_pe_stackparams(0, system->N_local), *this, energy);
+  else
+    Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", t_policy_full_neigh_pe_stackparams(0, system->N_local), *this, energy);
+
+  Kokkos::fence();
+  */
+  step++;
+  return energy;
+}

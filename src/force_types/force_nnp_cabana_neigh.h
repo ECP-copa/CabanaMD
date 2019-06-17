@@ -149,13 +149,14 @@ public:
 
   t_neighbor neigh_list;
 
+  //Constructor initializes NNP specific AoSoAs
   ForceNNP(System* system, bool half_neigh_);
   void init_coeff(T_X_FLOAT neigh_cut, char** args);
 
   void create_neigh_list(System* system);
 
-  //void compute(System* system);
-  //T_F_FLOAT compute_energy(System* system);
+  void compute(System* system);
+  T_F_FLOAT compute_energy(System* system);
 
   /*
   KOKKOS_INLINE_FUNCTION
@@ -163,13 +164,13 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   void operator() (TagHalfNeigh, const T_INT& i) const;
-
   KOKKOS_INLINE_FUNCTION
   void operator() (TagFullNeighPE, const T_INT& i, T_V_FLOAT& PE) const;
 
   KOKKOS_INLINE_FUNCTION
   void operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const;
   */
+  
   const char* name();
 };
 

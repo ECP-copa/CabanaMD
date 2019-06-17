@@ -26,7 +26,8 @@
 #include <fstream>   // std::ifstream
 #include <limits>    // std::numeric_limits
 #include <stdexcept> // std::runtime_error
-#include<iostream>
+#include <iostream> //TODO: remove this 
+
 using namespace std;
 using namespace nnp;
 
@@ -186,7 +187,8 @@ void Mode::setupElements()
 
     if (settings.keywordExists("atom_energy"))
     {
-        Settings::KeyRange r = settings.getValues("atom_energy");
+       log << "atom_energy not supported for now\n";
+       /* Settings::KeyRange r = settings.getValues("atom_energy");
         for (Settings::KeyMap::const_iterator it = r.first;
              it != r.second; ++it)
         {
@@ -194,8 +196,9 @@ void Mode::setupElements()
             size_t         element = elementMap[args.at(0)];
             elements.at(element).
                 setAtomicEnergyOffset(atof(args.at(1).c_str()));
-        }
+        }*/
     }
+    /*
     log << "Atomic energy offsets per element:\n";
     for (size_t i = 0; i < elementMap.size(); ++i)
     {
@@ -207,7 +210,8 @@ void Mode::setupElements()
            "energies.\n";
     log << "*****************************************"
            "**************************************\n";
-
+    numAtomsPerElement.resize(numElements, 0);
+    TODO: Add back support for offsets */ 
     return;
 }
 
@@ -819,72 +823,80 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
     return;
 }
 
-void Mode::calculateSymmetryFunctionGroups(Structure& structure,
+template <class t_neighbor>
+void Mode::calculateSymmetryFunctionGroups(System* s, t_neighbor neigh_list, 
                                            bool const derivatives)
 {
+    std::cout << "Reached here" << std::endl;
     // Skip calculation for whole structure if results are already saved.
-    if (structure.hasSymmetryFunctionDerivatives) return;
-    if (structure.hasSymmetryFunctions && !derivatives) return;
+    //if (s->hasSymmetryFunctionDerivatives) return;
+    //if (s->hasSymmetryFunctions && !derivatives) return;
 
-    Atom* a = NULL;
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto v = Cabana::slice<Velocities>(s->xvf);
+    auto id = Cabana::slice<IDs>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto q = Cabana::slice<Charges>(s->xvf);
+    
+    //Atom* a = NULL;
     Element* e = NULL;
-#ifdef _OPENMP
-    #pragma omp parallel for private (a, e)
-#endif
-    for (size_t i = 0; i < structure.atoms.size(); ++i)
+//#ifdef _OPENMP
+//    #pragma omp parallel for private (a, e)
+//#endif
+    for (size_t i = 0; i < id.size(); ++i)
     {
         // Pointer to atom.
-        a = &(structure.atoms.at(i));
+        //a = &(structure.atoms.at(i));
 
         // Skip calculation for individual atom if results are already saved.
-        if (a->hasSymmetryFunctionDerivatives) continue;
-        if (a->hasSymmetryFunctions && !derivatives) continue;
+        //if (s->hasSymmetryFunctionDerivatives) continue;
+        //if (s->hasSymmetryFunctions && !derivatives) continue;
 
         // Get element of atom and set number of symmetry functions.
-        e = &(elements.at(a->element));
-        a->numSymmetryFunctions = e->numSymmetryFunctions();
-
+        //e = type(i);
+        e = &(elements.at(type(i)));
+        T_INT numSymmetryFunctions = e->numSymmetryFunctions();
+        
 #ifndef NONEIGHCHECK
         // Check if atom has low number of neighbors.
-        size_t numNeighbors = a->getNumNeighbors(
-                                            minCutoffRadius.at(e->getIndex()));
-        if (numNeighbors < minNeighbors.at(e->getIndex()))
+        int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
+        //size_t numNeighbors = a->getNumNeighbors(
+        //                                    minCutoffRadius.at(e->getIndex()));
+        if (num_neighs < minNeighbors.at(e->getIndex()))
         {
-            log << strpr("WARNING: Structure %6zu Atom %6zu : %zu "
+            log << strpr("WARNING: Atom %6zu : %zu "
                          "neighbors.\n",
-                         a->indexStructure,
-                         a->index,
-                         numNeighbors);
+                         id(i),
+                         num_neighs);
         }
 #endif
-
         // Allocate symmetry function data vectors in atom.
-        a->allocate(derivatives);
+        allocate(numSymmetryFunctions, derivatives);
+        
 
         // Calculate symmetry functions (and derivatives).
         e->calculateSymmetryFunctionGroups(*a, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
-        a->hasSymmetryFunctions = true;
-        if (derivatives) a->hasSymmetryFunctionDerivatives = true;
+        //a->hasSymmetryFunctions = true;
+        //if (derivatives) a->hasSymmetryFunctionDerivatives = true;
     }
 
     // If requested, check extrapolation warnings or update statistics.
     // Needed to shift this out of the loop above to make it thread-safe.
     if (checkExtrapolationWarnings)
     {
-        for (size_t i = 0; i < structure.atoms.size(); ++i)
+        for (size_t i = 0; i < id.size(); ++i)
         {
             a = &(structure.atoms.at(i));
-            e = &(elements.at(a->element));
+            e = &(elements.at(type(i)));
             e->updateSymmetryFunctionStatistics(*a);
         }
+    
     }
-
     // Remember that symmetry functions of this structure have been calculated.
-    structure.hasSymmetryFunctions = true;
-    if (derivatives) structure.hasSymmetryFunctionDerivatives = true;
-
+    //s->hasSymmetryFunctions = true;
+    //if (derivatives) s->hasSymmetryFunctionDerivatives = true;
     return;
 }
 
@@ -1214,4 +1226,25 @@ vector<size_t> Mode::pruneSymmetryFunctionsSensitivity(
     }
 
     return prune;
+}
+
+
+void Mode::allocate(T_INT numSymmetryFunctions, bool all)
+{
+    if (numSymmetryFunctions == 0)
+    {
+        throw range_error("ERROR: Number of symmetry functions set to"
+                          "zero, cannot allocate.\n");
+    }
+    // G, dEdG, dGdxia, dGdr
+    // Resize vectors (derivatives only if requested).
+    symfuncs.resize(numSymmetryFunctions); //TODO: maybe not need this 
+     
+    // Reset status of symmetry functions and derivatives.
+    //hasSymmetryFunctions           = false;
+    //hasSymmetryFunctionDerivatives = false;
+
+    if (all)
+        auto dGdr = Cabana::slice<3>(symfuncs);
+    return;
 }

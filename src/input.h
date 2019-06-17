@@ -157,7 +157,6 @@ class Input {
   int lattice_style;
   double lattice_constant, lattice_offset_x, lattice_offset_y, lattice_offset_z;
   int lattice_nx, lattice_ny, lattice_nz;
-  int box[6];
 
   char* input_file;
   int input_file_type;

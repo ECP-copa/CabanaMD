@@ -159,12 +159,12 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   lattice_offset_x = 0.0;
   lattice_offset_y = 0.0;
   lattice_offset_z = 0.0;
-  box[0] = 0;
-  box[2] = 0;
-  box[4] = 0;
-  box[1] = 40;
-  box[3] = 40;
-  box[5] = 40;
+  system->box[0] = 0;
+  system->box[2] = 0;
+  system->box[4] = 0;
+  system->box[1] = 40;
+  system->box[3] = 40;
+  system->box[5] = 40;
 
   units_style = UNITS_LJ;
   lattice_style = LATTICE_FCC;

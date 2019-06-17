@@ -27,6 +27,9 @@
 #include <cstddef> // std::size_t
 #include <string>  // std::string
 #include <vector>  // std::vector
+#include <system.h>
+#include <Cabana_NeighborList.hpp>
+#include <Cabana_Slice.hpp>
 
 namespace nnp
 {
@@ -221,8 +224,9 @@ public:
      * stored in Atom::G. If derivatives are calculated, additional results are
      * stored in Atom::dGdr and Atom::Neighbor::dGdr.
      */
+    template <class t_neighbor>
     void                     calculateSymmetryFunctionGroups(
-                                                       Structure& structure,
+                                                       System* s, t_neighbor neigh_list, 
                                                        bool const derivatives);
     /** Calculate atomic neural networks for all atoms in given structure.
      *
@@ -453,9 +457,31 @@ public:
 
     /// Global element map, populated by setupElementMap().
     ElementMap elementMap;
+    /// Global list of number of atoms per element
+    std::vector<std::size_t> numAtomsPerElement;
+    /** Allocate vectors related to symmetry functions (#G, #dEdG).
+     *
+     * @param[in] all If `true` allocate also vectors corresponding to
+     *                derivatives of symmetry functions (#dEdG, #dGdr, #dGdxia
+     *                and Neighbor::dGdr, neighbors must be present). If
+     *                `false` allocate only #G.
+     *
+     * Warning: #numSymmetryFunctions needs to be set first!
+     */
+    void allocate(T_INT numSymmetryFunctions, bool all);
     /// Global log file.
     Log        log;
-
+    
+    /// AoSoAs of use to compute energy and force
+    /// Allow storage of G, dEdG, dGdr and weights
+    using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[numElements][], T_FLOAT[3], T_FLOAT, T_FLOAT, T_FLOAT>;
+    using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
+    AoSoA_NNP nnp_data("nnp_data");
+    auto dGdr = Cabana::slice<0>(nnp_data);
+    auto G = Cabana::slice<1>(nnp_data);
+    auto dEdG = Cabana::slice<2>(nnp_data);
+    auto weights = Cabana::slice<3>(nnp_data);
+    
 protected:
     bool                          normalize;
     bool                          checkExtrapolationWarnings;

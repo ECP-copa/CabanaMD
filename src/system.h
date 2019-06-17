@@ -70,6 +70,7 @@ public:
 
   // Simulation domain
   T_X_FLOAT domain_x, domain_y, domain_z;
+  T_X_FLOAT box[6];
 
   // Simulation sub domain (for example of a single MPI rank)
   T_X_FLOAT sub_domain_x, sub_domain_y, sub_domain_z;
