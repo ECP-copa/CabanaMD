@@ -156,9 +156,8 @@ public:
      * @param[in] derivatives If symmetry function derivatives will be
      *                        calculated.
      */
-    void                     calculateSymmetryFunctionGroups(
-                                                t_verletlist_full_2D neigh_list,
-                                                bool const  derivatives) const;
+    void                     calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh_list,
+                                                T_INT i, bool const  derivatives) const;
     /** Update symmetry function statistics.
      *
      * @param[in] atom Atom with symmetry function values.
@@ -168,7 +167,7 @@ public:
     void                     updateSymmetryFunctionStatistics(
                                                              System* s,
                                                              t_verletlist_full_2D neigh_list, 
-                                                             T_INT atomindex);
+                                                             T_INT i);
     /** Get symmetry function instance.
      *
      * @param[in] index Symmetry function index.

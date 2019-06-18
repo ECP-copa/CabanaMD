@@ -137,9 +137,8 @@ void SymmetryFunctionGroupWeightedRadial::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minmized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupWeightedRadial::calculate(
-                                                  t_verletlist_full_2D,
-                                                  bool const derivatives) const
+void SymmetryFunctionGroupWeightedRadial::calculate(System* s, t_verletlist_full_2D,
+                                                    T_INT i, bool const derivatives) const
 {
     double* result = new double[members.size()];
     for (size_t k = 0; k < members.size(); ++k)

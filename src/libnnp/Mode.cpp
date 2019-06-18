@@ -832,10 +832,8 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
     //if (s->hasSymmetryFunctions && !derivatives) return;
 
     auto x = Cabana::slice<Positions>(s->xvf);
-    auto v = Cabana::slice<Velocities>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
-    auto q = Cabana::slice<Charges>(s->xvf);
     
     //Atom* a = NULL;
     Element* e = NULL;
@@ -874,7 +872,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         
 
         // Calculate symmetry functions (and derivatives).
-        e->calculateSymmetryFunctionGroups(neigh_list, derivatives);
+        //e->calculateSymmetryFunctionGroups(neigh_list, i, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;
@@ -901,20 +899,21 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
 
 void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
 {
+    /*
     if (numSymmetryFunctions == 0)
     {
         throw range_error("ERROR: Number of symmetry functions set to"
                           "zero, cannot allocate.\n");
-    }
+    } TODO: put back error checking in*/
     // Resize vectors (derivatives only if requested).
-    s->nnp_data.resize(numSymmetryFunctions); //TODO: maybe not need this 
+    s->nnp_data.resize(s->N_max);
      
     // Reset status of symmetry functions and derivatives.
     //hasSymmetryFunctions           = false;
     //hasSymmetryFunctionDerivatives = false;
 
-    if (all)
-        auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
+    //if (all)
+    //    auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
     return;
 }
 

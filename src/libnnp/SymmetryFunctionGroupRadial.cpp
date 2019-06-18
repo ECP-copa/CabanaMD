@@ -145,8 +145,8 @@ void SymmetryFunctionGroupRadial::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minmized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupRadial::calculate(t_verletlist_full_2D neigh_list,
-                                            bool const derivatives) const
+void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neigh_list,
+                                            T_INT i, bool const derivatives) const
 {
     double* result = new double[members.size()];
     for (size_t k = 0; k < members.size(); ++k)

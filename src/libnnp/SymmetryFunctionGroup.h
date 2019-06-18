@@ -24,6 +24,7 @@
 #include <string>  // std::string
 #include <vector>  // std::vector
 #include <types.h>
+#include <system.h>
 
 namespace nnp
 {
@@ -79,7 +80,7 @@ public:
      * @param[in] derivatives If also symmetry function derivatives will be
      *                        calculated and saved.
      */
-    virtual void calculate(t_verletlist_full_2D neigh_list, bool const derivatives) const = 0;
+    virtual void calculate(System* s, t_verletlist_full_2D neigh_list, T_INT i, bool const derivatives) const = 0;
     /** Give symmetry function group parameters on multiple lines.
      *
      * @return Vector of string containing symmetry function parameters lines.

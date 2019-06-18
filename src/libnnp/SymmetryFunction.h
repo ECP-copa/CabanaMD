@@ -25,6 +25,7 @@
 #include <string>  // std::string
 #include <utility> // std::pair
 #include <vector>  // std::vector
+#include <system.h>
 
 namespace nnp
 {

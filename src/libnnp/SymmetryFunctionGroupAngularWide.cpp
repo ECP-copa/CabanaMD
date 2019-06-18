@@ -182,8 +182,8 @@ void SymmetryFunctionGroupAngularWide::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minimized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupAngularWide::calculate(t_verletlist_full_2D neigh_list,
-                                                 bool const derivatives) const
+void SymmetryFunctionGroupAngularWide::calculate(System* s, t_verletlist_full_2D neigh_list,
+                                                 T_INT i, bool const derivatives) const
 {
     double* result = new double[members.size()];
     for (size_t l = 0; l < members.size(); ++l)

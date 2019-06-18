@@ -347,14 +347,14 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
     return;
 }
 
-void Element::calculateSymmetryFunctionGroups(t_verletlist_full_2D neigh_list,
-                                              bool const derivatives) const
+void Element::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh_list,
+                                              T_INT i, bool const derivatives) const
 {
     for (vector<SymmetryFunctionGroup*>::const_iterator
          it = symmetryFunctionGroups.begin();
          it != symmetryFunctionGroups.end(); ++it)
     {
-        (*it)->calculate(neigh_list, derivatives);
+        (*it)->calculate(s, neigh_list, i, derivatives);
     }
 
     return;
@@ -379,7 +379,7 @@ void Element::updateSymmetryFunctionStatistics(System* s, t_verletlist_full_2D n
     {
         double const Gmin = symmetryFunctions.at(i)->getGmin();
         double const Gmax = symmetryFunctions.at(i)->getGmax();
-        double const value = symmetryFunctions.at(i)->unscale(G(i));
+        double const value = symmetryFunctions.at(i)->unscale(G(atomindex, i));
         size_t const index = symmetryFunctions.at(i)->getIndex();
         if (statistics.collectStatistics)
         {
