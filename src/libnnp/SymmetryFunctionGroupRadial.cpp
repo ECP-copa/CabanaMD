@@ -148,26 +148,42 @@ void SymmetryFunctionGroupRadial::setScalingFactors()
 void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neigh_list,
                                             T_INT i, bool const derivatives) const
 {
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
+    auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
+    
     double* result = new double[members.size()];
     for (size_t k = 0; k < members.size(); ++k)
     {
         result[k] = 0.0;
     }
 
-    for (size_t j = 0; j < atom.numNeighbors; ++j)
+    int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+    double const rc2 = rc * rc;
+    size_t numNeighbors = num_neighs;
+    
+    for (size_t jj = 0; jj < numNeighbors; ++jj)
     {
-        Atom::Neighbor& n = atom.neighbors[j];
-        if (e1 == n.element && n.d < rc)
+        //Atom::Neighbor& n = atom.neighbors[j];
+        int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+        const T_F_FLOAT dxij = x(i,0) - x(j,0);
+        const T_F_FLOAT dyij = x(i,1) - x(j,1);
+        const T_F_FLOAT dzij = x(i,2) - x(j,2);
+        double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
+        double const rij = sqrt(r2ij); 
+        
+        if (e1 == type(j) && rij < rc)
         {
             // Energy calculation.
-            double const rij = n.d;
-
             // Calculate cutoff function and derivative.
-#ifdef NOCFCACHE
+//#ifdef NOCFCACHE
             double pfc;
             double pdfc;
             fc.fdf(rij, pfc, pdfc);
-#else
+//#else
+            printf("Go figure\n");
+            /*
             // If cutoff radius matches with the one in the neighbor storage
             // we can use the previously calculated value.
             double& pfc = n.fc;
@@ -180,9 +196,9 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
                 n.rc = rc;
                 n.cutoffType = cutoffType;
                 n.cutoffAlpha = cutoffAlpha;
-            }
-#endif
-            double const* const d1 = n.dr.r;
+            }*/
+//#endif
+            //double const* const d1 = n.dr.r;
             for (size_t k = 0; k < members.size(); ++k)
             {
                 double pexp = exp(-eta[k] * (rij - rs[k]) * (rij - rs[k]));
@@ -193,9 +209,9 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
                                 * (rij - rs[k]) * pfc) * pexp / rij;
                 // SIMPLE EXPRESSIONS:
                 //Vec3D const dij = p1 * atom.neighbors[j].dr;
-                double const p1drijx = p1 * d1[0];
-                double const p1drijy = p1 * d1[1];
-                double const p1drijz = p1 * d1[2];
+                //double const p1drijx = p1 * d1[0];
+                //double const p1drijy = p1 * d1[1];
+                //double const p1drijz = p1 * d1[2];
 
                 // Save force contributions in Atom storage.
                 size_t const ki = memberIndex[k];
@@ -203,22 +219,20 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
                 //atom.dGdr[ki]              += dij;
                 //atom.neighbors[j].dGdr[ki] -= dij;
 
-                double* dGdr = atom.dGdr[ki].r;
-                dGdr[0] += p1drijx;
-                dGdr[1] += p1drijy;
-                dGdr[2] += p1drijz;
+                dGdr(i,ki,0) += (p1*dxij);
+                dGdr(i,ki,1) += (p1*dyij);
+                dGdr(i,ki,2) += (p1*dzij);
 
-                dGdr = n.dGdr[ki].r;
-                dGdr[0] -= p1drijx;
-                dGdr[1] -= p1drijy;
-                dGdr[2] -= p1drijz;
+                dGdr(j,ki,0) -= (p1*dxij);
+                dGdr(j,ki,1) -= (p1*dyij);
+                dGdr(j,ki,2) -= (p1*dzij);
             }
         }
     }
 
     for (size_t k = 0; k < members.size(); ++k)
     {
-        atom.G[memberIndex[k]] = members[k]->scale(result[k]);
+        G(i,memberIndex[k]) = members[k]->scale(result[k]);
     }
 
     delete[] result;
