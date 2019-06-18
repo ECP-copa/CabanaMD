@@ -24,6 +24,8 @@
 #include <cstddef> // std::size_t
 #include <string>  // std::string
 #include <vector>  // std::vector
+#include <types.h>
+#include <system.h>
 
 namespace nnp
 {
@@ -155,7 +157,7 @@ public:
      *                        calculated.
      */
     void                     calculateSymmetryFunctionGroups(
-                                                Atom&       atom,
+                                                t_verletlist_full_2D neigh_list,
                                                 bool const  derivatives) const;
     /** Update symmetry function statistics.
      *
@@ -164,7 +166,9 @@ public:
      * This function checks also for extrapolation warnings.
      */
     void                     updateSymmetryFunctionStatistics(
-                                                             Atom const& atom);
+                                                             System* s,
+                                                             t_verletlist_full_2D neigh_list, 
+                                                             T_INT atomindex);
     /** Get symmetry function instance.
      *
      * @param[in] index Symmetry function index.

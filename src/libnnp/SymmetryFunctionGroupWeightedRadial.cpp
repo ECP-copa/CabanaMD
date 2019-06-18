@@ -138,7 +138,7 @@ void SymmetryFunctionGroupWeightedRadial::setScalingFactors()
 // temporary objects has been minmized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
 void SymmetryFunctionGroupWeightedRadial::calculate(
-                                                  Atom&      atom,
+                                                  t_verletlist_full_2D,
                                                   bool const derivatives) const
 {
     double* result = new double[members.size()];

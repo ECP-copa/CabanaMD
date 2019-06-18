@@ -183,24 +183,26 @@ void SymmetryFunctionGroupAngularNarrow::setScalingFactors()
 // temporary objects has been minimized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
 void SymmetryFunctionGroupAngularNarrow::calculate(
-                                                  Atom&      atom,
-                                                  bool const derivatives) const
+                                                  System*s , t_verletlist_full_2D neigh_list,
+                                                  T_INT i, bool const derivatives) const
 {
     double* result = new double[members.size()];
     for (size_t l = 0; l < members.size(); ++l)
     {
         result[l] = 0.0;
     }
-
+    int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     double const rc2 = rc * rc;
-    size_t numNeighbors = atom.numNeighbors;
+    size_t numNeighbors = num_neighs; 
     // Prevent problematic condition in loop test below (j < numNeighbors - 1).
     if (numNeighbors == 0) numNeighbors = 1;
 
     for (size_t j = 0; j < numNeighbors - 1; j++)
     {
-        Atom::Neighbor& nj = atom.neighbors[j];
-        size_t const nej = nj.element;
+        int k = Cabana::NeighborList<>::getNeighbor(neigh_list, i, jj);
+        //grab neighbor jAtom::Neighbor& nj = atom.neighbors[j];
+        size_t const nej = type(j);
+        //compute rij
         double const rij = nj.d;
         if ((e1 == nej || e2 == nej) && rij < rc)
         {

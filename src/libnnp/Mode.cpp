@@ -797,7 +797,7 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
         a->allocate(derivatives);
 
         // Calculate symmetry functions (and derivatives).
-        e->calculateSymmetryFunctions(*a, derivatives);
+        //e->calculateSymmetryFunctions(*a, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
         a->hasSymmetryFunctions = true;
@@ -812,7 +812,7 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
         {
             a = &(structure.atoms.at(i));
             e = &(elements.at(a->element));
-            e->updateSymmetryFunctionStatistics(*a);
+            //e->updateSymmetryFunctionStatistics(*a);
         }
     }
 
@@ -870,11 +870,11 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         }
 #endif
         // Allocate symmetry function data vectors in atom.
-        allocate(numSymmetryFunctions, derivatives);
+        allocate(s, numSymmetryFunctions, derivatives);
         
 
         // Calculate symmetry functions (and derivatives).
-        //e->calculateSymmetryFunctionGroups(*a, derivatives);
+        e->calculateSymmetryFunctionGroups(neigh_list, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;
@@ -889,7 +889,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         {
             //a = &(structure.atoms.at(i));
             e = &(elements.at(type(i)));
-            //e->updateSymmetryFunctionStatistics(*a);
+            e->updateSymmetryFunctionStatistics(s, neigh_list, i);
         }
     
     }
@@ -899,23 +899,22 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
     return;
 }
 
-void Mode::allocate(T_INT numSymmetryFunctions, bool all)
+void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
 {
     if (numSymmetryFunctions == 0)
     {
         throw range_error("ERROR: Number of symmetry functions set to"
                           "zero, cannot allocate.\n");
     }
-    // dGdr, G, dEdG, dGdxia
     // Resize vectors (derivatives only if requested).
-    nnp_data.resize(numSymmetryFunctions); //TODO: maybe not need this 
+    s->nnp_data.resize(numSymmetryFunctions); //TODO: maybe not need this 
      
     // Reset status of symmetry functions and derivatives.
     //hasSymmetryFunctions           = false;
     //hasSymmetryFunctionDerivatives = false;
 
     if (all)
-        auto dGdr = Cabana::slice<0>(nnp_data);
+        auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
     return;
 }
 

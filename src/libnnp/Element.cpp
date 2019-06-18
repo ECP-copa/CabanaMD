@@ -347,37 +347,39 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
     return;
 }
 
-void Element::calculateSymmetryFunctionGroups(Atom&      atom,
+void Element::calculateSymmetryFunctionGroups(t_verletlist_full_2D neigh_list,
                                               bool const derivatives) const
 {
     for (vector<SymmetryFunctionGroup*>::const_iterator
          it = symmetryFunctionGroups.begin();
          it != symmetryFunctionGroups.end(); ++it)
     {
-        (*it)->calculate(atom, derivatives);
+        (*it)->calculate(neigh_list, derivatives);
     }
 
     return;
 }
 
-void Element::updateSymmetryFunctionStatistics(Atom const& atom)
+void Element::updateSymmetryFunctionStatistics(System* s, t_verletlist_full_2D neigh_list, T_INT atomindex)
 {
-    if (atom.element != index)
+    auto type = Cabana::slice<TypeNames::Types>(s->xvf);
+    if (type(atomindex) != index)
     {
         throw runtime_error("ERROR: Atom has a different element index.\n");
     }
 
-    if (atom.numSymmetryFunctions != symmetryFunctions.size())
+    /*if (atom.numSymmetryFunctions != symmetryFunctions.size())
     {
         throw runtime_error("ERROR: Number of symmetry functions"
                             " does not match.\n");
-    }
+    }*/
 
-    for (size_t i = 0; i < atom.G.size(); ++i)
+    auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
+    for (size_t i = 0; i < G.size(); ++i)
     {
         double const Gmin = symmetryFunctions.at(i)->getGmin();
         double const Gmax = symmetryFunctions.at(i)->getGmax();
-        double const value = symmetryFunctions.at(i)->unscale(atom.G.at(i));
+        double const value = symmetryFunctions.at(i)->unscale(G(i));
         size_t const index = symmetryFunctions.at(i)->getIndex();
         if (statistics.collectStatistics)
         {
@@ -392,17 +394,17 @@ void Element::updateSymmetryFunctionStatistics(Atom const& atom)
                                                    value,
                                                    Gmin,
                                                    Gmax,
-                                                   atom.indexStructure,
-                                                   atom.tag);
+                                                   0, //TODO: indexStructure?
+                                                   atomindex);
             }
             if (statistics.writeExtrapolationWarnings)
             {
                 cerr << strpr("### NNP EXTRAPOLATION WARNING ### "
                               "STRUCTURE: %6zu ATOM: %6zu SYMFUNC: %4zu "
                               "VALUE: %10.3E MIN: %10.3E MAX: %10.3E\n",
-                              atom.indexStructure,
-                              atom.tag,
-                              index,
+                              0,
+                              atomindex,
+                              i,
                               value,
                               Gmin,
                               Gmax);
@@ -414,9 +416,9 @@ void Element::updateSymmetryFunctionStatistics(Atom const& atom)
                               "STRUCTURE: %6zu ATOM: %6zu SYMFUNC: %4zu "
                               "VALUE: %10.3E MIN: %10.3E MAX: %10.3E\n"
                               "ERROR: Symmetry function value out of range.\n",
-                              atom.indexStructure,
-                              atom.tag,
-                              index,
+                              0,
+                              atomindex,
+                              i,
                               value,
                               Gmin,
                               Gmax));

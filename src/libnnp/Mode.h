@@ -467,15 +467,10 @@ public:
      *
      * Warning: #numSymmetryFunctions needs to be set first!
      */
-    void allocate(T_INT numSymmetryFunctions, bool all);
+    void allocate(System* s, T_INT numSymmetryFunctions, bool all);
     /// Global log file.
     Log        log;
     
-    /// AoSoAs of use to compute energy and force
-    /// Allow storage of dGdr, G, dEdG, dGdxia (and weights?)
-    using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT, T_FLOAT, T_FLOAT>;
-    using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
-    AoSoA_NNP nnp_data;
     
 protected:
     bool                          normalize;

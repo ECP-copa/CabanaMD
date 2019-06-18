@@ -93,7 +93,7 @@ public:
      * @param[in] derivatives If also symmetry function derivatives will be
      *                        calculated and saved.
      */
-    void calculate(Atom& atom, bool const derivatives) const;
+    void calculate(t_verletlist_full_2D neigh_list, bool const derivatives) const;
     /** Give symmetry function group parameters on multiple lines.
      *
      * @return Vector of string containing symmetry function parameters lines.

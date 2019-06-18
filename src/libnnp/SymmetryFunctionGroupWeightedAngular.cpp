@@ -168,7 +168,7 @@ void SymmetryFunctionGroupWeightedAngular::setScalingFactors()
 // temporary objects has been minimized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
 void SymmetryFunctionGroupWeightedAngular::calculate(
-                                                  Atom&      atom,
+                                                  t_verletlist_full_2D neigh_list,
                                                   bool const derivatives) const
 {
     double* result = new double[members.size()];

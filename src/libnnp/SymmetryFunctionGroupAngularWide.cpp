@@ -182,7 +182,7 @@ void SymmetryFunctionGroupAngularWide::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minimized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupAngularWide::calculate(Atom&      atom,
+void SymmetryFunctionGroupAngularWide::calculate(t_verletlist_full_2D neigh_list,
                                                  bool const derivatives) const
 {
     double* result = new double[members.size()];
