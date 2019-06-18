@@ -79,13 +79,12 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cut, char** args) {
   nnp::Mode* mode = new(nnp::Mode);
   mode->initialize();
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
-  std::cout << settingsfile << std::endl;
   mode->loadSettingsFile(settingsfile);
   mode->setupElementMap();
   mode->setupElements();
   mode->setupCutoff();
+  mode->setupSymmetryFunctions();
   mode->setupSymmetryFunctionGroups();
-  //mode->setupSymmetryFunctions();
   mode->setupSymmetryFunctionStatistics(false, false, true, false);
   mode->setupNeuralNetwork();
   std::string scalingfile = std::string(args[3]) + "/scaling.data";

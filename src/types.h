@@ -55,6 +55,7 @@
 #include<CabanaCore_config.hpp>
 
 #define VECLEN 16
+#define MAX_SF 30 //TODO: hardcoded max no of symmetry functions 
 
 // Module Types etc
 // Units to be used
@@ -128,7 +129,7 @@ using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
 using AoSoA = Cabana::AoSoA<t_tuple,MemorySpace,VECLEN>;
 using t_particle = Cabana::Tuple<t_tuple>;
-using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT, T_FLOAT, T_FLOAT>;
+using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[MAX_SF][3], T_FLOAT[MAX_SF], T_FLOAT[MAX_SF], T_FLOAT[MAX_SF]>;
 using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
 
 using t_verletlist_full_2D = Cabana::VerletList<MemorySpace,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;
