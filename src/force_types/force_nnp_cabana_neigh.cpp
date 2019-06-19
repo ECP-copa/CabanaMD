@@ -98,6 +98,7 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
 
 void ForceNNP::compute(System* s) {
   //nnp::Mode* mode = new(nnp::Mode);
+  s->nnp_data.resize(s->N);
   mode->calculateSymmetryFunctionGroups(s, neigh_list, true);
   mode->calculateAtomicNeuralNetworks(s, true);
   mode->calculateForces(s, neigh_list);
@@ -111,7 +112,7 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
     // Loop over all atoms and add atomic contributions to total energy.
     for (int i = 0; i < energy.size(); ++i)
     {
-        std::cout << "i = " << i << std::endl;
+        //std::cout << "i = " << i << std::endl;
         system_energy += energy(i);
     }
 

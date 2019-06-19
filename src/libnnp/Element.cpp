@@ -354,8 +354,6 @@ void Element::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D ne
          it = symmetryFunctionGroups.begin();
          it != symmetryFunctionGroups.end(); ++it)
     {
-        printf("Reached here\n");
-        std::cout << "SFGroup " << *it << std::endl;
         (*it)->calculate(s, neigh_list, i, derivatives);
     }
 
@@ -365,7 +363,7 @@ void Element::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D ne
 void Element::updateSymmetryFunctionStatistics(System* s, t_verletlist_full_2D neigh_list, T_INT atomindex)
 {
     auto type = Cabana::slice<TypeNames::Types>(s->xvf);
-    if (type(atomindex) != index)
+    if (type(atomindex)-1 != index)
     {
         throw runtime_error("ERROR: Atom has a different element index.\n");
     }
@@ -377,7 +375,7 @@ void Element::updateSymmetryFunctionStatistics(System* s, t_verletlist_full_2D n
     }*/
 
     auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
-    for (size_t i = 0; i < G.size(); ++i)
+    for (size_t i = 0; i < symmetryFunctions.size(); ++i)
     {
         double const Gmin = symmetryFunctions.at(i)->getGmin();
         double const Gmax = symmetryFunctions.at(i)->getGmax();

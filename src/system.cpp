@@ -60,6 +60,7 @@ System::System() {
   atom_style = "atomic"; 
 
   mass = t_mass();
+  dEdG = t_mass();
   domain_x = domain_y = domain_z = 0.0;
   sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
   sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
@@ -77,7 +78,9 @@ System::System() {
 
 void System::init() {
   AoSoA xvf ( "All", N_max );
+  AoSoA_NNP nnp_data ( "NNP_data", N_max );
   mass = t_mass("System::mass",ntypes);
+  dEdG = t_mass("System::dEdG",MAX_SF);
 }
 
 void System::destroy() {

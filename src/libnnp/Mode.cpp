@@ -840,7 +840,6 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
 //#endif
     for (size_t i = 0; i < id.size(); ++i)
     {
-        printf("iterating over atoms\n");
         // Pointer to atom.
         //a = &(structure.atoms.at(i));
 
@@ -849,8 +848,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         //if (s->hasSymmetryFunctions && !derivatives) continue;
 
         // Get element of atom and set number of symmetry functions.
-        //e = type(i);
-        e = &(elements.at(type(i)));
+        e = &(elements.at(type(i)-1));
         T_INT numSymmetryFunctions = e->numSymmetryFunctions();
         
 #ifndef NONEIGHCHECK
@@ -867,9 +865,8 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         }
 #endif
         // Allocate symmetry function data vectors in atom.
-        allocate(s, numSymmetryFunctions, derivatives);
+        //allocate(s, numSymmetryFunctions, derivatives);
         
-
         // Calculate symmetry functions (and derivatives).
         e->calculateSymmetryFunctionGroups(s, neigh_list, i, derivatives);
 
@@ -885,7 +882,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         for (size_t i = 0; i < id.size(); ++i)
         {
             //a = &(structure.atoms.at(i));
-            e = &(elements.at(type(i)));
+            e = &(elements.at(type(i)-1));
             e->updateSymmetryFunctionStatistics(s, neigh_list, i);
         }
     
@@ -925,11 +922,11 @@ void Mode::calculateAtomicNeuralNetworks(System* s,
 
     for (int i = 0; i < id.size(); ++i)
     {
-        Element const& e = elements.at(type(i));
-        e.neuralNetwork->setInput(s,i);
-        e.neuralNetwork->propagate();
-        if (derivatives) e.neuralNetwork->calculateDEdG(s);
-        energy(i) = e.neuralNetwork->getOutput();
+        const Element* e = &(elements.at(type(i)-1));
+        (e->neuralNetwork)->setInput(s,i);
+        (e->neuralNetwork)->propagate();
+        if (derivatives) (e->neuralNetwork)->calculateDEdG(s);
+        energy(i) = (e->neuralNetwork)->getOutput();
     }
 
     return;
