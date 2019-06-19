@@ -82,7 +82,8 @@ void Comm::exchange_halo() {
     Kokkos::parallel_for("CommSerial::halo_exchange_self",
               Kokkos::RangePolicy<TagHaloSelf, Kokkos::IndexType<T_INT> >(0,nparticles),
               *this);
-    Kokkos::deep_copy(count,pack_count);
+    Kokkos::deep_copy(pack_count,count);
+    //Kokkos::deep_copy(count,pack_count); TODO: check this
     bool redo = false;
     if((unsigned) N_local+N_ghost+count > x.size()) {
       system->resize(N_local + N_ghost + count);
@@ -158,9 +159,12 @@ void Comm::create_domain_decomposition() {
   system->sub_domain_lo_x = system->box[0];
   system->sub_domain_lo_y = system->box[2];
   system->sub_domain_lo_z = system->box[4];
-  system->sub_domain_x = system->sub_domain_hi_x = system->box[1];
-  system->sub_domain_y = system->sub_domain_hi_y = system->box[3];
-  system->sub_domain_z = system->sub_domain_hi_z = system->box[5];
+  system->sub_domain_hi_x = system->box[1];
+  system->sub_domain_hi_y = system->box[3];
+  system->sub_domain_hi_z = system->box[5];
+  system->sub_domain_x = system->sub_domain_hi_x - system->sub_domain_lo_x;
+  system->sub_domain_y = system->sub_domain_hi_y - system->sub_domain_lo_y;
+  system->sub_domain_z = system->sub_domain_hi_z - system->sub_domain_lo_z;
 }
 int Comm::process_rank() {return 0;}
 int Comm::num_processes() {return 1;}

@@ -68,7 +68,8 @@ void ForceNNP::create_neigh_list(System* system) {
   double grid_max[3] = {2*system->domain_x,2*system->domain_y,2*system->domain_z};
 
   auto x = Cabana::slice<Positions>(system->xvf);
-
+  auto id = Cabana::slice<IDs>(system->xvf);
+  std::cout << neigh_cut << std::endl;
   t_verletlist_full_2D list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
   neigh_list = list;
 }
@@ -76,7 +77,8 @@ void ForceNNP::create_neigh_list(System* system) {
 
 const char* ForceNNP::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
 
-void ForceNNP::init_coeff(T_X_FLOAT neigh_cut, char** args) {
+void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
+  neigh_cut = neigh_cutoff;
   mode = new(nnp::Mode);
   mode->initialize();
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path

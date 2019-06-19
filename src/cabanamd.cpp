@@ -111,6 +111,10 @@ if(system->do_print) {
 if(system->N == 0)
   input->create_lattice(comm);
 
+//TODO: push domain decomposition into read_data
+comm->create_domain_decomposition();
+system->N_local = system->N;
+
 // Create the Halo
 comm->exchange(); 
 
