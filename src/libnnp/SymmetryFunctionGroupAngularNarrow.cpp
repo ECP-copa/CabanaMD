@@ -223,7 +223,6 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s,
             double pdfcij;
             fc.fdf(rij, pfcij, pdfcij);
 //#else
-            printf("Go figure\n");
             /*
             // If cutoff radius matches with the one in the neighbor storage
             // we can use the previously calculated value.
@@ -277,7 +276,6 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s,
                             double pdfcik;
                             fc.fdf(rik, pfcik, pdfcik);
 //#else
-                            printf("Go figure\n");
                             /*double& pfcik = nk.fc;
                             double& pdfcik = nk.dfc;
                             if (nk.cutoffType != cutoffType ||

@@ -69,7 +69,6 @@ void ForceNNP::create_neigh_list(System* system) {
 
   auto x = Cabana::slice<Positions>(system->xvf);
   auto id = Cabana::slice<IDs>(system->xvf);
-  std::cout << neigh_cut << std::endl;
   t_verletlist_full_2D list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
   neigh_list = list;
 }

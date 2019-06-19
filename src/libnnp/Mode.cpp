@@ -867,7 +867,6 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         }
 #endif
         // Allocate symmetry function data vectors in atom.
-        printf("Reached here\n");
         allocate(s, numSymmetryFunctions, derivatives);
         
 
@@ -906,8 +905,7 @@ void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
                           "zero, cannot allocate.\n");
     } TODO: put back error checking in*/
     // Resize vectors (derivatives only if requested).
-    std::cout << "N_max = " << s->N_max << std::endl;
-    s->nnp_data.resize(s->N_max);
+    s->nnp_data.resize(s->N);
      
     // Reset status of symmetry functions and derivatives.
     //hasSymmetryFunctions           = false;

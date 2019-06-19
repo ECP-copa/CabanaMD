@@ -222,7 +222,6 @@ void SymmetryFunctionGroupAngularWide::calculate(System* s, t_verletlist_full_2D
             double pdfcij;
             fc.fdf(rij, pfcij, pdfcij);
 //#else
-            printf("Go figure\n");
             /*
             // If cutoff radius matches with the one in the neighbor storage
             // we can use the previously calculated value.

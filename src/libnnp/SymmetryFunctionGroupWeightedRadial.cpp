@@ -174,7 +174,6 @@ void SymmetryFunctionGroupWeightedRadial::calculate(System* s, t_verletlist_full
             double pdfc;
             fc.fdf(rij, pfc, pdfc);
 //#else
-            printf("Go figure\n");
             /*
             // If cutoff radius matches with the one in the neighbor storage
             // we can use the previously calculated value.

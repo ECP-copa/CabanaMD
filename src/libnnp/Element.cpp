@@ -355,6 +355,7 @@ void Element::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D ne
          it != symmetryFunctionGroups.end(); ++it)
     {
         printf("Reached here\n");
+        std::cout << "SFGroup " << *it << std::endl;
         (*it)->calculate(s, neigh_list, i, derivatives);
     }
 

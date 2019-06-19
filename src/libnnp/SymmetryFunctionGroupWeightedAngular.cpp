@@ -206,7 +206,6 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
             double pdfcij;
             fc.fdf(rij, pfcij, pdfcij);
 //#else
-            printf("Go figure\n");
             /*
             // If cutoff radius matches with the one in the neighbor storage
             // we can use the previously calculated value.
@@ -256,7 +255,6 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
                         double pdfcik;
                         fc.fdf(rik, pfcik, pdfcik);
 //#else
-                        printf("Go figure\n");
                         /*
                         double& pfcik = nk.fc;
                         double& pdfcik = nk.dfc;
