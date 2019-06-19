@@ -239,7 +239,7 @@ public:
      * energy offset (keyword `atom_energy`) is also added at this point.
      */
     void                     calculateAtomicNeuralNetworks(
-                                                 Structure& structure,
+                                                 System* s,
                                                  bool const derivatives) const;
     /** Calculate potential energy for a given structure.
      *
@@ -256,7 +256,7 @@ public:
      * Combine intermediate results from symmetry function and neural network
      * computation to atomic forces. Results are stored in Atom::f.
      */
-    void                     calculateForces(Structure& structure) const;
+    void                     calculateForces(System* s, t_verletlist_full_2D neigh_list) const;
     /* Add atomic energy offsets to reference energy.
      *
      * @param[in] structure Input structure.

@@ -831,7 +831,6 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
     //if (s->hasSymmetryFunctionDerivatives) return;
     //if (s->hasSymmetryFunctions && !derivatives) return;
 
-    auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
     
@@ -872,7 +871,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         
 
         // Calculate symmetry functions (and derivatives).
-        //e->calculateSymmetryFunctionGroups(neigh_list, i, derivatives);
+        e->calculateSymmetryFunctionGroups(s, neigh_list, i, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;
@@ -917,17 +916,20 @@ void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
     return;
 }
 
-void Mode::calculateAtomicNeuralNetworks(Structure& structure,
+void Mode::calculateAtomicNeuralNetworks(System* s,
                                          bool const derivatives) const
 {
-    for (vector<Atom>::iterator it = structure.atoms.begin();
-         it != structure.atoms.end(); ++it)
+    auto id = Cabana::slice<IDs>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto energy = Cabana::slice<NNPNames::energy>(s->nnp_data);
+
+    for (int i = 0; i < id.size(); ++i)
     {
-        Element const& e = elements.at(it->element);
-        e.neuralNetwork->setInput(&((it->G).front()));
+        Element const& e = elements.at(type(i));
+        e.neuralNetwork->setInput(s,i);
         e.neuralNetwork->propagate();
-        if (derivatives) e.neuralNetwork->calculateDEdG(&((it->dEdG).front()));
-        e.neuralNetwork->getOutput(&(it->energy));
+        if (derivatives) e.neuralNetwork->calculateDEdG(s);
+        energy(i) = e.neuralNetwork->getOutput();
     }
 
     return;
@@ -946,28 +948,39 @@ void Mode::calculateEnergy(Structure& structure) const
     return;
 }
 
-void Mode::calculateForces(Structure& structure) const
+void Mode::calculateForces(System* s, t_verletlist_full_2D neigh_list) const
 {
-    Atom* ai = NULL;
+
+    auto f = Cabana::slice<Forces>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
+    auto dEdG = s->dEdG;
+    
+    int numSymmetryFunctions_i, numSymmetryFunctions_j;
+    //Atom* ai = NULL;
     // Loop over all atoms, center atom i (ai).
-#ifdef _OPENMP
-    #pragma omp parallel for private(ai)
-#endif
-    for (size_t i = 0; i < structure.atoms.size(); ++i)
+//#ifdef _OPENMP
+//    #pragma omp parallel for private(ai)
+//#endif
+    for (int i = 0; i < type.size(); ++i)
     {
         // Set pointer to atom.
-        ai = &(structure.atoms.at(i));
+        //ai = &(structure.atoms.at(i));
 
         // Reset forces.
-        ai->f[0] = 0.0;
-        ai->f[1] = 0.0;
-        ai->f[2] = 0.0;
-
+        f(i,0) = 0.0;
+        f(i,1) = 0.0;
+        f(i,2) = 0.0;
+        //TODO: hardcoded numSymmetryFunctions
+        if (type(i) == 1) numSymmetryFunctions_i = 27;
+        else numSymmetryFunctions_i = 30;
         // First add force contributions from atom i itself (gradient of
         // atomic energy E_i).
-        for (size_t j = 0; j < ai->numSymmetryFunctions; ++j)
+        for (size_t j = 0; j < numSymmetryFunctions_i; ++j)
         {
-            ai->f -= ai->dEdG.at(j) * ai->dGdr.at(j);
+            f(i,0) -= dEdG(j) * dGdr(i,j,0);
+            f(i,1) -= dEdG(j) * dGdr(i,j,1);
+            f(i,2) -= dEdG(j) * dGdr(i,j,2);
         }
 
         // Now loop over all neighbor atoms j of atom i. These may hold
@@ -977,7 +990,21 @@ void Mode::calculateForces(Structure& structure) const
         // that the same contributions are added multiple times use the
         // "unique neighbor" list (but skip the first entry, this is always
         // atom i itself).
-        for (vector<size_t>::const_iterator it =
+        int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+    
+        for (size_t jj = 0; jj < num_neighs; ++jj)
+        {
+            int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+            if (type(j) == 1) numSymmetryFunctions_j = 27;
+            else numSymmetryFunctions_j = 30;
+            for (size_t j = 0; j < numSymmetryFunctions_j; ++j)
+            {
+                f(i,0) -= dEdG(j) * dGdr(i,j,0);
+                f(i,1) -= dEdG(j) * dGdr(i,j,1);
+                f(i,2) -= dEdG(j) * dGdr(i,j,2);
+            }
+        }
+        /*for (vector<size_t>::const_iterator it =
              ai->neighborsUnique.begin() + 1;
              it != ai->neighborsUnique.end(); ++it)
         {
@@ -997,7 +1024,7 @@ void Mode::calculateForces(Structure& structure) const
                     }
                 }
             }
-        }
+        }*/
     }
 
     return;

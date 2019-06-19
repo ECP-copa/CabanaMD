@@ -70,6 +70,8 @@ public:
   AoSoA_NNP nnp_data;
   // Per Type Property
   t_mass mass;
+  //dEdG (per network property)
+  Kokkos::View<T_V_FLOAT*> dEdG;
 
   // Simulation domain
   T_X_FLOAT domain_x, domain_y, domain_z;

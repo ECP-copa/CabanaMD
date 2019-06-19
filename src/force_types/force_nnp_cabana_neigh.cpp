@@ -97,21 +97,19 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cut, char** args) {
 void ForceNNP::compute(System* s) {
   nnp::Mode* mode = new(nnp::Mode);
   mode->calculateSymmetryFunctionGroups(s, neigh_list, true);
-  //mode->calculateAtomicNeuralNetworks(s, true);
-  //T_V_FLOAT energy = compute_energy(s);
-  //mode->calculateForces(s);
-
+  mode->calculateAtomicNeuralNetworks(s, true);
+  mode->calculateForces(s, neigh_list);
 }
 
-T_V_FLOAT ForceNNP::compute_energy(System* system) {
-  N_local = system->N_local;
-  x = Cabana::slice<Positions>(system->xvf);
-  f = Cabana::slice<Forces>(system->xvf);
-  f_a = Cabana::slice<Forces>(system->xvf);
-  id = Cabana::slice<IDs>(system->xvf);
-  type = Cabana::slice<Types>(system->xvf);
-
-  T_V_FLOAT energy;
+T_V_FLOAT ForceNNP::compute_energy(System* s) {
+    
+    auto energy = Cabana::slice<NNPNames::energy>(s->nnp_data);
+    T_V_FLOAT system_energy=0.0;
+    // Loop over all atoms and add atomic contributions to total energy.
+    for (int i = 0; i < id.size(); ++i)
+    {
+        system_energy += energy(i);
+    }
 
   /*if(half_neigh)
     Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", t_policy_half_neigh_pe_stackparams(0, system->N_local), *this, energy);
@@ -121,5 +119,5 @@ T_V_FLOAT ForceNNP::compute_energy(System* system) {
   Kokkos::fence();
   */
   step++;
-  return energy;
+  return system_energy;
 }

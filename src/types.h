@@ -110,8 +110,7 @@ using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
                                     T_INT, T_INT, T_FLOAT>;
 enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
                  Types = 3, IDs = 4, Charges = 5 };
-enum NNPNames { dGdr = 0, G = 1, dEdG = 2,
-                 dGdxia = 3};
+enum NNPNames { dGdr = 0, G = 1, dGdxia = 2, energy = 3};
 
 #ifdef CabanaMD_ENABLE_Cuda
 using MemorySpace = Kokkos::CudaUVMSpace;
@@ -129,7 +128,7 @@ using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
 using AoSoA = Cabana::AoSoA<t_tuple,MemorySpace,VECLEN>;
 using t_particle = Cabana::Tuple<t_tuple>;
-using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[MAX_SF][3], T_FLOAT[MAX_SF], T_FLOAT[MAX_SF], T_FLOAT[MAX_SF]>;
+using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[MAX_SF][3], T_FLOAT[MAX_SF], T_FLOAT[MAX_SF], T_FLOAT>;
 using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
 
 using t_verletlist_full_2D = Cabana::VerletList<MemorySpace,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;

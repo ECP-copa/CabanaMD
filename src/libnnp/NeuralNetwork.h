@@ -20,6 +20,8 @@
 #include <fstream>   // std::ofstream
 #include <string>    // std::string
 #include <vector>    // std::vector
+#include <system.h>
+#include <types.h>
 
 namespace nnp
 {
@@ -205,12 +207,12 @@ public:
      *
      * @param[in] input Input layer node values.
      */
-    void                     setInput(double const* const& input) const;
+    void                     setInput(System* s, T_INT atomindex) const;
     /** Get neural network output layer node values.
      *
      * @param[out] output Output layer node values.
      */
-    void                     getOutput(double* output) const;
+    double                     getOutput() const;
     /** Propagate input information through all layers.
      *
      * With the input data set by #setInput() this will calculate all remaining
@@ -230,7 +232,7 @@ public:
      * @f$E@f$ is the output neuron and @f$\left(G_i\right)_{i=1,\ldots,N}@f$
      * are the @f$N@f$ input neurons.
      */
-    void                     calculateDEdG(double* dEdG) const;
+    void                     calculateDEdG(System* s) const;
     /** Calculate derivative of output neuron with respect to connections.
      *
      * @param[out] dEdc Array containing derivative (length is number of
