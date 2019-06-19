@@ -71,7 +71,7 @@
           force = new ForceNNP(system,half_neigh);
       }
       else if (input->neighbor_type == NEIGH_CSR) {
-	if (half_neigh)
+        if (half_neigh)
           force = NULL; 
         else
           force = NULL;
@@ -107,7 +107,7 @@ private:
 
    
   //copied over from pair_nnp.h
-  bool showew;
+  /*bool showew;
   bool resetew;
   T_INT showewsum;
   T_INT maxew;
@@ -116,7 +116,7 @@ private:
   T_FLOAT cflength;
   T_FLOAT cfenergy;
   T_FLOAT maxCutoffRadius;
-  char* directory;
+  char* directory;*/
   
 
 public:
@@ -137,9 +137,9 @@ public:
   bool half_neigh, comm_newton;
   T_X_FLOAT neigh_cut;
 
+  nnp::Mode* mode;
   t_verletlist_full_2D neigh_list;
 
-  //Constructor initializes NNP specific AoSoAs
   ForceNNP(System* system, bool half_neigh_);
   void init_coeff(T_X_FLOAT neigh_cut, char** args);
 

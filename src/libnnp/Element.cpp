@@ -354,6 +354,7 @@ void Element::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D ne
          it = symmetryFunctionGroups.begin();
          it != symmetryFunctionGroups.end(); ++it)
     {
+        printf("Reached here\n");
         (*it)->calculate(s, neigh_list, i, derivatives);
     }
 

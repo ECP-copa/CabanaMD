@@ -826,7 +826,6 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
 void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh_list, 
                                            bool const derivatives)
 {
-    std::cout << "Reached here" << std::endl;
     // Skip calculation for whole structure if results are already saved.
     //if (s->hasSymmetryFunctionDerivatives) return;
     //if (s->hasSymmetryFunctions && !derivatives) return;
@@ -841,6 +840,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
 //#endif
     for (size_t i = 0; i < id.size(); ++i)
     {
+        printf("iterating over atoms\n");
         // Pointer to atom.
         //a = &(structure.atoms.at(i));
 
@@ -867,6 +867,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         }
 #endif
         // Allocate symmetry function data vectors in atom.
+        printf("Reached here\n");
         allocate(s, numSymmetryFunctions, derivatives);
         
 
@@ -905,6 +906,7 @@ void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
                           "zero, cannot allocate.\n");
     } TODO: put back error checking in*/
     // Resize vectors (derivatives only if requested).
+    std::cout << "N_max = " << s->N_max << std::endl;
     s->nnp_data.resize(s->N_max);
      
     // Reset status of symmetry functions and derivatives.

@@ -53,10 +53,11 @@
 #include <iostream>
 #define VECLEN 16
 
-ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh_) {
+ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
   ntypes = system->ntypes;
   N_local = 0;
   step = 0;
+  half_neigh = half_neigh_;
 }
 
 
@@ -76,7 +77,7 @@ void ForceNNP::create_neigh_list(System* system) {
 const char* ForceNNP::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
 
 void ForceNNP::init_coeff(T_X_FLOAT neigh_cut, char** args) {
-  nnp::Mode* mode = new(nnp::Mode);
+  mode = new(nnp::Mode);
   mode->initialize();
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
   mode->loadSettingsFile(settingsfile);
@@ -95,7 +96,7 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cut, char** args) {
 
 
 void ForceNNP::compute(System* s) {
-  nnp::Mode* mode = new(nnp::Mode);
+  //nnp::Mode* mode = new(nnp::Mode);
   mode->calculateSymmetryFunctionGroups(s, neigh_list, true);
   mode->calculateAtomicNeuralNetworks(s, true);
   mode->calculateForces(s, neigh_list);
@@ -104,10 +105,12 @@ void ForceNNP::compute(System* s) {
 T_V_FLOAT ForceNNP::compute_energy(System* s) {
     
     auto energy = Cabana::slice<NNPNames::energy>(s->nnp_data);
+    std::cout << energy.size() << std::endl;
     T_V_FLOAT system_energy=0.0;
     // Loop over all atoms and add atomic contributions to total energy.
-    for (int i = 0; i < id.size(); ++i)
+    for (int i = 0; i < energy.size(); ++i)
     {
+        std::cout << "i = " << i << std::endl;
         system_energy += energy(i);
     }
 
