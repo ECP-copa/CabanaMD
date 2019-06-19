@@ -170,32 +170,44 @@ void SymmetryFunctionGroupWeightedAngular::setScalingFactors()
 void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_full_2D neigh_list,
                                                   T_INT i, bool const derivatives) const
 {
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
+    auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
+
     double* result = new double[members.size()];
     for (size_t l = 0; l < members.size(); ++l)
     {
         result[l] = 0.0;
     }
 
+    int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     double const rc2 = rc * rc;
-    size_t numNeighbors = atom.numNeighbors;
+    size_t numNeighbors = num_neighs;
     // Prevent problematic condition in loop test below (j < numNeighbors - 1).
     if (numNeighbors == 0) numNeighbors = 1;
 
-    for (size_t j = 0; j < numNeighbors - 1; j++)
+    for (size_t jj = 0; jj < numNeighbors - 1; jj++)
     {
-        Atom::Neighbor& nj = atom.neighbors[j];
-        size_t const nej = nj.element;
-        double const rij = nj.d;
+        //Atom::Neighbor& nj = atom.neighbors[j];
+        int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+        size_t const nej = type(j);
+        const T_F_FLOAT dxij = x(i,0) - x(j,0);
+        const T_F_FLOAT dyij = x(i,1) - x(j,1);
+        const T_F_FLOAT dzij = x(i,2) - x(j,2);
+        double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
+        double const rij = sqrt(r2ij);
+
         if (rij < rc)
         {
-            double const r2ij = rij * rij;
-
             // Calculate cutoff function and derivative.
-#ifdef NOCFCACHE
+//#ifdef NOCFCACHE
             double pfcij;
             double pdfcij;
             fc.fdf(rij, pfcij, pdfcij);
-#else
+//#else
+            printf("Go figure\n");
+            /*
             // If cutoff radius matches with the one in the neighbor storage
             // we can use the previously calculated value.
             double& pfcij = nj.fc;
@@ -208,40 +220,44 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
                 nj.rc = rc;
                 nj.cutoffType = cutoffType;
                 nj.cutoffAlpha = cutoffAlpha;
-            }
-#endif
+            }*/
+//#endif
             // SIMPLE EXPRESSIONS:
             //Vec3D const drij(atom.neighbors[j].dr);
             //double const* const dr1 = drij.r;
-            double const* const dr1 = nj.dr.r;
+            //double const* const dr1 = nj.dr.r;
 
-            for (size_t k = j + 1; k < numNeighbors; k++)
+            for (size_t kk = jj + 1; kk < numNeighbors; kk++)
             {
-                Atom::Neighbor& nk = atom.neighbors[k];
-                size_t const nek = nk.element;
-                double const rik = nk.d;
+                int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
+                //Atom::Neighbor& nk = atom.neighbors[k];
+                size_t const nek = type(k);
+                const T_F_FLOAT dxik = x(i,0) - x(k,0);
+                const T_F_FLOAT dyik = x(i,1) - x(k,1);
+                const T_F_FLOAT dzik = x(i,2) - x(k,2);
+                double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
+                double const rik = sqrt(r2ik);
+                
                 if (rik < rc)
                 {
                     // SIMPLE EXPRESSIONS:
                     //Vec3D const drjk(atom.neighbors[k].dr
                     //               - atom.neighbors[j].dr);
                     //double rjk = drjk.norm2();
-                    double const* const dr2 = nk.dr.r;
-                    double dr3[3];
-                    dr3[0] = dr2[0] - dr1[0];
-                    dr3[1] = dr2[1] - dr1[1];
-                    dr3[2] = dr2[2] - dr1[2];
-                    double rjk = dr3[0] * dr3[0]
-                               + dr3[1] * dr3[1]
-                               + dr3[2] * dr3[2];
-                    if (rjk < rc2)
+                    double dxjk = dxik - dxij;
+                    double dyjk = dyik - dyij;
+                    double dzjk = dzik - dzij;
+                    double r2jk = dxjk*dxjk + dyjk*dyjk + dzjk*dzjk;
+                    if (r2jk < rc2)
                     {
                         // Energy calculation.
-#ifdef NOCFCACHE
+//#ifdef NOCFCACHE
                         double pfcik;
                         double pdfcik;
                         fc.fdf(rik, pfcik, pdfcik);
-#else
+//#else
+                        printf("Go figure\n");
+                        /*
                         double& pfcik = nk.fc;
                         double& pdfcik = nk.dfc;
                         if (nk.cutoffType != cutoffType ||
@@ -252,9 +268,9 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
                             nk.rc = rc;
                             nk.cutoffType = cutoffType;
                             nk.cutoffAlpha = cutoffAlpha;
-                        }
-#endif
-                        rjk = sqrt(rjk);
+                        }*/
+//#endif
+                        double rjk = sqrt(r2jk);
 
                         double pfcjk;
                         double pdfcjk;
@@ -267,13 +283,10 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
                         double const rinvijik = 1.0 / rij / rik;
                         // SIMPLE EXPRESSIONS:
                         //double const costijk = (drij * drik) * rinvijik;
-                        double const costijk = (dr1[0] * dr2[0] +
-                                                dr1[1] * dr2[1] +
-                                                dr1[2] * dr2[2]) * rinvijik;
+                        double const costijk = (dxij*dxik + dyij*dyik + dzij*dzik)* rinvijik;
                         double const z = elementMap.atomicNumber(nej)
                                        * elementMap.atomicNumber(nek);
                         double const pfc = z * pfcij * pfcik * pfcjk;
-                        double const r2ik = rik * rik;
                         double const pr1 = z * pfcik * pfcjk * pdfcij / rij;
                         double const pr2 = z * pfcij * pfcjk * pdfcik / rik;
                         double const pr3 = z * pfcij * pfcik * pdfcjk / rjk;
@@ -335,7 +348,7 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
                             //atom.neighbors[k].dGdr[li] -= p2 * drik
                             //                            - p3 * drjk;
 
-                            double const p1drijx = p1 * dr1[0];
+                            /*double const p1drijx = p1 * dr1[0];
                             double const p1drijy = p1 * dr1[1];
                             double const p1drijz = p1 * dr1[2];
 
@@ -345,23 +358,20 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
 
                             double const p3drjkx = p3 * dr3[0];
                             double const p3drjky = p3 * dr3[1];
-                            double const p3drjkz = p3 * dr3[2];
+                            double const p3drjkz = p3 * dr3[2];*/
 
                             size_t const li = memberIndex[l];
-                            double* dGdr = atom.dGdr[li].r;
-                            dGdr[0] += p1drijx + p2drikx;
-                            dGdr[1] += p1drijy + p2driky;
-                            dGdr[2] += p1drijz + p2drikz;
+                            dGdr(i,li,0) += (p1*dxij + p2*dxik);
+                            dGdr(i,li,1) += (p1*dyij + p2*dyik);
+                            dGdr(i,li,2) += (p1*dzij + p2*dzik);
 
-                            dGdr = nj.dGdr[li].r;
-                            dGdr[0] -= p1drijx + p3drjkx;
-                            dGdr[1] -= p1drijy + p3drjky;
-                            dGdr[2] -= p1drijz + p3drjkz;
+                            dGdr(j,li,0) -= (p1*dxij + p3*dxjk);
+                            dGdr(j,li,1) -= (p1*dyij + p3*dyjk);
+                            dGdr(j,li,2) -= (p1*dzij + p3*dzjk);
 
-                            dGdr = nk.dGdr[li].r;
-                            dGdr[0] -= p2drikx - p3drjkx;
-                            dGdr[1] -= p2driky - p3drjky;
-                            dGdr[2] -= p2drikz - p3drjkz;
+                            dGdr(k,li,0) -= (p2*dxik - p3*dxjk);
+                            dGdr(k,li,1) -= (p2*dyik - p3*dyjk);
+                            dGdr(k,li,2) -= (p2*dzik - p3*dzjk);
                         } // l
                     } // rjk <= rc
                 } // rik <= rc
@@ -372,7 +382,7 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
     for (size_t l = 0; l < members.size(); ++l)
     {
         result[l] *= factorNorm[l] / scalingFactors[l];
-        atom.G[memberIndex[l]] = members[l]->scale(result[l]);
+        G(i, memberIndex[l]) = members[l]->scale(result[l]);
     }
 
     delete[] result;
