@@ -82,16 +82,17 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   mode->initialize();
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
   mode->loadSettingsFile(settingsfile);
+  mode->setupNormalization();
   mode->setupElementMap();
   mode->setupElements();
   mode->setupCutoff();
   mode->setupSymmetryFunctions();
   mode->setupSymmetryFunctionGroups();
-  mode->setupSymmetryFunctionStatistics(false, false, true, false);
   mode->setupNeuralNetwork();
   std::string scalingfile = std::string(args[3]) + "/scaling.data";
   mode->setupSymmetryFunctionScaling(scalingfile);
   std::string weightsfile = std::string(args[3]) + "/weights.%03zu.data";
+  mode->setupSymmetryFunctionStatistics(false, false, true, false);
   mode->setupNeuralNetworkWeights(weightsfile);
 }
 
@@ -112,7 +113,7 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
     // Loop over all atoms and add atomic contributions to total energy.
     for (int i = 0; i < energy.size(); ++i)
     {
-        //std::cout << "i = " << i << std::endl;
+        //std::cout << "i = " << energy(i) << std::endl;
         system_energy += energy(i);
     }
 
@@ -124,5 +125,7 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
   Kokkos::fence();
   */
   step++;
+  if (s->normalize)
+    return system_energy/s->convEnergy;
   return system_energy;
 }

@@ -1022,7 +1022,17 @@ void Mode::calculateForces(System* s, t_verletlist_full_2D neigh_list) const
                 }
             }
         }*/
+        f(i,0) *= s->cfforce;
+        f(i,1) *= s->cfforce;
+        f(i,2) *= s->cfforce;
+        if (s->normalize) {
+          double convForce = convLength/convEnergy;
+          f(i,0) *= convForce;
+          f(i,1) *= convForce;
+          f(i,2) *= convForce;
+        }
     }
+
 
     return;
 }

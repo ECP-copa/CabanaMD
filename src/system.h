@@ -73,6 +73,14 @@ public:
   //dEdG (per network property)
   t_mass dEdG;
 
+  //NNP constants passed in via pair_style(TODO: remove hardcoding)
+  bool normalize = true;
+  double cflength = 1.889726;
+  double cfenergy = 0.036749;
+  double cfforce = cflength/cfenergy;
+  //TODO: remove this hardcoding as well
+  double convLength = 5.8038448995319847E+00; 
+  double convEnergy = 2.4265748255366972E+02;
   // Simulation domain
   T_X_FLOAT domain_x, domain_y, domain_z;
   T_X_FLOAT box[6];

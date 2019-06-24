@@ -187,6 +187,7 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s,
                                                   T_INT i, bool const derivatives) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
+    auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
     auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
     auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
@@ -194,6 +195,7 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s,
     double* result = new double[members.size()];
     for (size_t l = 0; l < members.size(); ++l)
     {
+        //std::cout << "atom index: " << i << " atom ID: " << id(i) <<" member: " << memberIndex[l]+1 << std::endl; 
         result[l] = 0.0;
     }
 
@@ -209,9 +211,18 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s,
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
         size_t const nej = type(j);
         
-        const T_F_FLOAT dxij = x(i,0) - x(j,0);
-        const T_F_FLOAT dyij = x(i,1) - x(j,1);
-        const T_F_FLOAT dzij = x(i,2) - x(j,2);
+        T_F_FLOAT dxij = x(i,0) - x(j,0);
+        T_F_FLOAT dyij = x(i,1) - x(j,1);
+        T_F_FLOAT dzij = x(i,2) - x(j,2);
+        dxij *= s->cflength;
+        dyij *= s->cflength;
+        dzij *= s->cflength;
+        
+        if (s->normalize) {
+          dxij *= s->convLength;
+          dyij *= s->convLength;
+          dzij *= s->convLength;
+        }
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij);
         
@@ -252,9 +263,18 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s,
                 if ((e1 == nej && e2 == nek) ||
                     (e2 == nej && e1 == nek))
                 {
-                    const T_F_FLOAT dxik = x(i,0) - x(k,0);
-                    const T_F_FLOAT dyik = x(i,1) - x(k,1);
-                    const T_F_FLOAT dzik = x(i,2) - x(k,2);
+                    T_F_FLOAT dxik = x(i,0) - x(k,0);
+                    T_F_FLOAT dyik = x(i,1) - x(k,1);
+                    T_F_FLOAT dzik = x(i,2) - x(k,2);
+                    dxik *= s->cflength;
+                    dyik *= s->cflength;
+                    dzik *= s->cflength;
+                    
+                    if (s->normalize) {
+                      dxik *= s->convLength;
+                      dyik *= s->convLength;
+                      dzik *= s->convLength;
+                    }
                     double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
                     double const rik = sqrt(r2ik);
                 

@@ -106,19 +106,6 @@ private:
   int step;
 
    
-  //copied over from pair_nnp.h
-  /*bool showew;
-  bool resetew;
-  T_INT showewsum;
-  T_INT maxew;
-  long numExtrapolationWarningsTotal;
-  long numExtrapolationWarningsSummary;
-  T_FLOAT cflength;
-  T_FLOAT cfenergy;
-  T_FLOAT maxCutoffRadius;
-  char* directory;*/
-  
-
 public:
   
   struct TagFullNeigh {};
@@ -162,6 +149,19 @@ public:
   */
   
   const char* name();
+  
+  bool showew;
+  bool resetew;
+  T_INT showewsum;
+  T_INT maxew;
+  long numExtrapolationWarningsTotal;
+  long numExtrapolationWarningsSummary;
+  T_FLOAT cflength;
+  T_FLOAT cfenergy;
+  T_FLOAT maxCutoffRadius;
+  char* directory;
+  
+
 };
 
 #endif

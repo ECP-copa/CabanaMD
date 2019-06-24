@@ -192,9 +192,18 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
         //Atom::Neighbor& nj = atom.neighbors[j];
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
         size_t const nej = type(j);
-        const T_F_FLOAT dxij = x(i,0) - x(j,0);
-        const T_F_FLOAT dyij = x(i,1) - x(j,1);
-        const T_F_FLOAT dzij = x(i,2) - x(j,2);
+        T_F_FLOAT dxij = x(i,0) - x(j,0);
+        T_F_FLOAT dyij = x(i,1) - x(j,1);
+        T_F_FLOAT dzij = x(i,2) - x(j,2);
+        dxij *= s->cflength;
+        dyij *= s->cflength;
+        dzij *= s->cflength;
+        
+        if (s->normalize) {
+          dxij *= s->convLength;
+          dyij *= s->convLength;
+          dzij *= s->convLength;
+        }
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij);
 
@@ -231,9 +240,18 @@ void SymmetryFunctionGroupWeightedAngular::calculate(System* s, t_verletlist_ful
                 int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
                 //Atom::Neighbor& nk = atom.neighbors[k];
                 size_t const nek = type(k);
-                const T_F_FLOAT dxik = x(i,0) - x(k,0);
-                const T_F_FLOAT dyik = x(i,1) - x(k,1);
-                const T_F_FLOAT dzik = x(i,2) - x(k,2);
+                T_F_FLOAT dxik = x(i,0) - x(k,0);
+                T_F_FLOAT dyik = x(i,1) - x(k,1);
+                T_F_FLOAT dzik = x(i,2) - x(k,2);
+                dxik *= s->cflength;
+                dyik *= s->cflength;
+                dzik *= s->cflength;
+                
+                if (s->normalize) {
+                  dxik *= s->convLength;
+                  dyik *= s->convLength;
+                  dzik *= s->convLength;
+                }
                 double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
                 double const rik = sqrt(r2ik);
                 

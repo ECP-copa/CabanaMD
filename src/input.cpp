@@ -177,6 +177,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   thermo_rate = 10;
 
   neighbor_skin = 0.3;
+  neighbor_skin = 2.0; //for metal and real units
   comm_exchange_rate = 20;
   comm_newton = 0;
 

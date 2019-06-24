@@ -149,6 +149,7 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
                                             T_INT i, bool const derivatives) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
+    auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
     auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
     auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
@@ -156,20 +157,32 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
     double* result = new double[members.size()];
     for (size_t k = 0; k < members.size(); ++k)
     {
+        //std::cout << "atom index: " << i << " atom ID: " << id(i) <<" member: " << memberIndex[k]+1 << std::endl; 
         result[k] = 0.0;
     }
 
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-    double const rc2 = rc * rc;
+    double const rc2 = rc*rc;
     size_t numNeighbors = num_neighs;
     
     for (size_t jj = 0; jj < numNeighbors; ++jj)
     {
         //Atom::Neighbor& n = atom.neighbors[j];
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
-        const T_F_FLOAT dxij = x(i,0) - x(j,0);
-        const T_F_FLOAT dyij = x(i,1) - x(j,1);
-        const T_F_FLOAT dzij = x(i,2) - x(j,2);
+        //std::cout << "i: " << i << "id(i): " << id(i) << " j: " << id(j) << std::endl; 
+        T_F_FLOAT dxij = x(i,0) - x(j,0);
+        T_F_FLOAT dyij = x(i,1) - x(j,1);
+        T_F_FLOAT dzij = x(i,2) - x(j,2);
+        dxij *= s->cflength;
+        dyij *= s->cflength;
+        dzij *= s->cflength;
+        
+        if (s->normalize) {
+          dxij *= s->convLength;
+          dyij *= s->convLength;
+          dzij *= s->convLength;
+        }
+        
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij); 
         
@@ -201,6 +214,7 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
             for (size_t k = 0; k < members.size(); ++k)
             {
                 double pexp = exp(-eta[k] * (rij - rs[k]) * (rij - rs[k]));
+                //std::cout << eta[k] << " " << rs[k] << " " << rij << " " << pexp << " " << pfc << std::endl;
                 result[k] += pexp * pfc;
                 // Force calculation.
                 if (!derivatives) continue;
@@ -231,7 +245,9 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
 
     for (size_t k = 0; k < members.size(); ++k)
     {
-        G(i,memberIndex[k]) = members[k]->scale(result[k]);
+        G(i,memberIndex[k]) = result[k]; //members[k]->scale(result[k]);
+        if (k == 0)
+          std::cout << "i = " << i <<" G(i,0)" << G(i, memberIndex[0]) << std::endl;
     }
 
     delete[] result;

@@ -405,7 +405,7 @@ void Element::updateSymmetryFunctionStatistics(System* s, t_verletlist_full_2D n
                               0,
                               atomindex,
                               i,
-                              value,
+                              G(atomindex, i),
                               Gmin,
                               Gmax);
             }

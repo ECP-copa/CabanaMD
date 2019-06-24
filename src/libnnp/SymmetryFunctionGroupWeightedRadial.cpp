@@ -160,9 +160,18 @@ void SymmetryFunctionGroupWeightedRadial::calculate(System* s, t_verletlist_full
     {
         //Atom::Neighbor& n = atom.neighbors[j];
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
-        const T_F_FLOAT dxij = x(i,0) - x(j,0);
-        const T_F_FLOAT dyij = x(i,1) - x(j,1);
-        const T_F_FLOAT dzij = x(i,2) - x(j,2);
+        T_F_FLOAT dxij = x(i,0) - x(j,0);
+        T_F_FLOAT dyij = x(i,1) - x(j,1);
+        T_F_FLOAT dzij = x(i,2) - x(j,2);
+        dxij *= s->cflength;
+        dyij *= s->cflength;
+        dzij *= s->cflength;
+        
+        if (s->normalize) {
+          dxij *= s->convLength;
+          dyij *= s->convLength;
+          dzij *= s->convLength;
+        }
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij); 
         if (rij < rc)
