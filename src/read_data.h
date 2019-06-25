@@ -112,7 +112,6 @@ void read_lammps_atoms(ifstream &file, System* s)
 {
   string line;
   auto x = Cabana::slice<Positions>(s->xvf);
-  auto v = Cabana::slice<Velocities>(s->xvf);
   auto id = Cabana::slice<IDs>(s->xvf);
   auto type = Cabana::slice<Types>(s->xvf);
   auto q = Cabana::slice<Charges>(s->xvf);
@@ -148,11 +147,7 @@ void read_lammps_atoms(ifstream &file, System* s)
 void read_lammps_velocities(ifstream &file, System* s)
 {
   string line;
-  auto x = Cabana::slice<Positions>(s->xvf);
   auto v = Cabana::slice<Velocities>(s->xvf);
-  auto id = Cabana::slice<IDs>(s->xvf);
-  auto type = Cabana::slice<Types>(s->xvf);
-  auto q = Cabana::slice<Charges>(s->xvf);
   
   //skip any empty lines before reading in data
   while (1) {

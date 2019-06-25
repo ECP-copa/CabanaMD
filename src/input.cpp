@@ -417,10 +417,11 @@ void Input::check_lammps_command(int line) {
       force_cutoff = 4.73442;// atof(input_data.words[line][2]);
       force_line = line;
     }
+    if(system->do_print && !known)
+      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' style in CabanaMD\n");
   }
   if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
     known = true;
-    force_cutoff = atof(input_data.words[line][3]);
     int n_coeff_lines = force_coeff_lines.dimension_0();
     Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
     force_coeff_lines( n_coeff_lines) = line;

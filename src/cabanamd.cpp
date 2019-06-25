@@ -1,50 +1,50 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                          *
- * All rights reserved.                                                   *
- *                                                                        *
- * This file is part of the Cabana library. Cabana is distributed under a *
- * BSD 3-clause license. For the licensing terms see the LICENSE file in  *
- * the top-level directory.                                               *
- *                                                                        *
- * SPDX-License-Identifier: BSD-3-Clause                                  *
+ * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * All rights reserved.                                                     *
+ *                                                                          *
+ * This file is part of the Cabana library. Cabana is distributed under a   *
+ * BSD 3-clause license. For the licensing terms see the LICENSE file in    *
+ * the top-level directory.                                                 *
+ *                                                                          *
+ * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
 //************************************************************************
-//ExaMiniMD v. 1.0
-//Copyright (2018) National Technology & Engineering Solutions of Sandia,
-//LLC (NTESS).
+//  ExaMiniMD v. 1.0
+//  Copyright (2018) National Technology & Engineering Solutions of Sandia,
+//  LLC (NTESS).
 //
-//Under the terms of Contract DE-NA-0003525 with NTESS, the U.S. Government
-//retains certain rights in this software.
+//  Under the terms of Contract DE-NA-0003525 with NTESS, the U.S. Government
+//  retains certain rights in this software.
 //
-//ExaMiniMD is licensed under 3-clause BSD terms of use: Redistribution and
-//use in source and binary forms, with or without modification, are
-//permitted provided that the following conditions are met:
+//  ExaMiniMD is licensed under 3-clause BSD terms of use: Redistribution and
+//  use in source and binary forms, with or without modification, are
+//  permitted provided that the following conditions are met:
 //
-//  1. Redistributions of source code must retain the above copyright notice,
-//     this list of conditions and the following disclaimer.
+//    1. Redistributions of source code must retain the above copyright notice,
+//       this list of conditions and the following disclaimer.
 //
-//  2. Redistributions in binary form must reproduce the above copyright notice,
-//     this list of conditions and the following disclaimer in the documentation
-//     and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright notice,
+//       this list of conditions and the following disclaimer in the documentation
+//       and/or other materials provided with the distribution.
 //
-//  3. Neither the name of the Corporation nor the names of the contributors
-//     may be used to endorse or promote products derived from this software
-//     without specific prior written permission.
+//    3. Neither the name of the Corporation nor the names of the contributors
+//       may be used to endorse or promote products derived from this software
+//       without specific prior written permission.
 //
-//THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY EXPRESS OR IMPLIED
-//WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-//MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-//IN NO EVENT SHALL NTESS OR THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-//INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-//(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-//SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
-//HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-//STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
-//IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//POSSIBILITY OF SUCH DAMAGE.
+//  THIS SOFTWARE IS PROVIDED BY NTESS "AS IS" AND ANY EXPRESS OR IMPLIED
+//  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+//  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+//  IN NO EVENT SHALL NTESS OR THE CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+//  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+//  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+//  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+//  HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+//  STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+//  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+//  POSSIBILITY OF SUCH DAMAGE.
 //
-//Questions? Contact Christian R. Trott (crtrott@sandia.gov)
+//  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
 #include <cabanamd.h>
@@ -55,51 +55,49 @@
 #define MAXPATHLEN 1024
 
 CabanaMD::CabanaMD() {
-// First we need to create the System data structures
-// They are used by input
-system = new System();
-system->init();
+  // First we need to create the System data structures
+  // They are used by input
+  system = new System();
+  system->init();
 
-// Create the Input System, no modules for that,
-// so we can init it in constructor
-input = new Input(system);
+  // Create the Input System, no modules for that,
+  // so we can init it in constructor
+  input = new Input(system);
 
 }
 
 void CabanaMD::init(int argc, char* argv[]) {
 
-if(system->do_print) {
-   Kokkos::DefaultExecutionSpace::print_configuration(std::cout);
+  if(system->do_print) {
+     Kokkos::DefaultExecutionSpace::print_configuration(std::cout);
 }
 
-// Lets parse the command line arguments
-input->read_command_line_args(argc,argv);
-printf("Read command line arguments\n");
-// Read input file
-input->read_file();
-printf("Read input file\n");
-T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
+  // Lets parse the command line arguments
+  input->read_command_line_args(argc,argv);
+  printf("Read command line arguments\n");
+  // Read input file
+  input->read_file();
+  printf("Read input file\n");
+  T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
 
-// Now we know which integrator type to use
-integrator = new Integrator(system);
+  // Now we know which integrator type to use
+  integrator = new Integrator(system);
 
-// Fill some binning
-binning = new Binning(system);
+  // Fill some binning
+  binning = new Binning(system);
 
-// Create Force Type
-if(false) {}
-#define FORCE_MODULES_INSTANTIATION
-#include<modules_force.h>
-#undef FORCE_MODULES_INSTANTIATION
-//don't understand this
-else comm->error("Invalid ForceType");
-printf("Reached here\n");
-for(std::size_t line = 0; line < input->force_coeff_lines.dimension_0(); line++) {
-  force->init_coeff(neigh_cutoff,
-                    input->input_data.words[input->force_coeff_lines(line)]);
-}
-// Create Communication Submodule
-comm = new Comm(system, neigh_cutoff);
+  // Create Force Type
+  if(false) {}
+  #define FORCE_MODULES_INSTANTIATION
+  #include<modules_force.h>
+  #undef FORCE_MODULES_INSTANTIATION
+   else comm->error("Invalid ForceType");
+   for(std::size_t line = 0; line < input->force_coeff_lines.dimension_0(); line++) {
+     force->init_coeff(neigh_cutoff,
+                      input->input_data.words[input->force_coeff_lines(line)]);
+   }
+   // Create Communication Submodule
+   comm = new Comm(system, neigh_cutoff);
 
 // Do some additional settings
 force->comm_newton = input->comm_newton;
@@ -124,6 +122,8 @@ comm->exchange_halo();
 
 // Compute NeighList
 force->create_neigh_list(system);
+
+//Do some additional settings
 
 // Compute initial forces
 auto f = Cabana::slice<Forces>(system->xvf);
