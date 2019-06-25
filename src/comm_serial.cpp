@@ -155,12 +155,15 @@ void Comm::scan_int(T_INT*, T_INT) {}
 void Comm::weighted_reduce_float(T_FLOAT* , T_INT* , T_INT ) {}
 
 void Comm::create_domain_decomposition() {
-  system->sub_domain_lo_x = 0.0;
-  system->sub_domain_lo_y = 0.0;
-  system->sub_domain_lo_z = 0.0;
-  system->sub_domain_x = system->sub_domain_hi_x = system->domain_x;
-  system->sub_domain_y = system->sub_domain_hi_y = system->domain_y;
-  system->sub_domain_z = system->sub_domain_hi_z = system->domain_z;
+  system->sub_domain_lo_x = system->domain_lo_x;
+  system->sub_domain_lo_y = system->domain_lo_y;
+  system->sub_domain_lo_z = system->domain_lo_z;
+  system->sub_domain_hi_x = system->domain_hi_x;
+  system->sub_domain_hi_y = system->domain_hi_y;
+  system->sub_domain_hi_z = system->domain_hi_z;
+  system->sub_domain_x = system->domain_x;
+  system->sub_domain_y = system->domain_y;
+  system->sub_domain_z = system->domain_z;
 }
 int Comm::process_rank() {return 0;}
 int Comm::num_processes() {return 1;}

@@ -51,6 +51,7 @@
 #include <property_temperature.h>
 #include <property_kine.h>
 #include <property_pote.h>
+#include "read_data.h"
 
 #define MAXPATHLEN 1024
 
@@ -110,6 +111,8 @@ void CabanaMD::init(int argc, char* argv[]) {
   // Ok lets go ahead and create the particles if that didn't happen yet
   if(system->N == 0)
     input->create_lattice(comm);
+  if(system->N == 0 && input->read_data_flag==true)
+    read_lammps_data_file(input->lammps_data_file, system, comm);
 
   // Create the Halo
   comm->exchange(); 
@@ -122,8 +125,6 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // Compute NeighList
   force->create_neigh_list(system);
-
-  //Do some additional settings
 
   // Compute initial forces
   auto f = Cabana::slice<Forces>(system->xvf);
@@ -265,23 +266,23 @@ void CabanaMD::run(int nsteps) {
       check_correctness(step);
 
     other_time += other_timer.seconds();
-}
-
-double time = timer.seconds();
-
-if(system->do_print) {
-  if (!system->print_lammps) {
-    printf("\n");
-    printf("#Procs Particles | Time T_Force T_Neigh T_Comm T_Int T_Other | Steps/s Atomsteps/s Atomsteps/(proc*s)\n");
-    printf("%i %i | %lf %lf %lf %lf %lf %lf | %lf %e %e PERFORMANCE\n",comm->num_processes(),system->N,time,
-      force_time,neigh_time,comm_time,integrate_time,other_time,
-      1.0*nsteps/time,1.0*system->N*nsteps/time,1.0*system->N*nsteps/time/comm->num_processes());
-    printf("%i %i | %lf %lf %lf %lf %lf %lf | FRACTION\n",comm->num_processes(),system->N,1.0,
-      force_time/time,neigh_time/time,comm_time/time,integrate_time/time,other_time/time);
-  } else {
-    printf("Loop time of %f on %i procs for %i steps with %i atoms\n",time,comm->num_processes(),nsteps,system->N);
   }
-}
+
+  double time = timer.seconds();
+
+  if(system->do_print) {
+    if (!system->print_lammps) {
+      printf("\n");
+      printf("#Procs Particles | Time T_Force T_Neigh T_Comm T_Int T_Other | Steps/s Atomsteps/s Atomsteps/(proc*s)\n");
+      printf("%i %i | %lf %lf %lf %lf %lf %lf | %lf %e %e PERFORMANCE\n",comm->num_processes(),system->N,time,
+        force_time,neigh_time,comm_time,integrate_time,other_time,
+        1.0*nsteps/time,1.0*system->N*nsteps/time,1.0*system->N*nsteps/time/comm->num_processes());
+      printf("%i %i | %lf %lf %lf %lf %lf %lf | FRACTION\n",comm->num_processes(),system->N,1.0,
+        force_time/time,neigh_time/time,comm_time/time,integrate_time/time,other_time/time);
+    } else {
+      printf("Loop time of %f on %i procs for %i steps with %i atoms\n",time,comm->num_processes(),nsteps,system->N);
+    }
+  }
 }
 
 void CabanaMD::dump_binary(int step) {
