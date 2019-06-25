@@ -359,10 +359,6 @@ void NeuralNetwork::setInput(System* s, T_INT atomindex) const
 
 double NeuralNetwork::getOutput() const
 {
-    /*for (int i = 0; i < outputLayer->numNeurons; i++)
-    {
-        output[i] = outputLayer->neurons[i].value;
-    }*/
     return outputLayer->neurons[0].value;
 }
 

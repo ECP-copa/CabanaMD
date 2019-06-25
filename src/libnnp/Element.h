@@ -166,7 +166,6 @@ public:
      */
     void                     updateSymmetryFunctionStatistics(
                                                              System* s,
-                                                             t_verletlist_full_2D neigh_list, 
                                                              T_INT i);
     /** Get symmetry function instance.
      *

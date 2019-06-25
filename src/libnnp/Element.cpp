@@ -360,7 +360,7 @@ void Element::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D ne
     return;
 }
 
-void Element::updateSymmetryFunctionStatistics(System* s, t_verletlist_full_2D neigh_list, T_INT atomindex)
+void Element::updateSymmetryFunctionStatistics(System* s, T_INT atomindex)
 {
     auto type = Cabana::slice<TypeNames::Types>(s->xvf);
     if (type(atomindex)-1 != index)
@@ -405,7 +405,7 @@ void Element::updateSymmetryFunctionStatistics(System* s, t_verletlist_full_2D n
                               0,
                               atomindex,
                               i,
-                              G(atomindex, i),
+                              value,
                               Gmin,
                               Gmax);
             }

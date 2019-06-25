@@ -883,7 +883,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         {
             //a = &(structure.atoms.at(i));
             e = &(elements.at(type(i)-1));
-            e->updateSymmetryFunctionStatistics(s, neigh_list, i);
+            e->updateSymmetryFunctionStatistics(s, i);
         }
     
     }
@@ -922,11 +922,12 @@ void Mode::calculateAtomicNeuralNetworks(System* s,
 
     for (int i = 0; i < id.size(); ++i)
     {
-        const Element* e = &(elements.at(type(i)-1));
-        (e->neuralNetwork)->setInput(s,i);
-        (e->neuralNetwork)->propagate();
-        if (derivatives) (e->neuralNetwork)->calculateDEdG(s);
-        energy(i) = (e->neuralNetwork)->getOutput();
+        //const Element* e = &(elements.at(type(i)-1));
+        Element const& e = elements.at(type(i)-1);
+        e.neuralNetwork->setInput(s,i);
+        e.neuralNetwork->propagate();
+        if (derivatives) e.neuralNetwork->calculateDEdG(s);
+        energy(i) = e.neuralNetwork->getOutput();
     }
 
     return;

@@ -108,7 +108,6 @@ void ForceNNP::compute(System* s) {
 T_V_FLOAT ForceNNP::compute_energy(System* s) {
     
     auto energy = Cabana::slice<NNPNames::energy>(s->nnp_data);
-    std::cout << energy.size() << std::endl;
     T_V_FLOAT system_energy=0.0;
     // Loop over all atoms and add atomic contributions to total energy.
     for (int i = 0; i < energy.size(); ++i)
@@ -124,8 +123,9 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
 
   Kokkos::fence();
   */
-  step++;
+  system_energy /= s->cfenergy;
   if (s->normalize)
-    return system_energy/s->convEnergy;
+    system_energy /= s->convEnergy;
+  step++;
   return system_energy;
 }

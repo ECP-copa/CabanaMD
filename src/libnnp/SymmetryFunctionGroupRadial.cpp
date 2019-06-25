@@ -186,7 +186,7 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij); 
         
-        if (e1 == type(j) && rij < rc)
+        if (e1 == type(j)-1 && rij < rc)
         {
             // Energy calculation.
             // Calculate cutoff function and derivative.
@@ -245,9 +245,7 @@ void SymmetryFunctionGroupRadial::calculate(System* s, t_verletlist_full_2D neig
 
     for (size_t k = 0; k < members.size(); ++k)
     {
-        G(i,memberIndex[k]) = result[k]; //members[k]->scale(result[k]);
-        if (k == 0)
-          std::cout << "i = " << i <<" G(i,0)" << G(i, memberIndex[0]) << std::endl;
+        G(i,memberIndex[k]) = members[k]->scale(result[k]);
     }
 
     delete[] result;
