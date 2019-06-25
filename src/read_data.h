@@ -37,7 +37,7 @@
 
 using namespace std;
 
-string read_lammps_parse_keyword(ifstream &file, System* s)
+string read_lammps_parse_keyword(ifstream &file)
 {
   // TODO: error checking. Look at setup.cpp
   // proc 0 reads upto non-blank line plus 1 following line
@@ -48,7 +48,7 @@ string read_lammps_parse_keyword(ifstream &file, System* s)
     //ignore anything after # by getting substring till # (takes care of comment lines too)
     line = line.substr(0, line.find('#'));
     //for non blank lines, skip leading whitespaces and read word
-    int pos = line.find_first_not_of(" \r\t\n");
+    std::size_t pos = line.find_first_not_of(" \r\t\n");
     if (pos != string::npos) {
       keyword = line;
       if (keyword.compare("Atoms ") || keyword.compare("Velocities ")) 
@@ -71,7 +71,7 @@ void read_lammps_header(ifstream &file, System* s)
     
     getline(file, line);
     //skip blank lines
-    int pos = line.find_first_not_of(" \r\t\n");
+    std::size_t pos = line.find_first_not_of(" \r\t\n");
     if (pos == string::npos)
       continue;
     
@@ -176,23 +176,18 @@ void read_lammps_data_file(const char* filename, System* s) {
   read_lammps_header(file, s);
   
   s->resize(s->N);
-  auto x = Cabana::slice<Positions>(s->xvf);
-  auto v = Cabana::slice<Velocities>(s->xvf);
-  auto id = Cabana::slice<IDs>(s->xvf);
-  auto type = Cabana::slice<Types>(s->xvf);
-  auto q = Cabana::slice<Charges>(s->xvf);
   
   //perform domain decomposition and get access to subdomains
   //comm->create_domain_decomposition(); //TODO: Look into this 
   
   // check that exiting string is a valid section keyword
-  keyword = read_lammps_parse_keyword(file, s);
+  keyword = read_lammps_parse_keyword(file);
   
   //read atom information
   read_lammps_atoms(file, s);
   //TODO: catch this error: printf("Must read Atoms before Velocities\n");
   
-  keyword = read_lammps_parse_keyword(file, s);
+  keyword = read_lammps_parse_keyword(file);
   //read velocities
   if(keyword.compare("Velocities") == 0)
     read_lammps_velocities(file, s);
