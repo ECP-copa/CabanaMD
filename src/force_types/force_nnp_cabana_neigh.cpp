@@ -52,12 +52,16 @@
 #include <string>
 #include <iostream>
 #define VECLEN 16
+#define MAX_SF 30 //TODO: hardcoded 
 
 ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
   ntypes = system->ntypes;
   N_local = 0;
   step = 0;
   half_neigh = half_neigh_;
+  //resize nnp_data to have size as big as number of atoms in system
+  AoSoA_NNP nnp_data ("ForceNNP::nnp_data", system->N);
+  dEdG = t_mass("ForceNNP::dEdG", MAX_SF);
 }
 
 
@@ -83,10 +87,10 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
   mode->loadSettingsFile(settingsfile);
   mode->setupNormalization();
-  mode->setupElementMap();
+  numSymmetryFunctionsPerElement = mode->setupElementMap(numSymmetryFunctionsPerElement);
   mode->setupElements();
   mode->setupCutoff();
-  mode->setupSymmetryFunctions();
+  numSymmetryFunctionsPerElement = mode->setupSymmetryFunctions(numSymmetryFunctionsPerElement);
   mode->setupSymmetryFunctionGroups();
   mode->setupNeuralNetwork();
   std::string scalingfile = std::string(args[3]) + "/scaling.data";
@@ -94,20 +98,21 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   std::string weightsfile = std::string(args[3]) + "/weights.%03zu.data";
   mode->setupSymmetryFunctionStatistics(false, false, true, false);
   mode->setupNeuralNetworkWeights(weightsfile);
+
 }
 
 
 void ForceNNP::compute(System* s) {
   //nnp::Mode* mode = new(nnp::Mode);
-  s->nnp_data.resize(s->N);
-  mode->calculateSymmetryFunctionGroups(s, neigh_list, true);
-  mode->calculateAtomicNeuralNetworks(s, true);
-  mode->calculateForces(s, neigh_list);
+  nnp_data.resize(s->N);
+  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, true);
+  mode->calculateAtomicNeuralNetworks(s, nnp_data, dEdG, true);
+  mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, dEdG, neigh_list);
 }
 
 T_V_FLOAT ForceNNP::compute_energy(System* s) {
     
-    auto energy = Cabana::slice<NNPNames::energy>(s->nnp_data);
+    auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
     T_V_FLOAT system_energy=0.0;
     // Loop over all atoms and add atomic contributions to total energy.
     for (int i = 0; i < energy.size(); ++i)

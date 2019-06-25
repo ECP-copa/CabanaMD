@@ -55,7 +55,7 @@
 #include<CabanaCore_config.hpp>
 
 #define VECLEN 16
-#define MAX_SF 30 //TODO: hardcoded max no of symmetry functions 
+#define MAX_SF 30 //TODO: hardcoded 
 
 // Module Types etc
 // Units to be used

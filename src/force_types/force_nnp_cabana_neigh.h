@@ -126,6 +126,14 @@ public:
 
   nnp::Mode* mode;
   t_verletlist_full_2D neigh_list;
+  
+  /// AoSoAs of use to compute energy and force
+  /// Allow storage of dGdr, G, dEdG, dGdxia (and weights?)
+  AoSoA_NNP nnp_data;
+  //dEdG (per network property)
+  t_mass dEdG;
+  //numSymmetryFunctionsPerElement (per type property)
+  t_mass numSymmetryFunctionsPerElement;
 
   ForceNNP(System* system, bool half_neigh_);
   void init_coeff(T_X_FLOAT neigh_cutoff, char** args);

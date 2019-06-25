@@ -182,13 +182,13 @@ void SymmetryFunctionGroupAngularWide::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minimized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupAngularWide::calculate(System* s, t_verletlist_full_2D neigh_list,
+void SymmetryFunctionGroupAngularWide::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                                  T_INT i, bool const derivatives) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
-    auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
-    auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
+    auto dGdr = Cabana::slice<NNPNames::dGdr>(nnp_data);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
 
     double* result = new double[members.size()];
     for (size_t l = 0; l < members.size(); ++l)

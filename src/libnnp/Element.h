@@ -156,7 +156,7 @@ public:
      * @param[in] derivatives If symmetry function derivatives will be
      *                        calculated.
      */
-    void                     calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh_list,
+    void                     calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                                 T_INT i, bool const  derivatives) const;
     /** Update symmetry function statistics.
      *
@@ -165,7 +165,7 @@ public:
      * This function checks also for extrapolation warnings.
      */
     void                     updateSymmetryFunctionStatistics(
-                                                             System* s,
+                                                             System* s, AoSoA_NNP nnp_data,
                                                              T_INT i);
     /** Get symmetry function instance.
      *

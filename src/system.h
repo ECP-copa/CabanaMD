@@ -65,13 +65,8 @@ public:
 
   // Per Particle Property
   AoSoA xvf;
-  /// AoSoAs of use to compute energy and force
-  /// Allow storage of dGdr, G, dEdG, dGdxia (and weights?)
-  AoSoA_NNP nnp_data;
   // Per Type Property
   t_mass mass;
-  //dEdG (per network property)
-  t_mass dEdG;
 
   //NNP constants passed in via pair_style(TODO: remove hardcoding)
   bool normalize = true;

@@ -81,13 +81,13 @@ void Mode::loadSettingsFile(string const& fileName)
     return;
 }
 
-void Mode::setupGeneric()
+void Mode::setupGeneric(t_mass numSymmetryFunctionsPerElement)
 {
     setupNormalization();
-    setupElementMap();
+    numSymmetryFunctionsPerElement = setupElementMap(numSymmetryFunctionsPerElement);
     setupElements();
     setupCutoff();
-    setupSymmetryFunctions();
+    numSymmetryFunctionsPerElement = setupSymmetryFunctions(numSymmetryFunctionsPerElement);
 #ifndef NOSFGROUPS
     setupSymmetryFunctionGroups();
 #endif
@@ -145,7 +145,7 @@ void Mode::setupNormalization()
     return;
 }
 
-void Mode::setupElementMap()
+t_mass Mode::setupElementMap(t_mass numSymmetryFunctionsPerElement)
 {
     log << "\n";
     log << "*** SETUP: ELEMENT MAP ******************"
@@ -159,11 +159,13 @@ void Mode::setupElementMap()
         log << strpr("Element %2zu: %2s (%3zu)\n", i, elementMap[i].c_str(),
                      elementMap.atomicNumber(i));
     }
+    //resize numSymmetryFunctionsPerElement to have size = num of atom types in system
+    numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", elementMap.size());
 
     log << "*****************************************"
            "**************************************\n";
 
-    return;
+    return numSymmetryFunctionsPerElement;
 }
 
 void Mode::setupElements()
@@ -310,7 +312,7 @@ void Mode::setupCutoff()
     return;
 }
 
-void Mode::setupSymmetryFunctions()
+t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
 {
     log << "\n";
     log << "*** SETUP: SYMMETRY FUNCTIONS ***********"
@@ -362,6 +364,8 @@ void Mode::setupSymmetryFunctions()
         log << it->infoSymmetryFunctionParameters();
         log << "-----------------------------------------"
                "--------------------------------------\n";
+        //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
+        numSymmetryFunctionsPerElement(it->getIndex()) = it->numSymmetryFunctions();
     }
     minNeighbors.resize(numElements, 0);
     minCutoffRadius.resize(numElements, maxCutoffRadius);
@@ -379,7 +383,7 @@ void Mode::setupSymmetryFunctions()
     log << "*****************************************"
            "**************************************\n";
 
-    return;
+    return numSymmetryFunctionsPerElement;
 }
 
 void Mode::setupSymmetryFunctionScalingNone()
@@ -823,7 +827,7 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
     return;
 }
 
-void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh_list, 
+void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
                                            bool const derivatives)
 {
     // Skip calculation for whole structure if results are already saved.
@@ -868,7 +872,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         //allocate(s, numSymmetryFunctions, derivatives);
         
         // Calculate symmetry functions (and derivatives).
-        e->calculateSymmetryFunctionGroups(s, neigh_list, i, derivatives);
+        e->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, i, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;
@@ -883,7 +887,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh
         {
             //a = &(structure.atoms.at(i));
             e = &(elements.at(type(i)-1));
-            e->updateSymmetryFunctionStatistics(s, i);
+            e->updateSymmetryFunctionStatistics(s, nnp_data, i);
         }
     
     }
@@ -902,7 +906,7 @@ void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
                           "zero, cannot allocate.\n");
     } TODO: put back error checking in*/
     // Resize vectors (derivatives only if requested).
-    s->nnp_data.resize(s->N);
+    //nnp_data.resize(s->N);
      
     // Reset status of symmetry functions and derivatives.
     //hasSymmetryFunctions           = false;
@@ -913,20 +917,20 @@ void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
     return;
 }
 
-void Mode::calculateAtomicNeuralNetworks(System* s,
-                                         bool const derivatives) const
+void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
+                                         t_mass dEdG, bool const derivatives) const
 {
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
-    auto energy = Cabana::slice<NNPNames::energy>(s->nnp_data);
+    auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
 
     for (int i = 0; i < id.size(); ++i)
     {
         //const Element* e = &(elements.at(type(i)-1));
         Element const& e = elements.at(type(i)-1);
-        e.neuralNetwork->setInput(s,i);
+        e.neuralNetwork->setInput(nnp_data,i);
         e.neuralNetwork->propagate();
-        if (derivatives) e.neuralNetwork->calculateDEdG(s);
+        if (derivatives) e.neuralNetwork->calculateDEdG(dEdG);
         energy(i) = e.neuralNetwork->getOutput();
     }
 
@@ -946,15 +950,14 @@ void Mode::calculateEnergy(Structure& structure) const
     return;
 }
 
-void Mode::calculateForces(System* s, t_verletlist_full_2D neigh_list) const
+void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement, 
+                           AoSoA_NNP nnp_data, t_mass dEdG, t_verletlist_full_2D neigh_list) const
 {
 
     auto f = Cabana::slice<Forces>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
-    auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
-    auto dEdG = s->dEdG;
+    auto dGdr = Cabana::slice<NNPNames::dGdr>(nnp_data);
     
-    int numSymmetryFunctions_i, numSymmetryFunctions_j;
     //Atom* ai = NULL;
     // Loop over all atoms, center atom i (ai).
 //#ifdef _OPENMP
@@ -969,12 +972,9 @@ void Mode::calculateForces(System* s, t_verletlist_full_2D neigh_list) const
         f(i,0) = 0.0;
         f(i,1) = 0.0;
         f(i,2) = 0.0;
-        //TODO: hardcoded numSymmetryFunctions
-        if (type(i) == 1) numSymmetryFunctions_i = 27;
-        else numSymmetryFunctions_i = 30;
         // First add force contributions from atom i itself (gradient of
         // atomic energy E_i).
-        for (size_t j = 0; j < numSymmetryFunctions_i; ++j)
+        for (size_t j = 0; j < numSymmetryFunctionsPerElement(type(i)-1); ++j)
         {
             f(i,0) -= dEdG(j) * dGdr(i,j,0);
             f(i,1) -= dEdG(j) * dGdr(i,j,1);
@@ -993,13 +993,11 @@ void Mode::calculateForces(System* s, t_verletlist_full_2D neigh_list) const
         for (size_t jj = 0; jj < num_neighs; ++jj)
         {
             int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
-            if (type(j) == 1) numSymmetryFunctions_j = 27;
-            else numSymmetryFunctions_j = 30;
-            for (size_t j = 0; j < numSymmetryFunctions_j; ++j)
+            for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(j)-1); ++k)
             {
-                f(i,0) -= dEdG(j) * dGdr(i,j,0);
-                f(i,1) -= dEdG(j) * dGdr(i,j,1);
-                f(i,2) -= dEdG(j) * dGdr(i,j,2);
+                f(i,0) -= dEdG(k) * dGdr(j,k,0);
+                f(i,1) -= dEdG(k) * dGdr(j,k,1);
+                f(i,2) -= dEdG(k) * dGdr(j,k,2);
             }
         }
         /*for (vector<size_t>::const_iterator it =

@@ -339,9 +339,9 @@ void NeuralNetwork::modifyConnections(ModificationScheme modificationScheme,
     return;
 }
 
-void NeuralNetwork::setInput(System* s, T_INT atomindex) const
+void NeuralNetwork::setInput(AoSoA_NNP nnp_data, T_INT atomindex) const
 {
-    auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
     for (int i = 0; i < inputLayer->numNeurons; i++)
     {
         double const& value = G(atomindex,i);
@@ -372,7 +372,7 @@ void NeuralNetwork::propagate()
     return;
 }
 
-void NeuralNetwork::calculateDEdG(System* s) const
+void NeuralNetwork::calculateDEdG(t_mass dEdG) const
 {
     double** inner = new double*[numHiddenLayers];
     double** outer = new double*[numHiddenLayers];
@@ -406,7 +406,7 @@ void NeuralNetwork::calculateDEdG(System* s) const
                 if (l < numHiddenLayers) inner[l][i2] = outer[l-1][i2];
             }
         }
-        s->dEdG(k) = outer[numHiddenLayers-1][0];
+        dEdG(k) = outer[numHiddenLayers-1][0];
     }
 
     for (int i = 0; i < numHiddenLayers; i++)

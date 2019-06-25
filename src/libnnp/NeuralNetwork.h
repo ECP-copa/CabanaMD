@@ -207,7 +207,7 @@ public:
      *
      * @param[in] input Input layer node values.
      */
-    void                     setInput(System* s, T_INT atomindex) const;
+    void                     setInput(AoSoA_NNP nnp_data, T_INT atomindex) const;
     /** Get neural network output layer node values.
      *
      * @param[out] output Output layer node values.
@@ -232,7 +232,7 @@ public:
      * @f$E@f$ is the output neuron and @f$\left(G_i\right)_{i=1,\ldots,N}@f$
      * are the @f$N@f$ input neurons.
      */
-    void                     calculateDEdG(System* s) const;
+    void                     calculateDEdG(t_mass dEdG) const;
     /** Calculate derivative of output neuron with respect to connections.
      *
      * @param[out] dEdc Array containing derivative (length is number of

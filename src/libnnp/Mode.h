@@ -30,6 +30,7 @@
 #include <system.h>
 #include <Cabana_NeighborList.hpp>
 #include <Cabana_Slice.hpp>
+#include <types.h>
 
 namespace nnp
 {
@@ -100,7 +101,7 @@ public:
      * Sets up elements, symmetry functions, symmetry function groups, neural
      * networks. No symmetry function scaling data is read, no weights are set.
      */
-    void                     setupGeneric();
+    void                     setupGeneric(t_mass numSymmetryFunctionsPerElement);
     /** Set up normalization.
      *
      * If the keywords `mean_energy`, `conv_length` and
@@ -113,7 +114,7 @@ public:
      * Uses keyword `elements`. This function should follow immediately after
      * settings are loaded via loadSettingsFile().
      */
-    void                     setupElementMap();
+    t_mass                     setupElementMap(t_mass numSymmetryFunctionsPerElement);
     /** Set up all Element instances.
      *
      * Uses keywords `number_of_elements` and `atom_energy`. This function
@@ -133,7 +134,7 @@ public:
      * Uses keyword `symfunction_short`. Reads all symmetry functions from
      * settings and automatically assigns them to the correct element.
      */
-    void                     setupSymmetryFunctions();
+    t_mass                     setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement);
     /** Set up "empy" symmetry function scaling.
      *
      * Does not use any keywords. Sets no scaling for all symmetry functions.
@@ -225,7 +226,8 @@ public:
      * stored in Atom::dGdr and Atom::Neighbor::dGdr.
      */
     void                     calculateSymmetryFunctionGroups(
-                                                       System* s, t_verletlist_full_2D neigh_list, 
+                                                       System* s, AoSoA_NNP nnp_data, 
+                                                       t_verletlist_full_2D neigh_list, 
                                                        bool const derivatives);
     /** Calculate atomic neural networks for all atoms in given structure.
      *
@@ -239,7 +241,7 @@ public:
      * energy offset (keyword `atom_energy`) is also added at this point.
      */
     void                     calculateAtomicNeuralNetworks(
-                                                 System* s,
+                                                 System* s, AoSoA_NNP nnp_data, t_mass dEdG,
                                                  bool const derivatives) const;
     /** Calculate potential energy for a given structure.
      *
@@ -256,7 +258,8 @@ public:
      * Combine intermediate results from symmetry function and neural network
      * computation to atomic forces. Results are stored in Atom::f.
      */
-    void                     calculateForces(System* s, t_verletlist_full_2D neigh_list) const;
+    void                     calculateForces(System* s, t_mass numSymmetryFunctionsPerElement, 
+                                             AoSoA_NNP nnp_data, t_mass dEdG, t_verletlist_full_2D neigh_list) const;
     /* Add atomic energy offsets to reference energy.
      *
      * @param[in] structure Input structure.

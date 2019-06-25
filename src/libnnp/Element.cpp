@@ -347,20 +347,20 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
     return;
 }
 
-void Element::calculateSymmetryFunctionGroups(System* s, t_verletlist_full_2D neigh_list,
+void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                               T_INT i, bool const derivatives) const
 {
     for (vector<SymmetryFunctionGroup*>::const_iterator
          it = symmetryFunctionGroups.begin();
          it != symmetryFunctionGroups.end(); ++it)
     {
-        (*it)->calculate(s, neigh_list, i, derivatives);
+        (*it)->calculate(s, nnp_data, neigh_list, i, derivatives);
     }
 
     return;
 }
 
-void Element::updateSymmetryFunctionStatistics(System* s, T_INT atomindex)
+void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_INT atomindex)
 {
     auto type = Cabana::slice<TypeNames::Types>(s->xvf);
     if (type(atomindex)-1 != index)
@@ -374,7 +374,7 @@ void Element::updateSymmetryFunctionStatistics(System* s, T_INT atomindex)
                             " does not match.\n");
     }*/
 
-    auto G = Cabana::slice<NNPNames::G>(s->nnp_data);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
     for (size_t i = 0; i < symmetryFunctions.size(); ++i)
     {
         double const Gmin = symmetryFunctions.at(i)->getGmin();
