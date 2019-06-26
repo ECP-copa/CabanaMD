@@ -842,7 +842,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verl
 //#ifdef _OPENMP
 //    #pragma omp parallel for private (a, e)
 //#endif
-    for (size_t i = 0; i < id.size(); ++i)
+    for (size_t i = 0; i < s->N_local; ++i)
     {
         // Pointer to atom.
         //a = &(structure.atoms.at(i));
@@ -883,7 +883,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verl
     // Needed to shift this out of the loop above to make it thread-safe.
     if (checkExtrapolationWarnings)
     {
-        for (size_t i = 0; i < id.size(); ++i)
+        for (size_t i = 0; i < s->N_local; ++i)
         {
             //a = &(structure.atoms.at(i));
             e = &(elements.at(type(i)-1));
@@ -924,7 +924,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
     auto type = Cabana::slice<Types>(s->xvf);
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
 
-    for (int i = 0; i < id.size(); ++i)
+    for (int i = 0; i < s->N_local; ++i)
     {
         //const Element* e = &(elements.at(type(i)-1));
         Element const& e = elements.at(type(i)-1);
@@ -963,7 +963,7 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
 //#ifdef _OPENMP
 //    #pragma omp parallel for private(ai)
 //#endif
-    for (int i = 0; i < type.size(); ++i)
+    for (int i = 0; i < s->N_local; ++i)
     {
         // Set pointer to atom.
         //ai = &(structure.atoms.at(i));

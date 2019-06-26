@@ -177,7 +177,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   thermo_rate = 10;
 
   neighbor_skin = 0.3;
-  neighbor_skin = 2.0; //for metal and real units
+  neighbor_skin = 0.0; //for metal and real units
   comm_exchange_rate = 20;
   comm_newton = 0;
 
@@ -393,9 +393,10 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"mass")==0) {
     known = true;
     int type = atoi(input_data.words[line][1])-1;
-    Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
-    T_V_FLOAT mass = atof(input_data.words[line][2]);
-    Kokkos::deep_copy(mass_one,mass);
+    //Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
+    T_V_FLOAT mass_read = atof(input_data.words[line][2]);
+    system->mass(type) = mass_read;
+    //Kokkos::deep_copy(mass_one,mass);
   }
   if(strcmp(input_data.words[line][0],"read_data")==0) {
     known = true;

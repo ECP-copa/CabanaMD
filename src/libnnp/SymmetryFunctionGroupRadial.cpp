@@ -169,7 +169,9 @@ void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA_NNP nnp_data, t_ver
     {
         //Atom::Neighbor& n = atom.neighbors[j];
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
-        //std::cout << "i: " << i << "id(i): " << id(i) << " j: " << id(j) << std::endl; 
+        //std::cout << "i: " << id(i) << " j: " << id(j) << std::endl; 
+        //std::cout << "xi: " << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl; 
+        //std::cout << "xj: " << x(j,0) << " " << x(j,1) << " " << x(j,2) << std::endl; 
         T_F_FLOAT dxij = x(i,0) - x(j,0);
         T_F_FLOAT dyij = x(i,1) - x(j,1);
         T_F_FLOAT dzij = x(i,2) - x(j,2);
@@ -214,7 +216,8 @@ void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA_NNP nnp_data, t_ver
             for (size_t k = 0; k < members.size(); ++k)
             {
                 double pexp = exp(-eta[k] * (rij - rs[k]) * (rij - rs[k]));
-                //std::cout << eta[k] << " " << rs[k] << " " << rij << " " << pexp << " " << pfc << std::endl;
+                //if (k == 0)
+                //  std::cout << eta[k] << " " << rs[k] << " " << rij << " " << pexp << " " << pfc << " " << pexp*pfc << std::endl;
                 result[k] += pexp * pfc;
                 // Force calculation.
                 if (!derivatives) continue;

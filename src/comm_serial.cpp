@@ -82,8 +82,7 @@ void Comm::exchange_halo() {
     Kokkos::parallel_for("CommSerial::halo_exchange_self",
               Kokkos::RangePolicy<TagHaloSelf, Kokkos::IndexType<T_INT> >(0,nparticles),
               *this);
-    Kokkos::deep_copy(pack_count,count);
-    //Kokkos::deep_copy(count,pack_count); TODO: check this
+    Kokkos::deep_copy(count,pack_count);
     bool redo = false;
     if((unsigned) N_local+N_ghost+count > x.size()) {
       system->resize(N_local + N_ghost + count);
