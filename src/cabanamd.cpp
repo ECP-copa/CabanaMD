@@ -109,10 +109,10 @@ void CabanaMD::init(int argc, char* argv[]) {
   }
 
   // Ok lets go ahead and create the particles if that didn't happen yet
-  if(system->N == 0)
-    input->create_lattice(comm);
   if(system->N == 0 && input->read_data_flag==true)
     read_lammps_data_file(input->lammps_data_file, system, comm);
+  else if(system->N == 0 && input->read_data_flag=false)
+    input->create_lattice(comm);
 
   // Create the Halo
   comm->exchange(); 
