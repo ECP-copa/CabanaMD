@@ -53,7 +53,8 @@ string read_lammps_parse_keyword(ifstream &file)
   // TODO: error checking. Look at setup.cpp
   // proc 0 reads upto non-blank line plus 1 following line
   // eof is set to 1 if any read hits end-of-file
-  string line, keyword;
+  string line;
+  string keyword = "";
   while(1) {
     //exit if end-of-file is encountered
     if (file.eof())
@@ -65,16 +66,18 @@ string read_lammps_parse_keyword(ifstream &file)
     std::size_t pos = line.find_first_not_of(" \r\t\n");
     if (pos != string::npos) {
       keyword = line;
-      if (keyword.compare("Atoms ") || keyword.compare("Velocities ") || 
-          keyword.compare("Atoms")  || keyword.compare("Velocities")) 
+      if ((keyword.compare("Atoms ") == 0) || (keyword.compare("Velocities ") == 0) || 
+          (keyword.compare("Atoms") == 0) || (keyword.compare("Velocities") == 0)) 
         return keyword;
       else
         printf("ERROR: Unknown identifier in data file: %s\n", keyword.data());
+        return keyword;
     }
     else
       continue;
     
   }
+  return keyword;
 }
 
 void read_lammps_header(ifstream &file, System* s)
@@ -161,6 +164,7 @@ void read_lammps_atoms(ifstream &file, System* s)
         id(n) = id_tmp; type(n) = type_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
         q(n) = 0;
       }
+    getline(file, line); 
     }
     if (s->atom_style == "charge") {
       sscanf(temp, "%i %i %lg %lg %lg %lg", &id_tmp, &type_tmp, &q_tmp, &x_tmp, &y_tmp, &z_tmp);
