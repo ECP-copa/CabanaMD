@@ -80,7 +80,7 @@ public:
      * @param[in] derivatives If also symmetry function derivatives will be
      *                        calculated and saved.
      */
-    virtual void calculate(System* s, AoSoA_NNP nnp_data, 
+    virtual void calculate(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, 
                            t_verletlist_full_2D neigh_list, T_INT i, bool const derivatives) const = 0;
     /** Give symmetry function group parameters on multiple lines.
      *

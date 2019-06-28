@@ -128,10 +128,10 @@ public:
   t_verletlist_full_2D neigh_list;
   
   /// AoSoAs of use to compute energy and force
-  /// Allow storage of dGdr, G, dEdG, dGdxia (and weights?)
+  /// Allow storage of G, dEdG and energy (per atom properties)
   AoSoA_NNP nnp_data;
-  //dEdG (per network property)
-  t_mass dEdG;
+  //dGdr (NxNxMAX_SFx3)
+  t_dGdr dGdr;
   //numSymmetryFunctionsPerElement (per type property)
   t_mass numSymmetryFunctionsPerElement;
 

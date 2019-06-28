@@ -372,8 +372,9 @@ void NeuralNetwork::propagate()
     return;
 }
 
-void NeuralNetwork::calculateDEdG(t_mass dEdG) const
+void NeuralNetwork::calculateDEdG(AoSoA_NNP nnp_data, T_INT atomindex) const
 {
+    auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     double** inner = new double*[numHiddenLayers];
     double** outer = new double*[numHiddenLayers];
 
@@ -406,7 +407,7 @@ void NeuralNetwork::calculateDEdG(t_mass dEdG) const
                 if (l < numHiddenLayers) inner[l][i2] = outer[l-1][i2];
             }
         }
-        dEdG(k) = outer[numHiddenLayers-1][0];
+        dEdG(atomindex,k) = outer[numHiddenLayers-1][0];
     }
 
     for (int i = 0; i < numHiddenLayers; i++)

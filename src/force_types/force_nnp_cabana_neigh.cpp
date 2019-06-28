@@ -61,7 +61,7 @@ ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
   half_neigh = half_neigh_;
   //resize nnp_data to have size as big as number of atoms in system
   AoSoA_NNP nnp_data ("ForceNNP::nnp_data", system->N);
-  dEdG = t_mass("ForceNNP::dEdG", MAX_SF);
+  dGdr = t_dGdr("ForceNNP::dGdr", system->N, system->N);
 }
 
 
@@ -105,9 +105,9 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
 void ForceNNP::compute(System* s) {
   //nnp::Mode* mode = new(nnp::Mode);
   nnp_data.resize(s->N_local+s->N_ghost);
-  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, true);
-  mode->calculateAtomicNeuralNetworks(s, nnp_data, dEdG, true);
-  mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, dEdG, neigh_list);
+  mode->calculateSymmetryFunctionGroups(s, nnp_data, dGdr, neigh_list, true);
+  mode->calculateAtomicNeuralNetworks(s, nnp_data, true);
+  mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, dGdr, neigh_list);
 }
 
 T_V_FLOAT ForceNNP::compute_energy(System* s) {

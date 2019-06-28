@@ -232,7 +232,7 @@ public:
      * @f$E@f$ is the output neuron and @f$\left(G_i\right)_{i=1,\ldots,N}@f$
      * are the @f$N@f$ input neurons.
      */
-    void                     calculateDEdG(t_mass dEdG) const;
+    void                     calculateDEdG(AoSoA_NNP nnp_data, T_INT atomindex) const;
     /** Calculate derivative of output neuron with respect to connections.
      *
      * @param[out] dEdc Array containing derivative (length is number of

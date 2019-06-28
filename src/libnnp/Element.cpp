@@ -347,14 +347,14 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
     return;
 }
 
-void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
+void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list,
                                               T_INT i, bool const derivatives) const
 {
     for (vector<SymmetryFunctionGroup*>::const_iterator
          it = symmetryFunctionGroups.begin();
          it != symmetryFunctionGroups.end(); ++it)
     {
-        (*it)->calculate(s, nnp_data, neigh_list, i, derivatives);
+        (*it)->calculate(s, nnp_data, dGdr, neigh_list, i, derivatives);
     }
 
     return;

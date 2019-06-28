@@ -182,14 +182,13 @@ void SymmetryFunctionGroupAngularNarrow::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minimized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data, 
+void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, 
                                                    t_verletlist_full_2D neigh_list,
                                                    T_INT i, bool const derivatives) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
-    auto dGdr = Cabana::slice<NNPNames::dGdr>(nnp_data);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
  
     double* result = new double[members.size()];
@@ -419,17 +418,17 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data
                                 double const p3drjkz = p3 * dzjk;*/
 
                                 size_t const li = memberIndex[l];
-                                dGdr(i,li,0) += (p1*dxij + p2*dxik);
-                                dGdr(i,li,1) += (p1*dyij + p2*dyik);
-                                dGdr(i,li,2) += (p1*dzij + p2*dzik);
+                                dGdr(i,i,li,0) += (p1*dxij + p2*dxik);
+                                dGdr(i,i,li,1) += (p1*dyij + p2*dyik);
+                                dGdr(i,i,li,2) += (p1*dzij + p2*dzik);
 
-                                dGdr(j,li,0) -= (p1*dxij + p3*dxjk);
-                                dGdr(j,li,1) -= (p1*dyij + p3*dyjk);
-                                dGdr(j,li,2) -= (p1*dzij + p3*dzjk);
+                                dGdr(i,j,li,0) -= (p1*dxij + p3*dxjk);
+                                dGdr(i,j,li,1) -= (p1*dyij + p3*dyjk);
+                                dGdr(i,j,li,2) -= (p1*dzij + p3*dzjk);
 
-                                dGdr(k,li,0) -= (p2*dxik - p3*dxjk);
-                                dGdr(k,li,1) -= (p2*dyik - p3*dyjk);
-                                dGdr(k,li,2) -= (p2*dzik - p3*dzjk);
+                                dGdr(i,k,li,0) -= (p2*dxik - p3*dxjk);
+                                dGdr(i,k,li,1) -= (p2*dyik - p3*dyjk);
+                                dGdr(i,k,li,2) -= (p2*dzik - p3*dzjk);
                             } // l
                         } // rjk <= rc
                     } // rik <= rc

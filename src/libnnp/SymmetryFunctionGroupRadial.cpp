@@ -145,13 +145,12 @@ void SymmetryFunctionGroupRadial::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minmized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
+void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list,
                                             T_INT i, bool const derivatives) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
-    auto dGdr = Cabana::slice<NNPNames::dGdr>(nnp_data);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
     
     double* result = new double[members.size()];
@@ -235,13 +234,13 @@ void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA_NNP nnp_data, t_ver
                 //atom.dGdr[ki]              += dij;
                 //atom.neighbors[j].dGdr[ki] -= dij;
 
-                dGdr(i,ki,0) += (p1*dxij);
-                dGdr(i,ki,1) += (p1*dyij);
-                dGdr(i,ki,2) += (p1*dzij);
+                dGdr(i,i,ki,0) += (p1*dxij);
+                dGdr(i,i,ki,1) += (p1*dyij);
+                dGdr(i,i,ki,2) += (p1*dzij);
 
-                dGdr(j,ki,0) -= (p1*dxij);
-                dGdr(j,ki,1) -= (p1*dyij);
-                dGdr(j,ki,2) -= (p1*dzij);
+                dGdr(i,j,ki,0) -= (p1*dxij);
+                dGdr(i,j,ki,1) -= (p1*dyij);
+                dGdr(i,j,ki,2) -= (p1*dzij);
             }
         }
     }

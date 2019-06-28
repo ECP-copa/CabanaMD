@@ -827,8 +827,8 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
     return;
 }
 
-void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
-                                           bool const derivatives)
+void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr,
+                                           t_verletlist_full_2D neigh_list, bool const derivatives)
 {
     // Skip calculation for whole structure if results are already saved.
     //if (s->hasSymmetryFunctionDerivatives) return;
@@ -872,7 +872,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verl
         //allocate(s, numSymmetryFunctions, derivatives);
         
         // Calculate symmetry functions (and derivatives).
-        e->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, i, derivatives);
+        e->calculateSymmetryFunctionGroups(s, nnp_data, dGdr, neigh_list, i, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;
@@ -918,7 +918,7 @@ void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
 }
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
-                                         t_mass dEdG, bool const derivatives) const
+                                         bool const derivatives) const
 {
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
@@ -930,7 +930,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
         Element const& e = elements.at(type(i)-1);
         e.neuralNetwork->setInput(nnp_data,i);
         e.neuralNetwork->propagate();
-        if (derivatives) e.neuralNetwork->calculateDEdG(dEdG);
+        if (derivatives) e.neuralNetwork->calculateDEdG(nnp_data,i);
         energy(i) = e.neuralNetwork->getOutput();
     }
 
@@ -951,12 +951,12 @@ void Mode::calculateEnergy(Structure& structure) const
 }
 
 void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement, 
-                           AoSoA_NNP nnp_data, t_mass dEdG, t_verletlist_full_2D neigh_list) const
+                           AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list) const
 {
 
     auto f = Cabana::slice<Forces>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
-    auto dGdr = Cabana::slice<NNPNames::dGdr>(nnp_data);
+    auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     
     //Atom* ai = NULL;
     // Loop over all atoms, center atom i (ai).
@@ -967,19 +967,6 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
     {
         // Set pointer to atom.
         //ai = &(structure.atoms.at(i));
-
-        // Reset forces.
-        f(i,0) = 0.0;
-        f(i,1) = 0.0;
-        f(i,2) = 0.0;
-        // First add force contributions from atom i itself (gradient of
-        // atomic energy E_i).
-        for (size_t j = 0; j < numSymmetryFunctionsPerElement(type(i)-1); ++j)
-        {
-            f(i,0) -= dEdG(j) * dGdr(i,j,0);
-            f(i,1) -= dEdG(j) * dGdr(i,j,1);
-            f(i,2) -= dEdG(j) * dGdr(i,j,2);
-        }
 
         // Now loop over all neighbor atoms j of atom i. These may hold
         // non-zero derivatives of their symmetry functions with respect to
@@ -993,13 +980,44 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
         for (size_t jj = 0; jj < num_neighs; ++jj)
         {
             int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
-            for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(j)-1); ++k)
+            std::cout << "i = " << i << " j = " << j << std::endl;
+            std::cout << "dGdr (i,j,k,0): ";
+            for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)-1); ++k)
             {
-                f(i,0) -= dEdG(k) * dGdr(j,k,0);
-                f(i,1) -= dEdG(k) * dGdr(j,k,1);
-                f(i,2) -= dEdG(k) * dGdr(j,k,2);
+                std::cout << dGdr(i,j,k,0) << " ";
+                f(j,0) -= (dEdG(i,k) * dGdr(i,j,k,0) * s->cfforce);
+                f(j,1) -= (dEdG(i,k) * dGdr(i,j,k,1) * s->cfforce);
+                f(j,2) -= (dEdG(i,k) * dGdr(i,j,k,2) * s->cfforce);
+                if (s->normalize) {
+                  double convForce = convLength/convEnergy;
+                  f(j,0) *= convForce;
+                  f(j,1) *= convForce;
+                  f(j,2) *= convForce;
+                }
+            }
+            std::cout << std::endl; 
+            //std::cout << "f(j): " << j << " " << f(j,0) << " " << f(j,1) << " " << f(j,2) << std::endl; 
+        }
+        
+        // First add force contributions from atom i itself (gradient of
+        // atomic energy E_i).
+        for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)-1); ++k)
+        {
+            f(i,0) -= (dEdG(i,k) * dGdr(i,i,k,0) * s->cfforce);
+            f(i,1) -= (dEdG(i,k) * dGdr(i,i,k,1) * s->cfforce);
+            f(i,2) -= (dEdG(i,k) * dGdr(i,i,k,2) * s->cfforce);
+            if (s->normalize) {
+              double convForce = convLength/convEnergy;
+              f(i,0) *= convForce;
+              f(i,1) *= convForce;
+              f(i,2) *= convForce;
             }
         }
+        //std::cout << "dEdG for atom index i: ";
+        //for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)-1); ++k)
+        //  std::cout << dEdG(i,k) << " ";
+        //std::cout << std::endl; 
+
         /*for (vector<size_t>::const_iterator it =
              ai->neighborsUnique.begin() + 1;
              it != ai->neighborsUnique.end(); ++it)
@@ -1021,15 +1039,7 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
                 }
             }
         }*/
-        f(i,0) *= s->cfforce;
-        f(i,1) *= s->cfforce;
-        f(i,2) *= s->cfforce;
-        if (s->normalize) {
-          double convForce = convLength/convEnergy;
-          f(i,0) *= convForce;
-          f(i,1) *= convForce;
-          f(i,2) *= convForce;
-        }
+        //std::cout << "f(i): " << i << " " << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl; 
     }
 
 
