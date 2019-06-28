@@ -51,7 +51,6 @@
 #include <fstream>
 #include <input.h>
 #include <property_temperature.h>
-#include "read_data.h"
 
 ItemizedFile::ItemizedFile () {
   nlines = 0;
@@ -400,11 +399,8 @@ void Input::check_lammps_command(int line) {
   }
   if(strcmp(input_data.words[line][0],"read_data")==0) {
     known = true;
-    const char* lammps_data_file = input_data.words[line][1];
-    printf("Reading lammps\n");
-    read_lammps_data_file(lammps_data_file, system);
-    if (system->do_print) 
-      printf("Read LAMMPS data file\n");
+    read_data_flag = true;
+    lammps_data_file = input_data.words[line][1];
   }  
 
   if(strcmp(input_data.words[line][0],"pair_style")==0) {

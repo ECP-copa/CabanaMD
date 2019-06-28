@@ -191,6 +191,8 @@ class Input {
   int thermo_rate, dumpbinary_rate, correctness_rate;
   bool dumpbinaryflag, correctnessflag;
   char *dumpbinary_path, *reference_path, *correctness_file;
+  char* lammps_data_file;
+  bool read_data_flag = false;
  
 public:
   Input(System* s);

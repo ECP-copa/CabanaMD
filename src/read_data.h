@@ -1,3 +1,14 @@
+/****************************************************************************
+ * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * All rights reserved.                                                     *
+ *                                                                          *
+ * This file is part of the Cabana library. Cabana is distributed under a   *
+ * BSD 3-clause license. For the licensing terms see the LICENSE file in    *
+ * the top-level directory.                                                 *
+ *                                                                          *
+ * SPDX-License-Identifier: BSD-3-Clause                                    *
+ ****************************************************************************/
+
 /* ----------------------------------------------------------------------
    miniMD is a simple, parallel molecular dynamics (MD) code.   miniMD is
    an MD microapplication in the Mantevo project at Sandia National
@@ -37,40 +48,50 @@
 
 using namespace std;
 
-string read_lammps_parse_keyword(ifstream &file, System* s)
+string read_lammps_parse_keyword(ifstream &file)
 {
   // TODO: error checking. Look at setup.cpp
   // proc 0 reads upto non-blank line plus 1 following line
   // eof is set to 1 if any read hits end-of-file
-  string line, keyword;
+  string line;
+  string keyword = "";
   while(1) {
+    //exit if end-of-file is encountered
+    if (file.eof())
+      break;
     getline(file, line);
     //ignore anything after # by getting substring till # (takes care of comment lines too)
     line = line.substr(0, line.find('#'));
     //for non blank lines, skip leading whitespaces and read word
-    int pos = line.find_first_not_of(" \r\t\n");
+    std::size_t pos = line.find_first_not_of(" \r\t\n");
     if (pos != string::npos) {
       keyword = line;
-      if (keyword.compare("Atoms ") || keyword.compare("Velocities ")) 
+      if ((keyword.compare("Atoms ") == 0) || (keyword.compare("Velocities ") == 0) || 
+          (keyword.compare("Atoms") == 0) || (keyword.compare("Velocities") == 0)) 
         return keyword;
       else
-        printf("ERROR: Unknown identifier in data file: %s\n", keyword.data());
+       {
+         printf("ERROR: Unknown identifier in data file: %s\n", keyword.data());
+         return keyword;
+       }
     }
     else
       continue;
   }
+  return keyword;
 }
 
 void read_lammps_header(ifstream &file, System* s)
 {
   string line;
   // skip 1st line of file
-  getline(file, line);
+  if (!getline(file, line))
+    printf("ERROR: could not read line from file. Please check for a valid file and ensure that file path is less than 32 characters\n");
   while(1) {
     
     getline(file, line);
     //skip blank lines
-    int pos = line.find_first_not_of(" \r\t\n");
+    std::size_t pos = line.find_first_not_of(" \r\t\n");
     if (pos == string::npos)
       continue;
     
@@ -116,7 +137,6 @@ void read_lammps_atoms(ifstream &file, System* s)
 {
   string line;
   auto x = Cabana::slice<Positions>(s->xvf);
-  auto v = Cabana::slice<Velocities>(s->xvf);
   auto id = Cabana::slice<IDs>(s->xvf);
   auto type = Cabana::slice<Types>(s->xvf);
   auto q = Cabana::slice<Charges>(s->xvf);
@@ -135,12 +155,27 @@ void read_lammps_atoms(ifstream &file, System* s)
     const char* temp = line.data();
     if (s->atom_style == "atomic") {
       sscanf(temp, "%i %i %lg %lg %lg", &id_tmp, &type_tmp, &x_tmp, &y_tmp, &z_tmp);
-      id(n) = id_tmp; type(n) = type_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
-      q(n) = 0;
+      if((x_tmp >= s->sub_domain_lo_x) &&
+         (y_tmp >= s->sub_domain_lo_y) &&
+         (z_tmp >= s->sub_domain_lo_z) &&
+         (x_tmp <  s->sub_domain_hi_x) &&
+         (y_tmp <  s->sub_domain_hi_y) &&
+         (z_tmp <  s->sub_domain_hi_z) ) { 
+        id(n) = id_tmp; type(n) = type_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
+        q(n) = 0;
+      }
+    getline(file, line); 
     }
     if (s->atom_style == "charge") {
       sscanf(temp, "%i %i %lg %lg %lg %lg", &id_tmp, &type_tmp, &q_tmp, &x_tmp, &y_tmp, &z_tmp);
-      id(n) = id_tmp; type(n) = type_tmp; q(n) = q_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
+      if((x_tmp >= s->sub_domain_lo_x) &&
+         (y_tmp >= s->sub_domain_lo_y) &&
+         (z_tmp >= s->sub_domain_lo_z) &&
+         (x_tmp <  s->sub_domain_hi_x) &&
+         (y_tmp <  s->sub_domain_hi_y) &&
+         (z_tmp <  s->sub_domain_hi_z) ) { 
+        id(n) = id_tmp; type(n) = type_tmp; q(n) = q_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
+      }
     //getline pushed to the end of loop because line already stores the 1st non-blank line
     //after exiting while loop
     getline(file, line); 
@@ -152,11 +187,7 @@ void read_lammps_atoms(ifstream &file, System* s)
 void read_lammps_velocities(ifstream &file, System* s)
 {
   string line;
-  auto x = Cabana::slice<Positions>(s->xvf);
   auto v = Cabana::slice<Velocities>(s->xvf);
-  auto id = Cabana::slice<IDs>(s->xvf);
-  auto type = Cabana::slice<Types>(s->xvf);
-  auto q = Cabana::slice<Charges>(s->xvf);
   
   //skip any empty lines before reading in data
   while (1) {
@@ -176,7 +207,7 @@ void read_lammps_velocities(ifstream &file, System* s)
 }
 
 
-void read_lammps_data_file(const char* filename, System* s) {
+void read_lammps_data_file(const char* filename, System* s, Comm* comm) {
   
   string keyword;
   ifstream file(filename);
@@ -185,23 +216,18 @@ void read_lammps_data_file(const char* filename, System* s) {
   read_lammps_header(file, s);
   
   s->resize(s->N);
-  auto x = Cabana::slice<Positions>(s->xvf);
-  auto v = Cabana::slice<Velocities>(s->xvf);
-  auto id = Cabana::slice<IDs>(s->xvf);
-  auto type = Cabana::slice<Types>(s->xvf);
-  auto q = Cabana::slice<Charges>(s->xvf);
   
   //perform domain decomposition and get access to subdomains
-  //comm->create_domain_decomposition(); //TODO: Look into this 
+  comm->create_domain_decomposition();
   
   // check that exiting string is a valid section keyword
-  keyword = read_lammps_parse_keyword(file, s);
+  keyword = read_lammps_parse_keyword(file);
   
   //read atom information
   read_lammps_atoms(file, s);
   //TODO: catch this error: printf("Must read Atoms before Velocities\n");
   
-  keyword = read_lammps_parse_keyword(file, s);
+  keyword = read_lammps_parse_keyword(file);
   //read velocities
   if(keyword.compare("Velocities") == 0)
     read_lammps_velocities(file, s);
