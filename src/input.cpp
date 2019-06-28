@@ -399,8 +399,6 @@ void Input::check_lammps_command(int line) {
     known = true;
     read_data_flag = true;
     lammps_data_file = input_data.words[line][1];
-    if (system->do_print) 
-      printf("Read LAMMPS data file\n");
   }  
 
   if(strcmp(input_data.words[line][0],"pair_style")==0) {

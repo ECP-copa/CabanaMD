@@ -81,7 +81,8 @@ void read_lammps_header(ifstream &file, System* s)
 {
   string line;
   // skip 1st line of file
-  getline(file, line);
+  if (!getline(file, line))
+    printf("ERROR: could not read line from file. Please check for a valid file and ensure that file path is less than 32 characters\n");
   while(1) {
     
     getline(file, line);
