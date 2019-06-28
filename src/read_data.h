@@ -70,8 +70,10 @@ string read_lammps_parse_keyword(ifstream &file)
           (keyword.compare("Atoms") == 0) || (keyword.compare("Velocities") == 0)) 
         return keyword;
       else
-        printf("ERROR: Unknown identifier in data file: %s\n", keyword.data());
-        return keyword;
+       {
+         printf("ERROR: Unknown identifier in data file: %s\n", keyword.data());
+         return keyword;
+       }
     }
     else
       continue;
