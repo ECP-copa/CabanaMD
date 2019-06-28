@@ -151,6 +151,7 @@ void read_lammps_atoms(ifstream &file, System* s)
   
   T_INT id_tmp, type_tmp;
   T_FLOAT x_tmp, y_tmp, z_tmp, q_tmp; 
+  T_INT counter = 0;
   for (int n=0; n < s->N; n++) {
     const char* temp = line.data();
     if (s->atom_style == "atomic") {
@@ -163,6 +164,7 @@ void read_lammps_atoms(ifstream &file, System* s)
          (z_tmp <  s->sub_domain_hi_z) ) { 
         id(n) = id_tmp; type(n) = type_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
         q(n) = 0;
+        counter++;
       }
     getline(file, line); 
     }
@@ -175,12 +177,15 @@ void read_lammps_atoms(ifstream &file, System* s)
          (y_tmp <  s->sub_domain_hi_y) &&
          (z_tmp <  s->sub_domain_hi_z) ) { 
         id(n) = id_tmp; type(n) = type_tmp; q(n) = q_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
+        counter++;
       }
     //getline pushed to the end of loop because line already stores the 1st non-blank line
     //after exiting while loop
     getline(file, line); 
     }
   }
+  s->N_local = counter;
+  s->N = counter;
 }
 
 

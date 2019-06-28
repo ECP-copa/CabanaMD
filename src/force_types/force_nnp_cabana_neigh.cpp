@@ -105,6 +105,7 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
 void ForceNNP::compute(System* s) {
   //nnp::Mode* mode = new(nnp::Mode);
   nnp_data.resize(s->N_local+s->N_ghost);
+  Kokkos::resize(dGdr,(s->N_local+s->N_ghost),(s->N_local+s->N_ghost));
   mode->calculateSymmetryFunctionGroups(s, nnp_data, dGdr, neigh_list, true);
   mode->calculateAtomicNeuralNetworks(s, nnp_data, true);
   mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, dGdr, neigh_list);
