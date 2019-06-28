@@ -128,7 +128,7 @@ void ItemizedFile::add_line(const char* const line) {
   nlines++;
 }
 
-Input::Input(System* p):system(p),input_data(ItemizedFile()) {
+Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(ItemizedFile()) {
 
   //#ifdef CabanaMD_ENABLE_MPI
   //comm_type = COMM_MPI;
@@ -146,6 +146,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()) {
   nsteps = 0;
   force_coeff_lines = Kokkos::View<int*,Kokkos::HostSpace>("Input::force_coeff_lines",0);
   input_file_type = -1;
+  data_file_type = -1;
 
   thermo_rate = 0;
   dumpbinary_rate = 0;
@@ -329,9 +330,14 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"atom_style")==0) {
     if(strcmp(input_data.words[line][1],"atomic")==0) {
       known = true;
-    } else {
+    }
+    else if(strcmp(input_data.words[line][1], "charge")==0) {
+      known = true;
+      system->atom_style = "charge";
+    } 
+    else {
       if(system->do_print)
-        printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' in CabanaMD\n");
+        printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' and 'charge' in CabanaMD\n");
     }
   }
   if(strcmp(input_data.words[line][0],"lattice")==0) {
@@ -389,6 +395,12 @@ void Input::check_lammps_command(int line) {
     T_V_FLOAT mass = atof(input_data.words[line][2]);
     Kokkos::deep_copy(mass_one,mass);
   }
+  if(strcmp(input_data.words[line][0],"read_data")==0) {
+    known = true;
+    read_data_flag = true;
+    lammps_data_file = input_data.words[line][1];
+  }  
+
   if(strcmp(input_data.words[line][0],"pair_style")==0) {
     if(strcmp(input_data.words[line][1],"lj/cut")==0) {
       known = true;

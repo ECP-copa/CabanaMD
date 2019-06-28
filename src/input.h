@@ -163,6 +163,10 @@ class Input {
   int input_file_type;
   ItemizedFile input_data;
 
+  char* data_file;
+  int data_file_type;
+  ItemizedFile data_file_data;
+  
   double temperature_target;
   int temperature_seed;
 
@@ -188,12 +192,15 @@ class Input {
   int thermo_rate, dumpbinary_rate, correctness_rate;
   bool dumpbinaryflag, correctnessflag;
   char *dumpbinary_path, *reference_path, *correctness_file;
+  char* lammps_data_file;
+  bool read_data_flag = false;
  
 public:
   Input(System* s);
   void read_command_line_args(int argc, char* argv[]);
   void read_file(const char* filename = NULL);
   void read_lammps_file(const char* filename);
+  void read_data_file(const char* filename);
   void check_lammps_command(int line);
   void create_lattice(Comm* comm);
 };

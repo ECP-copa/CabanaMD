@@ -51,6 +51,7 @@
 #include <property_temperature.h>
 #include <property_kine.h>
 #include <property_pote.h>
+#include "read_data.h"
 
 #define MAXPATHLEN 1024
 
@@ -68,30 +69,33 @@ CabanaMD::CabanaMD() {
 
 void CabanaMD::init(int argc, char* argv[]) {
 
-  if(system->do_print)
-    Kokkos::DefaultExecutionSpace::print_configuration(std::cout);
+  if(system->do_print) {
+     Kokkos::DefaultExecutionSpace::print_configuration(std::cout);
+  }
 
   // Lets parse the command line arguments
   input->read_command_line_args(argc,argv);
+  printf("Read command line arguments\n");
   // Read input file
   input->read_file();
+  printf("Read input file\n");
   T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
 
   // Now we know which integrator type to use
   integrator = new Integrator(system);
-  
+
   // Fill some binning
   binning = new Binning(system);
 
   // Create Force Type
   if(false) {}
-#define FORCE_MODULES_INSTANTIATION
-#include<modules_force.h>
-#undef FORCE_MODULES_INSTANTIATION
+  #define FORCE_MODULES_INSTANTIATION
+  #include<modules_force.h>
+  #undef FORCE_MODULES_INSTANTIATION
   else comm->error("Invalid ForceType");
   for(std::size_t line = 0; line < input->force_coeff_lines.dimension_0(); line++) {
-    force->init_coeff(neigh_cutoff,
-                      input->input_data.words[input->force_coeff_lines(line)]);
+   force->init_coeff(neigh_cutoff,
+                    input->input_data.words[input->force_coeff_lines(line)]);
   }
   // Create Communication Submodule
   comm = new Comm(system, neigh_cutoff);
@@ -105,7 +109,9 @@ void CabanaMD::init(int argc, char* argv[]) {
   }
 
   // Ok lets go ahead and create the particles if that didn't happen yet
-  if(system->N == 0)
+  if(system->N == 0 && input->read_data_flag==true)
+    read_lammps_data_file(input->lammps_data_file, system, comm);
+  else if(system->N == 0)
     input->create_lattice(comm);
 
   // Create the Halo
@@ -129,7 +135,7 @@ void CabanaMD::init(int argc, char* argv[]) {
     // Reverse Communicate Force Update on Halo
     comm->update_force();
   }
-  
+
   // Initial output
   int step = 0;
   if(input->thermo_rate > 0) {
@@ -255,7 +261,7 @@ void CabanaMD::run(int nsteps) {
 
     if(input->dumpbinaryflag)
       dump_binary(step);
- 
+   
     if(input->correctnessflag)
       check_correctness(step);
 
@@ -284,10 +290,10 @@ void CabanaMD::dump_binary(int step) {
   // On dump steps print configuration
 
   if(step%input->dumpbinary_rate) return;
-  
+
   FILE* fp;
   T_INT n = system->N_local;
-  
+
   char* filename = new char[MAXPATHLEN];
   sprintf(filename,"%s%s.%010d.%03d",input->dumpbinary_path,
           "/output",step,comm->process_rank());
@@ -318,11 +324,11 @@ void CabanaMD::dump_binary(int step) {
 }
 
 // TODO: 1. Add path to Reference [DONE]
-//       2. Add MPI Rank file ids in Reference [DONE]
-//       3. Move to separate class
-//       4. Add pressure to thermo output
-//       5. basis_offset [DONE]
-//       6. correctness output to file [DONE]
+//     2. Add MPI Rank file ids in Reference [DONE]
+//     3. Move to separate class
+//     4. Add pressure to thermo output
+//     5. basis_offset [DONE]
+//     6. correctness output to file [DONE]
 
 void CabanaMD::check_correctness(int step) {
 
@@ -348,13 +354,13 @@ void CabanaMD::check_correctness(int step) {
     sprintf(str,"Cannot open input file %s",filename);
     //comm->error(str);
   }
-  
+
   fread(&ntmp,sizeof(T_INT),1,fpref);
   if (ntmp != n) {
     //comm->error("Mismatch in current and reference atom counts");
     printf("Mismatch in current and reference atom counts\n");
   }
-  
+
   AoSoA xvf_ref( n );
   auto xref = Cabana::slice<Positions>(xvf_ref);
   auto vref = Cabana::slice<Velocities>(xvf_ref);
@@ -362,14 +368,14 @@ void CabanaMD::check_correctness(int step) {
   auto idref = Cabana::slice<IDs>(xvf_ref);
   auto typeref = Cabana::slice<Types>(xvf_ref);
   auto qref = Cabana::slice<Charges>(xvf_ref);
-  
+
   fread(idref.data(),sizeof(T_INT),n,fpref);
   fread(typeref.data(),sizeof(T_INT),n,fpref); 
   fread(qref.data(),sizeof(T_FLOAT),n,fpref);
   fread(xref.data(),sizeof(T_X_FLOAT),3*n,fpref);
   fread(vref.data(),sizeof(T_V_FLOAT),3*n,fpref);
   fread(fref.data(),sizeof(T_F_FLOAT),3*n,fpref);
-  
+
   xref = Cabana::slice<Positions>(xvf_ref);
   vref = Cabana::slice<Velocities>(xvf_ref);
   fref = Cabana::slice<Forces>(xvf_ref);
