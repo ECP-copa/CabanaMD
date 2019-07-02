@@ -838,12 +838,11 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr
     auto type = Cabana::slice<Types>(s->xvf);
     
     //Atom* a = NULL;
-    Element* e = NULL;
 //#ifdef _OPENMP
 //    #pragma omp parallel for private (a, e)
 //#endif
     //TODO: parallel_for
-    for (size_t i = 0; i < s->N_local; ++i)
+    Kokkos::parallel_for (s->N_local, [=] (const size_t i) 
     {
         // Pointer to atom.
         //a = &(structure.atoms.at(i));
@@ -853,6 +852,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr
         //if (s->hasSymmetryFunctions && !derivatives) continue;
 
         // Get element of atom and set number of symmetry functions.
+        Element* e = NULL;
         e = &(elements.at(type(i)));
         T_INT numSymmetryFunctions = e->numSymmetryFunctions();
         
@@ -878,19 +878,20 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;
         //if (derivatives) a->hasSymmetryFunctionDerivatives = true;
-    }
+    });
 
     // If requested, check extrapolation warnings or update statistics.
     // Needed to shift this out of the loop above to make it thread-safe.
+    Kokkos::fence();
     if (checkExtrapolationWarnings)
     {
-        //TODO: parallel_for
-        for (size_t i = 0; i < s->N_local; ++i)
+        Kokkos::parallel_for (s->N_local, [=] (const size_t i) 
         {
+            Element* e = NULL;
             //a = &(structure.atoms.at(i));
             e = &(elements.at(type(i)));
             e->updateSymmetryFunctionStatistics(s, nnp_data, i);
-        }
+        });
     
     }
     // Remember that symmetry functions of this structure have been calculated.

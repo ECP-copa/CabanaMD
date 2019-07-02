@@ -200,7 +200,7 @@ void CabanaMD::run(int nsteps) {
     std::cout << "forces before verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
-    std::cout << "calculated positions after verlet I: " << std::endl;
+    /*std::cout << "calculated positions after verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
     {
       x(i,0) += v(i,0)*0.0005 + 0.5*f(i,0)*0.0005*0.0005/mass(type(i));
@@ -215,7 +215,7 @@ void CabanaMD::run(int nsteps) {
       v(i,1) += 0.5*f(i,1)*0.0005/mass(type(i));
       v(i,2) += 0.5*f(i,2)*0.0005/mass(type(i));
       std::cout << v(i,0) << " " << v(i,1) << " " << v(i,2) << std::endl;
-    }
+    }*/
     integrate_timer.reset();
     integrator->initial_integrate();
     integrate_time += integrate_timer.seconds();
