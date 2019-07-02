@@ -841,7 +841,6 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr
 //#ifdef _OPENMP
 //    #pragma omp parallel for private (a, e)
 //#endif
-    //TODO: parallel_for
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, [=] (const size_t i) 
     {
         // Pointer to atom.
@@ -927,7 +926,6 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
     auto type = Cabana::slice<Types>(s->xvf);
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
 
-    //TODO: parallel_for
     Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, [=] (const size_t i)
     {
         //const Element* e = &(elements.at(type(i)-1));
@@ -970,8 +968,7 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
 //#ifdef _OPENMP
 //    #pragma omp parallel for private(ai)
 //#endif
-    //TODO: parallel_for
-    for (int i = 0; i < s->N_local; ++i)
+    Kokkos::parallel_for ("Mode::calculateForces", s->N_local, [=] (const size_t i)
     {
         // Set pointer to atom.
         //ai = &(structure.atoms.at(i));
@@ -1053,7 +1050,7 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
                 }
             }
         }*/
-    }
+    });
 
     //for (int i = 0; i < s->N_local; ++i)
     //  std::cout << "f(i): " << i << " " << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl; 
