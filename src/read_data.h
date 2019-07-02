@@ -162,7 +162,7 @@ void read_lammps_atoms(ifstream &file, System* s)
          (x_tmp <  s->sub_domain_hi_x) &&
          (y_tmp <  s->sub_domain_hi_y) &&
          (z_tmp <  s->sub_domain_hi_z) ) { 
-        id(n) = id_tmp; type(n) = type_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
+        id(n) = id_tmp; type(n) = type_tmp-1; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
         q(n) = 0;
         counter++;
       }
@@ -176,7 +176,7 @@ void read_lammps_atoms(ifstream &file, System* s)
          (x_tmp <  s->sub_domain_hi_x) &&
          (y_tmp <  s->sub_domain_hi_y) &&
          (z_tmp <  s->sub_domain_hi_z) ) { 
-        id(n) = id_tmp; type(n) = type_tmp; q(n) = q_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
+        id(n) = id_tmp; type(n) = type_tmp-1; q(n) = q_tmp; x(n,0) = x_tmp; x(n,1) = y_tmp; x(n,2) = z_tmp;
         counter++;
       }
     //getline pushed to the end of loop because line already stores the 1st non-blank line

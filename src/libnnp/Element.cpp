@@ -363,7 +363,7 @@ void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_d
 void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_INT atomindex)
 {
     auto type = Cabana::slice<TypeNames::Types>(s->xvf);
-    if (type(atomindex)-1 != index)
+    if (type(atomindex) != index)
     {
         throw runtime_error("ERROR: Atom has a different element index.\n");
     }

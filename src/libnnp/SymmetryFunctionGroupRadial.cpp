@@ -187,7 +187,7 @@ void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA_NNP nnp_data, t_dGd
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij); 
         
-        if (e1 == type(j)-1 && rij < rc)
+        if (e1 == type(j) && rij < rc)
         {
             // Energy calculation.
             // Calculate cutoff function and derivative.

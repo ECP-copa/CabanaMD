@@ -208,7 +208,7 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data
     {
         //Atom::Neighbor& nj = atom.neighbors[j];
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
-        size_t const nej = type(j)-1;
+        size_t const nej = type(j);
         
         T_F_FLOAT dxij = x(i,0) - x(j,0);
         T_F_FLOAT dyij = x(i,1) - x(j,1);
@@ -257,7 +257,7 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data
             {
                 int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
                 //Atom::Neighbor& nk = atom.neighbors[k];
-                size_t const nek = type(k)-1;
+                size_t const nek = type(k);
                 
                 if ((e1 == nej && e2 == nek) ||
                     (e2 == nej && e1 == nek))

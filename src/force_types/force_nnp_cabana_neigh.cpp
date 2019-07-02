@@ -116,6 +116,7 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
     T_V_FLOAT system_energy=0.0;
     // Loop over all atoms and add atomic contributions to total energy.
+    //TODO: parallel_for
     for (int i = 0; i < energy.size(); ++i)
     {
         //std::cout << "i = " << energy(i) << std::endl;

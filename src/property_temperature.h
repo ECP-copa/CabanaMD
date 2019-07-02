@@ -67,6 +67,6 @@ class Temperature {
     
     KOKKOS_INLINE_FUNCTION
     void operator() (const T_INT& i, T_V_FLOAT& T) const {
-      T += (v(i,0)*v(i,0) + v(i,1)*v(i,1) + v(i,2)*v(i,2)) * mass(type(i)-1);
+      T += (v(i,0)*v(i,0) + v(i,1)*v(i,1) + v(i,2)*v(i,2)) * mass(type(i));
     }
 };
