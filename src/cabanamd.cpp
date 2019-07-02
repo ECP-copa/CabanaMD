@@ -149,7 +149,7 @@ void CabanaMD::init(int argc, char* argv[]) {
       if (!system->print_lammps) {
         printf("\n");
         printf("#Timestep Temperature PotE ETot Time Atomsteps/s\n");
-        printf("%i %lf %lf %lf %lf %e\n",step,T,PE,PE+KE,0.0,0.0);
+        printf("LOL %i %lf %lf %lf %lf %e\n",step,T,PE,PE+KE,0.0,0.0);
       } else {
         printf("\n");
         printf("Step Temp E_pair TotEng CPU\n");
@@ -190,35 +190,21 @@ void CabanaMD::run(int nsteps) {
   for(int step = 1; step <= nsteps; step++ ) {
     
     // Do first part of the verlet time step integration 
-    std::cout << "TIMESTEP: " << system->dt << std::endl;
-    std::cout << "positions before verlet I: " << std::endl;
+    /*std::cout << "positions before verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl;
     std::cout << "velocities before verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << v(i,0) << " " << v(i,1) << " " << v(i,2) << std::endl;
+    */
     std::cout << "forces before verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
-    /*std::cout << "calculated positions after verlet I: " << std::endl;
-    for(int i=0; i< system->N; i++)
-    {
-      x(i,0) += v(i,0)*0.0005 + 0.5*f(i,0)*0.0005*0.0005/mass(type(i));
-      x(i,1) += v(i,1)*0.0005 + 0.5*f(i,1)*0.0005*0.0005/mass(type(i));
-      x(i,2) += v(i,2)*0.0005 + 0.5*f(i,2)*0.0005*0.0005/mass(type(i));
-      std::cout << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl;
-    }
-    std::cout << "calculated velocities after verlet I: " << std::endl;
-    for(int i=0; i< system->N; i++)
-    {
-      v(i,0) += 0.5*f(i,0)*0.0005/mass(type(i));
-      v(i,1) += 0.5*f(i,1)*0.0005/mass(type(i));
-      v(i,2) += 0.5*f(i,2)*0.0005/mass(type(i));
-      std::cout << v(i,0) << " " << v(i,1) << " " << v(i,2) << std::endl;
-    }*/
+    
     integrate_timer.reset();
     integrator->initial_integrate();
     integrate_time += integrate_timer.seconds();
+    /*
     std::cout << "positions after verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl;
@@ -228,6 +214,7 @@ void CabanaMD::run(int nsteps) {
     std::cout << "forces after verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
+    */
     if(step%input->comm_exchange_rate==0 && step >0) {
       // Exchange particles
       comm_timer.reset();
@@ -260,6 +247,9 @@ void CabanaMD::run(int nsteps) {
     auto f = Cabana::slice<Forces>(system->xvf);
     Cabana::deep_copy(f, 0.0);
 
+    //std::cout << "forces before verlet II: " << std::endl;
+    //for(int i=0; i< system->N; i++)
+    //  std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
     // Compute Short Range Force
     force->compute(system);
     force_time += force_timer.seconds();
@@ -274,10 +264,13 @@ void CabanaMD::run(int nsteps) {
     }
 
     // Do second part of the verlet time step integration 
+    //std::cout << "forces before verlet II: " << std::endl;
+    //for(int i=0; i< system->N; i++)
+    //  std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
     integrate_timer.reset();
     integrator->final_integrate();
     integrate_time += integrate_timer.seconds();
-    std::cout << "positions after verlet II: " << std::endl;
+    /*std::cout << "positions after verlet II: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl;
     std::cout << "velocities after verlet II: " << std::endl;
@@ -286,7 +279,7 @@ void CabanaMD::run(int nsteps) {
     std::cout << "forces after verlet II: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
-
+    */
     other_timer.reset();
     // On output steps print output
     if(step%input->thermo_rate==0) {
@@ -296,7 +289,7 @@ void CabanaMD::run(int nsteps) {
       if(system->do_print) {
         if (!system->print_lammps) {
           double time = timer.seconds();
-          printf("%i %lf %lf %lf %lf %e\n",step, T, PE, PE+KE, timer.seconds(),1.0*system->N*input->thermo_rate/(time-last_time));
+          printf("LOL %i %lf %lf %lf %lf %e\n",step, T, PE, PE+KE, timer.seconds(),1.0*system->N*input->thermo_rate/(time-last_time));
           last_time = time;
         } else {
           double time = timer.seconds();

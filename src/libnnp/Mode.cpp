@@ -1001,8 +1001,8 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
                   added_term_i_j_2 -= (dEdG(i,k) * dGdr(i,j,k,2) * s->cfforce * convForce);
                 }
             }
-            std::cout << added_term_i_j_0 << " " << added_term_i_j_1 << " " << added_term_i_j_2 << std::endl; 
-            //std::cout << "f(j): " << j << " " << f(j,0) << " " << f(j,1) << " " << f(j,2) << std::endl; 
+            if (j == 0)
+              std::cout << "f(0): " << " " << f(j,0) << " " << f(j,1) << " " << f(j,2) << std::endl; 
         }
         
         // First add force contributions from atom i itself (gradient of
@@ -1023,7 +1023,7 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
             }
         }
         if (i == 0)
-          std::cout << added_term_i_i_0 << " " << added_term_i_i_1 << " " << added_term_i_i_2 << std::endl; 
+          std::cout << "f(0): " << " " << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl; 
         //std::cout << "dEdG for atom index i: ";
         //for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
         //  std::cout << dEdG(i,k) << " ";
