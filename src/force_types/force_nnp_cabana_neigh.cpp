@@ -116,20 +116,12 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
     T_V_FLOAT system_energy=0.0;
     // Loop over all atoms and add atomic contributions to total energy.
-    //TODO: parallel_for
-    for (int i = 0; i < energy.size(); ++i)
+    Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", s->N_local, [=] (const size_t i, T_V_FLOAT & updated_energy)
     {
-        //std::cout << "i = " << energy(i) << std::endl;
-        system_energy += energy(i);
-    }
-
-  /*if(half_neigh)
-    Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", t_policy_half_neigh_pe_stackparams(0, system->N_local), *this, energy);
-  else
-    Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", t_policy_full_neigh_pe_stackparams(0, system->N_local), *this, energy);
+        updated_energy += energy(i);
+    }, system_energy);
 
   Kokkos::fence();
-  */
   system_energy /= s->cfenergy;
   if (s->normalize)
     system_energy /= s->convEnergy;
