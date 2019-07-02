@@ -56,7 +56,6 @@ PotE::PotE(Comm* comm_):comm(comm_) {}
 T_F_FLOAT PotE::compute(System* system, Force* force) {
   T_F_FLOAT PE; 
   PE = force->compute_energy(system);
-  std::cout << "Computed energy = " << PE << std::endl;
   comm->reduce_float(&PE,1);
   return PE;
 }

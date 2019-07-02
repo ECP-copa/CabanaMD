@@ -149,7 +149,7 @@ void CabanaMD::init(int argc, char* argv[]) {
       if (!system->print_lammps) {
         printf("\n");
         printf("#Timestep Temperature PotE ETot Time Atomsteps/s\n");
-        printf("LOL %i %lf %lf %lf %lf %e\n",step,T,PE,PE+KE,0.0,0.0);
+        printf("%i %lf %lf %lf %lf %e\n",step,T,PE,PE+KE,0.0,0.0);
       } else {
         printf("\n");
         printf("Step Temp E_pair TotEng CPU\n");
@@ -196,10 +196,10 @@ void CabanaMD::run(int nsteps) {
     std::cout << "velocities before verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << v(i,0) << " " << v(i,1) << " " << v(i,2) << std::endl;
-    */
     std::cout << "forces before verlet I: " << std::endl;
     for(int i=0; i< system->N; i++)
       std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
+    */
     
     integrate_timer.reset();
     integrator->initial_integrate();
@@ -289,7 +289,7 @@ void CabanaMD::run(int nsteps) {
       if(system->do_print) {
         if (!system->print_lammps) {
           double time = timer.seconds();
-          printf("LOL %i %lf %lf %lf %lf %e\n",step, T, PE, PE+KE, timer.seconds(),1.0*system->N*input->thermo_rate/(time-last_time));
+          printf("%i %lf %lf %lf %lf %e\n",step, T, PE, PE+KE, timer.seconds(),1.0*system->N*input->thermo_rate/(time-last_time));
           last_time = time;
         } else {
           double time = timer.seconds();
