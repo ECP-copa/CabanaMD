@@ -842,7 +842,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr
 //    #pragma omp parallel for private (a, e)
 //#endif
     //TODO: parallel_for
-    Kokkos::parallel_for (s->N_local, [=] (const size_t i) 
+    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, [=] (const size_t i) 
     {
         // Pointer to atom.
         //a = &(structure.atoms.at(i));
@@ -885,7 +885,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr
     Kokkos::fence();
     if (checkExtrapolationWarnings)
     {
-        Kokkos::parallel_for (s->N_local, [=] (const size_t i) 
+        Kokkos::parallel_for ("Mode::checkExtrapolationWarnings", s->N_local, [=] (const size_t i) 
         {
             Element* e = NULL;
             //a = &(structure.atoms.at(i));
@@ -928,7 +928,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
 
     //TODO: parallel_for
-    for (int i = 0; i < s->N_local; ++i)
+    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, [=] (const size_t i)
     {
         //const Element* e = &(elements.at(type(i)-1));
         Element const& e = elements.at(type(i));
@@ -936,7 +936,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
         e.neuralNetwork->propagate();
         if (derivatives) e.neuralNetwork->calculateDEdG(nnp_data,i);
         energy(i) = e.neuralNetwork->getOutput();
-    }
+    });
 
     return;
 }
