@@ -227,7 +227,7 @@ public:
      */
     void                     calculateSymmetryFunctionGroups(
                                                        System* s, AoSoA_NNP nnp_data, 
-                                                       t_dGdr dGdr, t_verletlist_full_2D neigh_list, 
+                                                       t_verletlist_full_2D neigh_list, 
                                                        bool const derivatives);
     /** Calculate atomic neural networks for all atoms in given structure.
      *
@@ -259,7 +259,7 @@ public:
      * computation to atomic forces. Results are stored in Atom::f.
      */
     void                     calculateForces(System* s, t_mass numSymmetryFunctionsPerElement, 
-                                             AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list) const;
+                                             AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list) const;
     /* Add atomic energy offsets to reference energy.
      *
      * @param[in] structure Input structure.

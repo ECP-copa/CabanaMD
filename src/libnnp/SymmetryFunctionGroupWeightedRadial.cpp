@@ -137,7 +137,7 @@ void SymmetryFunctionGroupWeightedRadial::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minmized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupWeightedRadial::calculate(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list,
+void SymmetryFunctionGroupWeightedRadial::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                                     T_INT i, bool const derivatives) const
 {
 
@@ -203,8 +203,61 @@ void SymmetryFunctionGroupWeightedRadial::calculate(System* s, AoSoA_NNP nnp_dat
                 double pexp = elementMap.atomicNumber(type(j))
                             * exp(-eta[k] * (rij - rs[k]) * (rij - rs[k]));
                 result[k] += pexp * pfc;
+            }
+        }
+    }
+
+    for (size_t k = 0; k < members.size(); ++k)
+    {
+        G(i,memberIndex[k]) = members[k]->scale(result[k]);
+    }
+
+    delete[] result;
+
+    return;
+}
+
+void SymmetryFunctionGroupWeightedRadial::calculate_derivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
+{
+
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
+    
+    int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+    double const rc2 = rc * rc;
+    size_t numNeighbors = num_neighs;
+    
+    for (size_t jj = 0; jj < numNeighbors; ++jj)
+    {
+        int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+        T_F_FLOAT dxij = x(i,0) - x(j,0);
+        T_F_FLOAT dyij = x(i,1) - x(j,1);
+        T_F_FLOAT dzij = x(i,2) - x(j,2);
+        dxij *= s->cflength;
+        dyij *= s->cflength;
+        dzij *= s->cflength;
+        
+        if (s->normalize) {
+          dxij *= s->convLength;
+          dyij *= s->convLength;
+          dzij *= s->convLength;
+        }
+        double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
+        double const rij = sqrt(r2ij); 
+        if (rij < rc)
+        {
+            // Energy calculation.
+            // Calculate cutoff function and derivative.
+            double pfc;
+            double pdfc;
+            fc.fdf(rij, pfc, pdfc);
+            //double const* const d1 = n.dr.r;
+            for (size_t k = 0; k < members.size(); ++k)
+            {
+                double pexp = elementMap.atomicNumber(type(j))
+                            * exp(-eta[k] * (rij - rs[k]) * (rij - rs[k]));
                 // Force calculation.
-                if (!derivatives) continue;
                 double const p1 = scalingFactors[k] * (pdfc - 2.0 * eta[k]
                                 * (rij - rs[k]) * pfc) * pexp / rij;
                 // SIMPLE EXPRESSIONS:
@@ -219,23 +272,16 @@ void SymmetryFunctionGroupWeightedRadial::calculate(System* s, AoSoA_NNP nnp_dat
                 //atom.dGdr[ki]              += dij;
                 //atom.neighbors[j].dGdr[ki] -= dij;
 
-                dGdr(i,i,ki,0) += (p1*dxij);
-                dGdr(i,i,ki,1) += (p1*dyij);
-                dGdr(i,i,ki,2) += (p1*dzij);
+                dGdr(i,ki,0) += (p1*dxij);
+                dGdr(i,ki,1) += (p1*dyij);
+                dGdr(i,ki,2) += (p1*dzij);
 
-                dGdr(i,j,ki,0) -= (p1*dxij);
-                dGdr(i,j,ki,1) -= (p1*dyij);
-                dGdr(i,j,ki,2) -= (p1*dzij);
+                dGdr(j,ki,0) -= (p1*dxij);
+                dGdr(j,ki,1) -= (p1*dyij);
+                dGdr(j,ki,2) -= (p1*dzij);
             }
         }
     }
-
-    for (size_t k = 0; k < members.size(); ++k)
-    {
-        G(i,memberIndex[k]) = members[k]->scale(result[k]);
-    }
-
-    delete[] result;
 
     return;
 }

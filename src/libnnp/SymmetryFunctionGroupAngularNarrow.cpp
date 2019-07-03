@@ -182,7 +182,7 @@ void SymmetryFunctionGroupAngularNarrow::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minimized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, 
+void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data, 
                                                    t_verletlist_full_2D neigh_list,
                                                    T_INT i, bool const derivatives) const
 {
@@ -367,6 +367,169 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data
 
                                 // Force calculation.
                                 if (!derivatives) continue;
+                            } // l
+                        } // rjk <= rc
+                    } // rik <= rc
+                } // elem
+            } // k
+        } // rij <= rc
+    } // j
+
+    for (size_t l = 0; l < members.size(); ++l)
+    {
+        result[l] *= factorNorm[l] / scalingFactors[l];
+        G(i,memberIndex[l]) = members[l]->scale(result[l]);
+    }
+
+    delete[] result;
+
+    return;
+}
+
+void SymmetryFunctionGroupAngularNarrow::calculate_derivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, 
+                                                   t_verletlist_full_2D neigh_list,
+                                                   T_INT i) const
+{
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto id = Cabana::slice<IDs>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
+ 
+    int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+    double const rc2 = rc * rc;
+    size_t numNeighbors = num_neighs; 
+    // Prevent problematic condition in loop test below (j < numNeighbors - 1).
+    if (numNeighbors == 0) numNeighbors = 1;
+
+    for (size_t jj = 0; jj < numNeighbors - 1; jj++)
+    {
+        int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+        size_t const nej = type(j);
+        
+        T_F_FLOAT dxij = x(i,0) - x(j,0);
+        T_F_FLOAT dyij = x(i,1) - x(j,1);
+        T_F_FLOAT dzij = x(i,2) - x(j,2);
+        dxij *= s->cflength;
+        dyij *= s->cflength;
+        dzij *= s->cflength;
+        
+        if (s->normalize) {
+          dxij *= s->convLength;
+          dyij *= s->convLength;
+          dzij *= s->convLength;
+        }
+        double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
+        double const rij = sqrt(r2ij);
+        
+        if ((e1 == nej || e2 == nej) && rij < rc)
+        {
+            // Calculate cutoff function and derivative.
+            double pfcij;
+            double pdfcij;
+            fc.fdf(rij, pfcij, pdfcij);
+            // SIMPLE EXPRESSIONS:
+            //Vec3D const drij(atom.neighbors[j].dr);
+            //double const* const dr1 = drij.r;
+
+            for (size_t kk = jj + 1; kk < numNeighbors; kk++)
+            {
+                int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
+                //Atom::Neighbor& nk = atom.neighbors[k];
+                size_t const nek = type(k);
+                
+                if ((e1 == nej && e2 == nek) ||
+                    (e2 == nej && e1 == nek))
+                {
+                    T_F_FLOAT dxik = x(i,0) - x(k,0);
+                    T_F_FLOAT dyik = x(i,1) - x(k,1);
+                    T_F_FLOAT dzik = x(i,2) - x(k,2);
+                    dxik *= s->cflength;
+                    dyik *= s->cflength;
+                    dzik *= s->cflength;
+                    
+                    if (s->normalize) {
+                      dxik *= s->convLength;
+                      dyik *= s->convLength;
+                      dzik *= s->convLength;
+                    }
+                    double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
+                    double const rik = sqrt(r2ik);
+                
+                    if (rik < rc)
+                    {
+                        // SIMPLE EXPRESSIONS:
+                        //Vec3D const drjk(atom.neighbors[k].dr
+                        //               - atom.neighbors[j].dr);
+                        //double rjk = drjk.norm2();
+                        double dxjk = dxik - dxij;
+                        double dyjk = dyik - dyij;
+                        double dzjk = dzik - dzij;
+                        double r2jk = dxjk*dxjk + dyjk*dyjk + dzjk*dzjk; 
+                        if (r2jk < rc2)
+                        {
+                            // Energy calculation.
+                            double pfcik;
+                            double pdfcik;
+                            fc.fdf(rik, pfcik, pdfcik);
+                            double rjk = sqrt(r2jk);
+
+                            double pfcjk;
+                            double pdfcjk;
+                            fc.fdf(rjk, pfcjk, pdfcjk);
+
+                            // SIMPLE EXPRESSIONS:
+                            //Vec3D const drik(atom.neighbors[k].dr);
+                            //double const* const dr2 = drik.r;
+                            //double const* const dr3 = drjk.r;
+                            double const rinvijik = 1.0 / rij / rik;
+                            // SIMPLE EXPRESSIONS:
+                            //double const costijk = (drij * drik) * rinvijik;
+                
+                            double const costijk = (dxij*dxik + dyij*dyik + dzij*dzik)* rinvijik;
+                            double const pfc = pfcij * pfcik * pfcjk;
+                            double const r2sum = r2ij + r2ik + r2jk;
+                            double const pr1 = pfcik * pfcjk * pdfcij / rij;
+                            double const pr2 = pfcij * pfcjk * pdfcik / rik;
+                            double const pr3 = pfcij * pfcik * pdfcjk / rjk;
+                            double vexp = 0.0;
+                            double rijs = 0.0;
+                            double riks = 0.0;
+                            double rjks = 0.0;
+                            for (size_t l = 0; l < members.size(); ++l)
+                            {
+                                if (calculateExp[l])
+                                {
+                                    if (rs[l] > 0.0)
+                                    {
+                                        rijs = rij - rs[l];
+                                        riks = rik - rs[l];
+                                        rjks = rjk - rs[l];
+                                        vexp = exp(-eta[l] * (rijs * rijs
+                                                            + riks * riks
+                                                            + rjks * rjks));
+                                    }
+                                    else
+                                    {
+                                        vexp = exp(-eta[l] * r2sum);
+                                    }
+                                }
+                                double const plambda = 1.0
+                                                     + lambda[l] * costijk;
+                                double fg = vexp;
+                                if (plambda <= 0.0) fg = 0.0;
+                                else
+                                {
+                                    if (useIntegerPow[l])
+                                    {
+                                        fg *= pow_int(plambda, zetaInt[l] - 1);
+                                    }
+                                    else
+                                    {
+                                        fg *= pow(plambda, zeta[l] - 1.0);
+                                    }
+                                }
+
+                                // Force calculation.
                                 fg *= factorNorm[l];
                                 double const pfczl = pfc * zetaLambda[l];
                                 double const p2etapl = plambda * factorDeriv[l];
@@ -416,19 +579,18 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data
                                 double const p3drjkx = p3 * dxjk;
                                 double const p3drjky = p3 * dyjk;
                                 double const p3drjkz = p3 * dzjk;*/
-
                                 size_t const li = memberIndex[l];
-                                dGdr(i,i,li,0) += (p1*dxij + p2*dxik);
-                                dGdr(i,i,li,1) += (p1*dyij + p2*dyik);
-                                dGdr(i,i,li,2) += (p1*dzij + p2*dzik);
+                                dGdr(i,li,0) += (p1*dxij + p2*dxik);
+                                dGdr(i,li,1) += (p1*dyij + p2*dyik);
+                                dGdr(i,li,2) += (p1*dzij + p2*dzik);
 
-                                dGdr(i,j,li,0) -= (p1*dxij + p3*dxjk);
-                                dGdr(i,j,li,1) -= (p1*dyij + p3*dyjk);
-                                dGdr(i,j,li,2) -= (p1*dzij + p3*dzjk);
+                                dGdr(j,li,0) -= (p1*dxij + p3*dxjk);
+                                dGdr(j,li,1) -= (p1*dyij + p3*dyjk);
+                                dGdr(j,li,2) -= (p1*dzij + p3*dzjk);
 
-                                dGdr(i,k,li,0) -= (p2*dxik - p3*dxjk);
-                                dGdr(i,k,li,1) -= (p2*dyik - p3*dyjk);
-                                dGdr(i,k,li,2) -= (p2*dzik - p3*dzjk);
+                                dGdr(k,li,0) -= (p2*dxik - p3*dxjk);
+                                dGdr(k,li,1) -= (p2*dyik - p3*dyjk);
+                                dGdr(k,li,2) -= (p2*dzik - p3*dzjk);
                             } // l
                         } // rjk <= rc
                     } // rik <= rc
@@ -437,16 +599,10 @@ void SymmetryFunctionGroupAngularNarrow::calculate(System* s, AoSoA_NNP nnp_data
         } // rij <= rc
     } // j
 
-    for (size_t l = 0; l < members.size(); ++l)
-    {
-        result[l] *= factorNorm[l] / scalingFactors[l];
-        G(i,memberIndex[l]) = members[l]->scale(result[l]);
-    }
-
-    delete[] result;
-
     return;
 }
+
+
 
 vector<string> SymmetryFunctionGroupAngularNarrow::parameterLines() const
 {

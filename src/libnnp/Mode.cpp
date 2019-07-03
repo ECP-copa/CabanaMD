@@ -827,7 +827,7 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
     return;
 }
 
-void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr,
+void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data,
                                            t_verletlist_full_2D neigh_list, bool const derivatives)
 {
     // Skip calculation for whole structure if results are already saved.
@@ -872,7 +872,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_dGdr
         //allocate(s, numSymmetryFunctions, derivatives);
         
         // Calculate symmetry functions (and derivatives).
-        e->calculateSymmetryFunctionGroups(s, nnp_data, dGdr, neigh_list, i, derivatives);
+        e->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, i, derivatives);
 
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;
@@ -953,7 +953,7 @@ void Mode::calculateEnergy(Structure& structure) const
 }
 
 void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement, 
-                           AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list) const
+                           AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list) const
 {
 
     auto f = Cabana::slice<Forces>(s->xvf);
@@ -980,6 +980,12 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
         // that the same contributions are added multiple times use the
         // "unique neighbor" list (but skip the first entry, this is always
         // atom i itself).
+        const Element* e = NULL;
+        e = &(elements.at(type(i)));
+        //Reset dGdr to zero
+        t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
+        e->calculateSymmetryFunctionGroupDerivatives(s, nnp_data, dGdr, neigh_list, i);
+        
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     
         for (size_t jj = 0; jj < num_neighs; ++jj)
@@ -987,9 +993,9 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
             int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
             for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
             {
-                f(j,0) -= (dEdG(i,k) * dGdr(i,j,k,0) * s->cfforce * convForce);
-                f(j,1) -= (dEdG(i,k) * dGdr(i,j,k,1) * s->cfforce * convForce);
-                f(j,2) -= (dEdG(i,k) * dGdr(i,j,k,2) * s->cfforce * convForce);
+                f(j,0) -= (dEdG(i,k) * dGdr(j,k,0) * s->cfforce * convForce);
+                f(j,1) -= (dEdG(i,k) * dGdr(j,k,1) * s->cfforce * convForce);
+                f(j,2) -= (dEdG(i,k) * dGdr(j,k,2) * s->cfforce * convForce);
             }
         }
         
@@ -997,9 +1003,9 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
         // atomic energy E_i).
         for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
         {
-            f(i,0) -= (dEdG(i,k) * dGdr(i,i,k,0) * s->cfforce * convForce);
-            f(i,1) -= (dEdG(i,k) * dGdr(i,i,k,1) * s->cfforce * convForce);
-            f(i,2) -= (dEdG(i,k) * dGdr(i,i,k,2) * s->cfforce * convForce);
+            f(i,0) -= (dEdG(i,k) * dGdr(i,k,0) * s->cfforce * convForce);
+            f(i,1) -= (dEdG(i,k) * dGdr(i,k,1) * s->cfforce * convForce);
+            f(i,2) -= (dEdG(i,k) * dGdr(i,k,2) * s->cfforce * convForce);
         }
 
         /*for (vector<size_t>::const_iterator it =

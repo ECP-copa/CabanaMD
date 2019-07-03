@@ -130,7 +130,7 @@ public:
   /// AoSoAs of use to compute energy and force
   /// Allow storage of G, dEdG and energy (per atom properties)
   AoSoA_NNP nnp_data;
-  //dGdr (NxNxMAX_SFx3)
+  //dGdr (NxMAX_SFx3)
   t_dGdr dGdr;
   //numSymmetryFunctionsPerElement (per type property)
   t_mass numSymmetryFunctionsPerElement;
