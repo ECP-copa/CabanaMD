@@ -103,7 +103,7 @@ public:
   struct TagExchangePack {};
   
   struct TagHaloPack {};
-  struct TagHaloPackPBC {};
+  struct TagHaloPBC {};
   struct TagHaloUpdatePBC {};
 
   Comm(System* s, T_X_FLOAT comm_depth_);
@@ -264,58 +264,49 @@ public:
   }
 
   // Wrap atoms after halo exchange
+  // (after MPI, from the perspective of receiving rank)
   KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloPackPBC,
+  void operator() (const TagHaloPBC,
                    const T_INT& i) const {
     if(phase == 0) {
-      if( x(i,0)>=s.sub_domain_hi_x - comm_depth ) {
-        if(proc_pos[0] == 0)
-          x(i,0) -= s.domain_x;
-      }
+      if(proc_pos[0] == 0)
+        x(i,0) -= s.domain_x;
     }
     if(phase == 1) {
-      if( x(i,0)<=s.sub_domain_lo_x + comm_depth ) {
-        if(proc_pos[0] == proc_grid[0]-1)
-          x(i,0) += s.domain_x;
-      }
+      if(proc_pos[0] == proc_grid[0]-1)
+        x(i,0) += s.domain_x;
     }
     if(phase == 2) {
-      if( x(i,1)>=s.sub_domain_hi_y - comm_depth ) {
-        if(proc_pos[1] == 0)
-          x(i,1) -= s.domain_y;
-      }
+      if(proc_pos[1] == 0)
+        x(i,1) -= s.domain_y;
     }
     if(phase == 3) {
-      if( x(i,1)<=s.sub_domain_lo_y + comm_depth ) {
-        if(proc_pos[1] == proc_grid[1]-1)
-          x(i,1) += s.domain_y;
-      }
+      if(proc_pos[1] == proc_grid[1]-1)
+        x(i,1) += s.domain_y;
     }
     if(phase == 4) {
-      if( x(i,2)>=s.sub_domain_hi_z - comm_depth ) {
-        if(proc_pos[2] == 0)
-          x(i,2) -= s.domain_z;
-      }
+      if(proc_pos[2] == 0)
+        x(i,2) -= s.domain_z;
     }
     if(phase == 5) {
-      if( x(i,2)<=s.sub_domain_lo_z + comm_depth ) {
-        if(proc_pos[2] == proc_grid[2]-1)
-          x(i,2) += s.domain_z;
-      }
+      if(proc_pos[2] == proc_grid[2]-1)
+        x(i,2) += s.domain_z;
     }
   }
 
+  // Wrap ghosts after update from local counterpart
+  // (after MPI, from the perspective of receiving rank)
   KOKKOS_INLINE_FUNCTION
   void operator() (const TagHaloUpdatePBC,
                    const T_INT& i) const {
 
     switch (phase) {
-      case 0: if(proc_pos[0] == proc_grid[0]-1) x(i,0) -= s.domain_x; break;
-      case 1: if(proc_pos[0] == 0)              x(i,0) += s.domain_x; break;
-      case 2: if(proc_pos[1] == proc_grid[1]-1) x(i,1) -= s.domain_y; break;
-      case 3: if(proc_pos[1] == 0)              x(i,1) += s.domain_y; break;
-      case 4: if(proc_pos[2] == proc_grid[2]-1) x(i,2) -= s.domain_z; break;
-      case 5: if(proc_pos[2] == 0)              x(i,2) += s.domain_z; break;
+      case 0: if(proc_pos[0] == 0)              x(i,0) -= s.domain_x; break;
+      case 1: if(proc_pos[0] == proc_grid[0]-1) x(i,0) += s.domain_x; break;
+      case 2: if(proc_pos[1] == 0)              x(i,1) -= s.domain_y; break;
+      case 3: if(proc_pos[1] == proc_grid[1]-1) x(i,1) += s.domain_y; break;
+      case 4: if(proc_pos[2] == 0)              x(i,2) -= s.domain_z; break;
+      case 5: if(proc_pos[2] == proc_grid[2]-1) x(i,2) += s.domain_z; break;
     }
   }
 

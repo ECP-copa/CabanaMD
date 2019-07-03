@@ -314,7 +314,7 @@ void Comm::exchange_halo() {
 
     Kokkos::deep_copy(pack_count,0);
     Kokkos::parallel_for("CommMPI::halo_exchange_pack_wrap",
-                Kokkos::RangePolicy<TagHaloPackPBC, Kokkos::IndexType<T_INT> >(
+                Kokkos::RangePolicy<TagHaloPBC, Kokkos::IndexType<T_INT> >(
                          halo.numLocal(),halo.numLocal()+halo.numGhost()),
                 *this);
 
