@@ -841,7 +841,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data,
 //#ifdef _OPENMP
 //    #pragma omp parallel for private (a, e)
 //#endif
-    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, [=] (const size_t i) 
+    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
     {
         // Pointer to atom.
         //a = &(structure.atoms.at(i));
@@ -884,7 +884,7 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data,
     Kokkos::fence();
     if (checkExtrapolationWarnings)
     {
-        Kokkos::parallel_for ("Mode::checkExtrapolationWarnings", s->N_local, [=] (const size_t i) 
+        Kokkos::parallel_for ("Mode::checkExtrapolationWarnings", s->N_local, KOKKOS_LAMBDA (const size_t i) 
         {
             Element* e = NULL;
             //a = &(structure.atoms.at(i));
@@ -926,7 +926,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
     auto type = Cabana::slice<Types>(s->xvf);
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
 
-    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, [=] (const size_t i)
+    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
         //const Element* e = &(elements.at(type(i)-1));
         Element const& e = elements.at(type(i));
@@ -968,7 +968,7 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
 //#ifdef _OPENMP
 //    #pragma omp parallel for private(ai)
 //#endif
-    Kokkos::parallel_for ("Mode::calculateForces", s->N_local, [=] (const size_t i)
+    Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
         // Set pointer to atom.
         //ai = &(structure.atoms.at(i));
