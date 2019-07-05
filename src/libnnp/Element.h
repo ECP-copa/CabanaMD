@@ -40,7 +40,7 @@ class Element
 public:
     /** Constructor using index.
      */
-    Element(std::size_t const index, ElementMap const& elementMap);
+    KOKKOS_INLINE_FUNCTION Element(std::size_t const index, ElementMap const& elementMap);
     /** Destructor.
      *
      * Necessary because of #symmetryFunctions vector of pointers.
@@ -156,19 +156,19 @@ public:
      * @param[in] derivatives If symmetry function derivatives will be
      *                        calculated.
      */
-    void                     calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, 
+    KOKKOS_INLINE_FUNCTION void                     calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, 
                                                              t_verletlist_full_2D neigh_list,
                                                              T_INT i, bool const  derivatives) const;
     /** Calculate symmetry function derivatives via groups
      */
-    void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const;
+    KOKKOS_INLINE_FUNCTION void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const;
     /** Update symmetry function statistics.
      *
      * @param[in] atom Atom with symmetry function values.
      *
      * This function checks also for extrapolation warnings.
      */
-    void                     updateSymmetryFunctionStatistics(
+    KOKKOS_INLINE_FUNCTION void                     updateSymmetryFunctionStatistics(
                                                              System* s, AoSoA_NNP nnp_data,
                                                              T_INT i);
     /** Get symmetry function instance.

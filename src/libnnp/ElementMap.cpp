@@ -70,12 +70,14 @@ string ElementMap::getElementsString() const
 
 size_t ElementMap::index(string const& symbol) const
 {
-    return safeFind(forwardMap, symbol);
+    return forwardMap.find(symbol)->second;
+    //return safeFind(forwardMap, symbol);
 }
 
-string ElementMap::symbol(size_t const index) const
+KOKKOS_INLINE_FUNCTION string ElementMap::symbol(size_t const index) const
 {
-    return safeFind(reverseMap, index);
+    return reverseMap.find(index)->second;
+    //return safeFind(reverseMap, index);
 }
 
 void ElementMap::deregisterElements()
@@ -86,7 +88,7 @@ void ElementMap::deregisterElements()
     return;
 }
 
-size_t ElementMap::atomicNumber(string const& symbol)
+KOKKOS_INLINE_FUNCTION size_t ElementMap::atomicNumber(string const& symbol)
 {
     size_t numKnownElements = sizeof(knownElements) / sizeof(*knownElements);
 
@@ -98,7 +100,7 @@ size_t ElementMap::atomicNumber(string const& symbol)
         }
     }
 
-    throw runtime_error("ERROR: Element \"" + symbol + "\" unknown.\n");
+    //throw runtime_error("ERROR: Element \"" + symbol + "\" unknown.\n");
 
     return 0;
 }

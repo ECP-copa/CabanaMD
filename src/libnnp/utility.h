@@ -24,6 +24,7 @@
 #include <stdexcept> // std::range_error
 #include <string>    // std::string
 #include <vector>    // std::vector
+#include <types.h>
 
 namespace nnp
 {

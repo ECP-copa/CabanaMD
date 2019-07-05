@@ -174,7 +174,7 @@ double SymmetryFunction::scale(double value) const
     }
 }
 
-double SymmetryFunction::unscale(double value) const
+KOKKOS_INLINE_FUNCTION double SymmetryFunction::unscale(double value) const
 {
     if (scalingType == ST_NONE)
     {

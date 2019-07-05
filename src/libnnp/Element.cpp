@@ -39,7 +39,7 @@
 using namespace std;
 using namespace nnp;
 
-Element::Element(size_t const index, ElementMap const& elementMap) :
+KOKKOS_INLINE_FUNCTION Element::Element(size_t const index, ElementMap const& elementMap) :
     neuralNetwork     (NULL                          ),
     elementMap        (elementMap                    ),
     index             (index                         ),
@@ -347,7 +347,7 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
     return;
 }
 
-void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
+KOKKOS_INLINE_FUNCTION void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                               T_INT i, bool const derivatives) const
 {
     for (vector<SymmetryFunctionGroup*>::const_iterator
@@ -360,7 +360,7 @@ void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_v
     return;
 }
 
-void Element::calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
+KOKKOS_INLINE_FUNCTION void Element::calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
 {
     for (vector<SymmetryFunctionGroup*>::const_iterator
          it = symmetryFunctionGroups.begin();
@@ -372,13 +372,13 @@ void Element::calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp
     return;
 }
 
-void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_INT atomindex)
+KOKKOS_INLINE_FUNCTION void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_INT atomindex)
 {
     auto type = Cabana::slice<TypeNames::Types>(s->xvf);
-    if (type(atomindex) != index)
+    /*if (type(atomindex) != index)
     {
         throw runtime_error("ERROR: Atom has a different element index.\n");
-    }
+    }*/
 
     /*if (atom.numSymmetryFunctions != symmetryFunctions.size())
     {
@@ -411,7 +411,7 @@ void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_
             }
             if (statistics.writeExtrapolationWarnings)
             {
-                cerr << strpr("### NNP EXTRAPOLATION WARNING ### "
+                /*cerr << strpr("### NNP EXTRAPOLATION WARNING ### "
                               "STRUCTURE: %6zu ATOM: %6zu SYMFUNC: %4zu "
                               "VALUE: %10.3E MIN: %10.3E MAX: %10.3E\n",
                               0,
@@ -420,10 +420,11 @@ void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_
                               value,
                               Gmin,
                               Gmax);
+                */
             }
             if (statistics.stopOnExtrapolationWarnings)
             {
-                throw out_of_range(
+                /*throw out_of_range(
                         strpr("### NNP EXTRAPOLATION WARNING ### "
                               "STRUCTURE: %6zu ATOM: %6zu SYMFUNC: %4zu "
                               "VALUE: %10.3E MIN: %10.3E MAX: %10.3E\n"
@@ -434,6 +435,7 @@ void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_
                               value,
                               Gmin,
                               Gmax));
+                */
             }
         }
     }

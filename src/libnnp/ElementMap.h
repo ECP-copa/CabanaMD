@@ -21,6 +21,7 @@
 #include <map>     // std::map
 #include <string>  // std::string
 #include <vector>  // std::vector
+#include <types.h>
 
 namespace nnp
 {
@@ -62,13 +63,13 @@ public:
      * @param[in] index Element index.
      * @return Element symbol.
      */
-    std::string              symbol(std::size_t const index) const;
+    KOKKOS_INLINE_FUNCTION std::string              symbol(std::size_t const index) const;
     /** Get atomic number from element index.
      *
      * @param[in] index Element index in map.
      * @return Atomic number (proton number Z) of element.
      */
-    std::size_t              atomicNumber(std::size_t index) const;
+    KOKKOS_INLINE_FUNCTION std::size_t              atomicNumber(std::size_t index) const;
     /** Extract all elements and store in element map.
      *
      * @param[in] elementLine String containing all elements, e.g.
