@@ -18,6 +18,7 @@
 #include "Element.h"
 #include "NeuralNetwork.h"
 #include "SymmetryFunction.h"
+#include "SymmetryFunctionHelper.h"
 #include "SymmetryFunctionRadial.h"
 #include "SymmetryFunctionAngularNarrow.h"
 #include "SymmetryFunctionAngularWide.h"
@@ -39,7 +40,7 @@
 using namespace std;
 using namespace nnp;
 
-KOKKOS_INLINE_FUNCTION Element::Element(size_t const index, ElementMap const& elementMap) :
+Element::Element(size_t const index, ElementMap const& elementMap) :
     neuralNetwork     (NULL                          ),
     elementMap        (elementMap                    ),
     index             (index                         ),
@@ -71,57 +72,103 @@ Element::~Element()
 }
 
 void Element::addSymmetryFunction(string const& parameters,
-                                  size_t const& lineNumber)
+                                  size_t const& lineNumber, int attype, t_SF SF, double convLength, int (&countertotal)[2])
 {
     vector<string> args = split(reduce(parameters));
     size_t         type = (size_t)atoi(args.at(1).c_str());
-
+    const char* estring;
+    const char* hstring = "H";
+    const char* ostring = "O";
+    int el;
+    
+    vector<string> splitLine = split(reduce(parameters));
     if (type == 2)
     {
-        symmetryFunctions.push_back(
-            new SymmetryFunctionRadial(elementMap));
+      if (type != (size_t)atoi(splitLine.at(1).c_str()))
+          throw runtime_error("ERROR: Incorrect symmetry function type.\n");
+      
+      estring = splitLine.at(0).c_str();
+      if (strcmp(estring, hstring) == 0) el = 0;
+      else if (strcmp(estring, ostring) == 0) el = 1;
+      SF(attype,countertotal[attype],0) = el; //ec 
+      SF(attype,countertotal[attype],1) = type; //type
+      
+      estring = splitLine.at(2).c_str();
+      if (strcmp(estring, hstring) == 0) el = 0;
+      else if (strcmp(estring, ostring) == 0) el = 1;
+      SF(attype,countertotal[attype],2) = el; //e1
+      
+      SF(attype,countertotal[attype],4) = atof(splitLine.at(3).c_str())/(convLength*convLength); //eta
+      SF(attype,countertotal[attype],8) = atof(splitLine.at(4).c_str())*convLength; //rs
+      SF(attype,countertotal[attype],7) = atof(splitLine.at(5).c_str())*convLength; //rc
+      
+      countertotal[attype]++;
     }
+    
     else if (type == 3)
     {
-        symmetryFunctions.push_back(
-            new SymmetryFunctionAngularNarrow(elementMap));
+      if (type != (size_t)atoi(splitLine.at(1).c_str()))
+          throw runtime_error("ERROR: Incorrect symmetry function type.\n");
+      estring = splitLine.at(0).c_str();
+      if (strcmp(estring, hstring) == 0) el = 0;
+      else if (strcmp(estring, ostring) == 0) el = 1;
+      SF(attype,countertotal[attype],0) = el; //ec
+      SF(attype,countertotal[attype],1) = type; //type
+      
+      estring = splitLine.at(2).c_str();
+      if (strcmp(estring, hstring) == 0) el = 0;
+      else if (strcmp(estring, ostring) == 0) el = 1;
+      SF(attype,countertotal[attype],2) = el; //e1
+      
+      estring = splitLine.at(3).c_str();
+      if (strcmp(estring, hstring) == 0) el = 0;
+      else if (strcmp(estring, ostring) == 0) el = 1;
+      
+      SF(attype,countertotal[attype],3) = el; //e2
+      SF(attype,countertotal[attype],4) = atof(splitLine.at(4).c_str())/(convLength*convLength); //eta
+      SF(attype,countertotal[attype],5) = atof(splitLine.at(5).c_str()); //lambda
+      SF(attype,countertotal[attype],6) = atof(splitLine.at(6).c_str()); //zeta
+      SF(attype,countertotal[attype],7) = atof(splitLine.at(7).c_str())*convLength; //rc
+      // Shift parameter is optional.
+      if (splitLine.size() > 8)
+          SF(attype,countertotal[attype],8) = atof(splitLine.at(8).c_str())*convLength; //rs
+
+
+      T_INT e1 = SF(attype,countertotal[attype],2);
+      T_INT e2 = SF(attype,countertotal[attype],3);
+      if (e1 > e2)
+      {
+          size_t tmp = e1;
+          e1 = e2; 
+          e2 = tmp;
+      }
+      T_FLOAT zeta = SF(attype,countertotal[attype],6);
+      T_INT zetaInt = round(zeta);
+      if (fabs(zeta - zetaInt) <= numeric_limits<double>::min())
+          SF(attype,countertotal[attype],9) = 1;
+      else
+          SF(attype,countertotal[attype],9) = 0;
+      
+      countertotal[attype]++;
     }
+    //TODO: Add this later
     else if (type == 9)
     {
-        symmetryFunctions.push_back(
-            new SymmetryFunctionAngularWide(elementMap));
     }
     else if (type == 12)
     {
-        symmetryFunctions.push_back(
-            new SymmetryFunctionWeightedRadial(elementMap));
     }
     else if (type == 13)
     {
-        symmetryFunctions.push_back(
-            new SymmetryFunctionWeightedAngular(elementMap));
     }
     else
     {
         throw runtime_error("ERROR: Unknown symmetry function type.\n");
     }
 
-    symmetryFunctions.back()->setParameters(parameters);
-    symmetryFunctions.back()->setLineNumber(lineNumber);
-
     return;
 }
 
-void Element::changeLengthUnitSymmetryFunctions(double convLength)
-{
-    for (vector<SymmetryFunction*>::iterator it = symmetryFunctions.begin();
-         it != symmetryFunctions.end(); ++it)
-    {
-        (*it)->changeLengthUnit(convLength);
-    }
-
-    return;
-}
 
 void Element::sortSymmetryFunctions()
 {
@@ -137,29 +184,28 @@ void Element::sortSymmetryFunctions()
     return;
 }
 
-vector<string> Element::infoSymmetryFunctionParameters() const
+vector<string> Element::infoSymmetryFunctionParameters(t_SF SF, int attype, int (&countertotal)[2]) const
 {
     vector<string> v;
+    string pushstring = "";
 
-    for (vector<SymmetryFunction*>::const_iterator
-         sf = symmetryFunctions.begin(); sf != symmetryFunctions.end(); ++sf)
+    for (int i = 0; i < countertotal[attype]; ++i)
     {
-        v.push_back((*sf)->parameterLine());
+        //TODO: improve function
+        for (int j = 0; j < 12 ; ++j)
+          pushstring += to_string(SF(attype,i,j)) + " ";
+        pushstring += "\n"; 
     }
+    v.push_back(pushstring);
 
     return v;
 }
 
-vector<string> Element::infoSymmetryFunctionScaling() const
+vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const
 {
     vector<string> v;
-
-    for (vector<SymmetryFunction*>::const_iterator
-         sf = symmetryFunctions.begin(); sf != symmetryFunctions.end(); ++sf)
-    {
-        v.push_back((*sf)->scalingLine());
-    }
-
+    for (int k = 0; k < countertotal[attype]; ++k)
+        v.push_back(scalingLine(scalingType, SFscaling, attype, k));
     return v;
 }
 
@@ -244,14 +290,10 @@ vector<string> Element::infoSymmetryFunctionGroups() const
 }
 
 void Element::setCutoffFunction(CutoffFunction::CutoffType const cutoffType,
-                                double const                     cutoffAlpha)
+                                double const cutoffAlpha, t_SF SF, int attype, int (&countertotal)[2])
 {
-    for (vector<SymmetryFunction*>::const_iterator
-         it = symmetryFunctions.begin(); it != symmetryFunctions.end(); ++it)
-    {
-        (*it)->setCutoffFunction(cutoffType, cutoffAlpha);
-    }
-
+    for (int k = 0; k < countertotal[attype]; ++k)
+        setCF(cutoffType, cutoffAlpha, SF, attype, k);
     return;
 }
 
@@ -275,22 +317,15 @@ void Element::setScalingNone() const
     return;
 }
 
-void Element::setScaling(SymmetryFunction::ScalingType scalingType,
-                         vector<string> const&         statisticsLine,
-                         double                        Smin,
-                         double                        Smax) const
+void Element::setScaling(ScalingType scalingType, vector<string> const& statisticsLine,
+                         double Smin, double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const
 {
-    for (size_t i = 0; i < symmetryFunctions.size(); ++i)
-    {
-        symmetryFunctions.at(i)->setScalingType(scalingType,
-                                                statisticsLine.at(i),
-                                                Smin,
-                                                Smax);
-    }
-    for (size_t i = 0; i < symmetryFunctionGroups.size(); ++i)
-    {
-        symmetryFunctionGroups.at(i)->setScalingFactors();
-    }
+    for (int k = 0; k < countertotal[attype]; ++k)
+        setScalingType(scalingType,statisticsLine.at(k),Smin,Smax,SF,SFscaling,attype,k);
+   
+    //TODO: groups 
+    //for (int k = 0; k < countertotal[attype]; ++k)
+    //    setScalingFactors(SF,attype,k);
 
     return;
 }
@@ -308,28 +343,22 @@ size_t Element::getMinNeighbors() const
     return minNeighbors;
 }
 
-double Element::getMinCutoffRadius() const
+double Element::getMinCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) const
 {
     double minCutoffRadius = numeric_limits<double>::max();
 
-    for (vector<SymmetryFunction*>::const_iterator
-         it = symmetryFunctions.begin(); it != symmetryFunctions.end(); ++it)
-    {
-        minCutoffRadius = min((*it)->getRc(), minCutoffRadius);
-    }
+    for (int k = 0; k < countertotal[attype]; ++k)
+        minCutoffRadius = min(SF(attype,k,7), minCutoffRadius);
 
     return minCutoffRadius;
 }
 
-double Element::getMaxCutoffRadius() const
+double Element::getMaxCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) const
 {
     double maxCutoffRadius = 0.0;
 
-    for (vector<SymmetryFunction*>::const_iterator
-         it = symmetryFunctions.begin(); it != symmetryFunctions.end(); ++it)
-    {
-        maxCutoffRadius = max((*it)->getRc(), maxCutoffRadius);
-    }
+    for (int k = 0; k < countertotal[attype]; ++k)
+        maxCutoffRadius = max(SF(attype,k,7), maxCutoffRadius);
 
     return maxCutoffRadius;
 }
@@ -347,7 +376,7 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
     return;
 }
 
-KOKKOS_INLINE_FUNCTION void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
+void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                               T_INT i, bool const derivatives) const
 {
     for (vector<SymmetryFunctionGroup*>::const_iterator
@@ -360,7 +389,7 @@ KOKKOS_INLINE_FUNCTION void Element::calculateSymmetryFunctionGroups(System* s, 
     return;
 }
 
-KOKKOS_INLINE_FUNCTION void Element::calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
+void Element::calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
 {
     for (vector<SymmetryFunctionGroup*>::const_iterator
          it = symmetryFunctionGroups.begin();
@@ -372,7 +401,7 @@ KOKKOS_INLINE_FUNCTION void Element::calculateSymmetryFunctionGroupDerivatives(S
     return;
 }
 
-KOKKOS_INLINE_FUNCTION void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_INT atomindex)
+void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_INT atomindex)
 {
     auto type = Cabana::slice<TypeNames::Types>(s->xvf);
     /*if (type(atomindex) != index)
@@ -387,7 +416,8 @@ KOKKOS_INLINE_FUNCTION void Element::updateSymmetryFunctionStatistics(System* s,
     }*/
 
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
-    for (size_t i = 0; i < symmetryFunctions.size(); ++i)
+    //TODO:add functionality
+    /*for (size_t i = 0; i < symmetryFunctions.size(); ++i)
     {
         double const Gmin = symmetryFunctions.at(i)->getGmin();
         double const Gmax = symmetryFunctions.at(i)->getGmax();
@@ -411,7 +441,7 @@ KOKKOS_INLINE_FUNCTION void Element::updateSymmetryFunctionStatistics(System* s,
             }
             if (statistics.writeExtrapolationWarnings)
             {
-                /*cerr << strpr("### NNP EXTRAPOLATION WARNING ### "
+                cerr << strpr("### NNP EXTRAPOLATION WARNING ### "
                               "STRUCTURE: %6zu ATOM: %6zu SYMFUNC: %4zu "
                               "VALUE: %10.3E MIN: %10.3E MAX: %10.3E\n",
                               0,
@@ -420,11 +450,10 @@ KOKKOS_INLINE_FUNCTION void Element::updateSymmetryFunctionStatistics(System* s,
                               value,
                               Gmin,
                               Gmax);
-                */
             }
             if (statistics.stopOnExtrapolationWarnings)
             {
-                /*throw out_of_range(
+                throw out_of_range(
                         strpr("### NNP EXTRAPOLATION WARNING ### "
                               "STRUCTURE: %6zu ATOM: %6zu SYMFUNC: %4zu "
                               "VALUE: %10.3E MIN: %10.3E MAX: %10.3E\n"
@@ -435,10 +464,10 @@ KOKKOS_INLINE_FUNCTION void Element::updateSymmetryFunctionStatistics(System* s,
                               value,
                               Gmin,
                               Gmax));
-                */
             }
         }
     }
+    */
 
     return;
 }

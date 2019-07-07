@@ -20,6 +20,7 @@
 #include "CutoffFunction.h"
 #include "ElementMap.h"
 #include "SymmetryFunction.h"
+#include "SymmetryFunctionHelper.h"
 #include "SymmetryFunctionStatistics.h"
 #include <cstddef> // std::size_t
 #include <string>  // std::string
@@ -40,7 +41,7 @@ class Element
 public:
     /** Constructor using index.
      */
-    KOKKOS_INLINE_FUNCTION Element(std::size_t const index, ElementMap const& elementMap);
+    Element(std::size_t const index, ElementMap const& elementMap);
     /** Destructor.
      *
      * Necessary because of #symmetryFunctions vector of pointers.
@@ -66,9 +67,8 @@ public:
      * @param[in] parameters String containing settings for symmetry function.
      * @param[in] lineNumber Line number of symmetry function in settings file.
      */
-    void                     addSymmetryFunction(
-                                                std::string const& parameters,
-                                                std::size_t const& lineNumber);
+    void addSymmetryFunction(std::string const& parameters,
+                             size_t const& lineNumber, int attype, t_SF SF, double convLength, int (&countertotal)[2]);
     /** Change length unit for all symmetry functions.
      *
      * @param[in] convLength Length unit conversion factor.
@@ -80,13 +80,13 @@ public:
     void                     sortSymmetryFunctions();
     /** Print symmetry function parameter value information.
      */
-    std::vector<std::string> infoSymmetryFunctionParameters() const;
+    std::vector<std::string> infoSymmetryFunctionParameters(t_SF SF, int attype, int (&countertotal)[2]) const;
     /** Print symmetry function parameter names and values.
      */
     std::vector<std::string> infoSymmetryFunction(std::size_t index) const;
     /** Print symmetry function scaling information.
      */
-    std::vector<std::string> infoSymmetryFunctionScaling() const;
+    std::vector<std::string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
     /** Set up symmetry function groups.
      */
     void                     setupSymmetryFunctionGroups();
@@ -100,7 +100,7 @@ public:
      */
     void                     setCutoffFunction(
                                  CutoffFunction::CutoffType const cutoffType,
-                                 double const                     cutoffAlpha);
+                                 double const                     cutoffAlpha, t_SF SF, int attype, int (&countertotal)[2]);
     /** Set no scaling of symmetry function.
      *
      * Still scaling factors need to be initialized.
@@ -116,10 +116,11 @@ public:
      * @param[in] maxS Minimum for scaling range.
      */
     void                     setScaling(
-                                SymmetryFunction::ScalingType   scalingType,
+                                ScalingType   scalingType,
                                 std::vector<std::string> const& statisticsLine,
                                 double                          minS,
-                                double                          maxS) const;
+                                double                          maxS,
+                                t_SF SF, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
     /** Get number of symmetry functions.
      *
      * @return Number of symmetry functions.
@@ -135,12 +136,12 @@ public:
      *
      * @return Minimum cutoff radius.
      */
-    double                   getMinCutoffRadius() const;
+    double                   getMinCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) const;
     /** Get maximum cutoff radius of all symmetry functions.
      *
      * @return Maximum cutoff radius.
      */
-    double                   getMaxCutoffRadius() const;
+    double                   getMaxCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) const;
     /** Calculate symmetry functions.
      *
      * @param[in] atom Atom whose symmetry functions are calculated.
@@ -156,19 +157,19 @@ public:
      * @param[in] derivatives If symmetry function derivatives will be
      *                        calculated.
      */
-    KOKKOS_INLINE_FUNCTION void                     calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, 
+    void                     calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, 
                                                              t_verletlist_full_2D neigh_list,
                                                              T_INT i, bool const  derivatives) const;
     /** Calculate symmetry function derivatives via groups
      */
-    KOKKOS_INLINE_FUNCTION void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const;
+    void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const;
     /** Update symmetry function statistics.
      *
      * @param[in] atom Atom with symmetry function values.
      *
      * This function checks also for extrapolation warnings.
      */
-    KOKKOS_INLINE_FUNCTION void                     updateSymmetryFunctionStatistics(
+    void                     updateSymmetryFunctionStatistics(
                                                              System* s, AoSoA_NNP nnp_data,
                                                              T_INT i);
     /** Get symmetry function instance.

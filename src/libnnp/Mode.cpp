@@ -27,6 +27,8 @@
 #include <limits>    // std::numeric_limits
 #include <stdexcept> // std::runtime_error
 #include <iostream> //TODO: remove this 
+#include <string>
+#define MAX_SF 30
 
 using namespace std;
 using namespace nnp;
@@ -160,7 +162,11 @@ t_mass Mode::setupElementMap(t_mass numSymmetryFunctionsPerElement)
                      elementMap.atomicNumber(i));
     }
     //resize numSymmetryFunctionsPerElement to have size = num of atom types in system
-    numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", elementMap.size());
+    numElements = elementMap.size();
+    numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
+    //setup SF info storage
+    SF = t_SF("ForceNNP::SF", numElements, MAX_SF);
+    SFscaling = t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
 
     log << "*****************************************"
            "**************************************\n";
@@ -324,9 +330,17 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
     {
         vector<string> args    = split(reduce(it->second.first));
         size_t         element = elementMap[args.at(0)];
-
+        int type;
+        const char* estring = args.at(0).c_str();
+        const char* hstring = "H";
+        const char* ostring = "O";
+        if (strcmp(estring, hstring) == 0)
+          type = 0;
+        else if (strcmp(estring, ostring) == 0)
+          type = 1;
+        //type = atoi(args.at(0).c_str()); 
         elements.at(element).addSymmetryFunction(it->second.first,
-                                                 it->second.second);
+                                                 it->second.second, type, SF, convLength, countertotal);
     }
 
     log << "Abbreviations:\n";
@@ -349,10 +363,10 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        if (normalize) it->changeLengthUnitSymmetryFunctions(convLength);
-        it->sortSymmetryFunctions();
-        maxCutoffRadius = max(it->getMaxCutoffRadius(), maxCutoffRadius);
-        it->setCutoffFunction(cutoffType, cutoffAlpha);
+        int attype = it->getIndex();
+        //TODO: it->sortSymmetryFunctions();
+        maxCutoffRadius = max(it->getMaxCutoffRadius(SF,attype,countertotal), maxCutoffRadius);
+        it->setCutoffFunction(cutoffType, cutoffAlpha, SF, attype, countertotal);
         log << strpr("Short range atomic symmetry functions element %2s :\n",
                      it->getSymbol().c_str());
         log << "-----------------------------------------"
@@ -361,18 +375,19 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
                "zeta        rc ct   ca    ln\n";
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        log << it->infoSymmetryFunctionParameters();
+        log << it->infoSymmetryFunctionParameters(SF, attype, countertotal);
         log << "-----------------------------------------"
                "--------------------------------------\n";
         //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
-        numSymmetryFunctionsPerElement(it->getIndex()) = it->numSymmetryFunctions();
+        numSymmetryFunctionsPerElement(attype) = it->numSymmetryFunctions();
     }
     minNeighbors.resize(numElements, 0);
     minCutoffRadius.resize(numElements, maxCutoffRadius);
     for (size_t i = 0; i < numElements; ++i)
     {
+        int attype = elements.at(i).getIndex();
         minNeighbors.at(i) = elements.at(i).getMinNeighbors();
-        minCutoffRadius.at(i) = elements.at(i).getMinCutoffRadius();
+        minCutoffRadius.at(i) = elements.at(i).getMinCutoffRadius(SF,attype,countertotal);
         log << strpr("Minimum cutoff radius for element %2s: %f\n",
                      elements.at(i).getSymbol().c_str(),
                      minCutoffRadius.at(i) / convLength);
@@ -417,33 +432,33 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
     if (   ( settings.keywordExists("scale_symmetry_functions" ))
         && (!settings.keywordExists("center_symmetry_functions")))
     {
-        scalingType = SymmetryFunction::ST_SCALE;
+        scalingType = ST_SCALE;
         log << strpr("Scaling type::ST_SCALE (%d)\n", scalingType);
         log << "Gs = Smin + (Smax - Smin) * (G - Gmin) / (Gmax - Gmin)\n";
     }
     else if (   (!settings.keywordExists("scale_symmetry_functions" ))
              && ( settings.keywordExists("center_symmetry_functions")))
     {
-        scalingType = SymmetryFunction::ST_CENTER;
+        scalingType = ST_CENTER;
         log << strpr("Scaling type::ST_CENTER (%d)\n", scalingType);
         log << "Gs = G - Gmean\n";
     }
     else if (   ( settings.keywordExists("scale_symmetry_functions" ))
              && ( settings.keywordExists("center_symmetry_functions")))
     {
-        scalingType = SymmetryFunction::ST_SCALECENTER;
+        scalingType = ST_SCALECENTER;
         log << strpr("Scaling type::ST_SCALECENTER (%d)\n", scalingType);
         log << "Gs = Smin + (Smax - Smin) * (G - Gmean) / (Gmax - Gmin)\n";
     }
     else if (settings.keywordExists("scale_symmetry_functions_sigma"))
     {
-        scalingType = SymmetryFunction::ST_SCALESIGMA;
+        scalingType = ST_SCALESIGMA;
         log << strpr("Scaling type::ST_SCALESIGMA (%d)\n", scalingType);
         log << "Gs = Smin + (Smax - Smin) * (G - Gmean) / Gsigma\n";
     }
     else
     {
-        scalingType = SymmetryFunction::ST_NONE;
+        scalingType = ST_NONE;
         log << strpr("Scaling type::ST_NONE (%d)\n", scalingType);
         log << "Gs = G\n";
         log << "WARNING: No symmetry function scaling!\n";
@@ -451,9 +466,9 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
 
     double Smin = 0.0;
     double Smax = 0.0;
-    if (scalingType == SymmetryFunction::ST_SCALE ||
-        scalingType == SymmetryFunction::ST_SCALECENTER ||
-        scalingType == SymmetryFunction::ST_SCALESIGMA)
+    if (scalingType == ST_SCALE ||
+        scalingType == ST_SCALECENTER ||
+        scalingType == ST_SCALESIGMA)
     {
         if (settings.keywordExists("scale_min_short"))
         {
@@ -516,7 +531,8 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        it->setScaling(scalingType, lines, Smin, Smax);
+        int attype = it->getIndex();
+        it->setScaling(scalingType, lines, Smin, Smax, SF, SFscaling, attype, countertotal);
         log << strpr("Scaling data for symmetry functions element %2s :\n",
                      it->getSymbol().c_str());
         log << "-----------------------------------------"
@@ -524,7 +540,7 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
         log << " ind       min       max      mean     sigma        sf  Smin  Smax t\n";
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        log << it->infoSymmetryFunctionScaling();
+        log << it->infoSymmetryFunctionScaling(scalingType, SFscaling, attype, countertotal);
         log << "-----------------------------------------"
                "--------------------------------------\n";
         lines.erase(lines.begin(), lines.begin() + it->numSymmetryFunctions());

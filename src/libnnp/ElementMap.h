@@ -63,7 +63,7 @@ public:
      * @param[in] index Element index.
      * @return Element symbol.
      */
-    KOKKOS_INLINE_FUNCTION std::string              symbol(std::size_t const index) const;
+    std::string              symbol(std::size_t const index) const;
     /** Get atomic number from element index.
      *
      * @param[in] index Element index in map.

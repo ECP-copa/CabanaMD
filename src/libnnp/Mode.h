@@ -474,6 +474,13 @@ public:
     /// Global log file.
     Log        log;
     
+    //SymmetryFunctionTypes
+    const size_t a = 0 ;
+    const size_t b = 0; 
+    t_SF SF;
+    t_SFscaling SFscaling;
+    
+    int countertotal[2] = {0,0};
     
 protected:
     bool                          normalize;
@@ -487,7 +494,7 @@ protected:
     double                        convEnergy;
     double                        convLength;
     Settings                      settings;
-    SymmetryFunction::ScalingType scalingType;
+    ScalingType scalingType;
     CutoffFunction::CutoffType    cutoffType;
     std::vector<Element>          elements;
 };
