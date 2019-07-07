@@ -379,7 +379,7 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
         log << "-----------------------------------------"
                "--------------------------------------\n";
         //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
-        numSymmetryFunctionsPerElement(attype) = it->numSymmetryFunctions();
+        numSymmetryFunctionsPerElement(attype) = it->numSymmetryFunctions(attype, countertotal);
     }
     minNeighbors.resize(numElements, 0);
     minCutoffRadius.resize(numElements, maxCutoffRadius);
@@ -543,7 +543,7 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
         log << it->infoSymmetryFunctionScaling(scalingType, SFscaling, attype, countertotal);
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        lines.erase(lines.begin(), lines.begin() + it->numSymmetryFunctions());
+        lines.erase(lines.begin(), lines.begin() + it->numSymmetryFunctions(attype, countertotal));
     }
 
     log << "*****************************************"
@@ -711,7 +711,8 @@ void Mode::setupNeuralNetwork()
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        numNeuronsPerLayer[0] = it->numSymmetryFunctions();
+        int attype = it->getIndex();
+        numNeuronsPerLayer[0] = it->numSymmetryFunctions(attype, countertotal);
         it->neuralNetwork = new NeuralNetwork(numLayers,
                                               numNeuronsPerLayer,
                                               activationFunctionsPerLayer);
@@ -797,7 +798,8 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
 
         // Get element of atom and set number of symmetry functions.
         e = &(elements.at(a->element));
-        a->numSymmetryFunctions = e->numSymmetryFunctions();
+        int attype = e->getIndex();
+        a->numSymmetryFunctions = e->numSymmetryFunctions(attype, countertotal);
 
 #ifndef NONEIGHCHECK
         // Check if atom has low number of neighbors.
@@ -869,7 +871,8 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data,
         // Get element of atom and set number of symmetry functions.
         Element* e = NULL;
         e = &(elements.at(type(i)));
-        T_INT numSymmetryFunctions = e->numSymmetryFunctions();
+        int attype = e->getIndex();
+        T_INT numSymmetryFunctions = e->numSymmetryFunctions(attype, countertotal);
         
 #ifndef NONEIGHCHECK
         // Check if atom has low number of neighbors.
@@ -1202,14 +1205,15 @@ size_t Mode::getNumExtrapolationWarnings() const
     return numExtrapolationWarnings;
 }
 
-vector<size_t> Mode::getNumSymmetryFunctions() const
+vector<size_t> Mode::getNumSymmetryFunctions()
 {
     vector<size_t> v;
 
     for (vector<Element>::const_iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        v.push_back(it->numSymmetryFunctions());
+        int attype = it->getIndex();
+        v.push_back(it->numSymmetryFunctions(attype, countertotal));
     }
 
     return v;
@@ -1258,7 +1262,8 @@ vector<size_t> Mode::pruneSymmetryFunctionsRange(double threshold)
     for (vector<Element>::const_iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        for (size_t i = 0; i < it->numSymmetryFunctions(); ++i)
+        int attype = it->getIndex();
+        for (size_t i = 0; i < it->numSymmetryFunctions(attype, countertotal); ++i)
         {
             SymmetryFunction const& s = it->getSymmetryFunction(i);
             if (fabs(s.getGmax() - s.getGmin()) < threshold)
@@ -1279,7 +1284,7 @@ vector<size_t> Mode::pruneSymmetryFunctionsSensitivity(
 
     for (size_t i = 0; i < numElements; ++i)
     {
-        for (size_t j = 0; j < elements.at(i).numSymmetryFunctions(); ++j)
+        for (size_t j = 0; j < elements.at(i).numSymmetryFunctions(0,countertotal); ++j)
         {
             if (sensitivity.at(i).at(j) < threshold)
             {

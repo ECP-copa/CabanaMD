@@ -397,7 +397,7 @@ public:
      *
      * @return Vector with number of symmetry functions for each element.
      */
-    std::vector<std::size_t> getNumSymmetryFunctions() const;
+    std::vector<std::size_t> getNumSymmetryFunctions(); 
     /** Check if normalization is enabled.
      *
      * @return Value of #normalize.

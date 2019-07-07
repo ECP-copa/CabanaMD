@@ -125,7 +125,7 @@ public:
      *
      * @return Number of symmetry functions.
      */
-    std::size_t              numSymmetryFunctions() const;
+    std::size_t              numSymmetryFunctions(int attype, int (&countertotal)[2]) const;
     /** Get maximum of required minimum number of neighbors for all symmetry
      * functions for this element.
      *
@@ -239,9 +239,9 @@ std::vector<std::string> Element::infoSymmetryFunction(std::size_t index) const
     return symmetryFunctions.at(index)->parameterInfo();
 }
 
-inline size_t Element::numSymmetryFunctions() const
+inline size_t Element::numSymmetryFunctions(int attype, int (&countertotal)[2]) const
 {
-    return symmetryFunctions.size();
+    return countertotal[attype];
 }
 
 inline SymmetryFunction const& Element::getSymmetryFunction(
