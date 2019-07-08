@@ -160,7 +160,7 @@ public:
     void calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const;
     /** Calculate symmetry function derivatives via groups
      */
-    void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const;
+    void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, t_verletlist_full_2D neigh_list, T_INT i, const int countergtotal[2]) const;
     /** Update symmetry function statistics.
      *
      * @param[in] atom Atom with symmetry function values.

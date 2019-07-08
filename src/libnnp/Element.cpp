@@ -20,6 +20,7 @@
 #include "SymmetryFunction.h"
 #include "SymmetryFunctionHelper.h"
 #include "SymmetryFunctionGroupCalculate.h"
+#include "SymmetryFunctionGroupCalculateDerivative.h"
 #include "SymmetryFunctionRadial.h"
 #include "SymmetryFunctionAngularNarrow.h"
 #include "SymmetryFunctionAngularWide.h"
@@ -221,15 +222,16 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SF
             if ((SFG(attype,l,1) == SF(attype,k,1)) && addMemberToGroup(SFG, SF, attype, l, k, countergR, countergAN))
             {
                 createNewGroup = false;
-                SF(attype,k,12) = l;
                 if (SFG(attype,l,1)==2)
                 {
                   SFGmemberlist(attype,l,countergR) = k;
+                  std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
                   countergR++;
                 }
                 else if (SFG(attype,l,1)==3)
                 {
                   SFGmemberlist(attype,l,countergAN) = k;
+                  std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
                   countergAN++;
                 }
                 break;
@@ -245,15 +247,16 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SF
             else if (SF(attype,k,1)==3)
               countergAN = 0;
             addMemberToGroup(SFG, SF, attype, l, k, countergR, countergAN);
-            SF(attype,k,12) = l;
             if (SFG(attype,l,1)==2)
             {
               SFGmemberlist(attype,l,countergR) = k;
+              std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
               countergR++;
             }
             else if (SFG(attype,l,1)==3)
             {
               SFGmemberlist(attype,l,countergAN) = k;
+              std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
               countergAN++;
             }
         }
@@ -376,26 +379,31 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
 
 void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const
 {
+    
     for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
     {
       std::cout << "calculating group " << groupIndex << " for atom type " << attype << " for atom " << i << std::endl;
-      if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
-        calculateSFGR(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
-      else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
-        calculateSFGAN(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
-      std::cout << "Done calculating\n"; 
-    }    
+      std::cout << "member: " << SFGmemberlist(attype,groupIndex,0) <<  " " << SFGmemberlist(attype,groupIndex,1) << endl; 
+      //if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
+      //  calculateSFGR(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
+      //else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
+      //  calculateSFGAN(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
+      std::cout << "Done calculating " << std::endl; 
+    }
     return;
 }
 
-void Element::calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
+void Element::calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, t_verletlist_full_2D neigh_list, T_INT i, const int countergtotal[2]) const
 {
-    for (vector<SymmetryFunctionGroup*>::const_iterator
-         it = symmetryFunctionGroups.begin();
-         it != symmetryFunctionGroups.end(); ++it)
+    for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
     {
-        (*it)->calculate_derivatives(s, nnp_data, dGdr, neigh_list, i);
-    }
+      std::cout << "calculating derivative for group " << groupIndex << " for atom type " << attype << " for atom " << i << std::endl;
+      if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
+        calculateSFGRD(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
+      else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
+        calculateSFGAND(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
+      std::cout << "Done calculating " << std::endl; 
+    }    
 
     return;
 }

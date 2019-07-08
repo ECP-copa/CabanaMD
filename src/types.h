@@ -133,7 +133,7 @@ using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[MAX_SF], T_FLOAT[MAX_SF], T_FLOA
 using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
 using t_dGdr = Kokkos::View<T_V_FLOAT*[MAX_SF][3]>;
 
-using t_SF = Kokkos::View<T_FLOAT**[13]>;
+using t_SF = Kokkos::View<T_FLOAT**[12]>;
 using t_SFG = Kokkos::View<T_FLOAT**[6]>;
 using t_SFscaling = Kokkos::View<T_FLOAT**[8]>;
 using t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF]>; //5 kinds of SF Groups per element

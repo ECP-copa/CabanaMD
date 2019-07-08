@@ -1008,9 +1008,10 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
         // atom i itself).
         const Element* e = NULL;
         e = &(elements.at(type(i)));
+        int attype = e->getIndex();
         //Reset dGdr to zero
         t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
-        e->calculateSymmetryFunctionGroupDerivatives(s, nnp_data, dGdr, neigh_list, i);
+        e->calculateSymmetryFunctionGroupDerivatives(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, neigh_list, i, countergtotal);
         
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     

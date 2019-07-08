@@ -9,7 +9,7 @@ using namespace std;
 using namespace nnp;
 
 
-KOKKOS_INLINE_FUNCTION void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
+KOKKOS_INLINE_FUNCTION void calculateSFGRD(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -93,21 +93,36 @@ KOKKOS_INLINE_FUNCTION void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF
                 //std::cout << "member: " << SFGmemberlist(attype,groupIndex,k) << " " ;
                 //std::cout << eta << " " << rs << " " << rij << " " << pexp << " " << pfc << " " << pexp*pfc << std::endl;
                 G(i,SFGmemberlist(attype,groupIndex,k)) += pexp*pfc;
+                // Force calculation.
+                double const p1 = SFscaling(attype,k,6) * (pdfc - 2.0 * eta * (rij - rs) * pfc) * pexp / rij;
+                // SIMPLE EXPRESSIONS:
+                //Vec3D const dij = p1 * atom.neighbors[j].dr;
+                //double const p1drijx = p1 * d1[0];
+                //double const p1drijy = p1 * d1[1];
+                //double const p1drijz = p1 * d1[2];
+
+                // Save force contributions in Atom storage.
+                size_t const ki = SFGmemberlist(attype,groupIndex,k);
+                // SIMPLE EXPRESSIONS:
+                //atom.dGdr[ki]              += dij;
+                //atom.neighbors[j].dGdr[ki] -= dij;
+
+                dGdr(i,ki,0) += (p1*dxij);
+                dGdr(i,ki,1) += (p1*dyij);
+                dGdr(i,ki,2) += (p1*dzij);
+
+                dGdr(j,ki,0) -= (p1*dxij);
+                dGdr(j,ki,1) -= (p1*dyij);
+                dGdr(j,ki,2) -= (p1*dzij);
             }
         }
     }
 
-    double raw_value;
-    for (size_t k = 0; k < size; ++k)
-    {
-        raw_value = G(i,SFGmemberlist(attype,groupIndex,k)); 
-        G(i,SFGmemberlist(attype,groupIndex,k)) = scale(attype, raw_value, SFGmemberlist(attype,groupIndex,k), SFscaling);
-    }
     return;
 }
 
 
-KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
+KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -133,9 +148,8 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
         //Atom::Neighbor& nj = atom.neighbors[j];
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
         size_t const nej = type(j);
-        
-        std::cout << "i: " << i << " j: " << j << std::endl; 
-        //std::cout << "xi: " << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl; //<< " " << x(i,1) << " " << x(i,2) << std::endl; 
+        //std::cout << "i: " << id(i) << " j: " << id(j) << std::endl; 
+        //std::cout << "xi: " << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl; 
         //std::cout << "xj: " << x(j,0) << " " << x(j,1) << " " << x(j,2) << std::endl; 
         
         T_F_FLOAT dxij = x(i,0) - x(j,0);
@@ -144,6 +158,7 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
         dxij *= s->cflength;
         dyij *= s->cflength;
         dzij *= s->cflength;
+        
         if (s->normalize) {
           dxij *= s->convLength;
           dyij *= s->convLength;
@@ -307,8 +322,70 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
                                         fg *= pow(plambda, zeta[l] - 1.0);
                                     }*/
                                 }
-                                G(i,SFGmemberlist(attype,groupIndex,l)) += fg * plambda * pfc;
+                                // Force calculation.
+                                fg *= pow(2,(1-SF(attype,k,6))) * SFscaling(attype,k,6);
+                                double const pfczl = pfc * SF(attype,k,6) * SF(attype,k,5);
+                                double factorDeriv = 2.0 * SF(attype,k,4) / SF(attype,k,6) / SF(attype,k,5);
+                                double const p2etapl = plambda * factorDeriv;
+                                double p1;
+                                double p2;
+                                double p3;
+                                if (SF(attype,1,8) > 0.0)
+                                {
+                                    p1 = fg * (pfczl * (rinvijik
+                                       - costijk / r2ij - p2etapl
+                                       * rijs / rij) + pr1 * plambda);
+                                    p2 = fg * (pfczl * (rinvijik
+                                       - costijk / r2ik - p2etapl
+                                       * riks / rik) + pr2 * plambda);
+                                    p3 = fg * (pfczl * (rinvijik
+                                       + p2etapl * rjks / rjk)
+                                       - pr3 * plambda);
+                                }
+                                else
+                                {
+                                    p1 = fg * (pfczl * (rinvijik - costijk
+                                       / r2ij - p2etapl) + pr1 * plambda);
+                                    p2 = fg * (pfczl * (rinvijik - costijk
+                                       / r2ik - p2etapl) + pr2 * plambda);
+                                    p3 = fg * (pfczl * (rinvijik + p2etapl)
+                                       - pr3 * plambda);
+                                }
 
+                                // Save force contributions in Atom storage.
+                                //
+                                // SIMPLE EXPRESSIONS:
+                                //size_t const li = members[l]->getIndex();
+                                //atom.dGdr[li] += p1 * drij + p2 * drik;
+                                //atom.neighbors[j].dGdr[li] -= p1 * drij
+                                //                            + p3 * drjk;
+                                //atom.neighbors[k].dGdr[li] -= p2 * drik
+                                //                            - p3 * drjk;
+                                /*
+                                double const p1drijx = p1 * dxij;
+                                double const p1drijy = p1 * dyij;
+                                double const p1drijz = p1 * dzij;
+
+                                double const p2drikx = p2 * dxik;
+                                double const p2driky = p2 * dyik;
+                                double const p2drikz = p2 * dzik;
+
+                                double const p3drjkx = p3 * dxjk;
+                                double const p3drjky = p3 * dyjk;
+                                double const p3drjkz = p3 * dzjk;*/
+                                
+                                size_t const li = SFGmemberlist(attype,groupIndex,l);
+                                dGdr(i,li,0) += (p1*dxij + p2*dxik);
+                                dGdr(i,li,1) += (p1*dyij + p2*dyik);
+                                dGdr(i,li,2) += (p1*dzij + p2*dzik);
+
+                                dGdr(j,li,0) -= (p1*dxij + p3*dxjk);
+                                dGdr(j,li,1) -= (p1*dyij + p3*dyjk);
+                                dGdr(j,li,2) -= (p1*dzij + p3*dzjk);
+
+                                dGdr(k,li,0) -= (p2*dxik - p3*dxjk);
+                                dGdr(k,li,1) -= (p2*dyik - p3*dyjk);
+                                dGdr(k,li,2) -= (p2*dzik - p3*dzjk);
                             } // l
                         } // rjk <= rc
                     } // rik <= rc
@@ -316,13 +393,6 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
             } // k
         } // rij <= rc
     } // j
-
-    double raw_value = 0.0;
-    for (size_t k = 0; k < size; ++k)
-    {
-        raw_value = G(i,SFGmemberlist(attype,groupIndex,k)) * pow(2,(1-SF(attype,k,6))); 
-        G(i,SFGmemberlist(attype,groupIndex,k)) = scale(attype, raw_value, SFGmemberlist(attype,groupIndex,k), SFscaling);
-    }
 
     return;
 }
