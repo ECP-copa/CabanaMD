@@ -211,65 +211,39 @@ vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_S
 
 void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, int attype, int (&countertotal)[2], int (&countergtotal)[2])
 {
-    int type, l;
-    int groupIndex = countergtotal[attype];
+    int countergR = 0, countergAN = 0;
     
     for (int k = 0; k < countertotal[attype]; ++k)
     {
         bool createNewGroup = true;
-        //if added to any group before then cng = false
-        for (l = 0; l < countergtotal[attype]; ++l);
+        for (int l = 0; l < countergtotal[attype]; ++l)
         {
-            if (SFG(attype,l,4) == k+1)
+            if ((SFG(attype,l,1) == SF(attype,k,1)) && addMemberToGroup(SFG, SF, attype, l, k, countergR, countergAN))
             {
                 createNewGroup = false;
+                SF(attype,k,12) = l;
+                if (SFG(attype,l,1)==2)
+                  countergR++;
+                else if (SFG(attype,l,1)==3)
+                  countergAN++;
                 break;
             }
         }
         
         if (createNewGroup)
         {
-            std::cout << "Trying to add SF " << k+1 << " to group " << groupIndex << std::endl;
-            type = SF(attype,k,1);
-            if (type == 2)
-            {
-              SFG(attype,groupIndex,0) = SF(attype,k,0); //ec
-              SFG(attype,groupIndex,1) = type; //type
-              SFG(attype,groupIndex,2) = SF(attype,k,2); //e1
-              SFG(attype,groupIndex,4) = k+1; //memberindex
-              SFG(attype,groupIndex,5) = SF(attype,k,7); //rc
-              SFG(attype,groupIndex,6) = SF(attype,k,11); //cutoffType
-              SFG(attype,groupIndex,7) = SF(attype,k,12); //cutoffAlpha
-              //fc.setCutoffType(cutoffType);
-              //fc.setCutoffRadius(rc);
-              //fc.setCutoffParameter(cutoffAlpha);
-            }
-            else if (type == 3)
-            {
-              SFG(attype,groupIndex,0) = SF(attype,k,0); //ec
-              SFG(attype,groupIndex,1) = type; //type
-              SFG(attype,groupIndex,2) = SF(attype,k,2); //e1
-              SFG(attype,groupIndex,3) = SF(attype,k,3); //e2
-              SFG(attype,groupIndex,4) = k+1; //memberindex
-              SFG(attype,groupIndex,5) = SF(attype,k,7); //rc
-              SFG(attype,groupIndex,6) = SF(attype,k,11); //cutoffType
-              SFG(attype,groupIndex,7) = SF(attype,k,12); //cutoffAlpha
-            }
-            else if (type == 9)
-            {
-            }
-            else if (type == 12)
-            {
-            }
-            else if (type == 13)
-            {
-            }
-            else
-            {
-                throw runtime_error("ERROR: Unknown symmetry function group"
-                                    " type.\n");
-            }
+            int l = countergtotal[attype];
             countergtotal[attype]++;
+            if (SF(attype,k,1)==2)
+              countergR = 0;
+            else if (SF(attype,k,1)==3)
+              countergAN = 0;
+            addMemberToGroup(SFG, SF, attype, l, k, countergR, countergAN);
+            SF(attype,k,12) = l;
+            if (SFG(attype,l,1)==2)
+              countergR++;
+            else if (SFG(attype,l,1)==3)
+              countergAN++;
         }
     }
 
