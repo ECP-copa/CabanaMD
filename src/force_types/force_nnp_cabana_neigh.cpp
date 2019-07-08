@@ -90,8 +90,7 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   mode->setupElements();
   mode->setupCutoff();
   numSymmetryFunctionsPerElement = mode->setupSymmetryFunctions(numSymmetryFunctionsPerElement);
-  //TODO: add SFGroups
-  //mode->setupSymmetryFunctionGroups();
+  mode->setupSymmetryFunctionGroups();
   mode->setupNeuralNetwork();
   std::string scalingfile = std::string(args[3]) + "/scaling.data";
   mode->setupSymmetryFunctionScaling(scalingfile);

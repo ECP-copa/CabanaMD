@@ -166,6 +166,7 @@ t_mass Mode::setupElementMap(t_mass numSymmetryFunctionsPerElement)
     numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
     //setup SF info storage
     SF = t_SF("ForceNNP::SF", numElements, MAX_SF);
+    SFG = t_SFG("ForceNNP::SFG", numElements, MAX_SF);
     SFscaling = t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
 
     log << "*****************************************"
@@ -581,7 +582,8 @@ void Mode::setupSymmetryFunctionGroups()
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        it->setupSymmetryFunctionGroups();
+        int attype = it->getIndex();
+        it->setupSymmetryFunctionGroups(SF, SFG, attype, countertotal, countergtotal);
         log << strpr("Short range atomic symmetry function groups "
                      "element %2s :\n", it->getSymbol().c_str());
         log << "-----------------------------------------"
@@ -590,7 +592,7 @@ void Mode::setupSymmetryFunctionGroups()
                "zeta        rc ct   ca    ln   mi  sfi e\n";
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        log << it->infoSymmetryFunctionGroups();
+        log << it->infoSymmetryFunctionGroups(SFG, attype, countergtotal);
         log << "-----------------------------------------"
                "--------------------------------------\n";
     }

@@ -159,7 +159,7 @@ public:
      * Does not use any keywords. Call after setupSymmetryFunctions() and
      * ensure that correct scaling behavior has already been set.
      */
-    void                     setupSymmetryFunctionGroups();
+    void setupSymmetryFunctionGroups();
     /** Set up symmetry function statistics collection.
      *
      * @param[in] collectStatistics Whether statistics (min, max, mean, sigma)
@@ -475,12 +475,12 @@ public:
     Log        log;
     
     //SymmetryFunctionTypes
-    const size_t a = 0 ;
-    const size_t b = 0; 
     t_SF SF;
+    t_SFG SFG;
     t_SFscaling SFscaling;
     
     int countertotal[2] = {0,0};
+    int countergtotal[2] = {0,0};
     
 protected:
     bool                          normalize;

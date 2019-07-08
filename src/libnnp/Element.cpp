@@ -209,59 +209,71 @@ vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_S
     return v;
 }
 
-void Element::setupSymmetryFunctionGroups()
+void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, int attype, int (&countertotal)[2], int (&countergtotal)[2])
 {
-    for (vector<SymmetryFunction*>::const_iterator
-         sf = symmetryFunctions.begin(); sf != symmetryFunctions.end(); ++sf)
+    int type, l;
+    int groupIndex = countergtotal[attype];
+    
+    for (int k = 0; k < countertotal[attype]; ++k)
     {
         bool createNewGroup = true;
-        for (vector<SymmetryFunctionGroup*>::const_iterator
-             sfg = symmetryFunctionGroups.begin();
-             sfg != symmetryFunctionGroups.end(); ++sfg)
+        //if added to any group before then cng = false
+        for (l = 0; l < countergtotal[attype]; ++l);
         {
-            if ((*sfg)->addMember((*sf)))
+            if (SFG(attype,l,4) == k+1)
             {
                 createNewGroup = false;
                 break;
             }
         }
+        
         if (createNewGroup)
         {
-            if ((*sf)->getType() == 2)
+            std::cout << "Trying to add SF " << k+1 << " to group " << groupIndex << std::endl;
+            type = SF(attype,k,1);
+            if (type == 2)
             {
-                symmetryFunctionGroups.push_back((SymmetryFunctionGroup*)
-                    new SymmetryFunctionGroupRadial(elementMap));
+              SFG(attype,groupIndex,0) = SF(attype,k,0); //ec
+              SFG(attype,groupIndex,1) = type; //type
+              SFG(attype,groupIndex,2) = SF(attype,k,2); //e1
+              SFG(attype,groupIndex,4) = k+1; //memberindex
+              SFG(attype,groupIndex,5) = SF(attype,k,7); //rc
+              SFG(attype,groupIndex,6) = SF(attype,k,11); //cutoffType
+              SFG(attype,groupIndex,7) = SF(attype,k,12); //cutoffAlpha
+              //fc.setCutoffType(cutoffType);
+              //fc.setCutoffRadius(rc);
+              //fc.setCutoffParameter(cutoffAlpha);
             }
-            else if ((*sf)->getType() == 3)
+            else if (type == 3)
             {
-                symmetryFunctionGroups.push_back((SymmetryFunctionGroup*)
-                    new SymmetryFunctionGroupAngularNarrow(elementMap));
+              SFG(attype,groupIndex,0) = SF(attype,k,0); //ec
+              SFG(attype,groupIndex,1) = type; //type
+              SFG(attype,groupIndex,2) = SF(attype,k,2); //e1
+              SFG(attype,groupIndex,3) = SF(attype,k,3); //e2
+              SFG(attype,groupIndex,4) = k+1; //memberindex
+              SFG(attype,groupIndex,5) = SF(attype,k,7); //rc
+              SFG(attype,groupIndex,6) = SF(attype,k,11); //cutoffType
+              SFG(attype,groupIndex,7) = SF(attype,k,12); //cutoffAlpha
             }
-            else if ((*sf)->getType() == 9)
+            else if (type == 9)
             {
-                symmetryFunctionGroups.push_back((SymmetryFunctionGroup*)
-                    new SymmetryFunctionGroupAngularWide(elementMap));
             }
-            else if ((*sf)->getType() == 12)
+            else if (type == 12)
             {
-                symmetryFunctionGroups.push_back((SymmetryFunctionGroup*)
-                    new SymmetryFunctionGroupWeightedRadial(elementMap));
             }
-            else if ((*sf)->getType() == 13)
+            else if (type == 13)
             {
-                symmetryFunctionGroups.push_back((SymmetryFunctionGroup*)
-                    new SymmetryFunctionGroupWeightedAngular(elementMap));
             }
             else
             {
                 throw runtime_error("ERROR: Unknown symmetry function group"
                                     " type.\n");
             }
-            symmetryFunctionGroups.back()->addMember(*sf);
+            countergtotal[attype]++;
         }
     }
 
-    sort(symmetryFunctionGroups.begin(),
+    /*sort(symmetryFunctionGroups.begin(),
          symmetryFunctionGroups.end(),
          comparePointerTargets<SymmetryFunctionGroup>);
 
@@ -269,22 +281,23 @@ void Element::setupSymmetryFunctionGroups()
     {
         symmetryFunctionGroups.at(i)->sortMembers();
         symmetryFunctionGroups.at(i)->setIndex(i);
-    }
+    }*/
 
     return;
 }
 
-vector<string> Element::infoSymmetryFunctionGroups() const
+vector<string> Element::infoSymmetryFunctionGroups(t_SFG SFG, int attype, int (&countergtotal)[2]) const
 {
     vector<string> v;
-
-    for (vector<SymmetryFunctionGroup*>::const_iterator
-         it = symmetryFunctionGroups.begin();
-         it != symmetryFunctionGroups.end(); ++it)
+    string pushstring = ""; 
+    for (int i = 0; i < countergtotal[attype]; ++i)
     {
-        vector<string> lines = (*it)->parameterLines();
-        v.insert(v.end(), lines.begin(), lines.end());
+        //TODO: improve function
+        for (int j = 0; j < 8 ; ++j)
+          pushstring += to_string(SFG(attype,i,j)) + " ";
+        pushstring += "\n";
     }
+    v.push_back(pushstring);
 
     return v;
 }

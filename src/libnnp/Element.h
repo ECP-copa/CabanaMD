@@ -89,10 +89,10 @@ public:
     std::vector<std::string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
     /** Set up symmetry function groups.
      */
-    void                     setupSymmetryFunctionGroups();
+    void setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, int attype, int (&countertotal)[2], int (&countergtotal)[2]);
     /** Print symmetry function group info.
      */
-    std::vector<std::string> infoSymmetryFunctionGroups() const;
+    std::vector<std::string> infoSymmetryFunctionGroups(t_SFG SFG, int attype, int (&countergtotal)[2]) const;
     /** Set cutoff function for all symmetry functions.
      *
      * @param[in] cutoffType Type of cutoff function.

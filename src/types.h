@@ -134,6 +134,7 @@ using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
 using t_dGdr = Kokkos::View<T_V_FLOAT*[MAX_SF][3]>;
 
 using t_SF = Kokkos::View<T_FLOAT**[12]>;
+using t_SFG = Kokkos::View<T_FLOAT**[6]>;
 using t_SFscaling = Kokkos::View<T_FLOAT**[7]>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
