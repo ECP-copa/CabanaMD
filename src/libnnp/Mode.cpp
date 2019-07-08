@@ -164,6 +164,10 @@ t_mass Mode::setupElementMap(t_mass numSymmetryFunctionsPerElement)
     //resize numSymmetryFunctionsPerElement to have size = num of atom types in system
     numElements = elementMap.size();
     numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
+    SFGmemberlist = t_SFGmemberlist("ForceNNP::SFGmemberlist", numElements, 5, MAX_SF);
+    
+
+    
     //setup SF info storage
     SF = t_SF("ForceNNP::SF", numElements, MAX_SF);
     SFG = t_SFG("ForceNNP::SFG", numElements, MAX_SF);
@@ -583,7 +587,7 @@ void Mode::setupSymmetryFunctionGroups()
          it != elements.end(); ++it)
     {
         int attype = it->getIndex();
-        it->setupSymmetryFunctionGroups(SF, SFG, attype, countertotal, countergtotal);
+        it->setupSymmetryFunctionGroups(SF, SFG, SFGmemberlist, attype, countertotal, countergtotal);
         log << strpr("Short range atomic symmetry function groups "
                      "element %2s :\n", it->getSymbol().c_str());
         log << "-----------------------------------------"
@@ -893,7 +897,8 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data,
         //allocate(s, numSymmetryFunctions, derivatives);
         
         // Calculate symmetry functions (and derivatives).
-        e->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, i, derivatives);
+        e->calculateSymmetryFunctionGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, 
+            neigh_list, i, countergtotal); 
 
         // Remember that symmetry functions of this atom have been calculated.
         //a->hasSymmetryFunctions = true;

@@ -477,6 +477,7 @@ public:
     //SymmetryFunctionTypes
     t_SF SF;
     t_SFG SFG;
+    t_SFGmemberlist SFGmemberlist;
     t_SFscaling SFscaling;
     
     int countertotal[2] = {0,0};

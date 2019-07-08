@@ -105,8 +105,8 @@ void ForceNNP::compute(System* s) {
   //nnp::Mode* mode = new(nnp::Mode);
   nnp_data.resize(s->N_local);
   //Kokkos::resize(dGdr,(s->N_local+s->N_ghost),(s->N_local+s->N_ghost));
-  /*mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, true);
-  mode->calculateAtomicNeuralNetworks(s, nnp_data, true);
+  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, true);
+  /*mode->calculateAtomicNeuralNetworks(s, nnp_data, true);
   mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, neigh_list);*/
 }
 

@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <cmath>  // cos, sin, tanh, exp, pow
 #include <limits> // std::numeric_limits
+#include <iostream>
 
 using namespace std;
 using namespace nnp;
@@ -37,6 +38,17 @@ CutoffFunction::CutoffFunction() : cutoffType(CT_HARD                 ),
                                    dfPtr     (&CutoffFunction:: dfHARD),
                                    fdfPtr    (&CutoffFunction::fdfHARD)
 {
+}
+
+CutoffFunction::CutoffFunction(double _rc) 
+{
+  cutoffType = CT_TANHU;
+  rc = _rc;
+  rcinv = 1/rc;
+  rci = alpha = iw = 0.0;
+  fPtr = (&CutoffFunction::  fTANHU),
+  dfPtr = (&CutoffFunction:: dfTANHU),
+  fdfPtr = (&CutoffFunction::fdfTANHU);
 }
 
 void CutoffFunction::setCutoffType(CutoffType const cutoffType)

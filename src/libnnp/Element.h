@@ -89,7 +89,7 @@ public:
     std::vector<std::string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
     /** Set up symmetry function groups.
      */
-    void setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, int attype, int (&countertotal)[2], int (&countergtotal)[2]);
+    void setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2]);
     /** Print symmetry function group info.
      */
     std::vector<std::string> infoSymmetryFunctionGroups(t_SFG SFG, int attype, int (&countergtotal)[2]) const;
@@ -157,9 +157,7 @@ public:
      * @param[in] derivatives If symmetry function derivatives will be
      *                        calculated.
      */
-    void                     calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, 
-                                                             t_verletlist_full_2D neigh_list,
-                                                             T_INT i, bool const  derivatives) const;
+    void calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const;
     /** Calculate symmetry function derivatives via groups
      */
     void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const;

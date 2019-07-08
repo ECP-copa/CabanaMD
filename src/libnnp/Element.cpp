@@ -19,6 +19,7 @@
 #include "NeuralNetwork.h"
 #include "SymmetryFunction.h"
 #include "SymmetryFunctionHelper.h"
+#include "SymmetryFunctionGroupCalculate.h"
 #include "SymmetryFunctionRadial.h"
 #include "SymmetryFunctionAngularNarrow.h"
 #include "SymmetryFunctionAngularWide.h"
@@ -209,10 +210,9 @@ vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_S
     return v;
 }
 
-void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, int attype, int (&countertotal)[2], int (&countergtotal)[2])
+void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2])
 {
     int countergR = 0, countergAN = 0;
-    
     for (int k = 0; k < countertotal[attype]; ++k)
     {
         bool createNewGroup = true;
@@ -223,9 +223,15 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, int attype, int (&
                 createNewGroup = false;
                 SF(attype,k,12) = l;
                 if (SFG(attype,l,1)==2)
+                {
+                  SFGmemberlist(attype,l,countergR) = k;
                   countergR++;
+                }
                 else if (SFG(attype,l,1)==3)
+                {
+                  SFGmemberlist(attype,l,countergAN) = k;
                   countergAN++;
+                }
                 break;
             }
         }
@@ -241,9 +247,15 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, int attype, int (&
             addMemberToGroup(SFG, SF, attype, l, k, countergR, countergAN);
             SF(attype,k,12) = l;
             if (SFG(attype,l,1)==2)
+            {
+              SFGmemberlist(attype,l,countergR) = k;
               countergR++;
+            }
             else if (SFG(attype,l,1)==3)
+            {
+              SFGmemberlist(attype,l,countergAN) = k;
               countergAN++;
+            }
         }
     }
 
@@ -256,7 +268,6 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, int attype, int (&
         symmetryFunctionGroups.at(i)->sortMembers();
         symmetryFunctionGroups.at(i)->setIndex(i);
     }*/
-
     return;
 }
 
@@ -363,16 +374,17 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
     return;
 }
 
-void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
-                                              T_INT i, bool const derivatives) const
+void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const
 {
-    for (vector<SymmetryFunctionGroup*>::const_iterator
-         it = symmetryFunctionGroups.begin();
-         it != symmetryFunctionGroups.end(); ++it)
+    for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
     {
-        (*it)->calculate(s, nnp_data, neigh_list, i, derivatives);
-    }
-
+      std::cout << "calculating group " << groupIndex << " for atom type " << attype << " for atom " << i << std::endl;
+      if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
+        calculateSFGR(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
+      else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
+        calculateSFGAN(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
+      std::cout << "Done calculating\n"; 
+    }    
     return;
 }
 

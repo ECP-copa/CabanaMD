@@ -135,7 +135,8 @@ using t_dGdr = Kokkos::View<T_V_FLOAT*[MAX_SF][3]>;
 
 using t_SF = Kokkos::View<T_FLOAT**[13]>;
 using t_SFG = Kokkos::View<T_FLOAT**[6]>;
-using t_SFscaling = Kokkos::View<T_FLOAT**[7]>;
+using t_SFscaling = Kokkos::View<T_FLOAT**[8]>;
+using t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF]>; //5 kinds of SF Groups per element
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
 using t_verletlist_full_2D = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;
