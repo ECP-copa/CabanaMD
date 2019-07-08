@@ -207,19 +207,19 @@ public:
      *
      * @param[in] input Input layer node values.
      */
-    void                     setInput(AoSoA_NNP nnp_data, T_INT atomindex) const;
+    __host__ __device__ void                     setInput(AoSoA_NNP nnp_data, T_INT atomindex) const;
     /** Get neural network output layer node values.
      *
      * @param[out] output Output layer node values.
      */
-    double                     getOutput() const;
+    __host__ __device__ double                     getOutput() const;
     /** Propagate input information through all layers.
      *
      * With the input data set by #setInput() this will calculate all remaining
      * neuron values, the output in the last layer is acccessible via
      * #getOutput().
      */
-    void                     propagate();
+    __host__ __device__ void                     propagate();
     /** Calculate derivative of output neuron with respect to input neurons.
      *
      * @param[out] dEdG Array containing derivative (length is number of input
@@ -232,7 +232,7 @@ public:
      * @f$E@f$ is the output neuron and @f$\left(G_i\right)_{i=1,\ldots,N}@f$
      * are the @f$N@f$ input neurons.
      */
-    void                     calculateDEdG(AoSoA_NNP nnp_data, T_INT atomindex) const;
+    __host__ __device__ void                     calculateDEdG(AoSoA_NNP nnp_data, T_INT atomindex) const;
     /** Calculate derivative of output neuron with respect to connections.
      *
      * @param[out] dEdc Array containing derivative (length is number of
@@ -469,7 +469,7 @@ private:
      *
      * This function is internally looped by #propagate().
      */
-    void   propagateLayer(Layer& layer, Layer& layerPrev);
+    __host__ __device__ void   propagateLayer(Layer& layer, Layer& layerPrev);
 };
 
 }

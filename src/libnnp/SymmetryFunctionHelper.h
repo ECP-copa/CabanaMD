@@ -195,7 +195,7 @@ inline bool addMemberToGroup(t_SFG SFG, t_SF SF, int attype, int groupIndex,
     return true;
 }
 
-inline double scale(int attype, double value, int k, t_SFscaling SFscaling)
+__host__ __device__ double scale(int attype, double value, int k, t_SFscaling SFscaling)
 {
     double scalingType = SFscaling(attype,k,7);
     double scalingFactor = SFscaling(attype,k,6);
@@ -299,13 +299,13 @@ public:
      * @param[in] value Scaled symmetry function value.
      * @return Raw symmetry function value.
      */
-    KOKKOS_INLINE_FUNCTION double              unscale(double value) const;
+    __host__ __device__ double              unscale(double value) const;
     /** Get private #type member variable.
      */
     std::size_t         getType() const;
     /** Get private #index member variable.
      */
-    KOKKOS_INLINE_FUNCTION std::size_t         getIndex() const;
+    __host__ __device__ std::size_t         getIndex() const;
     /** Get private #lineNumber member variable.
      */
     std::size_t         getLineNumber() const;
@@ -320,10 +320,10 @@ public:
     double              getRc() const;
     /** Get private #Gmin member variable.
      */
-    KOKKOS_INLINE_FUNCTION double              getGmin() const;
+    __host__ __device__ double              getGmin() const;
     /** Get private #Gmax member variable.
      */
-    KOKKOS_INLINE_FUNCTION double              getGmax() const;
+    __host__ __device__ double              getGmax() const;
     /** Get private #scalingFactor member variable.
      */
     double              getScalingFactor() const;
@@ -437,7 +437,7 @@ inline std::size_t SymmetryFunctionHelper::getEc() const
     return ec;
 }
 
-KOKKOS_INLINE_FUNCTION std::size_t SymmetryFunctionHelper::getIndex() const
+__host__ __device__ std::size_t SymmetryFunctionHelper::getIndex() const
 {
     return index;
 }
@@ -457,12 +457,12 @@ inline double SymmetryFunctionHelper::getRc() const
     return rc;
 }
 
-KOKKOS_INLINE_FUNCTION double SymmetryFunctionHelper::getGmin() const
+__host__ __device__ double SymmetryFunctionHelper::getGmin() const
 {
     return Gmin;
 }
 
-KOKKOS_INLINE_FUNCTION double SymmetryFunctionHelper::getGmax() const
+__host__ __device__ double SymmetryFunctionHelper::getGmax() const
 {
     return Gmax;
 }

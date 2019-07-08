@@ -157,17 +157,17 @@ public:
      * @param[in] derivatives If symmetry function derivatives will be
      *                        calculated.
      */
-    void calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const;
+    __host__ __device__ void calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const;
     /** Calculate symmetry function derivatives via groups
      */
-    void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, t_verletlist_full_2D neigh_list, T_INT i, const int countergtotal[2]) const;
+    __host__ __device__ void calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, t_verletlist_full_2D neigh_list, T_INT i, const int countergtotal[2]) const;
     /** Update symmetry function statistics.
      *
      * @param[in] atom Atom with symmetry function values.
      *
      * This function checks also for extrapolation warnings.
      */
-    void                     updateSymmetryFunctionStatistics(
+    __host__ __device__ void                     updateSymmetryFunctionStatistics(
                                                              System* s, AoSoA_NNP nnp_data,
                                                              T_INT i);
     /** Get symmetry function instance.

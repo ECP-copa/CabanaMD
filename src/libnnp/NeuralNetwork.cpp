@@ -339,7 +339,7 @@ void NeuralNetwork::modifyConnections(ModificationScheme modificationScheme,
     return;
 }
 
-void NeuralNetwork::setInput(AoSoA_NNP nnp_data, T_INT atomindex) const
+KOKKOS_INLINE_FUNCTION void NeuralNetwork::setInput(AoSoA_NNP nnp_data, T_INT atomindex) const
 {
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
     for (int i = 0; i < inputLayer->numNeurons; i++)
@@ -357,12 +357,13 @@ void NeuralNetwork::setInput(AoSoA_NNP nnp_data, T_INT atomindex) const
     return;
 }
 
-double NeuralNetwork::getOutput() const
+__host__ __device__ double NeuralNetwork::getOutput() const
 {
     return outputLayer->neurons[0].value;
 }
 
-void NeuralNetwork::propagate()
+
+__host__ __device__ void NeuralNetwork::propagate()
 {
     for (int i = 1; i < numLayers; i++)
     {
@@ -372,7 +373,7 @@ void NeuralNetwork::propagate()
     return;
 }
 
-void NeuralNetwork::calculateDEdG(AoSoA_NNP nnp_data, T_INT atomindex) const
+__host__ __device__ void NeuralNetwork::calculateDEdG(AoSoA_NNP nnp_data, T_INT atomindex) const
 {
     auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     double** inner = new double*[numHiddenLayers];
@@ -738,7 +739,7 @@ void NeuralNetwork::allocateLayer(Layer&             layer,
     return;
 }
 
-void NeuralNetwork::propagateLayer(Layer& layer, Layer& layerPrev)
+__host__ __device__ void NeuralNetwork::propagateLayer(Layer& layer, Layer& layerPrev)
 {
     double dtmp = 0.0;
 

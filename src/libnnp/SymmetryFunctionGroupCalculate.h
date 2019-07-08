@@ -9,25 +9,24 @@ using namespace std;
 using namespace nnp;
 
 
-KOKKOS_INLINE_FUNCTION void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
+__host__ __device__ void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
-  
+    
     //pick e1, rc from first member (since they are all the same)
     //SFGmemberlist(attype,groupIndex,0): second index = groupIndex, third index  = for first SF in group
     int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
     double rc = SF(attype, SFGmemberlist(attype,groupIndex,0), 7);
-    CutoffFunction fc(rc);
+    //CutoffFunction fc(rc);
     
     int size;
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-    double const rc2 = rc*rc;
     size_t numNeighbors = num_neighs;
    
-    double pfc, pdfc;
+    double pfc;
     for (size_t jj = 0; jj < numNeighbors; ++jj)
     {
         //Atom::Neighbor& n = atom.neighbors[j];
@@ -56,7 +55,11 @@ KOKKOS_INLINE_FUNCTION void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF
             // Energy calculation.
             // Calculate cutoff function and derivative.
 //#ifdef NOCFCACHE
-            fc.fdf(rij, pfc, pdfc);
+            double temp = tanh(1.0 - rij / rc);
+            double temp2 = temp * temp;
+            pfc = temp * temp2;
+            
+            //fc.fdf(rij, pfc, pdfc);
 //#else
             /*
             // If cutoff radius matches with the one in the neighbor storage
@@ -107,19 +110,14 @@ KOKKOS_INLINE_FUNCTION void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF
 }
 
 
-KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
+__host__ __device__ void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
 {
-    auto x = Cabana::slice<Positions>(s->xvf);
-    auto id = Cabana::slice<IDs>(s->xvf);
-    auto type = Cabana::slice<Types>(s->xvf);
-    auto G = Cabana::slice<NNPNames::G>(nnp_data);
- 
     //pick e1, rc from first member (since they are all the same)
     //SFGmemberlist(1,0): first index for angular narrow, second index for first SF in angular narrow group
     int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
     int e2 = SF(attype, SFGmemberlist(attype,groupIndex,0), 3);
     double rc = SF(attype, SFGmemberlist(attype,groupIndex,0), 7);
-    CutoffFunction fc(rc);
+    //CutoffFunction fc(rc);
     
     int size;
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
@@ -134,7 +132,7 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
         size_t const nej = type(j);
         
-        std::cout << "i: " << i << " j: " << j << std::endl; 
+        //std::cout << "i: " << i << " j: " << j << std::endl; 
         //std::cout << "xi: " << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl; //<< " " << x(i,1) << " " << x(i,2) << std::endl; 
         //std::cout << "xj: " << x(j,0) << " " << x(j,1) << " " << x(j,2) << std::endl; 
         
@@ -156,8 +154,10 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
             // Calculate cutoff function and derivative.
 //#ifdef NOCFCACHE
             double pfcij;
-            double pdfcij;
-            fc.fdf(rij, pfcij, pdfcij);
+            double temp = tanh(1.0 - rij/rc);
+            double temp2 = temp * temp;
+            pfcij = temp * temp2;
+            //fc.fdf(rij, pfcij, pdfcij);
 //#else
             /*// If cutoff radius matches with the one in the neighbor storage
             // we can use the previously calculated value.
@@ -216,8 +216,10 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
                             // Energy calculation.
 //#ifdef NOCFCACHE
                             double pfcik;
-                            double pdfcik;
-                            fc.fdf(rik, pfcik, pdfcik);
+                            double temp = tanh(1.0 - rik/rc);
+                            double temp2 = temp * temp;
+                            pfcik = temp * temp2;
+                            //fc.fdf(rik, pfcik, pdfcik);
 //#else
                             /*double& pfcik = nk.fc;
                             double& pdfcik = nk.dfc;
@@ -232,10 +234,11 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
                             }*/
 //#endif
                             double rjk = sqrt(r2jk);
-
                             double pfcjk;
-                            double pdfcjk;
-                            fc.fdf(rjk, pfcjk, pdfcjk);
+                            temp = tanh(1.0 - rjk/rc);
+                            temp2 = temp * temp;
+                            pfcjk = temp * temp2;
+                            //fc.fdf(rjk, pfcjk, pdfcjk);
 
                             // SIMPLE EXPRESSIONS:
                             //Vec3D const drik(atom.neighbors[k].dr);
@@ -247,9 +250,9 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF S
                             double const costijk = (dxij*dxik + dyij*dyik + dzij*dzik)* rinvijik;
                             double const pfc = pfcij * pfcik * pfcjk;
                             double const r2sum = r2ij + r2ik + r2jk;
-                            double const pr1 = pfcik * pfcjk * pdfcij / rij;
-                            double const pr2 = pfcij * pfcjk * pdfcik / rik;
-                            double const pr3 = pfcij * pfcik * pdfcjk / rjk;
+                            //double const pr1 = pfcik * pfcjk * pdfcij / rij;
+                            //double const pr2 = pfcij * pfcjk * pdfcik / rik;
+                            //double const pr3 = pfcij * pfcik * pdfcjk / rjk;
                             double vexp = 0.0;
                             double rijs = 0.0;
                             double riks = 0.0;

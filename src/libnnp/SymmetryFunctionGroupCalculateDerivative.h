@@ -9,7 +9,7 @@ using namespace std;
 using namespace nnp;
 
 
-KOKKOS_INLINE_FUNCTION void calculateSFGRD(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
+__host__ __device__ void calculateSFGRD(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -20,11 +20,10 @@ KOKKOS_INLINE_FUNCTION void calculateSFGRD(System* s, AoSoA_NNP nnp_data, t_SF S
     //SFGmemberlist(attype,groupIndex,0): second index = groupIndex, third index  = for first SF in group
     int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
     double rc = SF(attype, SFGmemberlist(attype,groupIndex,0), 7);
-    CutoffFunction fc(rc);
+    //CutoffFunction fc(rc);
     
     int size;
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-    double const rc2 = rc*rc;
     size_t numNeighbors = num_neighs;
    
     double pfc, pdfc;
@@ -56,7 +55,11 @@ KOKKOS_INLINE_FUNCTION void calculateSFGRD(System* s, AoSoA_NNP nnp_data, t_SF S
             // Energy calculation.
             // Calculate cutoff function and derivative.
 //#ifdef NOCFCACHE
-            fc.fdf(rij, pfc, pdfc);
+            double temp = tanh(1.0 - rij / rc);
+            double temp2 = temp * temp;
+            pfc = temp * temp2;
+            pdfc = 3.0 * temp2 * (temp2 - 1.0) / rc;
+            //fc.fdf(rij, pfc, pdfc);
 //#else
             /*
             // If cutoff radius matches with the one in the neighbor storage
@@ -122,7 +125,7 @@ KOKKOS_INLINE_FUNCTION void calculateSFGRD(System* s, AoSoA_NNP nnp_data, t_SF S
 }
 
 
-KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
+__host__ __device__ void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -134,7 +137,7 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF 
     int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
     int e2 = SF(attype, SFGmemberlist(attype,groupIndex,0), 3);
     double rc = SF(attype, SFGmemberlist(attype,groupIndex,0), 7);
-    CutoffFunction fc(rc);
+    //CutoffFunction fc(rc);
     
     int size;
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
@@ -172,7 +175,11 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF 
 //#ifdef NOCFCACHE
             double pfcij;
             double pdfcij;
-            fc.fdf(rij, pfcij, pdfcij);
+            double temp = tanh(1.0 - rij/rc);
+            double temp2 = temp * temp;
+            pfcij = temp * temp2;
+            pdfcij = 3.0 * temp2 * (temp2 - 1.0) / rc;
+            //fc.fdf(rij, pfcij, pdfcij);
 //#else
             /*// If cutoff radius matches with the one in the neighbor storage
             // we can use the previously calculated value.
@@ -232,7 +239,11 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF 
 //#ifdef NOCFCACHE
                             double pfcik;
                             double pdfcik;
-                            fc.fdf(rik, pfcik, pdfcik);
+                            double temp = tanh(1.0 - rik/rc);
+                            double temp2 = temp * temp;
+                            pfcik = temp * temp2;
+                            pdfcik = 3.0 * temp2 * (temp2 - 1.0) / rc;
+                            //fc.fdf(rik, pfcik, pdfcik);
 //#else
                             /*double& pfcik = nk.fc;
                             double& pdfcik = nk.dfc;
@@ -250,7 +261,11 @@ KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF 
 
                             double pfcjk;
                             double pdfcjk;
-                            fc.fdf(rjk, pfcjk, pdfcjk);
+                            temp = tanh(1.0 - rjk/rc);
+                            temp2 = temp * temp;
+                            pfcjk = temp * temp2;
+                            pdfcjk = 3.0 * temp2 * (temp2 - 1.0) / rc;
+                            //fc.fdf(rjk, pfcjk, pdfcjk);
 
                             // SIMPLE EXPRESSIONS:
                             //Vec3D const drik(atom.neighbors[k].dr);

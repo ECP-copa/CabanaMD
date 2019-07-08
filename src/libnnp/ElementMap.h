@@ -63,13 +63,13 @@ public:
      * @param[in] index Element index.
      * @return Element symbol.
      */
-    std::string              symbol(std::size_t const index) const;
+    __host__ __device__ std::string              symbol(std::size_t const index) const;
     /** Get atomic number from element index.
      *
      * @param[in] index Element index in map.
      * @return Atomic number (proton number Z) of element.
      */
-    KOKKOS_INLINE_FUNCTION std::size_t              atomicNumber(std::size_t index) const;
+    __host__ __device__ std::size_t              atomicNumber(std::size_t index) const;
     /** Extract all elements and store in element map.
      *
      * @param[in] elementLine String containing all elements, e.g.
@@ -109,7 +109,7 @@ private:
     /// Reverse element map.
     std::map<std::size_t, std::string> reverseMap;
     /// List of element symbols (e.g. "He" for Helium).
-    static std::string const           knownElements[];
+    static std::string knownElements[];
 
     /** Check if arguments are sorted according to atomic number.
      *

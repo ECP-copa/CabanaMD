@@ -860,6 +860,8 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data,
 
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
     
     //Atom* a = NULL;
 //#ifdef _OPENMP
@@ -887,10 +889,10 @@ void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data,
         //                                    minCutoffRadius.at(e->getIndex()));
         if (num_neighs < minNeighbors.at(e->getIndex()))
         {
-            log << strpr("WARNING: Atom %6zu : %zu "
+            /*log << strpr("WARNING: Atom %6zu : %zu "
                          "neighbors.\n",
                          id(i),
-                         num_neighs);
+                         num_neighs);*/
         }
 #endif
         // Allocate symmetry function data vectors in atom.
@@ -1009,7 +1011,7 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
         const Element* e = NULL;
         e = &(elements.at(type(i)));
         int attype = e->getIndex();
-        //Reset dGdr to zero
+        //Reset dGdr to zero TODO: deep_copy
         t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
         e->calculateSymmetryFunctionGroupDerivatives(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, neigh_list, i, countergtotal);
         
@@ -1304,4 +1306,5 @@ vector<size_t> Mode::pruneSymmetryFunctionsSensitivity(
 
     return prune;
 }
+
 
