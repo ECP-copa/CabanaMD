@@ -206,36 +206,6 @@ public:
     void                     calculateSymmetryFunctions(
                                                        Structure& structure,
                                                        bool const derivatives);
-    /** Calculate all symmetry function groups for all atoms in given
-     * structure.
-     *
-     * @param[in] structure Input structure.
-     * @param[in] derivatives If `true` calculate also derivatives of symmetry
-     *                        functions.
-     *
-     * This function replaces calculateSymmetryFunctions() when symmetry
-     * function groups are enabled (faster, default behavior). Results are
-     * stored in Atom::G. If derivatives are calculated, additional results are
-     * stored in Atom::dGdr and Atom::Neighbor::dGdr.
-     */
-    void                     calculateSymmetryFunctionGroups(
-                                                       System* s, AoSoA_NNP nnp_data, 
-                                                       t_verletlist_full_2D neigh_list, 
-                                                       bool const derivatives);
-    /** Calculate atomic neural networks for all atoms in given structure.
-     *
-     * @param[in] structure Input structure.
-     * @param[in] derivatives If `true` calculate also derivatives of neural
-     *                        networks with respect to input layer neurons
-     *                        (required for force calculation).
-     *
-     * The atomic energy is stored in Atom::energy. If derivatives are
-     * calculated the results are stored in Atom::dEdG. The atomic energy
-     * energy offset (keyword `atom_energy`) is also added at this point.
-     */
-    void                     calculateAtomicNeuralNetworks(
-                                                 System* s, AoSoA_NNP nnp_data,
-                                                 bool const derivatives) const;
     /** Calculate potential energy for a given structure.
      *
      * @param[in] structure Input structure.
@@ -244,15 +214,6 @@ public:
      * stored in Structure::energy.
      */
     void                     calculateEnergy(Structure& structure) const;
-    /** Calculate forces for all atoms in given structure.
-     *
-     * @param[in] structure Input structure.
-     *
-     * Combine intermediate results from symmetry function and neural network
-     * computation to atomic forces. Results are stored in Atom::f.
-     */
-    void                     calculateForces(System* s, t_mass numSymmetryFunctionsPerElement, 
-                                             AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list) const;
     /* Add atomic energy offsets to reference energy.
      *
      * @param[in] structure Input structure.
@@ -465,7 +426,7 @@ public:
      */
     void allocate(System* s, T_INT numSymmetryFunctions, bool all);
     
-    void mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
+    void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
         t_mass numSymmetryFunctionsPerElement);
     
     KOKKOS_INLINE_FUNCTION double scale(int attype, double value, int k, t_SFscaling SFscaling);
@@ -478,6 +439,9 @@ public:
 
     KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
 
+    void calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
+    t_mass numSymmetryFunctionsPerElement);
+    void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data);
     
     /// Global log file.
     Log        log;

@@ -902,8 +902,8 @@ void Mode::writeSettingsFile(ofstream* const& file) const
   //
 //
 
-void Mode::mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
-    t_mass numSymmetryFunctionsPerElement)
+void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
+    t_mass numSymmetryFunctionsPerElement) 
 {
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
@@ -929,7 +929,11 @@ void Mode::mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
             calculateSFGAN(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
         }
     });
-    
+
+} 
+
+void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
+{
     //Calculate Atomic Neural Networks 
     /*auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
@@ -942,8 +946,16 @@ void Mode::mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
         calculateDEdG(nnp_data,i);
         energy(i) = e.neuralNetwork->getOutput();
     });*/
+}
 
+
+void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
+    t_mass numSymmetryFunctionsPerElement)
+{
     //Calculate Forces 
+    auto id = Cabana::slice<IDs>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto x = Cabana::slice<Positions>(s->xvf);
     auto f = Cabana::slice<Forces>(s->xvf);
     auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     

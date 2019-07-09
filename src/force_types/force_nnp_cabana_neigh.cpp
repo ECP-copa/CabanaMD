@@ -105,10 +105,9 @@ void ForceNNP::compute(System* s) {
   //nnp::Mode* mode = new(nnp::Mode);
   nnp_data.resize(s->N_local);
   //Kokkos::resize(dGdr,(s->N_local+s->N_ghost),(s->N_local+s->N_ghost));
-  mode->mega(s, nnp_data, neigh_list, numSymmetryFunctionsPerElement);
-  //mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, true);
-  //mode->calculateAtomicNeuralNetworks(s, nnp_data, true);
-  //mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, neigh_list);
+  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, numSymmetryFunctionsPerElement);
+  mode->calculateAtomicNeuralNetworks(s, nnp_data);
+  mode->calculateForces(s, nnp_data, neigh_list, numSymmetryFunctionsPerElement);
 }
 
 T_V_FLOAT ForceNNP::compute_energy(System* s) {
