@@ -195,43 +195,6 @@ inline bool addMemberToGroup(t_SFG SFG, t_SF SF, int attype, int groupIndex,
     return true;
 }
 
-__host__ __device__ double scale(int attype, double value, int k, t_SFscaling SFscaling)
-{
-    double scalingType = SFscaling(attype,k,7);
-    double scalingFactor = SFscaling(attype,k,6);
-    double Gmin = SFscaling(attype,k,0);
-    double Gmax = SFscaling(attype,k,1);
-    double Gmean = SFscaling(attype,k,2);
-    double Gsigma = SFscaling(attype,k,3);
-    double Smin = SFscaling(attype,k,4);
-    double Smax = SFscaling(attype,k,5);
-    
-    if (scalingType == 0.0)
-    {
-        return value;
-    }
-    else if (scalingType == 1.0)
-    {
-        return Smin + scalingFactor * (value - Gmin);
-    }
-    else if (scalingType == 2.0)
-    {
-        return value - Gmean;
-    }
-    else if (scalingType == 3.0)
-    {
-        return Smin + scalingFactor * (value - Gmean);
-    }
-    else if (scalingType == 4.0)
-    {
-        return Smin + scalingFactor * (value - Gmean);
-    }
-    else
-    {
-        return 0.0;
-    }
-
-}
 
 inline double unscale(int attype, double value, int k, t_SFscaling SFscaling)
 {

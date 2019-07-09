@@ -339,39 +339,6 @@ void NeuralNetwork::modifyConnections(ModificationScheme modificationScheme,
     return;
 }
 
-KOKKOS_INLINE_FUNCTION void NeuralNetwork::setInput(AoSoA_NNP nnp_data, T_INT atomindex) const
-{
-    auto G = Cabana::slice<NNPNames::G>(nnp_data);
-    for (int i = 0; i < inputLayer->numNeurons; i++)
-    {
-        double const& value = G(atomindex,i);
-        Neuron& n = inputLayer->neurons[i];
-        n.count++;
-        n.value = value;
-        n.min  = min(value, n.min);
-        n.max  = max(value, n.max);
-        n.sum  += value;
-        n.sum2 += value * value;
-    }
-
-    return;
-}
-
-__host__ __device__ double NeuralNetwork::getOutput() const
-{
-    return outputLayer->neurons[0].value;
-}
-
-
-__host__ __device__ void NeuralNetwork::propagate()
-{
-    for (int i = 1; i < numLayers; i++)
-    {
-        propagateLayer(layers[i], layers[i-1]);
-    }
-
-    return;
-}
 
 __host__ __device__ void NeuralNetwork::calculateDEdG(AoSoA_NNP nnp_data, T_INT atomindex) const
 {
@@ -734,78 +701,6 @@ void NeuralNetwork::allocateLayer(Layer&             layer,
         {
             layer.neurons[i].weights = 0;
         }
-    }
-
-    return;
-}
-
-__host__ __device__ void NeuralNetwork::propagateLayer(Layer& layer, Layer& layerPrev)
-{
-    double dtmp = 0.0;
-
-    for (int i = 0; i < layer.numNeurons; i++)
-    {
-        dtmp = 0.0;
-        for (int j = 0; j < layer.numNeuronsPrevLayer; j++)
-        {
-            dtmp += layer.neurons[i].weights[j] * layerPrev.neurons[j].value;
-        }
-        dtmp += layer.neurons[i].bias;
-        if (normalizeNeurons)
-        {
-            dtmp /= layer.numNeuronsPrevLayer;
-        }
-
-        layer.neurons[i].x = dtmp;
-        if (layer.activationFunction == AF_IDENTITY)
-        {
-            layer.neurons[i].value  = dtmp;
-            layer.neurons[i].dfdx   = 1.0;
-            layer.neurons[i].d2fdx2 = 0.0;
-        }
-        else if (layer.activationFunction == AF_TANH)
-        {
-            dtmp = tanh(dtmp);
-            layer.neurons[i].value  = dtmp;
-            layer.neurons[i].dfdx   = 1.0 - dtmp * dtmp;
-            layer.neurons[i].d2fdx2 = -2.0 * dtmp * (1.0 - dtmp * dtmp);
-        }
-        else if (layer.activationFunction == AF_LOGISTIC)
-        {
-            dtmp = 1.0 / (1.0 + exp(-dtmp));
-            layer.neurons[i].value  = dtmp;
-            layer.neurons[i].dfdx   = dtmp * (1.0 - dtmp);
-            layer.neurons[i].d2fdx2 = dtmp * (1.0 - dtmp) * (1.0 - 2.0 * dtmp);
-        }
-        else if (layer.activationFunction == AF_SOFTPLUS)
-        {
-            dtmp = exp(dtmp);
-            layer.neurons[i].value  = log(1.0 + dtmp);
-            dtmp = 1.0 / (1.0 + 1.0 / dtmp);
-            layer.neurons[i].dfdx   = dtmp;
-            layer.neurons[i].d2fdx2 = dtmp * (1.0 - dtmp);
-        }
-        else if (layer.activationFunction == AF_RELU)
-        {
-            if (dtmp > 0.0)
-            {
-                layer.neurons[i].value  = dtmp;
-                layer.neurons[i].dfdx   = 1.0;
-                layer.neurons[i].d2fdx2 = 0.0;
-            }
-            else
-            {
-                layer.neurons[i].value  = 0.0;
-                layer.neurons[i].dfdx   = 0.0;
-                layer.neurons[i].d2fdx2 = 0.0;
-            }
-        }
-        layer.neurons[i].count++;
-        dtmp = layer.neurons[i].x;
-        layer.neurons[i].min  = min(dtmp, layer.neurons[i].min);
-        layer.neurons[i].max  = max(dtmp, layer.neurons[i].max);
-        layer.neurons[i].sum  += dtmp;
-        layer.neurons[i].sum2 += dtmp * dtmp;
     }
 
     return;

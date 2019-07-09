@@ -24,6 +24,9 @@
 #include "Settings.h"
 #include "Structure.h"
 #include "SymmetryFunction.h"
+#include "SymmetryFunctionHelper.h"
+#include "SymmetryFunctionGroupCalculate.h"
+#include "SymmetryFunctionGroupCalculateDerivative.h"
 #include <cstddef> // std::size_t
 #include <string>  // std::string
 #include <vector>  // std::vector
@@ -471,6 +474,10 @@ public:
      * Warning: #numSymmetryFunctions needs to be set first!
      */
     void allocate(System* s, T_INT numSymmetryFunctions, bool all);
+    
+    void mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
+        t_mass numSymmetryFunctionsPerElement);
+    
     /// Global log file.
     Log        log;
     
@@ -535,5 +542,7 @@ inline bool Mode::useNormalization() const
 }
 
 }
+
+//------------------- HELPERS TO MEGA FUNCTION  --------------//
 
 #endif

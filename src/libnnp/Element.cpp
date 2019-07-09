@@ -377,21 +377,6 @@ void Element::calculateSymmetryFunctions(Atom&      atom,
     return;
 }
 
-__host__ __device__ void Element::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const
-{
-    
-    for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
-    {
-      //std::cout << "calculating group " << groupIndex << " for atom type " << attype << " for atom " << i << std::endl;
-      //std::cout << "member: " << SFGmemberlist(attype,groupIndex,0) <<  " " << SFGmemberlist(attype,groupIndex,1) << endl; 
-      if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
-        calculateSFGR(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
-      else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
-        calculateSFGAN(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
-      //std::cout << "Done calculating " << std::endl; 
-    }
-    return;
-}
 
 __host__ __device__ void Element::calculateSymmetryFunctionGroupDerivatives(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, t_verletlist_full_2D neigh_list, T_INT i, const int countergtotal[2]) const
 {

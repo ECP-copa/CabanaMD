@@ -851,102 +851,6 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
     return;
 }
 
-void Mode::calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data,
-                                           t_verletlist_full_2D neigh_list, bool const derivatives)
-{
-    // Skip calculation for whole structure if results are already saved.
-    //if (s->hasSymmetryFunctionDerivatives) return;
-    //if (s->hasSymmetryFunctions && !derivatives) return;
-
-    auto id = Cabana::slice<IDs>(s->xvf);
-    auto type = Cabana::slice<Types>(s->xvf);
-    auto x = Cabana::slice<Positions>(s->xvf);
-    auto G = Cabana::slice<NNPNames::G>(nnp_data);
-    
-    //Atom* a = NULL;
-//#ifdef _OPENMP
-//    #pragma omp parallel for private (a, e)
-//#endif
-    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
-    {
-        // Pointer to atom.
-        //a = &(structure.atoms.at(i));
-
-        // Skip calculation for individual atom if results are already saved.
-        //if (s->hasSymmetryFunctionDerivatives) continue;
-        //if (s->hasSymmetryFunctions && !derivatives) continue;
-
-        // Get element of atom and set number of symmetry functions.
-        Element* e = NULL;
-        e = &(elements.at(type(i)));
-        int attype = e->getIndex();
-        T_INT numSymmetryFunctions = e->numSymmetryFunctions(attype, countertotal);
-        
-#ifndef NONEIGHCHECK
-        // Check if atom has low number of neighbors.
-        int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-        //size_t numNeighbors = a->getNumNeighbors(
-        //                                    minCutoffRadius.at(e->getIndex()));
-        if (num_neighs < minNeighbors.at(e->getIndex()))
-        {
-            /*log << strpr("WARNING: Atom %6zu : %zu "
-                         "neighbors.\n",
-                         id(i),
-                         num_neighs);*/
-        }
-#endif
-        // Allocate symmetry function data vectors in atom.
-        //allocate(s, numSymmetryFunctions, derivatives);
-        
-        // Calculate symmetry functions (and derivatives).
-        e->calculateSymmetryFunctionGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, 
-            neigh_list, i, countergtotal); 
-
-        // Remember that symmetry functions of this atom have been calculated.
-        //a->hasSymmetryFunctions = true;
-        //if (derivatives) a->hasSymmetryFunctionDerivatives = true;
-    });
-
-    // If requested, check extrapolation warnings or update statistics.
-    // Needed to shift this out of the loop above to make it thread-safe.
-    Kokkos::fence();
-    if (checkExtrapolationWarnings)
-    {
-        Kokkos::parallel_for ("Mode::checkExtrapolationWarnings", s->N_local, KOKKOS_LAMBDA (const size_t i) 
-        {
-            Element* e = NULL;
-            //a = &(structure.atoms.at(i));
-            e = &(elements.at(type(i)));
-            e->updateSymmetryFunctionStatistics(s, nnp_data, i);
-        });
-    
-    }
-    // Remember that symmetry functions of this structure have been calculated.
-    //s->hasSymmetryFunctions = true;
-    //if (derivatives) s->hasSymmetryFunctionDerivatives = true;
-    return;
-}
-
-void Mode::allocate(System* s, T_INT numSymmetryFunctions, bool all)
-{
-    /*
-    if (numSymmetryFunctions == 0)
-    {
-        throw range_error("ERROR: Number of symmetry functions set to"
-                          "zero, cannot allocate.\n");
-    } TODO: put back error checking in*/
-    // Resize vectors (derivatives only if requested).
-    //nnp_data.resize(s->N);
-     
-    // Reset status of symmetry functions and derivatives.
-    //hasSymmetryFunctions           = false;
-    //hasSymmetryFunctionDerivatives = false;
-
-    //if (all)
-    //    auto dGdr = Cabana::slice<NNPNames::dGdr>(s->nnp_data);
-    return;
-}
-
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
                                          bool const derivatives) const
 {
@@ -963,19 +867,6 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
         if (derivatives) e.neuralNetwork->calculateDEdG(nnp_data,i);
         energy(i) = e.neuralNetwork->getOutput();
     });
-
-    return;
-}
-
-void Mode::calculateEnergy(Structure& structure) const
-{
-    // Loop over all atoms and add atomic contributions to total energy.
-    structure.energy = 0.0;
-    for (vector<Atom>::iterator it = structure.atoms.begin();
-         it != structure.atoms.end(); ++it)
-    {
-        structure.energy += it->energy;
-    }
 
     return;
 }
@@ -1063,133 +954,6 @@ void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement,
     return;
 }
 
-void Mode::addEnergyOffset(Structure& structure, bool ref)
-{
-    for (size_t i = 0; i < numElements; ++i)
-    {
-        if (ref)
-        {
-            structure.energyRef += structure.numAtomsPerElement.at(i)
-                                 * elements.at(i).getAtomicEnergyOffset();
-        }
-        else
-        {
-            structure.energy += structure.numAtomsPerElement.at(i)
-                              * elements.at(i).getAtomicEnergyOffset();
-        }
-    }
-
-    return;
-}
-
-void Mode::removeEnergyOffset(Structure& structure, bool ref)
-{
-    for (size_t i = 0; i < numElements; ++i)
-    {
-        if (ref)
-        {
-            structure.energyRef -= structure.numAtomsPerElement.at(i)
-                                 * elements.at(i).getAtomicEnergyOffset();
-        }
-        else
-        {
-            structure.energy -= structure.numAtomsPerElement.at(i)
-                              * elements.at(i).getAtomicEnergyOffset();
-        }
-    }
-
-    return;
-}
-
-double Mode::getEnergyOffset(Structure const& structure) const
-{
-    double result = 0.0;
-
-    for (size_t i = 0; i < numElements; ++i)
-    {
-        result += structure.numAtomsPerElement.at(i)
-                * elements.at(i).getAtomicEnergyOffset();
-    }
-
-    return result;
-}
-
-double Mode::getEnergyWithOffset(Structure const& structure, bool ref) const
-{
-    double result;
-    if (ref) result = structure.energyRef;
-    else     result = structure.energy;
-
-    for (size_t i = 0; i < numElements; ++i)
-    {
-        result += structure.numAtomsPerElement.at(i)
-                * elements.at(i).getAtomicEnergyOffset();
-    }
-
-    return result;
-}
-
-double Mode::normalizedEnergy(double energy) const
-{
-    return energy * convEnergy; 
-}
-
-double Mode::normalizedEnergy(Structure const& structure, bool ref) const
-{
-    if (ref)
-    {
-        return (structure.energyRef - structure.numAtoms * meanEnergy)
-               * convEnergy; 
-    }
-    else
-    {
-        return (structure.energy - structure.numAtoms * meanEnergy)
-               * convEnergy; 
-    }
-}
-
-double Mode::normalizedForce(double force) const
-{
-    return force * convEnergy / convLength;
-}
-
-double Mode::physicalEnergy(double energy) const
-{
-    return energy / convEnergy; 
-}
-
-double Mode::physicalEnergy(Structure const& structure, bool ref) const
-{
-    if (ref)
-    {
-        return structure.energyRef / convEnergy + structure.numAtoms
-               * meanEnergy; 
-    }
-    else
-    {
-        return structure.energy / convEnergy + structure.numAtoms * meanEnergy; 
-    }
-}
-
-double Mode::physicalForce(double force) const
-{
-    return force * convLength / convEnergy;
-}
-
-void Mode::convertToNormalizedUnits(Structure& structure) const
-{
-    structure.toNormalizedUnits(meanEnergy, convEnergy, convLength);
-
-    return;
-}
-
-void Mode::convertToPhysicalUnits(Structure& structure) const
-{
-    structure.toPhysicalUnits(meanEnergy, convEnergy, convLength);
-
-    return;
-}
-
 void Mode::resetExtrapolationWarnings()
 {
     for (vector<Element>::iterator it = elements.begin();
@@ -1215,19 +979,6 @@ size_t Mode::getNumExtrapolationWarnings() const
     return numExtrapolationWarnings;
 }
 
-vector<size_t> Mode::getNumSymmetryFunctions()
-{
-    vector<size_t> v;
-
-    for (vector<Element>::const_iterator it = elements.begin();
-         it != elements.end(); ++it)
-    {
-        int attype = it->getIndex();
-        v.push_back(it->numSymmetryFunctions(attype, countertotal));
-    }
-
-    return v;
-}
 
 bool Mode::settingsKeywordExists(std::string const& keyword) const
 {
@@ -1240,23 +991,6 @@ string Mode::settingsGetValue(std::string const& keyword) const
 }
 
 
-void Mode::writePrunedSettingsFile(vector<size_t> prune, string fileName) const
-{
-    ofstream file(fileName.c_str());
-    vector<string> settingsLines = settings.getSettingsLines();
-    for (size_t i = 0; i < settingsLines.size(); ++i)
-    {
-        if (find(prune.begin(), prune.end(), i) != prune.end())
-        {
-            file << "# ";
-        }
-        file << settingsLines.at(i) << '\n';
-    }
-    file.close();
-
-    return;
-}
-
 void Mode::writeSettingsFile(ofstream* const& file) const
 {
     settings.writeSettingsFile(file);
@@ -1264,47 +998,129 @@ void Mode::writeSettingsFile(ofstream* const& file) const
     return;
 }
 
-vector<size_t> Mode::pruneSymmetryFunctionsRange(double threshold)
-{
-    vector<size_t> prune;
 
-    // Check if symmetry functions have low range.
-    for (vector<Element>::const_iterator it = elements.begin();
-         it != elements.end(); ++it)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//------------------- MEGA FUNCTION ATTEMPT --------------//
+
+  //mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, true);
+  //mode->calculateAtomicNeuralNetworks(s, nnp_data, true);
+  //mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, neigh_list);
+  //
+//
+
+void Mode::mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
+    t_mass numSymmetryFunctionsPerElement)
+{
+    auto id = Cabana::slice<IDs>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
+    
+    // Calculate symmetry functions (and derivatives).
+    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
     {
-        int attype = it->getIndex();
-        for (size_t i = 0; i < it->numSymmetryFunctions(attype, countertotal); ++i)
+        int attype = type(i);
+        T_INT numSymmetryFunctions = numSymmetryFunctionsPerElement(type(i));
+        
+        // Check if atom has low number of neighbors.
+        int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+        
+        //calculateSFGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, neigh_list, i, countergtotal); 
+        for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
-            SymmetryFunction const& s = it->getSymmetryFunction(i);
-            if (fabs(s.getGmax() - s.getGmin()) < threshold)
+          if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
+            calculateSFGR(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
+          else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
+            calculateSFGAN(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
+        }
+    });
+    
+    //Calculate Atomic Neural Networks 
+    /*auto id = Cabana::slice<IDs>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
+
+    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t i)
+    {
+        setInput(nnp_data,i);
+        propagate();
+        calculateDEdG(nnp_data,i);
+        energy(i) = e.neuralNetwork->getOutput();
+    });*/
+
+    //Calculate Forces 
+    auto f = Cabana::slice<Forces>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
+    
+    double convForce = 1.0;
+    if (s->normalize)
+      convForce = convLength/convEnergy;
+    
+    Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
+    {
+        // Now loop over all neighbor atoms j of atom i. These may hold
+        // non-zero derivatives of their symmetry functions with respect to
+        // atom i's coordinates. Some atoms may appear multiple times in the
+        // neighbor list because of periodic boundary conditions. To avoid
+        // that the same contributions are added multiple times use the
+        // "unique neighbor" list (but skip the first entry, this is always
+        // atom i itself).
+        int attype = type(i); 
+        //Reset dGdr to zero TODO: deep_copy
+        t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
+        
+        for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
+        {
+          if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
+            calculateSFGRD(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
+          else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
+            calculateSFGAND(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
+        }    
+
+        int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+    
+        for (size_t jj = 0; jj < num_neighs; ++jj)
+        {
+            int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+            for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
             {
-                prune.push_back(it->getSymmetryFunction(i).getLineNumber());
+                f(j,0) -= (dEdG(i,k) * dGdr(j,k,0) * s->cfforce * convForce);
+                f(j,1) -= (dEdG(i,k) * dGdr(j,k,1) * s->cfforce * convForce);
+                f(j,2) -= (dEdG(i,k) * dGdr(j,k,2) * s->cfforce * convForce);
             }
         }
-    }
-
-    return prune;
-}
-
-vector<size_t> Mode::pruneSymmetryFunctionsSensitivity(
-                                           double                  threshold,
-                                           vector<vector<double> > sensitivity)
-{
-    vector<size_t> prune;
-
-    for (size_t i = 0; i < numElements; ++i)
-    {
-        for (size_t j = 0; j < elements.at(i).numSymmetryFunctions(0,countertotal); ++j)
+        
+        for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
         {
-            if (sensitivity.at(i).at(j) < threshold)
-            {
-                prune.push_back(
-                        elements.at(i).getSymmetryFunction(j).getLineNumber());
-            }
+            f(i,0) -= (dEdG(i,k) * dGdr(i,k,0) * s->cfforce * convForce);
+            f(i,1) -= (dEdG(i,k) * dGdr(i,k,1) * s->cfforce * convForce);
+            f(i,2) -= (dEdG(i,k) * dGdr(i,k,2) * s->cfforce * convForce);
         }
-    }
 
-    return prune;
+    });
+
+    return;
 }
+    
+    return;
+}
+
 
 

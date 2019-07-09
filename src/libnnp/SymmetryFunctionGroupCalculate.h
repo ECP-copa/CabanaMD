@@ -1,13 +1,46 @@
-//COMMENT
-
 #include <types.h>
 #include <system.h>
 #include "CutoffFunction.h"
 #include "SymmetryFunctionHelper.h"
 
-using namespace std;
-using namespace nnp;
 
+__host__ __device__ double scale(int attype, double value, int k, t_SFscaling SFscaling)
+{
+    double scalingType = SFscaling(attype,k,7);
+    double scalingFactor = SFscaling(attype,k,6);
+    double Gmin = SFscaling(attype,k,0);
+    double Gmax = SFscaling(attype,k,1);
+    double Gmean = SFscaling(attype,k,2);
+    double Gsigma = SFscaling(attype,k,3);
+    double Smin = SFscaling(attype,k,4);
+    double Smax = SFscaling(attype,k,5);
+    
+    if (scalingType == 0.0)
+    {
+        return value;
+    }
+    else if (scalingType == 1.0)
+    {
+        return Smin + scalingFactor * (value - Gmin);
+    }
+    else if (scalingType == 2.0)
+    {
+        return value - Gmean;
+    }
+    else if (scalingType == 3.0)
+    {
+        return Smin + scalingFactor * (value - Gmean);
+    }
+    else if (scalingType == 4.0)
+    {
+        return Smin + scalingFactor * (value - Gmean);
+    }
+    else
+    {
+        return 0.0;
+    }
+
+}
 
 __host__ __device__ void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
@@ -112,6 +145,11 @@ __host__ __device__ void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF, t
 
 __host__ __device__ void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
 {
+    auto x = Cabana::slice<Positions>(s->xvf);
+    auto id = Cabana::slice<IDs>(s->xvf);
+    auto type = Cabana::slice<Types>(s->xvf);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
+    
     //pick e1, rc from first member (since they are all the same)
     //SFGmemberlist(1,0): first index for angular narrow, second index for first SF in angular narrow group
     int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
@@ -329,3 +367,4 @@ __host__ __device__ void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF SF, 
 
     return;
 }
+
