@@ -63,13 +63,13 @@ public:
      * @param[in] index Element index.
      * @return Element symbol.
      */
-    __host__ __device__ std::string              symbol(std::size_t const index) const;
+    std::string              symbol(std::size_t const index) const;
     /** Get atomic number from element index.
      *
      * @param[in] index Element index in map.
      * @return Atomic number (proton number Z) of element.
      */
-    __host__ __device__ std::size_t              atomicNumber(std::size_t index) const;
+    std::size_t              atomicNumber(std::size_t index) const;
     /** Extract all elements and store in element map.
      *
      * @param[in] elementLine String containing all elements, e.g.

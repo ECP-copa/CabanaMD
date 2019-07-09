@@ -181,6 +181,32 @@ public:
      * Weights are initialized with random values in the @f$[-1, 1]@f$
      * interval. The C standard library rand() function is used.
      */
+    void                     initializeConnectionsRandomUniform(
+                                                            unsigned int seed);
+    /** Change connections according to a given modification scheme.
+     *
+     * @param[in] modificationScheme Defines how the connections are modified.
+     *                               See #ModificationScheme for possible
+     *                               options.
+     */
+    void                     modifyConnections(
+                                        ModificationScheme modificationScheme);
+    /** Change connections according to a given modification scheme.
+     *
+     * @param[in] modificationScheme Defines how the connections are modified.
+     *                               See #ModificationScheme for possible
+     *                               options.
+     * @param[in] parameter1 Additional parameter (see #ModificationScheme).
+     * @param[in] parameter2 Additional parameter (see #ModificationScheme).
+     */
+    void                     modifyConnections(
+                                         ModificationScheme modificationScheme,
+                                         double             parameter1,
+                                         double             parameter2);
+    /** Set neural network input layer node values.
+     *
+     * @param[in] input Input layer node values.
+     */
     void                     setInput(AoSoA_NNP nnp_data, T_INT atomindex) const;
     /** Get neural network output layer node values.
      *
@@ -220,6 +246,87 @@ public:
      * are the @f$N@f$ connections (weights and biases) of the neural network.
      * See #setConnections() for details on the order of weights an biases.
      */
+    void                     calculateDEdc(double* dEdc) const;
+    /** Calculate "second" derivative of output with respect to connections.
+     *
+     * @param[out] dFdc Array containing derivative (length is number of
+     *                  connections, see #getNumConnections()).
+     * @param[in] dGdxyz Array containing derivative of input neurons with
+     *                   respect to coordinates @f$\frac{\partial G_j}
+     *                   {\partial x_{l, \gamma}}@f$.
+     *
+     * __CAUTION__: This works only for neural networks with a single output
+     * neuron!
+     *
+     * In the context of the neural network potentials this function is used to
+     * calculate derivatives of forces with respect to connections. The force
+     * component @f$\gamma@f$ (where @f$\gamma@f$ is one of @f$x,y,z@f$)  of
+     * particle @f$l@f$ is
+     * @f[
+     *   F_{l, \gamma} = - \frac{\partial}{\partial x_{l, \gamma}} \sum_i^{N}
+     *   E_i = - \sum_i^N \sum_j^M \frac{\partial E_i}{\partial G_j}
+     *   \frac{\partial G_j}{\partial x_{l, \gamma}},
+     * @f]
+     * where @f$N@f$ is the number of particles in the system and @f$M@f$ is
+     * the number of symmetry functions (number of input neurons). Hence the
+     * derivative of @f$F_{l, \gamma}@f$ with respect to the neural network
+     * connection @f$c_n@f$ is
+     * @f[
+     *   \frac{\partial}{\partial c_n} F_{l, \gamma} = - \sum_i^N \sum_j^M
+     *   \frac{\partial^2 E_i}{\partial c_n \partial G_j}
+     *   \frac{\partial G_j}{\partial x_{l, \gamma}}.
+     * @f]
+     * Thus, with given @f$\frac{\partial G_j}{\partial x_{l, \gamma}}@f$ this
+     * function calculates
+     * @f[
+     *   \sum_j^M \frac{\partial^2 E}{\partial c_n \partial G_j}
+     *   \frac{\partial G_j}{\partial x_{l, \gamma}}
+     * @f]
+     * for the current network status and returns it via the output array.
+     */
+    void                     calculateDFdc(double*              dFdc,
+                                           double const* const& dGdxyz) const;
+    /** Write connections to file.
+     *
+     * @param[in,out] file File stream to write to.
+     */
+    void                     writeConnections(std::ofstream& file) const;
+    /** Return gathered neuron statistics.
+     *
+     * @param[out] count Number of neuron output value calculations.
+     * @param[out] min   Minimum neuron value encountered.
+     * @param[out] max   Maximum neuron value encountered.
+     * @param[out] sum   Sum of all neuron values encountered.
+     * @param[out] sum2  Sum of squares of all neuron values encountered.
+     *
+     * __CAUTION__: This works only for neural networks with a single output
+     * neuron!
+     *
+     * When neuron values are calculated (e.g. when #propagate() is called)
+     * statistics about encountered values are automatically gathered. The
+     * internal counters can be reset calling #resetNeuronStatistics(). Neuron
+     * values are ordered layer by layer:
+     * @f[
+     *   \underbrace{y^0_1, \ldots, y^0_{N_0}}_\text{Input layer},
+     *   \underbrace{y^1_1, \ldots, y^1_{N_1}}_{\text{Hidden Layer } 1},
+     *   \ldots,
+     *   \underbrace{y^p_1, \ldots, y^p_{N_p}}_\text{Output layer},
+     * @f]
+     * where @f$y^m_i@f$ is neuron @f$i@f$ in layer @f$m@f$ and @f$N_m@f$ is
+     * the total number of neurons in this layer.
+     */
+    void                     getNeuronStatistics(long*   count,
+                                                 double* min,
+                                                 double* max,
+                                                 double* sum,
+                                                 double* sum2);
+    /** Reset neuron statistics.
+     *
+     * Counters and summation variables for neuron statistics are reset.
+     */
+    void                     resetNeuronStatistics();
+    //void   writeStatus(int, int);
+    long                     getMemoryUsage();
     /** Print neural network architecture.
      */
     std::vector<std::string> info() const;
@@ -300,6 +407,61 @@ private:
     /// Neural network layers.
     Layer* layers;
 
+    /** Calculate derivative of output neuron with respect to biases.
+     *
+     * @param[out] dEdb Array containing derivatives (length is number of
+     *                  biases).
+     *
+     * __CAUTION__: This works only for neural networks with a single output
+     * neuron!
+     *
+     * Similar to #calculateDEdc() but includes only biases. Used internally
+     * by #calculateDFdc().
+     */
+    void   calculateDEdb(double* dEdb) const;
+    /** Calculate derivative of neuron values before activation function with
+     * respect to input neuron.
+     *
+     * @param[in] index Index of input neuron the derivative will be
+     *                  calculated for.
+     *
+     * No output, derivatives are internally saved for each neuron in
+     * Neuron::dxdG. Used internally by #calculateDFdc().
+     */
+    void   calculateDxdG(int index) const;
+    /** Calculate second derivative of output neuron with respect to input
+     * neuron and connections.
+     *
+     * @param[in] index Index of input neuron the derivative will be
+     *                  calculated for.
+     * @param[in] dEdb Derivatives of output neuron with respect to biases. See
+     *                 #calculateDEdb().
+     * @param[out] d2EdGdc Array containing the derivatives (ordered as
+     *                     described in #setConnections()).
+     *
+     * __CAUTION__: This works only for neural networks with a single output
+     * neuron!
+     *
+     * Used internally by #calculateDFdc().
+     */
+    void   calculateD2EdGdc(int                  index,
+                            double const* const& dEdb,
+                            double*              d2EdGdc) const;
+    /** Allocate a single layer.
+     *
+     * @param[in,out] layer Neural network layer to allocate.
+     * @param[in] numNeuronsPrevLayer Number of neurons in the previous layer.
+     * @param[in] numNeurons Number of neurons in this layer.
+     * @param[in] activationFunction Activation function to use for all neurons
+     *                               in this layer.
+     *
+     * This function is internally called by the constructor to allocate all
+     * neurons layer by layer.
+     */
+    void   allocateLayer(Layer&             layer,
+                         int                numNeuronsPrevLayer,
+                         int                numNeurons,
+                         ActivationFunction activationFunction);
     /** Propagate information from one layer to the next.
      *
      * @param[in,out] layer %Neuron values in this layer will be calculated.
@@ -311,95 +473,5 @@ private:
 };
 
 }
-
-__host__ __device__ void NeuralNetwork::setInput(AoSoA_NNP nnp_data, T_INT atomindex) const
-{
-    auto G = Cabana::slice<NNPNames::G>(nnp_data);
-    for (int i = 0; i < inputLayer->numNeurons; i++)
-    {
-        double const& value = G(atomindex,i);
-        Neuron& n = inputLayer->neurons[i];
-        n.count++;
-        n.value = value;
-        n.min  = min(value, n.min);
-        n.max  = max(value, n.max);
-        n.sum  += value;
-        n.sum2 += value * value;
-    }
-
-    return;
-}
-
-__host__ __device__ double NeuralNetwork::getOutput() const
-{
-    return outputLayer->neurons[0].value;
-}
-
-
-__host__ __device__ void NeuralNetwork::propagate()
-{
-    for (int i = 1; i < numLayers; i++)
-    {
-        propagateLayer(layers[i], layers[i-1]);
-    }
-
-    return;
-}
-
-__host__ __device__ void NeuralNetwork::propagateLayer(Layer& layer, Layer& layerPrev)
-{
-    double dtmp = 0.0;
-
-    for (int i = 0; i < layer.numNeurons; i++)
-    {
-        dtmp = 0.0;
-        for (int j = 0; j < layer.numNeuronsPrevLayer; j++)
-        {
-            dtmp += layer.neurons[i].weights[j] * layerPrev.neurons[j].value;
-        }
-        dtmp += layer.neurons[i].bias;
-        if (normalizeNeurons)
-        {
-            dtmp /= layer.numNeuronsPrevLayer;
-        }
-
-        layer.neurons[i].x = dtmp;
-        if (layer.activationFunction == AF_IDENTITY)
-        {
-            layer.neurons[i].value  = dtmp;
-            layer.neurons[i].dfdx   = 1.0;
-            layer.neurons[i].d2fdx2 = 0.0;
-        }
-        else if (layer.activationFunction == AF_TANH)
-        {
-            dtmp = tanh(dtmp);
-            layer.neurons[i].value  = dtmp;
-            layer.neurons[i].dfdx   = 1.0 - dtmp * dtmp;
-            layer.neurons[i].d2fdx2 = -2.0 * dtmp * (1.0 - dtmp * dtmp);
-        }
-        else if (layer.activationFunction == AF_LOGISTIC)
-        {
-            dtmp = 1.0 / (1.0 + exp(-dtmp));
-            layer.neurons[i].value  = dtmp;
-            layer.neurons[i].dfdx   = dtmp * (1.0 - dtmp);
-            layer.neurons[i].d2fdx2 = dtmp * (1.0 - dtmp) * (1.0 - 2.0 * dtmp);
-        }
-        else if (layer.activationFunction == AF_SOFTPLUS)
-        {
-            dtmp = exp(dtmp);
-            layer.neurons[i].value  = log(1.0 + dtmp);
-            dtmp = 1.0 / (1.0 + 1.0 / dtmp);
-            layer.neurons[i].dfdx   = dtmp;
-            layer.neurons[i].d2fdx2 = dtmp * (1.0 - dtmp);
-        }
-        else if (layer.activationFunction == AF_RELU)
-        {
-            if (dtmp > 0.0)
-            {
-            }
-        }
-    }
-}
-
 
 #endif

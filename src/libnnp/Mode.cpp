@@ -851,108 +851,6 @@ void Mode::calculateSymmetryFunctions(Structure& structure,
     return;
 }
 
-void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data,
-                                         bool const derivatives) const
-{
-    auto id = Cabana::slice<IDs>(s->xvf);
-    auto type = Cabana::slice<Types>(s->xvf);
-    auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
-
-    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t i)
-    {
-        //const Element* e = &(elements.at(type(i)-1));
-        Element const& e = elements.at(type(i));
-        e.neuralNetwork->setInput(nnp_data,i);
-        e.neuralNetwork->propagate();
-        if (derivatives) e.neuralNetwork->calculateDEdG(nnp_data,i);
-        energy(i) = e.neuralNetwork->getOutput();
-    });
-
-    return;
-}
-
-void Mode::calculateForces(System* s, t_mass numSymmetryFunctionsPerElement, 
-                           AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list) const
-{
-
-    auto f = Cabana::slice<Forces>(s->xvf);
-    auto type = Cabana::slice<Types>(s->xvf);
-    auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
-    
-    double convForce = 1.0;
-    if (s->normalize)
-      convForce = convLength/convEnergy;
-    //Atom* ai = NULL;
-    // Loop over all atoms, center atom i (ai).
-//#ifdef _OPENMP
-//    #pragma omp parallel for private(ai)
-//#endif
-    Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
-    {
-        // Set pointer to atom.
-        //ai = &(structure.atoms.at(i));
-
-        // Now loop over all neighbor atoms j of atom i. These may hold
-        // non-zero derivatives of their symmetry functions with respect to
-        // atom i's coordinates. Some atoms may appear multiple times in the
-        // neighbor list because of periodic boundary conditions. To avoid
-        // that the same contributions are added multiple times use the
-        // "unique neighbor" list (but skip the first entry, this is always
-        // atom i itself).
-        const Element* e = NULL;
-        e = &(elements.at(type(i)));
-        int attype = e->getIndex();
-        //Reset dGdr to zero TODO: deep_copy
-        t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
-        e->calculateSymmetryFunctionGroupDerivatives(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, neigh_list, i, countergtotal);
-        
-        int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-    
-        for (size_t jj = 0; jj < num_neighs; ++jj)
-        {
-            int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
-            for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
-            {
-                f(j,0) -= (dEdG(i,k) * dGdr(j,k,0) * s->cfforce * convForce);
-                f(j,1) -= (dEdG(i,k) * dGdr(j,k,1) * s->cfforce * convForce);
-                f(j,2) -= (dEdG(i,k) * dGdr(j,k,2) * s->cfforce * convForce);
-            }
-        }
-        
-        // First add force contributions from atom i itself (gradient of
-        // atomic energy E_i).
-        for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
-        {
-            f(i,0) -= (dEdG(i,k) * dGdr(i,k,0) * s->cfforce * convForce);
-            f(i,1) -= (dEdG(i,k) * dGdr(i,k,1) * s->cfforce * convForce);
-            f(i,2) -= (dEdG(i,k) * dGdr(i,k,2) * s->cfforce * convForce);
-        }
-
-        /*for (vector<size_t>::const_iterator it =
-             ai->neighborsUnique.begin() + 1;
-             it != ai->neighborsUnique.end(); ++it)
-        {
-            // Define shortcut for atom j (aj).
-            Atom& aj = structure.atoms.at(*it);
-
-            // Loop over atom j's neighbors (n), atom i should be one of them.
-            for (vector<Atom::Neighbor>::const_iterator n =
-                 aj.neighbors.begin(); n != aj.neighbors.end(); ++n)
-            {
-                // If atom j's neighbor is atom i add force contributions.
-                if (n->index == ai->index)
-                {
-                    for (size_t j = 0; j < aj.numSymmetryFunctions; ++j)
-                    {
-                        ai->f -= aj.dEdG.at(j) * n->dGdr.at(j);
-                    }
-                }
-            }
-        }*/
-    });
-
-    return;
-}
 
 void Mode::resetExtrapolationWarnings()
 {
@@ -1031,6 +929,7 @@ void Mode::mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
     auto type = Cabana::slice<Types>(s->xvf);
     auto x = Cabana::slice<Positions>(s->xvf);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
+    dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
     
     // Calculate symmetry functions (and derivatives).
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
@@ -1066,7 +965,6 @@ void Mode::mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
 
     //Calculate Forces 
     auto f = Cabana::slice<Forces>(s->xvf);
-    auto type = Cabana::slice<Types>(s->xvf);
     auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     
     double convForce = 1.0;
@@ -1084,7 +982,6 @@ void Mode::mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
         // atom i itself).
         int attype = type(i); 
         //Reset dGdr to zero TODO: deep_copy
-        t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
         
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
@@ -1118,9 +1015,5 @@ void Mode::mega(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
 
     return;
 }
-    
-    return;
-}
-
 
 

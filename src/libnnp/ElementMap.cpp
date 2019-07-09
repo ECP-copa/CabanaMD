@@ -64,7 +64,7 @@ size_t ElementMap::index(string const& symbol) const
     //return safeFind(forwardMap, symbol);
 }
 
-__host__ __device__ string ElementMap::symbol(size_t const index) const
+string ElementMap::symbol(size_t const index) const
 {
     return reverseMap.find(index)->second;
     //return safeFind(reverseMap, index);
@@ -78,7 +78,7 @@ void ElementMap::deregisterElements()
     return;
 }
 
-__host__ __device__ size_t ElementMap::atomicNumber(string const& symbol)
+size_t ElementMap::atomicNumber(string const& symbol)
 {
     string knownElements[] = {
     "H" , "He", "Li", "Be", "B" , "C" , "N" , "O" , "F" , "Ne", "Na", "Mg", "Al",

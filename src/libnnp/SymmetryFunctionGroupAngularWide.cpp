@@ -182,7 +182,7 @@ void SymmetryFunctionGroupAngularWide::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minimized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-KOKKOS_INLINE_FUNCTION void SymmetryFunctionGroupAngularWide::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
+void SymmetryFunctionGroupAngularWide::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                                  T_INT i, bool const derivatives) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
@@ -364,7 +364,7 @@ KOKKOS_INLINE_FUNCTION void SymmetryFunctionGroupAngularWide::calculate(System* 
     return;
 }
 
-KOKKOS_INLINE_FUNCTION void SymmetryFunctionGroupAngularWide::calculate_derivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
+void SymmetryFunctionGroupAngularWide::calculate_derivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);

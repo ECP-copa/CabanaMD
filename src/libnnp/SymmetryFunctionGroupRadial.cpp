@@ -145,7 +145,7 @@ void SymmetryFunctionGroupRadial::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minmized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-__host__ __device__ void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
+void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                             T_INT i, bool const derivatives) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
@@ -233,7 +233,7 @@ __host__ __device__ void SymmetryFunctionGroupRadial::calculate(System* s, AoSoA
 
     return;
 }
-__host__ __device__ void SymmetryFunctionGroupRadial::calculate_derivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
+void SymmetryFunctionGroupRadial::calculate_derivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);

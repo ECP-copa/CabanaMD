@@ -235,8 +235,6 @@ inline double unscale(int attype, double value, int k, t_SFscaling SFscaling)
 
 
 
-
-
 //----------------- CLASS ---------------//
 
 class SymmetryFunctionHelper
@@ -262,13 +260,13 @@ public:
      * @param[in] value Scaled symmetry function value.
      * @return Raw symmetry function value.
      */
-    __host__ __device__ double              unscale(double value) const;
+    double              unscale(double value) const;
     /** Get private #type member variable.
      */
     std::size_t         getType() const;
     /** Get private #index member variable.
      */
-    __host__ __device__ std::size_t         getIndex() const;
+    std::size_t         getIndex() const;
     /** Get private #lineNumber member variable.
      */
     std::size_t         getLineNumber() const;
@@ -283,10 +281,10 @@ public:
     double              getRc() const;
     /** Get private #Gmin member variable.
      */
-    __host__ __device__ double              getGmin() const;
+    double              getGmin() const;
     /** Get private #Gmax member variable.
      */
-    __host__ __device__ double              getGmax() const;
+    double              getGmax() const;
     /** Get private #scalingFactor member variable.
      */
     double              getScalingFactor() const;
@@ -400,7 +398,7 @@ inline std::size_t SymmetryFunctionHelper::getEc() const
     return ec;
 }
 
-__host__ __device__ std::size_t SymmetryFunctionHelper::getIndex() const
+inline std::size_t SymmetryFunctionHelper::getIndex() const
 {
     return index;
 }
@@ -420,12 +418,12 @@ inline double SymmetryFunctionHelper::getRc() const
     return rc;
 }
 
-__host__ __device__ double SymmetryFunctionHelper::getGmin() const
+inline double SymmetryFunctionHelper::getGmin() const
 {
     return Gmin;
 }
 
-__host__ __device__ double SymmetryFunctionHelper::getGmax() const
+inline double SymmetryFunctionHelper::getGmax() const
 {
     return Gmax;
 }

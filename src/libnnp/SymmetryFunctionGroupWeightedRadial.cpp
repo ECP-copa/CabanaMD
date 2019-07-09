@@ -137,7 +137,7 @@ void SymmetryFunctionGroupWeightedRadial::setScalingFactors()
 // operations have been rewritten in simple C array style and the use of
 // temporary objects has been minmized. Some of the originally coded
 // expressions are kept in comments marked with "SIMPLE EXPRESSIONS:".
-KOKKOS_INLINE_FUNCTION void SymmetryFunctionGroupWeightedRadial::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
+void SymmetryFunctionGroupWeightedRadial::calculate(System* s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
                                                     T_INT i, bool const derivatives) const
 {
 
@@ -217,7 +217,7 @@ KOKKOS_INLINE_FUNCTION void SymmetryFunctionGroupWeightedRadial::calculate(Syste
     return;
 }
 
-KOKKOS_INLINE_FUNCTION void SymmetryFunctionGroupWeightedRadial::calculate_derivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
+void SymmetryFunctionGroupWeightedRadial::calculate_derivatives(System* s, AoSoA_NNP nnp_data, t_dGdr dGdr, t_verletlist_full_2D neigh_list, T_INT i) const
 {
 
     auto x = Cabana::slice<Positions>(s->xvf);
