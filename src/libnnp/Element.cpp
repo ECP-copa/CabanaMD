@@ -18,18 +18,12 @@
 #include "Element.h"
 #include "NeuralNetwork.h"
 #include "SymmetryFunction.h"
-#include "SymmetryFunctionHelper.h"
 #include "SymmetryFunctionRadial.h"
 #include "SymmetryFunctionAngularNarrow.h"
 #include "SymmetryFunctionAngularWide.h"
 #include "SymmetryFunctionWeightedRadial.h"
 #include "SymmetryFunctionWeightedAngular.h"
 #include "SymmetryFunctionGroup.h"
-#include "SymmetryFunctionGroupRadial.h"
-#include "SymmetryFunctionGroupAngularNarrow.h"
-#include "SymmetryFunctionGroupAngularWide.h"
-#include "SymmetryFunctionGroupWeightedRadial.h"
-#include "SymmetryFunctionGroupWeightedAngular.h"
 #include "utility.h"
 #include <iostream>  // std::cerr
 #include <cstdlib>   // atoi
@@ -292,27 +286,10 @@ void Element::setCutoffFunction(CutoffFunction::CutoffType const cutoffType,
                                 double const cutoffAlpha, t_SF SF, int attype, int (&countertotal)[2])
 {
     for (int k = 0; k < countertotal[attype]; ++k)
-        setCF(cutoffType, cutoffAlpha, SF, attype, k);
-    return;
-}
-
-void Element::setScalingNone() const
-{
-    for (size_t i = 0; i < symmetryFunctions.size(); ++i)
     {
-        string scalingLine = strpr("%d %d 0.0 0.0 0.0 0.0",
-                                   symmetryFunctions.at(i)->getEc(),
-                                   i + 1);
-        symmetryFunctions.at(i)->setScalingType(SymmetryFunction::ST_NONE,
-                                                scalingLine,
-                                                0.0,
-                                                0.0);
+        SF(attype,k,10) = cutoffType;
+        SF(attype,k,11) = cutoffAlpha;
     }
-    for (size_t i = 0; i < symmetryFunctionGroups.size(); ++i)
-    {
-        symmetryFunctionGroups.at(i)->setScalingFactors();
-    }
-    
     return;
 }
 

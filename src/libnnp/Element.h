@@ -20,14 +20,15 @@
 #include "CutoffFunction.h"
 #include "ElementMap.h"
 #include "SymmetryFunction.h"
-#include "SymmetryFunctionHelper.h"
 #include "SymmetryFunctionStatistics.h"
-#include <cstddef> // std::size_t
-#include <string>  // std::string
-#include <vector>  // std::vector
+#include "utility.h"
+#include <cstddef> // size_t
+#include <string>  // string
+#include <vector>  // vector
 #include <types.h>
 #include <system.h>
 
+using namespace std;
 namespace nnp
 {
 
@@ -41,7 +42,7 @@ class Element
 public:
     /** Constructor using index.
      */
-    Element(std::size_t const index, ElementMap const& elementMap);
+    Element(size_t const index, ElementMap const& elementMap);
     /** Destructor.
      *
      * Necessary because of #symmetryFunctions vector of pointers.
@@ -52,22 +53,22 @@ public:
     void                     setAtomicEnergyOffset(double atomicEnergyOffset);
     /** Get #index.
      */
-    std::size_t              getIndex() const;
+    size_t              getIndex() const;
     /** Get #atomicNumber.
      */
-    std::size_t              getAtomicNumber() const;
+    size_t              getAtomicNumber() const;
     /** Get #atomicEnergyOffset.
      */
     double                   getAtomicEnergyOffset() const;
     /** Get #symbol.
      */
-    std::string              getSymbol() const;
+    string              getSymbol() const;
     /** Add one symmetry function.
      *
      * @param[in] parameters String containing settings for symmetry function.
      * @param[in] lineNumber Line number of symmetry function in settings file.
      */
-    void addSymmetryFunction(std::string const& parameters,
+    void addSymmetryFunction(string const& parameters,
                              size_t const& lineNumber, int attype, t_SF SF, double convLength, int (&countertotal)[2]);
     /** Change length unit for all symmetry functions.
      *
@@ -80,19 +81,19 @@ public:
     void                     sortSymmetryFunctions();
     /** Print symmetry function parameter value information.
      */
-    std::vector<std::string> infoSymmetryFunctionParameters(t_SF SF, int attype, int (&countertotal)[2]) const;
+    vector<string> infoSymmetryFunctionParameters(t_SF SF, int attype, int (&countertotal)[2]) const;
     /** Print symmetry function parameter names and values.
      */
-    std::vector<std::string> infoSymmetryFunction(std::size_t index) const;
+    vector<string> infoSymmetryFunction(size_t index) const;
     /** Print symmetry function scaling information.
      */
-    std::vector<std::string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
+    vector<string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
     /** Set up symmetry function groups.
      */
     void setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2]);
     /** Print symmetry function group info.
      */
-    std::vector<std::string> infoSymmetryFunctionGroups(t_SFG SFG, int attype, int (&countergtotal)[2]) const;
+    vector<string> infoSymmetryFunctionGroups(t_SFG SFG, int attype, int (&countergtotal)[2]) const;
     /** Set cutoff function for all symmetry functions.
      *
      * @param[in] cutoffType Type of cutoff function.
@@ -101,11 +102,6 @@ public:
     void                     setCutoffFunction(
                                  CutoffFunction::CutoffType const cutoffType,
                                  double const                     cutoffAlpha, t_SF SF, int attype, int (&countertotal)[2]);
-    /** Set no scaling of symmetry function.
-     *
-     * Still scaling factors need to be initialized.
-     */
-    void                     setScalingNone() const;
     /** Set scaling of all symmetry functions.
      *
      * @param[in] scalingType Type of scaling, see
@@ -117,7 +113,7 @@ public:
      */
     void                     setScaling(
                                 ScalingType   scalingType,
-                                std::vector<std::string> const& statisticsLine,
+                                vector<string> const& statisticsLine,
                                 double                          minS,
                                 double                          maxS,
                                 t_SF SF, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
@@ -125,13 +121,13 @@ public:
      *
      * @return Number of symmetry functions.
      */
-    std::size_t              numSymmetryFunctions(int attype, int (&countertotal)[2]) const;
+    size_t              numSymmetryFunctions(int attype, int (&countertotal)[2]) const;
     /** Get maximum of required minimum number of neighbors for all symmetry
      * functions for this element.
      *
      * @return Minimum number of neighbors required.
      */
-    std::size_t              getMinNeighbors() const;
+    size_t              getMinNeighbors() const;
     /** Get minimum cutoff radius of all symmetry functions.
      *
      * @return Minimum cutoff radius.
@@ -176,28 +172,36 @@ public:
      *
      * @return Symmetry function object.
      */
-    SymmetryFunction const&  getSymmetryFunction(std::size_t index) const;
+    SymmetryFunction const&  getSymmetryFunction(size_t index) const;
 
     /// Neural network pointer for this element.
     NeuralNetwork*             neuralNetwork;
     /// Symmetry function statistics.
     SymmetryFunctionStatistics statistics;
 
+    KOKKOS_INLINE_FUNCTION void setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
+                                            double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const;
+    KOKKOS_INLINE_FUNCTION string scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const;
+    KOKKOS_INLINE_FUNCTION bool addMemberToGroup(t_SFG SFG, t_SF SF, int attype, int groupIndex, 
+        int k, int countergR, int countergAN);
+    KOKKOS_INLINE_FUNCTION double unscale(int attype, double value, int k, t_SFscaling SFscaling);
+
+
 private:
     /// Copy of element map.
     ElementMap                          elementMap;
     /// Global index of this element.
-    std::size_t                         index;
+    size_t                         index;
     /// Atomic number of this element.
-    std::size_t                         atomicNumber;
+    size_t                         atomicNumber;
     /// Offset energy for every atom of this element.
     double                              atomicEnergyOffset;
     /// Element symbol.
-    std::string                         symbol;
+    string                         symbol;
     /// Vector of pointers to symmetry functions.
-    std::vector<SymmetryFunction*>      symmetryFunctions;
+    vector<SymmetryFunction*>      symmetryFunctions;
     /// Vector of pointers to symmetry function groups.
-    std::vector<SymmetryFunctionGroup*> symmetryFunctionGroups;
+    vector<SymmetryFunctionGroup*> symmetryFunctionGroups;
 };
 
 //////////////////////////////////
@@ -226,13 +230,13 @@ inline double Element::getAtomicEnergyOffset() const
     return atomicEnergyOffset;
 }
 
-inline std::string Element::getSymbol() const
+inline string Element::getSymbol() const
 {
     return symbol;
 }
 
 inline
-std::vector<std::string> Element::infoSymmetryFunction(std::size_t index) const
+vector<string> Element::infoSymmetryFunction(size_t index) const
 {
     return symmetryFunctions.at(index)->parameterInfo();
 }
@@ -243,11 +247,161 @@ inline size_t Element::numSymmetryFunctions(int attype, int (&countertotal)[2]) 
 }
 
 inline SymmetryFunction const& Element::getSymmetryFunction(
-                                                       std::size_t index) const
+                                                       size_t index) const
 {
     return *(symmetryFunctions.at(index));
 }
 
+KOKKOS_INLINE_FUNCTION void Element::setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
+                                            double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const
+{
+    double Gmin, Gmax, Gmean, Gsigma, scalingFactor = 0;
+    vector<string> s = split(reduce(statisticsLine));
+    
+    Gmin       = atof(s.at(2).c_str());
+    Gmax       = atof(s.at(3).c_str());
+    Gmean      = atof(s.at(4).c_str());
+    SFscaling(attype,k,0) = Gmin;
+    SFscaling(attype,k,1) = Gmax;
+    SFscaling(attype,k,2) = Gmean;
+
+    // Older versions may not supply sigma.
+    if (s.size() > 5)
+        Gsigma = atof(s.at(5).c_str());
+        SFscaling(attype,k,3) = Gsigma;
+    
+    SFscaling(attype,k,4) = Smin;
+    SFscaling(attype,k,5) = Smax;
+    SFscaling(attype,k,7) = scalingType;
+
+    if(scalingType == ST_NONE)
+        scalingFactor = 1.0;
+    else if (scalingType == ST_SCALE)
+        scalingFactor = (Smax - Smin) / (Gmax - Gmin);
+    else if (scalingType == ST_CENTER)
+        scalingFactor = 1.0;
+    else if (scalingType == ST_SCALECENTER)
+        scalingFactor = (Smax - Smin) / (Gmax - Gmin);
+    else if (scalingType == ST_SCALESIGMA)
+        scalingFactor = (Smax - Smin) / Gsigma;
+    SFscaling(attype,k,6) = scalingFactor;
+
+    return;
 }
 
+
+KOKKOS_INLINE_FUNCTION string Element::scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const
+{
+    return strpr("%4zu %9.2E %9.2E %9.2E %9.2E %9.2E %5.2f %5.2f %d\n",
+                 k + 1,
+                 SFscaling(attype,k,0),
+                 SFscaling(attype,k,1),
+                 SFscaling(attype,k,2),
+                 SFscaling(attype,k,3),
+                 SFscaling(attype,k,6),
+                 SFscaling(attype,k,4),
+                 SFscaling(attype,k,5),
+                 scalingType); 
+}
+
+
+KOKKOS_INLINE_FUNCTION bool Element::addMemberToGroup(t_SFG SFG, t_SF SF, int attype, int groupIndex, 
+    int k, int countergR, int countergAN)
+{
+    int type = SF(attype,k,1);
+    if (type == 2)
+    {
+      if (countergR == 0)
+      {
+        SFG(attype,groupIndex,0) = SF(attype,k,0); //ec
+        SFG(attype,groupIndex,1) = type; //type
+        SFG(attype,groupIndex,2) = SF(attype,k,2); //e1
+        SFG(attype,groupIndex,4) = k+1; //memberindex
+        SFG(attype,groupIndex,5) = SF(attype,k,7); //rc
+        SFG(attype,groupIndex,6) = SF(attype,k,11); //cutoffType
+        SFG(attype,groupIndex,7) = SF(attype,k,12); //cutoffAlpha
+        //fc.setCutoffType(SF(attype,k,11));
+        //fc.setCutoffRadius(SF(attype,k,7));
+        //fc.setCutoffParameter(SF(attype,k,12));
+      }
+      if (SF(attype,k,11) != SFG(attype,groupIndex,6)) return false;
+      if (SF(attype,k,12) != SFG(attype,groupIndex,7)) return false;
+      if (SF(attype,k,0) != SFG(attype,groupIndex,0)) return false;
+      if (SF(attype,k,7) != SFG(attype,groupIndex,5)) return false;
+      if (SF(attype,k,2) != SFG(attype,groupIndex,2)) return false;
+    }
+    else if (type == 3)
+    {
+      if (countergAN == 0)
+      {
+        SFG(attype,groupIndex,0) = SF(attype,k,0); //ec
+        SFG(attype,groupIndex,1) = type; //type
+        SFG(attype,groupIndex,2) = SF(attype,k,2); //e1
+        SFG(attype,groupIndex,3) = SF(attype,k,3); //e2
+        SFG(attype,groupIndex,4) = k+1; //memberindex
+        SFG(attype,groupIndex,5) = SF(attype,k,7); //rc
+        SFG(attype,groupIndex,6) = SF(attype,k,11); //cutoffType
+        SFG(attype,groupIndex,7) = SF(attype,k,12); //cutoffAlpha
+        //fc.setCutoffType(SF(attype,k,11));
+        //fc.setCutoffRadius(SF(attype,k,7));
+        //fc.setCutoffParameter(SF(attype,k,12));
+      }
+      if (SF(attype,k,11) != SFG(attype,groupIndex,6)) return false;
+      if (SF(attype,k,12) != SFG(attype,groupIndex,7)) return false;
+      if (SF(attype,k,0) != SFG(attype,groupIndex,0)) return false;
+      if (SF(attype,k,7) != SFG(attype,groupIndex,5)) return false;
+      if (SF(attype,k,2) != SFG(attype,groupIndex,2)) return false;
+      if (SF(attype,k,3) != SFG(attype,groupIndex,3)) return false;
+    }
+    else if (type == 9)
+    {
+    }
+    else if (type == 12)
+    {
+    }
+    else if (type == 13)
+    {
+    }
+    return true;
+}
+
+KOKKOS_INLINE_FUNCTION double Element::unscale(int attype, double value, int k, t_SFscaling SFscaling)
+{
+    double scalingType = SFscaling(attype,k,7);
+    double scalingFactor = SFscaling(attype,k,6);
+    double Gmin = SFscaling(attype,k,0);
+    double Gmax = SFscaling(attype,k,1);
+    double Gmean = SFscaling(attype,k,2);
+    double Gsigma = SFscaling(attype,k,3);
+    double Smin = SFscaling(attype,k,4);
+    double Smax = SFscaling(attype,k,5);
+
+    if (scalingType == 0.0)
+    {
+        return value;
+    }
+    else if (scalingType == 1.0)
+    {
+        return (value - Smin) / scalingFactor + Gmin;
+    }
+    else if (scalingType == 2.0)
+    {
+        return value + Gmean;
+    }
+    else if (scalingType == 3.0)
+    {
+        return (value - Smin) / scalingFactor + Gmean;
+    }
+    else if (scalingType == 4.0)
+    {
+        return (value - Smin) / scalingFactor + Gmean;
+    }
+    else
+    {
+        return 0.0;
+    }
+}
+
+
+}
 #endif

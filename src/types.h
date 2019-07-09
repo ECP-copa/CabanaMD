@@ -111,6 +111,29 @@ using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
 enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
                  Types = 3, IDs = 4, Charges = 5 };
 enum NNPNames { G = 0, dEdG = 1, energy = 2};
+enum ScalingType
+{
+    /** @f$G_\text{scaled} = G@f$
+     */
+    ST_NONE,
+    /** @f$G_\text{scaled} = S_\text{min} + \left(S_\text{max} -
+     * S_\text{min}\right) \cdot \frac{G - G_\text{min}}
+     * {G_\text{max} - G_\text{min}} @f$
+     */
+    ST_SCALE,
+    /** @f$G_\text{scaled} = G - \left<G\right>@f$
+     */
+    ST_CENTER,
+    /** @f$G_\text{scaled} = S_\text{min} + \left(S_\text{max} -
+     * S_\text{min}\right) \cdot \frac{G - \left<G\right>}
+     * {G_\text{max} - G_\text{min}} @f$
+     */
+    ST_SCALECENTER,
+    /** @f$G_\text{scaled} = S_\text{min} + \left(S_\text{max} -
+     * S_\text{min}\right) \cdot \frac{G - \left<G\right>}{\sigma_G} @f$
+     */
+    ST_SCALESIGMA
+};
 
 #ifdef CabanaMD_ENABLE_Cuda
 using MemorySpace = Kokkos::CudaUVMSpace;

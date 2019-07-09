@@ -406,26 +406,6 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
     return numSymmetryFunctionsPerElement;
 }
 
-void Mode::setupSymmetryFunctionScalingNone()
-{
-    log << "\n";
-    log << "*** SETUP: SYMMETRY FUNCTION SCALING ****"
-           "**************************************\n";
-    log << "\n";
-
-    log << "No scaling for symmetry functions.\n";
-    for (vector<Element>::iterator it = elements.begin();
-         it != elements.end(); ++it)
-    {
-        it->setScalingNone();
-    }
-
-    log << "*****************************************"
-           "**************************************\n";
-
-    return;
-}
-
 void Mode::setupSymmetryFunctionScaling(string const& fileName)
 {
     log << "\n";

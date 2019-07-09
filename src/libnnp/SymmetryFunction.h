@@ -138,36 +138,18 @@ public:
     void                setCutoffFunction(CutoffFunction::
                                           CutoffType cutoffType,
                                           double     cutoffAlpha);
-    /** Set symmetry function scaling type.
-     *
-     * @param[in] scalingType Desired symmetry function scaling type.
-     * @param[in] statisticsLine String containing symmetry function statistics
-     *                           ("min max mean sigma").
-     * @param[in] Smin Minimum for scaling range @f$S_\text{min}@f$.
-     * @param[in] Smax Maximum for scaling range @f$S_\text{max}@f$.
-     */
-    void                setScalingType(ScalingType scalingType,
-                                       std::string statisticsLine,
-                                       double      Smin,
-                                       double      Smax);
     /** Apply symmetry function scaling and/or centering.
      *
      * @param[in] value Raw symmetry function value.
      * @return Scaled symmetry function value.
      */
     double              scale(double value) const;
-    /** Undo symmetry function scaling and/or centering.
-     *
-     * @param[in] value Scaled symmetry function value.
-     * @return Raw symmetry function value.
-     */
-     double              unscale(double value) const;
     /** Get private #type member variable.
      */
     std::size_t         getType() const;
     /** Get private #index member variable.
      */
-    KOKKOS_INLINE_FUNCTION std::size_t         getIndex() const;
+    std::size_t         getIndex() const;
     /** Get private #lineNumber member variable.
      */
     std::size_t         getLineNumber() const;
@@ -182,10 +164,10 @@ public:
     double              getRc() const;
     /** Get private #Gmin member variable.
      */
-    KOKKOS_INLINE_FUNCTION double              getGmin() const;
+    double              getGmin() const;
     /** Get private #Gmax member variable.
      */
-    KOKKOS_INLINE_FUNCTION double              getGmax() const;
+    double              getGmax() const;
     /** Get private #scalingFactor member variable.
      */
     double              getScalingFactor() const;
@@ -213,11 +195,6 @@ public:
      * @param[in] lineNumber Line number in settings file.
      */
     void                setLineNumber(std::size_t lineNumber);
-    /** Get string with scaling information.
-     *
-     * @return Scaling information string.
-     */
-    std::string         scalingLine() const;
     /** Calculate (partial) symmetry function value for one given distance.
      *
      * @param[in] distance Distance between two atoms.
@@ -320,7 +297,7 @@ inline std::size_t SymmetryFunction::getEc() const
     return ec;
 }
 
-KOKKOS_INLINE_FUNCTION std::size_t SymmetryFunction::getIndex() const
+inline std::size_t SymmetryFunction::getIndex() const
 {
     return index;
 }
@@ -340,12 +317,12 @@ inline double SymmetryFunction::getRc() const
     return rc;
 }
 
-KOKKOS_INLINE_FUNCTION double SymmetryFunction::getGmin() const
+inline double SymmetryFunction::getGmin() const
 {
     return Gmin;
 }
 
-KOKKOS_INLINE_FUNCTION double SymmetryFunction::getGmax() const
+inline double SymmetryFunction::getGmax() const
 {
     return Gmax;
 }

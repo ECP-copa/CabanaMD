@@ -69,54 +69,6 @@ void SymmetryFunction::setCutoffFunction(CutoffFunction::
     return;
 }
 
-void SymmetryFunction::setScalingType(ScalingType scalingType,
-                                      string      statisticsLine,
-                                      double      Smin,
-                                      double      Smax)
-{
-    this->scalingType = scalingType;
-
-    vector<string> s = split(reduce(statisticsLine));
-    if (((size_t)atoi(s.at(0).c_str()) != ec + 1) &&
-        ((size_t)atoi(s.at(1).c_str()) != index + 1))
-    {
-        throw runtime_error("ERROR: Inconsistent scaling statistics.\n");
-    }
-    Gmin       = atof(s.at(2).c_str());
-    Gmax       = atof(s.at(3).c_str());
-    Gmean      = atof(s.at(4).c_str());
-    // Older versions may not supply sigma.
-    if (s.size() > 5)
-    {
-        Gsigma = atof(s.at(5).c_str());
-    }
-    this->Smin = Smin;
-    this->Smax = Smax;
-
-    if(scalingType == ST_NONE)
-    {
-        scalingFactor = 1.0;
-    }
-    else if (scalingType == ST_SCALE)
-    {
-        scalingFactor = (Smax - Smin) / (Gmax - Gmin);
-    }
-    else if (scalingType == ST_CENTER)
-    {
-        scalingFactor = 1.0;
-    }
-    else if (scalingType == ST_SCALECENTER)
-    {
-        scalingFactor = (Smax - Smin) / (Gmax - Gmin);
-    }
-    else if (scalingType == ST_SCALESIGMA)
-    {
-        scalingFactor = (Smax - Smin) / Gsigma;
-    }
-
-    return;
-}
-
 SymmetryFunction::SymmetryFunction(size_t type, ElementMap const& elementMap) :
     type         (type                   ),
     elementMap   (elementMap             ),
@@ -174,47 +126,6 @@ double SymmetryFunction::scale(double value) const
     }
 }
 
-KOKKOS_INLINE_FUNCTION double SymmetryFunction::unscale(double value) const
-{
-    if (scalingType == ST_NONE)
-    {
-        return value;
-    }
-    else if (scalingType == ST_SCALE)
-    {
-        return (value - Smin) / scalingFactor + Gmin;
-    }
-    else if (scalingType == ST_CENTER)
-    {
-        return value + Gmean;
-    }
-    else if (scalingType == ST_SCALECENTER)
-    {
-        return (value - Smin) / scalingFactor + Gmean;
-    }
-    else if (scalingType == ST_SCALESIGMA)
-    {
-        return (value - Smin) / scalingFactor + Gmean;
-    }
-    else
-    {
-        return 0.0;
-    }
-}
-
-string SymmetryFunction::scalingLine() const
-{
-    return strpr("%4zu %9.2E %9.2E %9.2E %9.2E %9.2E %5.2f %5.2f %d\n",
-                 index + 1,
-                 Gmin,
-                 Gmax,
-                 Gmean,
-                 Gsigma,
-                 scalingFactor,
-                 Smin,
-                 Smax,
-                 scalingType);
-}
 
 SymmetryFunction::PrintFormat const SymmetryFunction::initializePrintFormat()
 {
