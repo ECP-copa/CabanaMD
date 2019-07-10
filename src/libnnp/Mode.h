@@ -554,11 +554,13 @@ KOKKOS_INLINE_FUNCTION double Mode::scale(int attype, double value, int k, d_t_S
 
 KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
+    printf("About to slice\n"); 
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
-    
+
+    printf("DONE SLICING\n"); 
     //pick e1, rc from first member (since they are all the same)
     //SFGmemberlist(attype,groupIndex,0): second index = groupIndex, third index  = for first SF in group
     int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
@@ -577,6 +579,7 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, d
     size_t numNeighbors = num_neighs;
    
     double pfc;
+    printf("Entering j loop\n");
     for (size_t jj = 0; jj < numNeighbors; ++jj)
     {
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
@@ -678,7 +681,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij);
         printf("diffs \n");
-        printf("%f %f %d\n", e1, e2, nej);
         if ((e1 == nej || e2 == nej) && rij < rc)
         {
             // Calculate cutoff function and derivative.

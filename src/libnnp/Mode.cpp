@@ -942,13 +942,11 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
           {
             printf("begin calculating\n");
-            //std::cout << "type: " << d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) << std::endl; 
             calculateSFGR(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, attype, groupIndex, neigh_list, i);
             printf("done calculating\n");
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
           {
-            //std::cout << "type: " << d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) << std::endl; 
             calculateSFGAN(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, attype, groupIndex, neigh_list, i);
             printf("done calculating\n");
           }
