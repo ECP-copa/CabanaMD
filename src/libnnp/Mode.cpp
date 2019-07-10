@@ -147,7 +147,7 @@ void Mode::setupNormalization()
     return;
 }
 
-t_mass Mode::setupElementMap(t_mass numSymmetryFunctionsPerElement)
+t_mass Mode::setupElementMap(t_mass d_numSymmetryFunctionsPerElement)
 {
     log << "\n";
     log << "*** SETUP: ELEMENT MAP ******************"
@@ -163,20 +163,27 @@ t_mass Mode::setupElementMap(t_mass numSymmetryFunctionsPerElement)
     }
     //resize numSymmetryFunctionsPerElement to have size = num of atom types in system
     numElements = elementMap.size();
-    numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
-    SFGmemberlist = t_SFGmemberlist("ForceNNP::SFGmemberlist", numElements, 5, MAX_SF);
     
+    //for each view, create host mirror for I/O
+    //deep copy back when needed for calculations
 
-    
+    d_numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
+   
     //setup SF info storage
     SF = t_SF("ForceNNP::SF", numElements, MAX_SF);
     SFG = t_SFG("ForceNNP::SFG", numElements, MAX_SF);
     SFscaling = t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
-
+    SFGmemberlist = t_SFGmemberlist("ForceNNP::SFGmemberlist", numElements);
+    
+    d_SF = d_t_SF("ForceNNP::SF", numElements, MAX_SF);
+    d_SFG = d_t_SFG("ForceNNP::SFG", numElements, MAX_SF);
+    d_SFscaling = d_t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
+    d_SFGmemberlist = d_t_SFGmemberlist("ForceNNP::SFGmemberlist", numElements);
+    
     log << "*****************************************"
            "**************************************\n";
 
-    return numSymmetryFunctionsPerElement;
+    return d_numSymmetryFunctionsPerElement;
 }
 
 void Mode::setupElements()
@@ -343,7 +350,7 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
           type = 0;
         else if (strcmp(estring, ostring) == 0)
           type = 1;
-        //type = atoi(args.at(0).c_str()); 
+        //type = atoi(args.at(0).c_str());
         elements.at(element).addSymmetryFunction(it->second.first,
                                                  it->second.second, type, SF, convLength, countertotal);
     }
@@ -384,7 +391,10 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
         log << "-----------------------------------------"
                "--------------------------------------\n";
         //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
-        numSymmetryFunctionsPerElement(attype) = it->numSymmetryFunctions(attype, countertotal);
+
+        t_mass::HostMirror h_numSymmetryFunctionsPerElement = Kokkos::create_mirror_view(numSymmetryFunctionsPerElement);
+        Kokkos::deep_copy(h_numSymmetryFunctionsPerElement, numSymmetryFunctionsPerElement);
+        h_numSymmetryFunctionsPerElement(attype) = it->numSymmetryFunctions(attype, countertotal);
     }
     minNeighbors.resize(numElements, 0);
     minCutoffRadius.resize(numElements, maxCutoffRadius);
@@ -568,6 +578,7 @@ void Mode::setupSymmetryFunctionGroups()
     {
         int attype = it->getIndex();
         it->setupSymmetryFunctionGroups(SF, SFG, SFGmemberlist, attype, countertotal, countergtotal);
+        printf("INIT\n");
         log << strpr("Short range atomic symmetry function groups "
                      "element %2s :\n", it->getSymbol().c_str());
         log << "-----------------------------------------"
@@ -754,7 +765,6 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
         it->neuralNetwork->setConnections(&(weights.front()));
         file.close();
     }
-
     log << "*****************************************"
            "**************************************\n";
 
@@ -911,6 +921,12 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
     dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
     
+    //deep copy into device Views
+    Kokkos::deep_copy(d_SF, SF);
+    Kokkos::deep_copy(d_SFscaling, SFscaling);
+    Kokkos::deep_copy(d_SFG, SFG);
+    Kokkos::deep_copy(d_SFGmemberlist, SFGmemberlist);
+
     // Calculate symmetry functions (and derivatives).
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
     {
@@ -919,14 +935,23 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
         
         // Check if atom has low number of neighbors.
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-        
         //calculateSFGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, neigh_list, i, countergtotal); 
+        printf("about to loop\n");
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
-          if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
-            calculateSFGR(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
-          else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
-            calculateSFGAN(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, groupIndex, neigh_list, i);
+          if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
+          {
+            printf("begin calculating\n");
+            //std::cout << "type: " << d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) << std::endl; 
+            calculateSFGR(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, attype, groupIndex, neigh_list, i);
+            printf("done calculating\n");
+          }
+          else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
+          {
+            //std::cout << "type: " << d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) << std::endl; 
+            calculateSFGAN(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, attype, groupIndex, neigh_list, i);
+            printf("done calculating\n");
+          }
         }
     });
 
@@ -977,10 +1002,10 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
         
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
-          if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 2)
-            calculateSFGRD(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
-          else if (SF(attype,SFGmemberlist(attype,groupIndex,0),1) == 3)
-            calculateSFGAND(s, nnp_data, SF, SFscaling, SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
+          if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
+            calculateSFGRD(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
+          else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
+            calculateSFGAND(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
         }    
 
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);

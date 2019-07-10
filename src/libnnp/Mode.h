@@ -429,15 +429,15 @@ public:
     void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
         t_mass numSymmetryFunctionsPerElement);
     
-    KOKKOS_INLINE_FUNCTION double scale(int attype, double value, int k, t_SFscaling SFscaling);
+    KOKKOS_INLINE_FUNCTION double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
 
-    KOKKOS_INLINE_FUNCTION void calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
+    KOKKOS_INLINE_FUNCTION void calculateSFGR(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
 
-    KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
+    KOKKOS_INLINE_FUNCTION void calculateSFGAN(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
 
-    KOKKOS_INLINE_FUNCTION void calculateSFGRD(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
+    KOKKOS_INLINE_FUNCTION void calculateSFGRD(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
 
-    KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
+    KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
 
     void calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
     t_mass numSymmetryFunctionsPerElement);
@@ -447,9 +447,13 @@ public:
     Log        log;
     
     //SymmetryFunctionTypes
+    d_t_SF d_SF;
     t_SF SF;
+    d_t_SFG d_SFG;
     t_SFG SFG;
+    d_t_SFGmemberlist d_SFGmemberlist;
     t_SFGmemberlist SFGmemberlist;
+    d_t_SFscaling d_SFscaling;
     t_SFscaling SFscaling;
     t_dGdr dGdr;
     
@@ -509,7 +513,7 @@ inline bool Mode::useNormalization() const
 
 //------------------- HELPERS TO MEGA FUNCTION  --------------//
 
-KOKKOS_INLINE_FUNCTION double Mode::scale(int attype, double value, int k, t_SFscaling SFscaling)
+KOKKOS_INLINE_FUNCTION double Mode::scale(int attype, double value, int k, d_t_SFscaling SFscaling)
 {
     double scalingType = SFscaling(attype,k,7);
     double scalingFactor = SFscaling(attype,k,6);
@@ -548,7 +552,7 @@ KOKKOS_INLINE_FUNCTION double Mode::scale(int attype, double value, int k, t_SFs
 }
 
 
-KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
+KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -561,6 +565,14 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, t
     double rc = SF(attype, SFGmemberlist(attype,groupIndex,0), 7);
     
     int size;
+    for (int l=0; l < MAX_SF; ++l)
+    {
+        if (SFGmemberlist(attype,groupIndex,l) == 0 && SFGmemberlist(attype,groupIndex,l+1) == 0)
+        {
+          size = l;
+          break;
+        }
+    }
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     size_t numNeighbors = num_neighs;
    
@@ -596,14 +608,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, t
             //double const* const d1 = n.dr.r;
             //TODO: use subview for size calculation
             //auto SFGmemberlist_subview = Kokkos::subview(SFGmemberlist, make_pair(0,1), make_pair(0,Kokkos::ALL));
-            for (int l=0; l < MAX_SF; ++l)
-            {
-                if (SFGmemberlist(attype,groupIndex,l) == 0 && SFGmemberlist(attype,groupIndex,l+1) == 0)
-                {
-                  size = l;
-                  break;
-                }
-            }
             for (size_t k = 0; k < size; ++k) 
             {
                 double eta = SF(attype, SFGmemberlist(attype,groupIndex,k), 4);
@@ -619,13 +623,15 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, t
     {
         raw_value = G(i,SFGmemberlist(attype,groupIndex,k)); 
         G(i,SFGmemberlist(attype,groupIndex,k)) = scale(attype, raw_value, SFGmemberlist(attype,groupIndex,k), SFscaling);
+        printf("%f ", G(i,SFGmemberlist(attype,groupIndex,k)));
     }
+    printf("\n");
     return;
 }
 
 
 
-KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
+KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -640,12 +646,19 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
     //CutoffFunction fc(rc);
     
     int size;
+    for (int l=0; l < MAX_SF; ++l)
+    {
+        if (SFGmemberlist(attype,groupIndex,l) == 0 && SFGmemberlist(attype,groupIndex,l+1) == 0)
+        {
+          size = l;
+          break;
+        }
+    }
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     double const rc2 = rc * rc;
     size_t numNeighbors = num_neighs; 
     // Prevent problematic condition in loop test below (j < numNeighbors - 1).
     if (numNeighbors == 0) numNeighbors = 1;
-
     for (size_t jj = 0; jj < numNeighbors - 1; jj++)
     {
         //Atom::Neighbor& nj = atom.neighbors[j];
@@ -664,6 +677,8 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
         }
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij);
+        printf("diffs \n");
+        printf("%f %f %d\n", e1, e2, nej);
         if ((e1 == nej || e2 == nej) && rij < rc)
         {
             // Calculate cutoff function and derivative.
@@ -676,6 +691,7 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
             //Vec3D const drij(atom.neighbors[j].dr);
             //double const* const dr1 = drij.r;
 
+            printf("Entering k loop\n");
             for (size_t kk = jj + 1; kk < numNeighbors; kk++)
             {
                 int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
@@ -736,14 +752,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
                             double rijs = 0.0;
                             double riks = 0.0;
                             double rjks = 0.0;
-                            for (int ll=0; ll < MAX_SF; ++ll)
-                            {
-                                if (SFGmemberlist(attype,groupIndex,ll) == 0 && SFGmemberlist(attype,groupIndex,ll+1) == 0)
-                                {
-                                  size = ll;
-                                  break;
-                                }
-                            }
                             for (size_t l = 0; l < size; ++l)
                             {
                               if (SF(attype,l,8) > 0.0)
@@ -779,13 +787,15 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
     {
         raw_value = G(i,SFGmemberlist(attype,groupIndex,k)) * pow(2,(1-SF(attype,k,6))); 
         G(i,SFGmemberlist(attype,groupIndex,k)) = scale(attype, raw_value, SFGmemberlist(attype,groupIndex,k), SFscaling);
+        printf("%f ", G(i,SFGmemberlist(attype,groupIndex,k)));
     }
+    printf("\n");
     return;
 }
 
 
 
-KOKKOS_INLINE_FUNCTION void Mode::calculateSFGRD(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
+KOKKOS_INLINE_FUNCTION void Mode::calculateSFGRD(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -799,6 +809,14 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGRD(System* s, AoSoA_NNP nnp_data, 
     //CutoffFunction fc(rc);
     
     int size;
+    for (int l=0; l < MAX_SF; ++l)
+    {
+        if (SFGmemberlist(attype,groupIndex,l) == 0 && SFGmemberlist(attype,groupIndex,l+1) == 0)
+        {
+          size = l;
+          break;
+        }
+    }
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     size_t numNeighbors = num_neighs;
    
@@ -837,14 +855,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGRD(System* s, AoSoA_NNP nnp_data, 
             //double const* const d1 = n.dr.r;
             //TODO: use subview for size calculation
             //auto SFGmemberlist_subview = Kokkos::subview(SFGmemberlist, make_pair(0,1), make_pair(0,Kokkos::ALL));
-            for (int l=0; l < MAX_SF; ++l)
-            {
-                if (SFGmemberlist(attype,groupIndex,l) == 0 && SFGmemberlist(attype,groupIndex,l+1) == 0)
-                {
-                  size = l;
-                  break;
-                }
-            }
             for (size_t k = 0; k < size; ++k) 
             {
                 double eta = SF(attype, SFGmemberlist(attype,groupIndex,k), 4);
@@ -881,7 +891,7 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGRD(System* s, AoSoA_NNP nnp_data, 
 }
 
 
-KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAND(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
+KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAND(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i) 
 {
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -896,6 +906,14 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAND(System* s, AoSoA_NNP nnp_data,
     //CutoffFunction fc(rc);
     
     int size;
+    for (int l=0; l < MAX_SF; ++l)
+    {
+        if (SFGmemberlist(attype,groupIndex,l) == 0 && SFGmemberlist(attype,groupIndex,l+1) == 0)
+        {
+          size = l;
+          break;
+        }
+    }
     int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     double const rc2 = rc * rc;
     size_t numNeighbors = num_neighs; 
@@ -1006,14 +1024,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAND(System* s, AoSoA_NNP nnp_data,
                             double rijs = 0.0;
                             double riks = 0.0;
                             double rjks = 0.0;
-                            for (int ll=0; ll < MAX_SF; ++ll)
-                            {
-                                if (SFGmemberlist(attype,groupIndex,ll) == 0 && SFGmemberlist(attype,groupIndex,ll+1) == 0)
-                                {
-                                  size = ll;
-                                  break;
-                                }
-                            }
                             for (size_t l = 0; l < size; ++l)
                             {
                               if (SF(attype,l,8) > 0.0)

@@ -206,6 +206,7 @@ vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_S
 void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2])
 {
     int countergR = 0, countergAN = 0;
+    std::cout << "Countertotal[attype] = " << countertotal[attype] << std::endl;
     for (int k = 0; k < countertotal[attype]; ++k)
     {
         bool createNewGroup = true;
@@ -214,16 +215,20 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SF
             if ((SFG(attype,l,1) == SF(attype,k,1)) && addMemberToGroup(SFG, SF, attype, l, k, countergR, countergAN))
             {
                 createNewGroup = false;
-                if (SFG(attype,l,1)==2)
+                //if (SFG(attype,l,1)==2)
+                if (SF(attype,k,1)==2)
                 {
                   SFGmemberlist(attype,l,countergR) = k;
                   std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+                  std::cout << "SF details: " << SFGmemberlist(attype,l,countergR) << std::endl;
                   countergR++;
                 }
-                else if (SFG(attype,l,1)==3)
+                //else if (SFG(attype,l,1)==3)
+                else if (SF(attype,k,1)==3)
                 {
                   SFGmemberlist(attype,l,countergAN) = k;
                   std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+                  std::cout << "SF details: " << SFGmemberlist(attype,l,countergAN) << std::endl;
                   countergAN++;
                 }
                 break;
@@ -232,6 +237,7 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SF
         
         if (createNewGroup)
         {
+            printf("Creating new group\n");
             int l = countergtotal[attype];
             countergtotal[attype]++;
             if (SF(attype,k,1)==2)
@@ -239,21 +245,24 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SF
             else if (SF(attype,k,1)==3)
               countergAN = 0;
             addMemberToGroup(SFG, SF, attype, l, k, countergR, countergAN);
-            if (SFG(attype,l,1)==2)
+            //if (SFG(attype,l,1)==2)
+            if (SF(attype,k,1)==2)
             {
               SFGmemberlist(attype,l,countergR) = k;
-              std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+              //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+              //std::cout << "SF details: " << SFGmemberlist(attype,l,countergR) << std::endl;
               countergR++;
             }
-            else if (SFG(attype,l,1)==3)
+            //else if (SFG(attype,l,1)==3)
+            else if (SF(attype,k,1)==3)
             {
               SFGmemberlist(attype,l,countergAN) = k;
-              std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+              //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+              //std::cout << "SF details: " << SFGmemberlist(attype,l,countergAN) << std::endl;
               countergAN++;
             }
         }
     }
-
     /*sort(symmetryFunctionGroups.begin(),
          symmetryFunctionGroups.end(),
          comparePointerTargets<SymmetryFunctionGroup>);
@@ -273,7 +282,7 @@ vector<string> Element::infoSymmetryFunctionGroups(t_SFG SFG, int attype, int (&
     for (int i = 0; i < countergtotal[attype]; ++i)
     {
         //TODO: improve function
-        for (int j = 0; j < 8 ; ++j)
+        for (int j = 0; j < 6 ; ++j)
           pushstring += to_string(SFG(attype,i,j)) + " ";
         pushstring += "\n";
     }

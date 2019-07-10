@@ -80,7 +80,9 @@ void CabanaMD::init(int argc, char* argv[]) {
   input->read_file();
   printf("Read input file\n");
   T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
-
+  t_mass::HostMirror h_mass = Kokkos::create_mirror_view(system->mass);
+  Kokkos::deep_copy(h_mass,system->mass);
+  std::cout << "MASS: " << h_mass(0) << " " << h_mass(1) << std::endl;
   // Now we know which integrator type to use
   integrator = new Integrator(system);
 
