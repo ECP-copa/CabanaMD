@@ -78,10 +78,8 @@ void Element::addSymmetryFunction(string const& parameters,
     vector<string> splitLine = split(reduce(parameters));
     if (type == 2)
     {
-      if (type != (size_t)atoi(splitLine.at(1).c_str()))
-          throw runtime_error("ERROR: Incorrect symmetry function type.\n");
-      
       estring = splitLine.at(0).c_str();
+      //TODO: symbol to type map to replace hardcoded values 
       if (strcmp(estring, hstring) == 0) el = 0;
       else if (strcmp(estring, ostring) == 0) el = 1;
       SF(attype,countertotal[attype],0) = el; //ec 
@@ -205,7 +203,7 @@ vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_S
     return v;
 }
 
-void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2])
+void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2])
 {
     int countergR = 0, countergAN = 0;
     std::cout << "Countertotal[attype] = " << countertotal[attype] << std::endl;
@@ -273,15 +271,15 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SF
     return;
 }
 
-vector<string> Element::infoSymmetryFunctionGroups(t_SFG SFG, int attype, int (&countergtotal)[2]) const
+vector<string> Element::infoSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist, int attype, int (&countergtotal)[2]) const
 {
     vector<string> v;
     string pushstring = ""; 
-    for (int i = 0; i < countergtotal[attype]; ++i)
+    for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
     {
         //TODO: improve function
-        for (int j = 0; j < 6 ; ++j)
-          pushstring += to_string(SFG(attype,i,j)) + " ";
+        for (int j = 0; j < 8 ; ++j)
+          pushstring += to_string(SF(attype,SFGmemberlist(attype,groupIndex,0),j)) + " ";
         pushstring += "\n";
     }
     v.push_back(pushstring);

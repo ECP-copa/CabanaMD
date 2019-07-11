@@ -441,10 +441,6 @@ public:
 
     KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
     
-    KOKKOS_INLINE_FUNCTION void setinput(AoSoA_NNP nnp_data, T_INT i);
-    KOKKOS_INLINE_FUNCTION void Propagate();
-    KOKKOS_INLINE_FUNCTION void calculatedEdG(AoSoA_NNP nnp_data, T_INT i);
-
     void calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
     t_mass numSymmetryFunctionsPerElement);
     
@@ -454,8 +450,6 @@ public:
     //SymmetryFunctionTypes
     d_t_SF d_SF;
     t_SF SF;
-    d_t_SFG d_SFG;
-    t_SFG SFG;
     d_t_SFGmemberlist d_SFGmemberlist;
     t_SFGmemberlist SFGmemberlist;
     d_t_SFscaling d_SFscaling;
@@ -1139,23 +1133,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAND(System* s, AoSoA_NNP nnp_data,
     return;
 }
 
-KOKKOS_INLINE_FUNCTION void Mode::setinput(AoSoA_NNP nnp_data, T_INT i)
-{
-  printf("TOKEN\n");
-  return;
-}
-
-KOKKOS_INLINE_FUNCTION void Mode::Propagate()
-{
-  printf("TOKEN\n");
-  return;
-}
-
-KOKKOS_INLINE_FUNCTION void Mode::calculatedEdG(AoSoA_NNP nnp_data, T_INT i)
-{
-  printf("TOKEN\n");
-  return;
-}
 
 }
 

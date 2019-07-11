@@ -90,10 +90,10 @@ public:
     vector<string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
     /** Set up symmetry function groups.
      */
-    void setupSymmetryFunctionGroups(t_SF SF, t_SFG SFG, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2]);
+    void setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2]);
     /** Print symmetry function group info.
      */
-    vector<string> infoSymmetryFunctionGroups(t_SFG SFG, int attype, int (&countergtotal)[2]) const;
+    vector<string> infoSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist, int attype, int (&countergtotal)[2]) const;
     /** Set cutoff function for all symmetry functions.
      *
      * @param[in] cutoffType Type of cutoff function.
@@ -182,8 +182,6 @@ public:
     KOKKOS_INLINE_FUNCTION void setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
                                             double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const;
     KOKKOS_INLINE_FUNCTION string scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const;
-    KOKKOS_INLINE_FUNCTION bool addMemberToGroup(t_SFG SFG, t_SF SF, int attype, int groupIndex, 
-        int k, int countergR, int countergAN);
     KOKKOS_INLINE_FUNCTION double unscale(int attype, double value, int k, t_SFscaling SFscaling);
 
 
@@ -304,66 +302,6 @@ KOKKOS_INLINE_FUNCTION string Element::scalingLine(ScalingType scalingType, t_SF
                  scalingType); 
 }
 
-
-KOKKOS_INLINE_FUNCTION bool Element::addMemberToGroup(t_SFG SFG, t_SF SF, int attype, int groupIndex, 
-    int k, int countergR, int countergAN)
-{
-    int type = SF(attype,k,1);
-    if (type == 2)
-    {
-      if (countergR == 0)
-      {
-        SFG(attype,groupIndex,0) = SF(attype,k,0); //ec
-        SFG(attype,groupIndex,1) = type; //type
-        SFG(attype,groupIndex,2) = SF(attype,k,2); //e1
-        SFG(attype,groupIndex,4) = k+1; //memberindex
-        SFG(attype,groupIndex,5) = SF(attype,k,7); //rc
-        SFG(attype,groupIndex,6) = SF(attype,k,11); //cutoffType
-        SFG(attype,groupIndex,7) = SF(attype,k,12); //cutoffAlpha
-        //fc.setCutoffType(SF(attype,k,11));
-        //fc.setCutoffRadius(SF(attype,k,7));
-        //fc.setCutoffParameter(SF(attype,k,12));
-      }
-      if (SF(attype,k,11) != SFG(attype,groupIndex,6)) return false;
-      if (SF(attype,k,12) != SFG(attype,groupIndex,7)) return false;
-      if (SF(attype,k,0) != SFG(attype,groupIndex,0)) return false;
-      if (SF(attype,k,7) != SFG(attype,groupIndex,5)) return false;
-      if (SF(attype,k,2) != SFG(attype,groupIndex,2)) return false;
-    }
-    else if (type == 3)
-    {
-      if (countergAN == 0)
-      {
-        SFG(attype,groupIndex,0) = SF(attype,k,0); //ec
-        SFG(attype,groupIndex,1) = type; //type
-        SFG(attype,groupIndex,2) = SF(attype,k,2); //e1
-        SFG(attype,groupIndex,3) = SF(attype,k,3); //e2
-        SFG(attype,groupIndex,4) = k+1; //memberindex
-        SFG(attype,groupIndex,5) = SF(attype,k,7); //rc
-        SFG(attype,groupIndex,6) = SF(attype,k,11); //cutoffType
-        SFG(attype,groupIndex,7) = SF(attype,k,12); //cutoffAlpha
-        //fc.setCutoffType(SF(attype,k,11));
-        //fc.setCutoffRadius(SF(attype,k,7));
-        //fc.setCutoffParameter(SF(attype,k,12));
-      }
-      if (SF(attype,k,11) != SFG(attype,groupIndex,6)) return false;
-      if (SF(attype,k,12) != SFG(attype,groupIndex,7)) return false;
-      if (SF(attype,k,0) != SFG(attype,groupIndex,0)) return false;
-      if (SF(attype,k,7) != SFG(attype,groupIndex,5)) return false;
-      if (SF(attype,k,2) != SFG(attype,groupIndex,2)) return false;
-      if (SF(attype,k,3) != SFG(attype,groupIndex,3)) return false;
-    }
-    else if (type == 9)
-    {
-    }
-    else if (type == 12)
-    {
-    }
-    else if (type == 13)
-    {
-    }
-    return true;
-}
 
 KOKKOS_INLINE_FUNCTION double Element::unscale(int attype, double value, int k, t_SFscaling SFscaling)
 {

@@ -160,8 +160,6 @@ using t_dGdr = Kokkos::View<T_V_FLOAT*[MAX_SF][3]>;
 typedef ExecutionSpace::array_layout array_layout; //TODO: check this
 using d_t_SF = Kokkos::View<T_FLOAT**[13]>;
 using t_SF = Kokkos::View<T_FLOAT**[13],array_layout,Kokkos::HostSpace>;
-using d_t_SFG = Kokkos::View<T_FLOAT**[6]>;
-using t_SFG = Kokkos::View<T_FLOAT**[6],array_layout,Kokkos::HostSpace>;
 using d_t_SFscaling = Kokkos::View<T_FLOAT**[8]>;
 using t_SFscaling = Kokkos::View<T_FLOAT**[8],array_layout,Kokkos::HostSpace>;
 using d_t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF]>; 

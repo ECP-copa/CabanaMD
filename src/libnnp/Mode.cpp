@@ -164,19 +164,17 @@ t_mass Mode::setupElementMap(t_mass d_numSymmetryFunctionsPerElement)
     //resize numSymmetryFunctionsPerElement to have size = num of atom types in system
     numElements = elementMap.size();
     
-    //for each view, create host mirror for I/O
+    //setup device and host views
     //deep copy back when needed for calculations
 
     d_numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
    
     //setup SF info storage
     SF = t_SF("ForceNNP::SF", numElements, MAX_SF);
-    SFG = t_SFG("ForceNNP::SFG", numElements, MAX_SF);
     SFscaling = t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
     SFGmemberlist = t_SFGmemberlist("ForceNNP::SFGmemberlist", numElements);
     
     d_SF = d_t_SF("ForceNNP::SF", numElements, MAX_SF);
-    d_SFG = d_t_SFG("ForceNNP::SFG", numElements, MAX_SF);
     d_SFscaling = d_t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
     d_SFGmemberlist = d_t_SFGmemberlist("ForceNNP::SFGmemberlist", numElements);
     
@@ -346,6 +344,7 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
         const char* estring = args.at(0).c_str();
         const char* hstring = "H";
         const char* ostring = "O";
+        //TODO: hardcoded symbol to type conversions
         if (strcmp(estring, hstring) == 0)
           type = 0;
         else if (strcmp(estring, ostring) == 0)
@@ -577,8 +576,7 @@ void Mode::setupSymmetryFunctionGroups()
          it != elements.end(); ++it)
     {
         int attype = it->getIndex();
-        it->setupSymmetryFunctionGroups(SF, SFG, SFGmemberlist, attype, countertotal, countergtotal);
-        printf("INIT\n");
+        it->setupSymmetryFunctionGroups(SF, SFGmemberlist, attype, countertotal, countergtotal);
         log << strpr("Short range atomic symmetry function groups "
                      "element %2s :\n", it->getSymbol().c_str());
         log << "-----------------------------------------"
@@ -587,7 +585,7 @@ void Mode::setupSymmetryFunctionGroups()
                "zeta        rc ct   ca    ln   mi  sfi e\n";
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        log << it->infoSymmetryFunctionGroups(SFG, attype, countergtotal);
+        log << it->infoSymmetryFunctionGroups(SF, SFGmemberlist, attype, countergtotal);
         log << "-----------------------------------------"
                "--------------------------------------\n";
     }
@@ -926,7 +924,6 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     //deep copy into device Views
     Kokkos::deep_copy(d_SF, SF);
     Kokkos::deep_copy(d_SFscaling, SFscaling);
-    Kokkos::deep_copy(d_SFG, SFG);
     Kokkos::deep_copy(d_SFGmemberlist, SFGmemberlist);
 
     // Calculate symmetry functions (and derivatives).
