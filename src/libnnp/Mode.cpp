@@ -674,19 +674,6 @@ void Mode::setupNeuralNetwork()
     log << "-----------------------------------------"
            "--------------------------------------\n";
     
-    //initialize Views
-    int maxNeurons = 0;
-    for (int j = 0; j < numLayers; ++j)
-        maxNeurons = max(maxNeurons, numNeuronsPerLayer[j]);
-    
-    h_bias = t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
-    h_weights = t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
-    
-    NN = d_t_NN("ForceNNP::NN", numLayers, maxNeurons); 
-    dfdx = d_t_NN("ForceNNP::NN", numLayers, maxNeurons); 
-    bias = d_t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
-    weights = d_t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
-
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
@@ -711,6 +698,18 @@ void Mode::setupNeuralNetwork()
                "--------------------------------------\n";
     }
 
+    //initialize Views
+    int maxNeurons = 0;
+    for (int j = 0; j < numLayers; ++j)
+        maxNeurons = max(maxNeurons, numNeuronsPerLayer[j]);
+
+    h_bias = t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
+    h_weights = t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
+    
+    bias = d_t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
+    weights = d_t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
+    NN = d_t_NN("ForceNNP::NN", numLayers, maxNeurons); 
+    dfdx = d_t_NN("ForceNNP::dfdx", numLayers, maxNeurons); 
 
     log << "*****************************************"
            "**************************************\n";
@@ -767,7 +766,6 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
     }
     log << "*****************************************"
            "**************************************\n";
-    std::cout << weights(0,0,0,0) << " " << bias(0,0,0) << std::endl;
     return;
 }
 
@@ -926,6 +924,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     Kokkos::deep_copy(d_SFscaling, SFscaling);
     Kokkos::deep_copy(d_SFGmemberlist, SFGmemberlist);
 
+    std::cout << "Calculating SF groups" << std::endl;
     // Calculate symmetry functions (and derivatives).
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
     {
@@ -939,15 +938,16 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
         {
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
           {
+            printf("SFGR for atom %d group %d \n",i,groupIndex);
             calculateSFGR(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, attype, groupIndex, neigh_list, i);
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
           {
+            printf("SFGAN\n");
             calculateSFGAN(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, attype, groupIndex, neigh_list, i);
           }
         }
     });
-
 } 
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
@@ -963,14 +963,13 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
     Kokkos::deep_copy(bias, h_bias);
     Kokkos::deep_copy(weights, h_weights);
 
-    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t i)
+    std::cout << "Calculating neural networks" << std::endl;
+    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t atomindex)
     {
-        int attype = type(i);
+        int attype = type(atomindex);
         //set input layer of NN
         for (int k = 0; k < numNeuronsPerLayer[0]; ++k)
             NN(0,k) = G(attype,k);
-        //std::cout << "NN: " << NN(0,3) << std::endl;
-
         //forward propagation
         for (int l = 1; l < numLayers; l++)
         {
@@ -982,7 +981,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
                 dtmp = 0.0;
                 for (int j = 0; j < numNeuronsPerLayer[l-1]; j++)
                 {
-                    dtmp += weights(attype,l,i,j) * NN(l-1,j);
+                    dtmp += weights(attype,l-1,i,j) * NN(l-1,j);
                 }
                 dtmp += bias(attype,l,i);
                 //if (normalizeNeurons) dtmp /= numNeuronsPerLayer[l-1];
@@ -1014,7 +1013,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
         for (int k = 0; k < numNeuronsPerLayer[0]; k++)
         {
             for (int i = 0; i < numNeuronsPerLayer[1]; i++)
-                inner[0][i] = weights(attype,1,i,k) * dfdx(1,i); 
+                inner[0][i] = weights(attype,0,i,k) * dfdx(1,i); 
             
             for (int l = 1; l < numHiddenLayers+1; l++)
             {
@@ -1023,14 +1022,14 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
                     outer[l-1][i2] = 0.0;
                     
                     for (int i1 = 0; i1 < numNeuronsPerLayer[l]; i1++)
-                        outer[l-1][i2] += weights(attype,l+1,i2,i1) * inner[l-1][i1];
+                        outer[l-1][i2] += weights(attype,l,i2,i1) * inner[l-1][i1];
                     outer[l-1][i2] *= dfdx(l+1,i2);
                     
                     if (l < numHiddenLayers)
                       inner[l][i2] = outer[l-1][i2];
                 }
             }
-            dEdG(i,k) = outer[numHiddenLayers-1][0];
+            dEdG(atomindex,k) = outer[numHiddenLayers-1][0];
         }
 
         for (int i = 0; i < numHiddenLayers; i++)
@@ -1041,8 +1040,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
         delete[] inner;
         delete[] outer;
 
-        //std::cout << "NN: " << NN(numLayers-1,0) << std::endl;
-        energy(i) = NN(numLayers-1,0); 
+        energy(atomindex) = NN(numLayers-1,0); 
     });
 }
 
@@ -1061,6 +1059,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     if (s->normalize)
       convForce = convLength/convEnergy;
     
+    std::cout << "Calculating forces" << std::endl;
     Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
         // Now loop over all neighbor atoms j of atom i. These may hold
@@ -1072,7 +1071,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
         // atom i itself).
         int attype = type(i); 
         //Reset dGdr to zero TODO: deep_copy
-        
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)

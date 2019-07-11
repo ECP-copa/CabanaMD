@@ -562,14 +562,16 @@ KOKKOS_INLINE_FUNCTION double Mode::scale(int attype, double value, int k, d_t_S
 
 }
 
-
 KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
+    printf("Beginning slicing\n");
     auto x = Cabana::slice<Positions>(s->xvf);
+    //printf("Sliced X\n");
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
 
+    printf("Done slicing\n");
     //pick e1, rc from first member (since they are all the same)
     //SFGmemberlist(attype,groupIndex,0): second index = groupIndex, third index  = for first SF in group
     int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
@@ -792,14 +794,14 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
     } // j
 
     double raw_value = 0.0;
-    printf("Raw values: ");
+    //printf("Raw values: ");
     for (size_t k = 0; k < size; ++k)
     {
-        printf("%f ", G(i,SFGmemberlist(attype,groupIndex,k)));
+        //printf("%f ", G(i,SFGmemberlist(attype,groupIndex,k)));
         raw_value = G(i,SFGmemberlist(attype,groupIndex,k)) * pow(2,(1-SF(attype,k,6))); 
         G(i,SFGmemberlist(attype,groupIndex,k)) = scale(attype, raw_value, SFGmemberlist(attype,groupIndex,k), SFscaling);
     }
-    printf("\n");
+    //printf("\n");
     return;
 }
 
@@ -978,6 +980,7 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAND(System* s, AoSoA_NNP nnp_data,
                     T_F_FLOAT dyik = x(i,1) - x(k,1);
                     T_F_FLOAT dzik = x(i,2) - x(k,2);
                     dxik *= s->cflength;
+                    dyik *= s->cflength;
                     dzik *= s->cflength;
                     
                     if (s->normalize) {
@@ -1034,36 +1037,38 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAND(System* s, AoSoA_NNP nnp_data,
                             double rijs = 0.0;
                             double riks = 0.0;
                             double rjks = 0.0;
+                            double rs, eta, lambda, zeta;
                             for (size_t l = 0; l < size; ++l)
                             {
-                              if (SF(attype,l,8) > 0.0)
+                              rs = SF(attype,SFGmemberlist(attype,groupIndex,l),8);
+                              eta = SF(attype,SFGmemberlist(attype,groupIndex,l),4);
+                              lambda = SF(attype,SFGmemberlist(attype,groupIndex,l),5);
+                              zeta = SF(attype,SFGmemberlist(attype,groupIndex,l),6);
+                              if (rs > 0.0)
                               {  
-                                rijs = rij - SF(attype,l,8);
-                                riks = rik - SF(attype,l,8);
-                                rjks = rjk - SF(attype,l,8);
-                                vexp = exp(-SF(attype,l,4) * (rijs * rijs
-                                                    + riks * riks
-                                                    + rjks * rjks));
+                                rijs = rij - rs;
+                                riks = rik - rs;
+                                rjks = rjk - rs;
+                                vexp = exp(-eta * (rijs * rijs + riks * riks + rjks * rjks));
                               }
                               else
-                                  vexp = exp(-SF(attype,l,4) * r2sum);
+                                  vexp = exp(-eta * r2sum);
                               
-                              double const plambda = 1.0 + SF(attype,l,5) * costijk;
+                              double const plambda = 1.0 + lambda * costijk;
                               double fg = vexp;
-                              if (plambda <= 0.0) fg = 0.0;
+                              if (plambda <= 0.0)
+                                fg = 0.0;
                               else
-                              {
-                                  fg *= pow(plambda, (SF(attype,l,6) - 1.0));
-                              }
-                              // Force calculation.
-                              fg *= pow(2,(1-SF(attype,k,6))) * SFscaling(attype,k,6);
-                              double const pfczl = pfc * SF(attype,k,6) * SF(attype,k,5);
-                              double factorDeriv = 2.0 * SF(attype,k,4) / SF(attype,k,6) / SF(attype,k,5);
+                                  fg *= pow(plambda, (zeta - 1.0));
+                              
+                              fg *= pow(2,(1-zeta)) * SFscaling(attype,SFGmemberlist(attype,groupIndex,l),6);
+                              double const pfczl = pfc * zeta * lambda; 
+                              double factorDeriv = 2.0 * eta / zeta / lambda;
                               double const p2etapl = plambda * factorDeriv;
                               double p1;
                               double p2;
                               double p3;
-                              if (SF(attype,1,8) > 0.0)
+                              if (rs > 0.0)
                               {
                                   p1 = fg * (pfczl * (rinvijik
                                      - costijk / r2ij - p2etapl
