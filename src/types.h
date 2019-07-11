@@ -166,6 +166,11 @@ using d_t_SFscaling = Kokkos::View<T_FLOAT**[8]>;
 using t_SFscaling = Kokkos::View<T_FLOAT**[8],array_layout,Kokkos::HostSpace>;
 using d_t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF]>; 
 using t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF],array_layout,Kokkos::HostSpace>; 
+    
+using d_t_NN = Kokkos::View<T_FLOAT***>;
+using t_NN = Kokkos::View<T_FLOAT***,array_layout,Kokkos::HostSpace>;
+using d_t_weights = Kokkos::View<T_FLOAT****>;
+using t_weights = Kokkos::View<T_FLOAT****,array_layout,Kokkos::HostSpace>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
 using t_verletlist_full_2D = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;

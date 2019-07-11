@@ -645,11 +645,9 @@ void Mode::setupNeuralNetwork()
            "**************************************\n";
     log << "\n";
 
-    int const numLayers = 2 +
-                          atoi(settings["global_hidden_layers_short"].c_str());
+    numLayers = 2 + atoi(settings["global_hidden_layers_short"].c_str());
+    
     int* numNeuronsPerLayer = new int[numLayers];
-    NeuralNetwork::ActivationFunction* activationFunctionsPerLayer =
-        new NeuralNetwork::ActivationFunction[numLayers];
     vector<string> numNeuronsPerHiddenLayer =
         split(reduce(settings["global_nodes_short"]));
     vector<string> activationFunctions =
@@ -658,71 +656,64 @@ void Mode::setupNeuralNetwork()
     for (int i = 0; i < numLayers; i++)
     {
         if (i == 0)
-        {
-            numNeuronsPerLayer[i] = 0;
-            activationFunctionsPerLayer[i] = NeuralNetwork::AF_IDENTITY;
-        }
+            AF[i] = 0;
         else if (i == numLayers - 1)
         {
             numNeuronsPerLayer[i] = 1;
-            activationFunctionsPerLayer[i] = NeuralNetwork::AF_IDENTITY;
-        }
+            AF[i] = 0;
+        } 
         else
         {
-            numNeuronsPerLayer[i] =
-                atoi(numNeuronsPerHiddenLayer.at(i-1).c_str());
-            if (activationFunctions.at(i-1) == "l")
-            {
-                activationFunctionsPerLayer[i] = NeuralNetwork::AF_IDENTITY;
-            }
-            else if (activationFunctions.at(i-1) == "t")
-            {
-                activationFunctionsPerLayer[i] = NeuralNetwork::AF_TANH;
-            }
-            else if (activationFunctions.at(i-1) == "s")
-            {
-                activationFunctionsPerLayer[i] = NeuralNetwork::AF_LOGISTIC;
-            }
-            else if (activationFunctions.at(i-1) == "p")
-            {
-                activationFunctionsPerLayer[i] = NeuralNetwork::AF_SOFTPLUS;
-            }
-            else if (activationFunctions.at(i-1) == "r")
-            {
-                activationFunctionsPerLayer[i] = NeuralNetwork::AF_RELU;
-            }
-            else
-            {
-                throw runtime_error("ERROR: Unknown activation function.\n");
-            }
+            numNeuronsPerLayer[i] = atoi(numNeuronsPerHiddenLayer.at(i-1).c_str());
+            AF[i-1] = 1; //TODO: hardcoded atoi(activationFunctions.at(i-1));
         }
-
     }
 
+    //TODO: add normalization of neurons
     bool normalizeNeurons = settings.keywordExists("normalize_nodes");
     log << strpr("Normalize neurons (all elements): %d\n",
                  (int)normalizeNeurons);
     log << "-----------------------------------------"
            "--------------------------------------\n";
+    
+    //initialize Views
+    int maxNeurons = 0;
+    for (int j = 0; j < numLayers; ++j)
+        maxNeurons = max(maxNeurons, numNeuronsPerLayer[j]);
+    
+    NN = t_NN("ForceNNP::NN", numElements, numLayers, maxNeurons); 
+    bias = t_NN("ForceNNP::biases", numElements, numLayers, maxNeurons); 
+    weights = t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
+    
+    d_NN = d_t_NN("ForceNNP::NN", numElements, numLayers, maxNeurons); 
+    d_bias = d_t_NN("ForceNNP::biases", numElements, numLayers, maxNeurons); 
+    d_weights = d_t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
 
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
         int attype = it->getIndex();
         numNeuronsPerLayer[0] = it->numSymmetryFunctions(attype, countertotal);
-        it->neuralNetwork = new NeuralNetwork(numLayers,
-                                              numNeuronsPerLayer,
-                                              activationFunctionsPerLayer);
-        it->neuralNetwork->setNormalizeNeurons(normalizeNeurons);
         log << strpr("Atomic short range NN for "
                      "element %2s :\n", it->getSymbol().c_str());
-        log << it->neuralNetwork->info();
+
+        int numWeights = 0, numBiases = 0, numConnections = 0;
+        for (int j = 1; j < numLayers; ++j)
+        { 
+            numWeights += numNeuronsPerLayer[j-1]*numNeuronsPerLayer[j]; 
+            numBiases += numNeuronsPerLayer[j];
+        }
+        numConnections = numWeights + numBiases;
+        log << strpr("Number of weights    : %6zu\n", numWeights);
+        log << strpr("Number of biases     : %6zu\n", numBiases);
+        log << strpr("Number of connections: %6zu\n", numConnections);
+        log << strpr("Architecture    %6zu    %6zu    %6zu    %6zu\n", numNeuronsPerLayer[0], numNeuronsPerLayer[1],
+            numNeuronsPerLayer[2], numNeuronsPerLayer[3]);
         log << "-----------------------------------------"
                "--------------------------------------\n";
     }
 
     delete[] numNeuronsPerLayer;
-    delete[] activationFunctionsPerLayer;
 
     log << "*****************************************"
            "**************************************\n";
@@ -753,21 +744,33 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
                                 + "\".\n");
         }
         string line;
-        vector<double> weights;
+        int attype = it->getIndex();
+        int layer, start, end;
         while (getline(file, line))
         {
             if (line.at(0) != '#')
             {
                 vector<string> splitLine = split(reduce(line));
-                weights.push_back(atof(splitLine.at(0).c_str()));
+                if (strcmp(splitLine.at(1).c_str(), "a") == 0)
+                {
+                    layer = atoi(splitLine.at(3).c_str());
+                    start = atoi(splitLine.at(4).c_str()) - 1;
+                    end = atoi(splitLine.at(6).c_str()) - 1;
+                    weights(attype,layer,start,end) = atof(splitLine.at(0).c_str());
+                }
+                else if (strcmp(splitLine.at(1).c_str(), "b") == 0)
+                {
+                    layer = atoi(splitLine.at(3).c_str()) - 1;
+                    start = atoi(splitLine.at(4).c_str()) - 1;
+                    bias(attype,layer,start) = atof(splitLine.at(0).c_str());
+                }
             }
         }
-        it->neuralNetwork->setConnections(&(weights.front()));
         file.close();
     }
     log << "*****************************************"
            "**************************************\n";
-
+    std::cout << weights(0,0,0,0) << " " << bias(0,0,0) << std::endl;
     return;
 }
 
@@ -958,17 +961,17 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
 {
     //Calculate Atomic Neural Networks 
-    /*auto id = Cabana::slice<IDs>(s->xvf);
+    auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
 
     Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
-        setInput(nnp_data,i);
-        propagate();
-        calculateDEdG(nnp_data,i);
-        energy(i) = e.neuralNetwork->getOutput();
-    });*/
+        setinput(nnp_data,i);
+        Propagate();
+        calculatedEdG(nnp_data,i);
+        //energy(i) = e.neuralNetwork->getOutput();
+    });
 }
 
 

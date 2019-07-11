@@ -429,6 +429,8 @@ public:
     void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
         t_mass numSymmetryFunctionsPerElement);
     
+    void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data);
+    
     KOKKOS_INLINE_FUNCTION double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
 
     KOKKOS_INLINE_FUNCTION void calculateSFGR(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
@@ -438,10 +440,13 @@ public:
     KOKKOS_INLINE_FUNCTION void calculateSFGRD(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
 
     KOKKOS_INLINE_FUNCTION void calculateSFGAND(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, t_dGdr dGdr, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i);
+    
+    KOKKOS_INLINE_FUNCTION void setinput(AoSoA_NNP nnp_data, T_INT i);
+    KOKKOS_INLINE_FUNCTION void Propagate();
+    KOKKOS_INLINE_FUNCTION void calculatedEdG(AoSoA_NNP nnp_data, T_INT i);
 
     void calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
     t_mass numSymmetryFunctionsPerElement);
-    void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data);
     
     /// Global log file.
     Log        log;
@@ -456,7 +461,17 @@ public:
     d_t_SFscaling d_SFscaling;
     t_SFscaling SFscaling;
     t_dGdr dGdr;
-    
+   
+    //NN data structures
+    d_t_NN d_NN;
+    t_NN NN;
+    d_t_NN d_bias;
+    t_NN bias;
+    d_t_weights d_weights; 
+    t_weights weights;
+    int numLayers, numHiddenLayers; 
+    int AF[4]; 
+
     int countertotal[2] = {0,0};
     int countergtotal[2] = {0,0};
     
@@ -1122,6 +1137,23 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAND(System* s, AoSoA_NNP nnp_data,
     return;
 }
 
+KOKKOS_INLINE_FUNCTION void Mode::setinput(AoSoA_NNP nnp_data, T_INT i)
+{
+  printf("TOKEN\n");
+  return;
+}
+
+KOKKOS_INLINE_FUNCTION void Mode::Propagate()
+{
+  printf("TOKEN\n");
+  return;
+}
+
+KOKKOS_INLINE_FUNCTION void Mode::calculatedEdG(AoSoA_NNP nnp_data, T_INT i)
+{
+  printf("TOKEN\n");
+  return;
+}
 
 }
 
