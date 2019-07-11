@@ -565,13 +565,11 @@ KOKKOS_INLINE_FUNCTION double Mode::scale(int attype, double value, int k, d_t_S
 
 KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, d_t_SF SF, d_t_SFscaling SFscaling, d_t_SFGmemberlist SFGmemberlist, int attype, int groupIndex, t_verletlist_full_2D neigh_list, T_INT i)
 {
-    printf("About to slice\n"); 
     auto x = Cabana::slice<Positions>(s->xvf);
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
 
-    printf("DONE SLICING\n"); 
     //pick e1, rc from first member (since they are all the same)
     //SFGmemberlist(attype,groupIndex,0): second index = groupIndex, third index  = for first SF in group
     int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
@@ -636,9 +634,7 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, d
     {
         raw_value = G(i,SFGmemberlist(attype,groupIndex,k)); 
         G(i,SFGmemberlist(attype,groupIndex,k)) = scale(attype, raw_value, SFGmemberlist(attype,groupIndex,k), SFscaling);
-        printf("%f ", G(i,SFGmemberlist(attype,groupIndex,k)));
     }
-    printf("\n");
     return;
 }
 
@@ -785,9 +781,7 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
                               {
                                   fg *= pow(plambda, (SF(attype,SFGmemberlist(attype,groupIndex,l),6) - 1.0));
                               }
-                              printf("Adding term: %f\n", fg*plambda*pfc);
                               G(i,SFGmemberlist(attype,groupIndex,l)) += fg * plambda * pfc;
-                              printf("Current G: %f\n", G(i,SFGmemberlist(attype,groupIndex,l)));
 
                             } // l
                         } // rjk <= rc
