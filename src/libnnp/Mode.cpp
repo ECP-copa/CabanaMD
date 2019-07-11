@@ -375,7 +375,7 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
          it != elements.end(); ++it)
     {
         int attype = it->getIndex();
-        //TODO: it->sortSymmetryFunctions();
+        //it->sortSymmetryFunctions(t_SF SF);
         maxCutoffRadius = max(it->getMaxCutoffRadius(SF,attype,countertotal), maxCutoffRadius);
         it->setCutoffFunction(cutoffType, cutoffAlpha, SF, attype, countertotal);
         log << strpr("Short range atomic symmetry functions element %2s :\n",

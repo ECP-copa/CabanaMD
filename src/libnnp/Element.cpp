@@ -164,7 +164,7 @@ void Element::addSymmetryFunction(string const& parameters,
 }
 
 
-void Element::sortSymmetryFunctions()
+void Element::sortSymmetryFunctions(t_SF SF)
 {
     sort(symmetryFunctions.begin(),
          symmetryFunctions.end(),

@@ -78,7 +78,7 @@ public:
                                                             double convLength);
     /** Sort all symmetry function.
      */
-    void                     sortSymmetryFunctions();
+    void                     sortSymmetryFunctions(t_SF SF);
     /** Print symmetry function parameter value information.
      */
     vector<string> infoSymmetryFunctionParameters(t_SF SF, int attype, int (&countertotal)[2]) const;

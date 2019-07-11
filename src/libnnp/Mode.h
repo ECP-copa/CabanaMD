@@ -590,7 +590,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGR(System* s, AoSoA_NNP nnp_data, d
     size_t numNeighbors = num_neighs;
    
     double pfc;
-    printf("Entering j loop\n");
     for (size_t jj = 0; jj < numNeighbors; ++jj)
     {
         int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
@@ -691,7 +690,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
         }
         double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
         double const rij = sqrt(r2ij);
-        printf("diffs \n");
         if ((e1 == nej || e2 == nej) && rij < rc)
         {
             // Calculate cutoff function and derivative.
@@ -704,7 +702,6 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
             //Vec3D const drij(atom.neighbors[j].dr);
             //double const* const dr1 = drij.r;
 
-            printf("Entering k loop\n");
             for (size_t kk = jj + 1; kk < numNeighbors; kk++)
             {
                 int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
@@ -728,6 +725,8 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
                     }
                     double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
                     double const rik = sqrt(r2ik);
+                   
+                    if (rik < rc) 
                     {
                         // SIMPLE EXPRESSIONS:
                         //Vec3D const drjk(atom.neighbors[k].dr
@@ -767,25 +766,28 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
                             double rjks = 0.0;
                             for (size_t l = 0; l < size; ++l)
                             {
-                              if (SF(attype,l,8) > 0.0)
+                              if (SF(attype,SFGmemberlist(attype,groupIndex,l),8) > 0.0)
                               {  
-                                rijs = rij - SF(attype,l,8);
-                                rjks = rjk - SF(attype,l,8);
-                                vexp = exp(-SF(attype,l,4) * (rijs * rijs
+                                rijs = rij - SF(attype,SFGmemberlist(attype,groupIndex,l),8);
+                                riks = rik - SF(attype,SFGmemberlist(attype,groupIndex,l),8);
+                                rjks = rjk - SF(attype,SFGmemberlist(attype,groupIndex,l),8);
+                                vexp = exp(-SF(attype,SFGmemberlist(attype,groupIndex,l),4) * (rijs * rijs
                                                     + riks * riks
                                                     + rjks * rjks));
                               }
                               else
-                                  vexp = exp(-SF(attype,l,4) * r2sum);
+                                  vexp = exp(-SF(attype,SFGmemberlist(attype,groupIndex,l),4) * r2sum);
                               double const plambda = 1.0
-                                                   + SF(attype,l,5) * costijk;
+                                                   + SF(attype,SFGmemberlist(attype,groupIndex,l),5) * costijk;
                               double fg = vexp;
                               if (plambda <= 0.0) fg = 0.0;
                               else
                               {
-                                  fg *= pow(plambda, (SF(attype,l,6) - 1.0));
+                                  fg *= pow(plambda, (SF(attype,SFGmemberlist(attype,groupIndex,l),6) - 1.0));
                               }
+                              printf("Adding term: %f\n", fg*plambda*pfc);
                               G(i,SFGmemberlist(attype,groupIndex,l)) += fg * plambda * pfc;
+                              printf("Current G: %f\n", G(i,SFGmemberlist(attype,groupIndex,l)));
 
                             } // l
                         } // rjk <= rc
@@ -796,11 +798,12 @@ KOKKOS_INLINE_FUNCTION void Mode::calculateSFGAN(System* s, AoSoA_NNP nnp_data, 
     } // j
 
     double raw_value = 0.0;
+    printf("Raw values: ");
     for (size_t k = 0; k < size; ++k)
     {
+        printf("%f ", G(i,SFGmemberlist(attype,groupIndex,k)));
         raw_value = G(i,SFGmemberlist(attype,groupIndex,k)) * pow(2,(1-SF(attype,k,6))); 
         G(i,SFGmemberlist(attype,groupIndex,k)) = scale(attype, raw_value, SFGmemberlist(attype,groupIndex,k), SFscaling);
-        printf("%f ", G(i,SFGmemberlist(attype,groupIndex,k)));
     }
     printf("\n");
     return;
