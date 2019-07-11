@@ -646,8 +646,8 @@ void Mode::setupNeuralNetwork()
     log << "\n";
 
     numLayers = 2 + atoi(settings["global_hidden_layers_short"].c_str());
+    numHiddenLayers = numLayers - 2;
     
-    int* numNeuronsPerLayer = new int[numLayers];
     vector<string> numNeuronsPerHiddenLayer =
         split(reduce(settings["global_nodes_short"]));
     vector<string> activationFunctions =
@@ -681,13 +681,13 @@ void Mode::setupNeuralNetwork()
     for (int j = 0; j < numLayers; ++j)
         maxNeurons = max(maxNeurons, numNeuronsPerLayer[j]);
     
-    NN = t_NN("ForceNNP::NN", numElements, numLayers, maxNeurons); 
-    bias = t_NN("ForceNNP::biases", numElements, numLayers, maxNeurons); 
-    weights = t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
+    h_bias = t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
+    h_weights = t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
     
-    d_NN = d_t_NN("ForceNNP::NN", numElements, numLayers, maxNeurons); 
-    d_bias = d_t_NN("ForceNNP::biases", numElements, numLayers, maxNeurons); 
-    d_weights = d_t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
+    NN = d_t_NN("ForceNNP::NN", numLayers, maxNeurons); 
+    dfdx = d_t_NN("ForceNNP::NN", numLayers, maxNeurons); 
+    bias = d_t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
+    weights = d_t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
 
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
@@ -713,7 +713,6 @@ void Mode::setupNeuralNetwork()
                "--------------------------------------\n";
     }
 
-    delete[] numNeuronsPerLayer;
 
     log << "*****************************************"
            "**************************************\n";
@@ -756,13 +755,13 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
                     layer = atoi(splitLine.at(3).c_str());
                     start = atoi(splitLine.at(4).c_str()) - 1;
                     end = atoi(splitLine.at(6).c_str()) - 1;
-                    weights(attype,layer,start,end) = atof(splitLine.at(0).c_str());
+                    h_weights(attype,layer,start,end) = atof(splitLine.at(0).c_str());
                 }
                 else if (strcmp(splitLine.at(1).c_str(), "b") == 0)
                 {
                     layer = atoi(splitLine.at(3).c_str()) - 1;
                     start = atoi(splitLine.at(4).c_str()) - 1;
-                    bias(attype,layer,start) = atof(splitLine.at(0).c_str());
+                    h_bias(attype,layer,start) = atof(splitLine.at(0).c_str());
                 }
             }
         }
@@ -963,14 +962,94 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
     //Calculate Atomic Neural Networks 
     auto id = Cabana::slice<IDs>(s->xvf);
     auto type = Cabana::slice<Types>(s->xvf);
+    auto G = Cabana::slice<NNPNames::G>(nnp_data);
+    auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
+    
+    //deep copy into device Views
+    Kokkos::deep_copy(bias, h_bias);
+    Kokkos::deep_copy(weights, h_weights);
 
     Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
-        setinput(nnp_data,i);
-        Propagate();
-        calculatedEdG(nnp_data,i);
-        //energy(i) = e.neuralNetwork->getOutput();
+        int attype = type(i);
+        //set input layer of NN
+        for (int k = 0; k < numNeuronsPerLayer[0]; ++k)
+            NN(0,k) = G(attype,k);
+        //std::cout << "NN: " << NN(0,3) << std::endl;
+
+        //forward propagation
+        for (int l = 1; l < numLayers; l++)
+        {
+            //propagateLayer(layers[i], layers[i-1]);
+            //propagateLayer(Layer& layer, Layer& layerPrev) //l and l-1
+            double dtmp;
+            for (int i = 0; i < numNeuronsPerLayer[l]; i++)
+            {
+                dtmp = 0.0;
+                for (int j = 0; j < numNeuronsPerLayer[l-1]; j++)
+                {
+                    dtmp += weights(attype,l,i,j) * NN(l-1,j);
+                }
+                dtmp += bias(attype,l,i);
+                //if (normalizeNeurons) dtmp /= numNeuronsPerLayer[l-1];
+
+                if (AF[l] == 0)
+                {
+                    NN(l,i) = dtmp;
+                    dfdx(l,i) = 1.0; 
+                }
+                else if (AF[l] == 1)
+                {
+                    dtmp = tanh(dtmp);
+                    NN(l,i)  = dtmp;
+                    dfdx(l,i) = 1.0 - dtmp * dtmp;
+                }
+                dtmp = NN(l,i);
+            }
+        }
+
+        //derivative of network w.r.t NN inputs
+        double** inner = new double*[numHiddenLayers];
+        double** outer = new double*[numHiddenLayers];
+        for (int i = 0; i < numHiddenLayers; i++)
+        {
+            inner[i] = new double[numNeuronsPerLayer[i+1]];
+            outer[i] = new double[numNeuronsPerLayer[i+2]];
+        }
+
+        for (int k = 0; k < numNeuronsPerLayer[0]; k++)
+        {
+            for (int i = 0; i < numNeuronsPerLayer[1]; i++)
+                inner[0][i] = weights(attype,1,i,k) * dfdx(1,i); 
+            
+            for (int l = 1; l < numHiddenLayers+1; l++)
+            {
+                for (int i2 = 0; i2 < numNeuronsPerLayer[l+1]; i2++)
+                {
+                    outer[l-1][i2] = 0.0;
+                    
+                    for (int i1 = 0; i1 < numNeuronsPerLayer[l]; i1++)
+                        outer[l-1][i2] += weights(attype,l+1,i2,i1) * inner[l-1][i1];
+                    outer[l-1][i2] *= dfdx(l+1,i2);
+                    
+                    if (l < numHiddenLayers)
+                      inner[l][i2] = outer[l-1][i2];
+                }
+            }
+            dEdG(i,k) = outer[numHiddenLayers-1][0];
+        }
+
+        for (int i = 0; i < numHiddenLayers; i++)
+        {
+            delete[] inner[i];
+            delete[] outer[i];
+        }
+        delete[] inner;
+        delete[] outer;
+
+        //std::cout << "NN: " << NN(numLayers-1,0) << std::endl;
+        energy(i) = NN(numLayers-1,0); 
     });
 }
 

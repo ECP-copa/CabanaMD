@@ -463,14 +463,16 @@ public:
     t_dGdr dGdr;
    
     //NN data structures
-    d_t_NN d_NN;
-    t_NN NN;
-    d_t_NN d_bias;
-    t_NN bias;
-    d_t_weights d_weights; 
-    t_weights weights;
+    d_t_NN NN, dfdx;
+    d_t_bias bias; 
+    d_t_weights weights; 
+    t_bias h_bias;
+    t_weights h_weights;
     int numLayers, numHiddenLayers; 
-    int AF[4]; 
+    int numNeuronsPerLayer[4];
+    int AF[4];
+    //int* AF = new int[numLayers]; 
+    //int* numNeuronsPerLayer = new int[numLayers];
 
     int countertotal[2] = {0,0};
     int countergtotal[2] = {0,0};
