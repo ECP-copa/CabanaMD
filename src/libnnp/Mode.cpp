@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "Mode.h"
-#include "NeuralNetwork.h"
 #include "utility.h"
 #include "version.h"
 #ifdef _OPENMP
@@ -768,77 +767,6 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
            "**************************************\n";
     return;
 }
-
-void Mode::calculateSymmetryFunctions(Structure& structure,
-                                      bool const derivatives)
-{
-    // Skip calculation for whole structure if results are already saved.
-    if (structure.hasSymmetryFunctionDerivatives) return;
-    if (structure.hasSymmetryFunctions && !derivatives) return;
-
-    Atom* a = NULL;
-    Element* e = NULL;
-#ifdef _OPENMP
-    #pragma omp parallel for private (a, e)
-#endif
-    for (size_t i = 0; i < structure.atoms.size(); ++i)
-    {
-        // Pointer to atom.
-        a = &(structure.atoms.at(i));
-
-        // Skip calculation for individual atom if results are already saved.
-        if (a->hasSymmetryFunctionDerivatives) continue;
-        if (a->hasSymmetryFunctions && !derivatives) continue;
-
-        // Get element of atom and set number of symmetry functions.
-        e = &(elements.at(a->element));
-        int attype = e->getIndex();
-        a->numSymmetryFunctions = e->numSymmetryFunctions(attype, countertotal);
-
-#ifndef NONEIGHCHECK
-        // Check if atom has low number of neighbors.
-        size_t numNeighbors = a->getNumNeighbors(
-                                            minCutoffRadius.at(e->getIndex()));
-        if (numNeighbors < minNeighbors.at(e->getIndex()))
-        {
-            log << strpr("WARNING: Structure %6zu Atom %6zu : %zu "
-                         "neighbors.\n",
-                         a->indexStructure,
-                         a->index,
-                         numNeighbors);
-        }
-#endif
-
-        // Allocate symmetry function data vectors in atom.
-        a->allocate(derivatives);
-
-        // Calculate symmetry functions (and derivatives).
-        //e->calculateSymmetryFunctions(*a, derivatives);
-
-        // Remember that symmetry functions of this atom have been calculated.
-        a->hasSymmetryFunctions = true;
-        if (derivatives) a->hasSymmetryFunctionDerivatives = true;
-    }
-
-    // If requested, check extrapolation warnings or update statistics.
-    // Needed to shift this out of the loop above to make it thread-safe.
-    if (checkExtrapolationWarnings)
-    {
-        for (size_t i = 0; i < structure.atoms.size(); ++i)
-        {
-            a = &(structure.atoms.at(i));
-            e = &(elements.at(a->element));
-            //e->updateSymmetryFunctionStatistics(*a);
-        }
-    }
-
-    // Remember that symmetry functions of this structure have been calculated.
-    structure.hasSymmetryFunctions = true;
-    if (derivatives) structure.hasSymmetryFunctionDerivatives = true;
-
-    return;
-}
-
 
 void Mode::resetExtrapolationWarnings()
 {

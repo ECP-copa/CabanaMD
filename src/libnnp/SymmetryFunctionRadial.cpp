@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "SymmetryFunctionRadial.h"
-#include "Atom.h"
 #include "ElementMap.h"
 #include "utility.h"
 #include "Vec3D.h"
@@ -123,58 +122,6 @@ string SymmetryFunctionRadial::getSettingsLine() const
     return s;
 }
 
-void SymmetryFunctionRadial::calculate(Atom&      atom,
-                                       bool const derivatives) const
-{
-    double result = 0.0;
-
-    for (size_t j = 0; j < atom.numNeighbors; ++j)
-    {
-        Atom::Neighbor& n = atom.neighbors[j];
-        if (e1 == n.element && n.d < rc)
-        {
-            // Energy calculation.
-            double const rij = n.d;
-            double const pexp = exp(-eta * (rij - rs) * (rij - rs));
-
-            // Calculate cutoff function and derivative.
-#ifdef NOCFCACHE
-            double pfc;
-            double pdfc;
-            fc.fdf(rij, pfc, pdfc);
-#else
-            // If cutoff radius matches with the one in the neighbor storage
-            // we can use the previously calculated value.
-            double& pfc = n.fc;
-            double& pdfc = n.dfc;
-            if (n.cutoffType != cutoffType ||
-                n.rc != rc ||
-                n.cutoffAlpha != cutoffAlpha)
-            {
-                fc.fdf(rij, pfc, pdfc);
-                n.rc = rc;
-                n.cutoffType = cutoffType;
-                n.cutoffAlpha = cutoffAlpha;
-            }
-#endif
-
-            result += pexp * pfc;
-            // Force calculation.
-            if (!derivatives) continue;
-            double const p1 = scalingFactor
-                * (pdfc - 2.0 * eta * (rij - rs)
-                * pfc) * pexp / rij;
-            Vec3D dij = p1 * n.dr;
-            // Save force contributions in Atom storage.
-            atom.dGdr[index] += dij;
-            n.dGdr[index]    -= dij;
-        }
-    }
-
-    atom.G[index] = scale(result);
-
-    return;
-}
 
 string SymmetryFunctionRadial::parameterLine() const
 {

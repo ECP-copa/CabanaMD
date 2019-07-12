@@ -22,7 +22,6 @@
 #include "ElementMap.h"
 #include "Log.h"
 #include "Settings.h"
-#include "Structure.h"
 #include "SymmetryFunction.h"
 #include <cstddef> // std::size_t
 #include <string>  // std::string
@@ -192,64 +191,6 @@ public:
     void                     setupNeuralNetworkWeights(
                                  std::string const& fileNameFormat
                                                        = "weights.%03zu.data");
-    /** Calculate all symmetry functions for all atoms in given structure.
-     *
-     * @param[in] structure Input structure.
-     * @param[in] derivatives If `true` calculate also derivatives of symmetry
-     *                        functions.
-     *
-     * This function should be replaced by calculateSymmetryFunctionGroups()
-     * whenever possible. Results are stored in Atom::G. If derivatives are
-     * calculated, additional results are stored in Atom::dGdr and
-     * Atom::Neighbor::dGdr.
-     */
-    void                     calculateSymmetryFunctions(
-                                                       Structure& structure,
-                                                       bool const derivatives);
-    /** Calculate potential energy for a given structure.
-     *
-     * @param[in] structure Input structure.
-     *
-     * Sum up potential energy from atomic energy contributions. Result is
-     * stored in Structure::energy.
-     */
-    void                     calculateEnergy(Structure& structure) const;
-    /* Add atomic energy offsets to reference energy.
-     *
-     * @param[in] structure Input structure.
-     * @param[in] ref If true, use reference energy, otherwise use NN energy.
-     */
-    void                     addEnergyOffset(Structure& structure,
-                                             bool       ref = true);
-    /* Remove atomic energy offsets from reference energy.
-     *
-     * @param[in] structure Input structure.
-     * @param[in] ref If true, use reference energy, otherwise use NN energy.
-     *
-     * This function should be called immediately after structures are read in.
-     */
-    void                     removeEnergyOffset(Structure& structure,
-                                                bool       ref = true);
-    /* Get atomic energy offset for given structure.
-     *
-     * @param[in] structure Input structure.
-     *
-     * @return Summed atomic energy offsets for structure.
-     */
-    double                   getEnergyOffset(Structure const& structure) const;
-    /* Add atomic energy offsets and return energy.
-     *
-     * @param[in] structure Input structure.
-     * @param[in] ref If true, use reference energy, otherwise use NN energy.
-     *
-     * @return Reference or NNP energy with energy offsets added.
-     *
-     * @note If normalization is used, ensure that structure energy is already
-     * in physical units.
-     */
-    double                   getEnergyWithOffset(
-                                            Structure const& structure,
-                                            bool             ref = true) const;
     /** Apply normalization to given energy.
      *
      * @param[in] energy Input energy in physical units.
@@ -257,16 +198,6 @@ public:
      * @return Energy in normalized units.
      */
     double                   normalizedEnergy(double energy) const;
-    /** Apply normalization to given energy of structure.
-     *
-     * @param[in] structure Input structure with energy in physical units.
-     * @param[in] ref If true, use reference energy, otherwise use NN energy.
-     *
-     * @return Energy in normalized units.
-     */
-    double                   normalizedEnergy(
-                                            Structure const& structure,
-                                            bool             ref = true) const;
     /** Apply normalization to given force.
      *
      * @param[in] force Input force in physical units.
@@ -281,15 +212,6 @@ public:
      * @return Energy in physical units.
      */
     double                   physicalEnergy(double energy) const;
-    /** Undo normalization for a given energy of structure.
-     *
-     * @param[in] structure Input structure with energy in normalized units.
-     * @param[in] ref If true, use reference energy, otherwise use NN energy.
-     *
-     * @return Energy in physical units.
-     */
-    double                   physicalEnergy(Structure const& structure,
-                                            bool             ref = true) const;
     /** Undo normalization for a given force.
      *
      * @param[in] force Input force in normalized units.
@@ -297,18 +219,6 @@ public:
      * @return Force in physical units.
      */
     double                   physicalForce(double force) const;
-    /** Convert one structure to normalized units.
-     *
-     * @param[in,out] structure Input structure.
-     */
-    void                     convertToNormalizedUnits(
-                                                   Structure& structure) const;
-    /** Convert one structure to physical units.
-     *
-     * @param[in,out] structure Input structure.
-     */
-    void                     convertToPhysicalUnits(
-                                                   Structure& structure) const;
     /** Count total number of extrapolation warnings encountered for all
      * elements and symmetry functions.
      *

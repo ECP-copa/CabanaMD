@@ -92,13 +92,6 @@ public:
      * @return Settings file string ("symfunction_short ...").
      */
     std::string  getSettingsLine() const;
-    /** Calculate symmetry function for one atom.
-     *
-     * @param[in,out] atom Atom for which the symmetry function is caluclated.
-     * @param[in] derivatives If also symmetry function derivatives will be
-     *                        calculated and saved.
-     */
-    void         calculate(Atom& atom, bool const derivatives) const;
     /** Give symmetry function parameters in one line.
      *
      * @return String containing symmetry function parameter values.

@@ -14,9 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "Atom.h"
 #include "Element.h"
-#include "NeuralNetwork.h"
 #include "SymmetryFunction.h"
 #include "SymmetryFunctionRadial.h"
 #include "SymmetryFunctionAngularNarrow.h"
@@ -35,7 +33,6 @@ using namespace std;
 using namespace nnp;
 
 Element::Element(size_t const index, ElementMap const& elementMap) :
-    neuralNetwork     (NULL                          ),
     elementMap        (elementMap                    ),
     index             (index                         ),
     atomicNumber      (elementMap.atomicNumber(index)),
@@ -57,11 +54,6 @@ Element::~Element()
          it != symmetryFunctionGroups.end(); ++it)
     {
         delete *it;
-    }
-
-    if (neuralNetwork != NULL)
-    {
-        delete neuralNetwork;
     }
 }
 

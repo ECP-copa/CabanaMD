@@ -32,8 +32,6 @@ using namespace std;
 namespace nnp
 {
 
-struct Atom;
-class NeuralNetwork;
 class SymmetryFunctionGroup;
 
 /// Contains element-specific data.
@@ -174,8 +172,6 @@ public:
      */
     SymmetryFunction const&  getSymmetryFunction(size_t index) const;
 
-    /// Neural network pointer for this element.
-    NeuralNetwork*             neuralNetwork;
     /// Symmetry function statistics.
     SymmetryFunctionStatistics statistics;
 
