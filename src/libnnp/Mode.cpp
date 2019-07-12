@@ -926,6 +926,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
 
     std::cout << "Calculating SF groups" << std::endl;
     // Calculate symmetry functions (and derivatives).
+    //calculateSFGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, neigh_list, i, countergtotal); 
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
     {
         int attype = type(i);
@@ -933,18 +934,194 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
         
         // Check if atom has low number of neighbors.
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-        //calculateSFGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, neigh_list, i, countergtotal); 
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
           {
-            printf("SFGR for atom %d group %d \n",i,groupIndex);
-            calculateSFGR(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, attype, groupIndex, neigh_list, i);
+            int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
+            double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
+            int size;
+            int memberindex;
+            for (int l=0; l < MAX_SF; ++l)
+            {
+                if (d_SFGmemberlist(attype,groupIndex,l) == 0 && d_SFGmemberlist(attype,groupIndex,l+1) == 0)
+                {
+                  size = l;
+                  break;
+                }
+            }
+            int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+            size_t numNeighbors = num_neighs;
+            double pfc;
+            for (size_t jj = 0; jj < numNeighbors; ++jj)
+            {
+                int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+                size_t const nej = type(j);
+                T_F_FLOAT dxij = x(i,0) - x(j,0);
+                T_F_FLOAT dyij = x(i,1) - x(j,1);
+                T_F_FLOAT dzij = x(i,2) - x(j,2);
+                dxij *= s->cflength;
+                dyij *= s->cflength;
+                dzij *= s->cflength;
+                if (s->normalize) {
+                  dxij *= s->convLength;
+                  dyij *= s->convLength;
+                  dzij *= s->convLength;
+                }
+                double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
+                double const rij = sqrt(r2ij); 
+                if (e1 == type(j) && rij < rc)
+                {
+                    double temp = tanh(1.0 - rij / rc);
+                    double temp2 = temp * temp;
+                    pfc = temp * temp2;
+                    for (size_t k = 0; k < size; ++k) 
+                    {
+                        double eta = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 4);
+                        double rs = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 8);
+                        double pexp = exp(-eta * (rij - rs) * (rij - rs));
+                        G(i,d_SFGmemberlist(attype,groupIndex,k)) += pexp*pfc;
+                    }
+                }
+            }
+            double raw_value, scaled_value;
+            for (size_t k = 0; k < size; ++k)
+            {
+                memberindex = d_SFGmemberlist(attype,groupIndex,k);
+                raw_value = G(i,memberindex); 
+                scaled_value = scale(attype, raw_value, memberindex, d_SFscaling);
+                G(i,memberindex) = scaled_value; 
+            }
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
           {
-            printf("SFGAN\n");
-            calculateSFGAN(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, attype, groupIndex, neigh_list, i);
+              int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
+              int e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
+              double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
+              int size, memberindex, curr_index, next_index;
+              for (int l=0; l < MAX_SF; ++l)
+              {
+                  curr_index = d_SFGmemberlist(attype,groupIndex,l);
+                  next_index = d_SFGmemberlist(attype,groupIndex,l+1);
+                  if (curr_index == 0 && next_index == 0)
+                  {
+                    size = l;
+                    break;
+                  }
+              }
+              int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+              double const rc2 = rc * rc;
+              size_t numNeighbors = num_neighs; 
+              // Prevent problematic condition in loop test below (j < numNeighbors - 1).
+              if (numNeighbors == 0) numNeighbors = 1;
+              for (size_t jj = 0; jj < numNeighbors - 1; jj++)
+              {
+                  int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+                  size_t const nej = type(j);
+                  T_F_FLOAT dxij = x(i,0) - x(j,0);
+                  T_F_FLOAT dyij = x(i,1) - x(j,1);
+                  T_F_FLOAT dzij = x(i,2) - x(j,2);
+                  dxij *= s->cflength;
+                  dyij *= s->cflength;
+                  dzij *= s->cflength;
+                  if (s->normalize) {
+                    dxij *= s->convLength;
+                    dyij *= s->convLength;
+                    dzij *= s->convLength;
+                  }
+                  double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
+                  double const rij = sqrt(r2ij);
+                  if ((e1 == nej || e2 == nej) && rij < rc)
+                  {
+                      // Calculate cutoff function and derivative.
+                      double pfcij;
+                      double temp = tanh(1.0 - rij/rc);
+                      double temp2 = temp * temp;
+                      pfcij = temp * temp2;
+                      
+                      for (size_t kk = jj + 1; kk < numNeighbors; kk++)
+                      {
+                          int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
+                          size_t const nek = type(k);
+                          
+                          if ((e1 == nej && e2 == nek) || (e2 == nej && e1 == nek))
+                          {
+                              T_F_FLOAT dxik = x(i,0) - x(k,0);
+                              T_F_FLOAT dyik = x(i,1) - x(k,1);
+                              T_F_FLOAT dzik = x(i,2) - x(k,2);
+                              dxik *= s->cflength;
+                              dyik *= s->cflength;
+                              dzik *= s->cflength;
+                              if (s->normalize) {
+                                dxik *= s->convLength;
+                                dyik *= s->convLength;
+                                dzik *= s->convLength;
+                              }
+                              double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
+                              double const rik = sqrt(r2ik);
+                              if (rik < rc) 
+                              {
+                                  double dxjk = dxik - dxij;
+                                  double dyjk = dyik - dyij;
+                                  double dzjk = dzik - dzij;
+                                  double r2jk = dxjk*dxjk + dyjk*dyjk + dzjk*dzjk; 
+                                  if (r2jk < rc2)
+                                  {
+                                      // Energy calculation.
+                                      double pfcik;
+                                      double temp = tanh(1.0 - rik/rc);
+                                      double temp2 = temp * temp;
+                                      pfcik = temp * temp2;
+                                      
+                                      double rjk = sqrt(r2jk);
+                                      double pfcjk;
+                                      temp = tanh(1.0 - rjk/rc);
+                                      temp2 = temp * temp;
+                                      pfcjk = temp * temp2;
+                                      
+                                      double const rinvijik = 1.0 / rij / rik;
+                                      double const costijk = (dxij*dxik + dyij*dyik + dzij*dzik)* rinvijik;
+                                      double const pfc = pfcij * pfcik * pfcjk;
+                                      double const r2sum = r2ij + r2ik + r2jk;
+                                      double vexp = 0.0, rijs = 0.0, riks = 0.0, rjks = 0.0;
+                                      double eta, lambda, zeta, rs;
+                                      for (size_t l = 0; l < size; ++l)
+                                      {
+                                        memberindex = d_SFGmemberlist(attype,groupIndex,l);
+                                        eta = d_SF(attype,memberindex,4);
+                                        lambda = d_SF(attype,memberindex,5);
+                                        zeta = d_SF(attype,memberindex,6);
+                                        rs = d_SF(attype,memberindex,8);
+                                        if (rs > 0.0)
+                                        {  
+                                          rijs = rij - rs;
+                                          riks = rik - rs;
+                                          rjks = rjk - rs;
+                                          vexp = exp(-eta  * (rijs * rijs + riks * riks + rjks * rjks));
+                                        }
+                                        else
+                                            vexp = exp(-eta * r2sum);
+                                        double const plambda = 1.0 + lambda * costijk;
+                                        double fg = vexp;
+                                        if (plambda <= 0.0) fg = 0.0;
+                                        else
+                                            fg *= pow(plambda, (zeta - 1.0));
+                                        G(i,memberindex) += fg * plambda * pfc;
+                                      } // l
+                                  } // rjk <= rc
+                              } // rik <= rc
+                          } // elem
+                      } // k
+                  } // rij <= rc
+              } // j
+
+              double raw_value = 0.0;
+              for (size_t k = 0; k < size; ++k)
+              {
+                  memberindex = d_SFGmemberlist(attype,groupIndex,k);
+                  raw_value = G(i,memberindex) * pow(2,(1-d_SF(attype,memberindex,6))); 
+                  G(i,memberindex) = scale(attype, raw_value, memberindex, d_SFscaling);
+              }
           }
         }
     });
@@ -1074,11 +1251,244 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
-            calculateSFGRD(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
+          {
+              int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
+              double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
+              int size, memberindex, curr_index, next_index;
+              for (int l=0; l < MAX_SF; ++l)
+              {
+                  curr_index = d_SFGmemberlist(attype,groupIndex,l);
+                  next_index = d_SFGmemberlist(attype,groupIndex,l+1);
+                  if (curr_index == 0 && next_index == 0)
+                  {
+                    size = l;
+                    break;
+                  }
+              }
+              int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+              size_t numNeighbors = num_neighs;
+              double pfc, pdfc;
+              for (size_t jj = 0; jj < numNeighbors; ++jj)
+              {
+                  int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+                  T_F_FLOAT dxij = x(i,0) - x(j,0);
+                  T_F_FLOAT dyij = x(i,1) - x(j,1);
+                  T_F_FLOAT dzij = x(i,2) - x(j,2);
+                  dxij *= s->cflength;
+                  dyij *= s->cflength;
+                  dzij *= s->cflength;
+                  if (s->normalize) {
+                    dxij *= s->convLength;
+                    dyij *= s->convLength;
+                    dzij *= s->convLength;
+                  }
+                  double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
+                  double const rij = sqrt(r2ij); 
+                  if (e1 == type(j) && rij < rc)
+                  {
+                      // Energy calculation.
+                      // Calculate cutoff function and derivative.
+                      double temp = tanh(1.0 - rij / rc);
+                      double temp2 = temp * temp;
+                      pfc = temp * temp2;
+                      pdfc = 3.0 * temp2 * (temp2 - 1.0) / rc;
+                      double eta, rs;
+                      for (size_t k = 0; k < size; ++k) 
+                      {
+                          memberindex = d_SFGmemberlist(attype,groupIndex,k);
+                          eta = d_SF(attype, memberindex, 4);
+                          rs = d_SF(attype, memberindex, 8);
+                          double pexp = exp(-eta * (rij - rs) * (rij - rs));
+                          // Force calculation.
+                          double const p1 = d_SFscaling(attype,memberindex,6) * 
+                            (pdfc - 2.0 * eta * (rij - rs) * pfc) * pexp / rij;
+                          
+                          dGdr(i,memberindex,1) += (p1*dyij);
+                          dGdr(i,memberindex,2) += (p1*dzij);
+
+                          dGdr(j,memberindex,0) -= (p1*dxij);
+                          dGdr(j,memberindex,1) -= (p1*dyij);
+                          dGdr(j,memberindex,2) -= (p1*dzij);
+                      }
+                  }
+              }
+          }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
-            calculateSFGAND(s, nnp_data, d_SF, d_SFscaling, d_SFGmemberlist, dGdr, attype, groupIndex, neigh_list, i);
+          {
+              int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
+              int e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
+              double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
+              int size, memberindex, curr_index, next_index;
+              for (int l=0; l < MAX_SF; ++l)
+              {
+                  curr_index = d_SFGmemberlist(attype,groupIndex,l);
+                  next_index = d_SFGmemberlist(attype,groupIndex,l+1);
+                  if (curr_index == 0 && next_index == 0)
+                  {
+                    size = l;
+                    break;
+                  }
+              }
+              int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+              double const rc2 = rc * rc;
+              size_t numNeighbors = num_neighs; 
+              // Prevent problematic condition in loop test below (j < numNeighbors - 1).
+              if (numNeighbors == 0) numNeighbors = 1;
+
+              for (size_t jj = 0; jj < numNeighbors - 1; jj++)
+              {
+                  int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+                  size_t const nej = type(j);
+                  T_F_FLOAT dxij = x(i,0) - x(j,0);
+                  T_F_FLOAT dyij = x(i,1) - x(j,1);
+                  T_F_FLOAT dzij = x(i,2) - x(j,2);
+                  dxij *= s->cflength;
+                  dyij *= s->cflength;
+                  dzij *= s->cflength;
+                  if (s->normalize) {
+                    dxij *= s->convLength;
+                    dyij *= s->convLength;
+                    dzij *= s->convLength;
+                  }
+                  double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
+                  double const rij = sqrt(r2ij);
+                  if ((e1 == nej || e2 == nej) && rij < rc)
+                  {
+                      // Calculate cutoff function and derivative.
+                      double pfcij;
+                      double pdfcij;
+                      double temp = tanh(1.0 - rij/rc);
+                      double temp2 = temp * temp;
+                      pfcij = temp * temp2;
+                      pdfcij = 3.0 * temp2 * (temp2 - 1.0) / rc;
+                      
+                      for (size_t kk = jj + 1; kk < numNeighbors; kk++)
+                      {
+                          int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
+                          size_t const nek = type(k);
+                          
+                          if ((e1 == nej && e2 == nek) || (e2 == nej && e1 == nek))
+                          {
+                              T_F_FLOAT dxik = x(i,0) - x(k,0);
+                              T_F_FLOAT dyik = x(i,1) - x(k,1);
+                              T_F_FLOAT dzik = x(i,2) - x(k,2);
+                              dxik *= s->cflength;
+                              dyik *= s->cflength;
+                              dzik *= s->cflength;
+                              if (s->normalize) {
+                                dxik *= s->convLength;
+                                dyik *= s->convLength;
+                                dzik *= s->convLength;
+                              }
+                              double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
+                              double const rik = sqrt(r2ik);
+                              if (rik < rc)
+                              {
+                                  double dxjk = dxik - dxij;
+                                  double dyjk = dyik - dyij;
+                                  double dzjk = dzik - dzij;
+                                  double r2jk = dxjk*dxjk + dyjk*dyjk + dzjk*dzjk; 
+                                  if (r2jk < rc2)
+                                  {
+                                      // Energy calculation.
+                                      double pfcik;
+                                      double pdfcik;
+                                      double temp = tanh(1.0 - rik/rc);
+                                      double temp2 = temp * temp;
+                                      pfcik = temp * temp2;
+                                      pdfcik = 3.0 * temp2 * (temp2 - 1.0) / rc;
+                                      double rjk = sqrt(r2jk);
+
+                                      double pfcjk;
+                                      double pdfcjk;
+                                      temp = tanh(1.0 - rjk/rc);
+                                      temp2 = temp * temp;
+                                      pfcjk = temp * temp2;
+                                      pdfcjk = 3.0 * temp2 * (temp2 - 1.0) / rc;
+                                      
+                                      double const rinvijik = 1.0 / rij / rik;
+                                      double const costijk = (dxij*dxik + dyij*dyik + dzij*dzik)* rinvijik;
+                                      double const pfc = pfcij * pfcik * pfcjk;
+                                      double const r2sum = r2ij + r2ik + r2jk;
+                                      double const pr1 = pfcik * pfcjk * pdfcij / rij;
+                                      double const pr2 = pfcij * pfcjk * pdfcik / rik;
+                                      double const pr3 = pfcij * pfcik * pdfcjk / rjk;
+                                      double vexp = 0.0, rijs = 0.0, riks = 0.0, rjks = 0.0;
+                                      double rs, eta, lambda, zeta;
+                                      for (size_t l = 0; l < size; ++l)
+                                      {
+                                        memberindex = d_SFGmemberlist(attype,groupIndex,l);
+                                        rs = d_SF(attype,memberindex,8);
+                                        eta = d_SF(attype,memberindex,4);
+                                        lambda = d_SF(attype,memberindex,5);
+                                        zeta = d_SF(attype,memberindex,6);
+                                        if (rs > 0.0)
+                                        {  
+                                          rijs = rij - rs;
+                                          riks = rik - rs;
+                                          rjks = rjk - rs;
+                                          vexp = exp(-eta * (rijs * rijs + riks * riks + rjks * rjks));
+                                        }
+                                        else
+                                            vexp = exp(-eta * r2sum);
+                                        
+                                        double const plambda = 1.0 + lambda * costijk;
+                                        double fg = vexp;
+                                        if (plambda <= 0.0)
+                                          fg = 0.0;
+                                        else
+                                            fg *= pow(plambda, (zeta - 1.0));
+                                        
+                                        fg *= pow(2,(1-zeta)) * d_SFscaling(attype,memberindex,6);
+                                        double const pfczl = pfc * zeta * lambda; 
+                                        double factorDeriv = 2.0 * eta / zeta / lambda;
+                                        double const p2etapl = plambda * factorDeriv;
+                                        double p1, p2, p3;
+                                        if (rs > 0.0)
+                                        {
+                                            p1 = fg * (pfczl * (rinvijik
+                                               - costijk / r2ij - p2etapl
+                                               * rijs / rij) + pr1 * plambda);
+                                            p2 = fg * (pfczl * (rinvijik
+                                               - costijk / r2ik - p2etapl
+                                               * riks / rik) + pr2 * plambda);
+                                            p3 = fg * (pfczl * (rinvijik
+                                               + p2etapl * rjks / rjk)
+                                               - pr3 * plambda);
+                                        }
+                                        else
+                                        {
+                                            p1 = fg * (pfczl * (rinvijik - costijk
+                                               / r2ij - p2etapl) + pr1 * plambda);
+                                            p2 = fg * (pfczl * (rinvijik - costijk
+                                               / r2ik - p2etapl) + pr2 * plambda);
+                                            p3 = fg * (pfczl * (rinvijik + p2etapl)
+                                               - pr3 * plambda);
+                                        }
+                                        
+                                        dGdr(i,memberindex,0) += (p1*dxij + p2*dxik);
+                                        dGdr(i,memberindex,1) += (p1*dyij + p2*dyik);
+                                        dGdr(i,memberindex,2) += (p1*dzij + p2*dzik);
+
+                                        dGdr(j,memberindex,0) -= (p1*dxij + p3*dxjk);
+                                        dGdr(j,memberindex,1) -= (p1*dyij + p3*dyjk);
+                                        dGdr(j,memberindex,2) -= (p1*dzij + p3*dzjk);
+
+                                        dGdr(k,memberindex,0) -= (p2*dxik - p3*dxjk);
+                                        dGdr(k,memberindex,1) -= (p2*dyik - p3*dyjk);
+                                        dGdr(k,memberindex,2) -= (p2*dzik - p3*dzjk);
+                                      } // l
+                                  } // rjk <= rc
+                              } // rik <= rc
+                          } // elem
+                      } // k
+                  } // rij <= rc
+              } // j
+                    
+          }
         }    
 
+        //Use computed dEdG and dGdr to calculate forces
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     
         for (size_t jj = 0; jj < num_neighs; ++jj)
