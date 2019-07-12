@@ -80,11 +80,6 @@ public:
     /** Print symmetry function parameter value information.
      */
     vector<string> infoSymmetryFunctionParameters(t_SF SF, int attype, int (&countertotal)[2]) const;
-    /** Print symmetry function parameter names and values.
-     */
-    vector<string> infoSymmetryFunction(size_t index) const;
-    /** Print symmetry function scaling information.
-     */
     vector<string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
     /** Set up symmetry function groups.
      */
@@ -136,20 +131,7 @@ public:
      * @return Maximum cutoff radius.
      */
     double                   getMaxCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) const;
-    /** Calculate symmetry functions.
-     *
-     * @param[in] atom Atom whose symmetry functions are calculated.
-     * @param[in] derivatives If symmetry function derivatives will be
-     *                        calculated.
-     */
-    void                     calculateSymmetryFunctions(
-                                                 Atom&      atom,
-                                                 bool const derivatives) const;
     /** Calculate symmetry functions via groups.
-     *
-     * @param[in] atom Atom whose symmetry functions are calculated.
-     * @param[in] derivatives If symmetry function derivatives will be
-     *                        calculated.
      */
     void calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const;
     /** Calculate symmetry function derivatives via groups
@@ -192,10 +174,6 @@ private:
     double                              atomicEnergyOffset;
     /// Element symbol.
     string                         symbol;
-    /// Vector of pointers to symmetry functions.
-    vector<SymmetryFunction*>      symmetryFunctions;
-    /// Vector of pointers to symmetry function groups.
-    vector<SymmetryFunctionGroup*> symmetryFunctionGroups;
 };
 
 //////////////////////////////////
@@ -229,22 +207,12 @@ inline string Element::getSymbol() const
     return symbol;
 }
 
-inline
-vector<string> Element::infoSymmetryFunction(size_t index) const
-{
-    return symmetryFunctions.at(index)->parameterInfo();
-}
 
 inline size_t Element::numSymmetryFunctions(int attype, int (&countertotal)[2]) const
 {
     return countertotal[attype];
 }
 
-inline SymmetryFunction const& Element::getSymmetryFunction(
-                                                       size_t index) const
-{
-    return *(symmetryFunctions.at(index));
-}
 
 KOKKOS_INLINE_FUNCTION void Element::setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
                                             double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const

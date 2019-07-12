@@ -15,12 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "Element.h"
-#include "SymmetryFunction.h"
-#include "SymmetryFunctionRadial.h"
-#include "SymmetryFunctionAngularNarrow.h"
-#include "SymmetryFunctionAngularWide.h"
-#include "SymmetryFunctionWeightedRadial.h"
-#include "SymmetryFunctionWeightedAngular.h"
 #include "SymmetryFunctionGroup.h"
 #include "utility.h"
 #include <iostream>  // std::cerr
@@ -43,18 +37,7 @@ Element::Element(size_t const index, ElementMap const& elementMap) :
 
 Element::~Element()
 {
-    for (vector<SymmetryFunction*>::const_iterator
-         it = symmetryFunctions.begin(); it != symmetryFunctions.end(); ++it)
-    {
-        delete *it;
-    }
 
-    for (vector<SymmetryFunctionGroup*>::const_iterator
-         it = symmetryFunctionGroups.begin();
-         it != symmetryFunctionGroups.end(); ++it)
-    {
-        delete *it;
-    }
 }
 
 void Element::addSymmetryFunction(string const& parameters,
@@ -158,14 +141,14 @@ void Element::addSymmetryFunction(string const& parameters,
 
 void Element::sortSymmetryFunctions(t_SF SF)
 {
-    sort(symmetryFunctions.begin(),
+    /*sort(symmetryFunctions.begin(),
          symmetryFunctions.end(),
          comparePointerTargets<SymmetryFunction>);
 
     for (size_t i = 0; i < symmetryFunctions.size(); ++i)
     {
         symmetryFunctions.at(i)->setIndex(i);
-    }
+    }*/
 
     return;
 }
@@ -340,19 +323,6 @@ double Element::getMaxCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) 
         maxCutoffRadius = max(SF(attype,k,7), maxCutoffRadius);
 
     return maxCutoffRadius;
-}
-
-void Element::calculateSymmetryFunctions(Atom&      atom,
-                                         bool const derivatives) const
-{
-    for (vector<SymmetryFunction*>::const_iterator
-         it = symmetryFunctions.begin();
-         it != symmetryFunctions.end(); ++it)
-    {
-        (*it)->calculate(atom, derivatives);
-    }
-
-    return;
 }
 
 
