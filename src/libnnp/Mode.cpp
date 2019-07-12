@@ -370,6 +370,10 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
     log << "ln ..... Line number in settings file.\n";
     log << "\n";
     maxCutoffRadius = 0.0;
+    
+    t_mass::HostMirror h_numSymmetryFunctionsPerElement = Kokkos::create_mirror_view(numSymmetryFunctionsPerElement);
+    Kokkos::deep_copy(h_numSymmetryFunctionsPerElement, numSymmetryFunctionsPerElement);
+    
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
@@ -389,9 +393,6 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
         log << "-----------------------------------------"
                "--------------------------------------\n";
         //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
-
-        t_mass::HostMirror h_numSymmetryFunctionsPerElement = Kokkos::create_mirror_view(numSymmetryFunctionsPerElement);
-        Kokkos::deep_copy(h_numSymmetryFunctionsPerElement, numSymmetryFunctionsPerElement);
         h_numSymmetryFunctionsPerElement(attype) = it->numSymmetryFunctions(attype, countertotal);
     }
     minNeighbors.resize(numElements, 0);
@@ -399,7 +400,8 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
     for (size_t i = 0; i < numElements; ++i)
     {
         int attype = elements.at(i).getIndex();
-        minNeighbors.at(i) = elements.at(i).getMinNeighbors();
+        int nSF = h_numSymmetryFunctionsPerElement(attype);
+        minNeighbors.at(i) = elements.at(i).getMinNeighbors(attype, SF, nSF);
         minCutoffRadius.at(i) = elements.at(i).getMinCutoffRadius(SF,attype,countertotal);
         log << strpr("Minimum cutoff radius for element %2s: %f\n",
                      elements.at(i).getSymbol().c_str(),

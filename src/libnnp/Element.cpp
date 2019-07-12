@@ -303,17 +303,23 @@ void Element::setScaling(ScalingType scalingType, vector<string> const& statisti
     return;
 }
 
-size_t Element::getMinNeighbors() const
+size_t Element::getMinNeighbors(int attype, t_SF SF, int nSF) const
 {
+    //get max number of minNeighbors
+    size_t global_minNeighbors = 0;
     size_t minNeighbors = 0;
-
-    for (vector<SymmetryFunction*>::const_iterator
-         it = symmetryFunctions.begin(); it != symmetryFunctions.end(); ++it)
+    int SFtype;
+    for (int k = 0; k < nSF; ++k)
     {
-        minNeighbors = max((*it)->getMinNeighbors(), minNeighbors);
+        SFtype = SF(attype,k,1);
+        if (SFtype == 2)
+            minNeighbors = 1;
+        else if (SFtype == 3)
+            minNeighbors = 2; 
+        global_minNeighbors = max(minNeighbors, global_minNeighbors);
     }
 
-    return minNeighbors;
+    return global_minNeighbors;
 }
 
 double Element::getMinCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) const

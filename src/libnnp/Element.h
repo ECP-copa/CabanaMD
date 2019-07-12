@@ -125,7 +125,7 @@ public:
      *
      * @return Minimum number of neighbors required.
      */
-    size_t              getMinNeighbors() const;
+    size_t getMinNeighbors(int attype, t_SF SF, int nSF) const;
     /** Get minimum cutoff radius of all symmetry functions.
      *
      * @return Minimum cutoff radius.
