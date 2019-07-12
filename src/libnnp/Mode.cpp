@@ -29,6 +29,11 @@
 #include <string>
 #define MAX_SF 30
 
+#define NNP_VERSION "2.0.0"
+#define NNP_GIT_REV "7b73a36a9acfdcc80e44265bac92b055f41a1d07"
+#define NNP_GIT_REV_SHORT "7b73a36"
+#define NNP_GIT_BRANCH "master"
+
 using namespace std;
 using namespace nnp;
 
