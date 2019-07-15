@@ -1176,9 +1176,10 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     
     std::cout << "Calculating forces" << std::endl;
     //Reset dGdr to zero
+    Kokkos::deep_copy(dGdr, 0.0);
     Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
-        t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
+        //t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
         // Now loop over all neighbor atoms j of atom i. These may hold
         // non-zero derivatives of their symmetry functions with respect to
         // atom i's coordinates. Some atoms may appear multiple times in the
