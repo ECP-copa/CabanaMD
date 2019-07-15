@@ -16,7 +16,6 @@
 
 #include "Mode.h"
 #include "utility.h"
-#include "version.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -669,7 +668,7 @@ void Mode::setupNeuralNetwork()
         else
         {
             numNeuronsPerLayer[i] = atoi(numNeuronsPerHiddenLayer.at(i-1).c_str());
-            AF[i-1] = 1; //TODO: hardcoded atoi(activationFunctions.at(i-1));
+            AF[i] = 1; //TODO: hardcoded atoi(activationFunctions.at(i-1));
         }
     }
 
@@ -758,7 +757,7 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
                     layer = atoi(splitLine.at(3).c_str());
                     start = atoi(splitLine.at(4).c_str()) - 1;
                     end = atoi(splitLine.at(6).c_str()) - 1;
-                    h_weights(attype,layer,start,end) = atof(splitLine.at(0).c_str());
+                    h_weights(attype,layer,end,start) = atof(splitLine.at(0).c_str());
                 }
                 else if (strcmp(splitLine.at(1).c_str(), "b") == 0)
                 {
@@ -925,7 +924,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                 memberindex = d_SFGmemberlist(attype,groupIndex,k);
                 raw_value = G(i,memberindex); 
                 scaled_value = scale(attype, raw_value, memberindex, d_SFscaling);
-                G(i,memberindex) = scaled_value; 
+                G(i,memberindex) = scaled_value;
             }
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
@@ -1070,7 +1069,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
     auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
-    
+
     //deep copy into device Views
     Kokkos::deep_copy(bias, h_bias);
     Kokkos::deep_copy(weights, h_weights);
@@ -1080,8 +1079,14 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
     {
         int attype = type(atomindex);
         //set input layer of NN
+        //TODO: remove hardcoding 
+        if (attype == 0)
+            numNeuronsPerLayer[0] = 27;
+        else if (attype == 1)
+            numNeuronsPerLayer[0] = 30;
+        
         for (int k = 0; k < numNeuronsPerLayer[0]; ++k)
-            NN(0,k) = G(attype,k);
+            NN(0,k) = G(atomindex,k);
         //forward propagation
         for (int l = 1; l < numLayers; l++)
         {
@@ -1092,10 +1097,9 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
             {
                 dtmp = 0.0;
                 for (int j = 0; j < numNeuronsPerLayer[l-1]; j++)
-                {
                     dtmp += weights(attype,l-1,i,j) * NN(l-1,j);
-                }
-                dtmp += bias(attype,l,i);
+                
+                dtmp += bias(attype,l-1,i);
                 //if (normalizeNeurons) dtmp /= numNeuronsPerLayer[l-1];
 
                 if (AF[l] == 0)
@@ -1121,7 +1125,6 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
             inner[i] = new double[numNeuronsPerLayer[i+1]];
             outer[i] = new double[numNeuronsPerLayer[i+2]];
         }
-
         for (int k = 0; k < numNeuronsPerLayer[0]; k++)
         {
             for (int i = 0; i < numNeuronsPerLayer[1]; i++)
@@ -1172,8 +1175,10 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
       convForce = convLength/convEnergy;
     
     std::cout << "Calculating forces" << std::endl;
+    //Reset dGdr to zero
     Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
+        t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
         // Now loop over all neighbor atoms j of atom i. These may hold
         // non-zero derivatives of their symmetry functions with respect to
         // atom i's coordinates. Some atoms may appear multiple times in the
@@ -1238,6 +1243,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           double const p1 = d_SFscaling(attype,memberindex,6) * 
                             (pdfc - 2.0 * eta * (rij - rs) * pfc) * pexp / rij;
                           
+                          dGdr(i,memberindex,0) += (p1*dxij);
                           dGdr(i,memberindex,1) += (p1*dyij);
                           dGdr(i,memberindex,2) += (p1*dzij);
 
