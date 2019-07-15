@@ -138,30 +138,12 @@ public:
     void                setCutoffFunction(CutoffFunction::
                                           CutoffType cutoffType,
                                           double     cutoffAlpha);
-    /** Set symmetry function scaling type.
-     *
-     * @param[in] scalingType Desired symmetry function scaling type.
-     * @param[in] statisticsLine String containing symmetry function statistics
-     *                           ("min max mean sigma").
-     * @param[in] Smin Minimum for scaling range @f$S_\text{min}@f$.
-     * @param[in] Smax Maximum for scaling range @f$S_\text{max}@f$.
-     */
-    void                setScalingType(ScalingType scalingType,
-                                       std::string statisticsLine,
-                                       double      Smin,
-                                       double      Smax);
     /** Apply symmetry function scaling and/or centering.
      *
      * @param[in] value Raw symmetry function value.
      * @return Scaled symmetry function value.
      */
     double              scale(double value) const;
-    /** Undo symmetry function scaling and/or centering.
-     *
-     * @param[in] value Scaled symmetry function value.
-     * @return Raw symmetry function value.
-     */
-    double              unscale(double value) const;
     /** Get private #type member variable.
      */
     std::size_t         getType() const;
@@ -213,11 +195,6 @@ public:
      * @param[in] lineNumber Line number in settings file.
      */
     void                setLineNumber(std::size_t lineNumber);
-    /** Get string with scaling information.
-     *
-     * @return Scaling information string.
-     */
-    std::string         scalingLine() const;
     /** Calculate (partial) symmetry function value for one given distance.
      *
      * @param[in] distance Distance between two atoms.

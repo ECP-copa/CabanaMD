@@ -105,9 +105,9 @@ void ForceNNP::compute(System* s) {
   //nnp::Mode* mode = new(nnp::Mode);
   nnp_data.resize(s->N_local);
   //Kokkos::resize(dGdr,(s->N_local+s->N_ghost),(s->N_local+s->N_ghost));
-  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, true);
-  mode->calculateAtomicNeuralNetworks(s, nnp_data, true);
-  mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, neigh_list);
+  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, numSymmetryFunctionsPerElement);
+  mode->calculateAtomicNeuralNetworks(s, nnp_data);
+  mode->calculateForces(s, nnp_data, neigh_list, numSymmetryFunctionsPerElement);
 }
 
 T_V_FLOAT ForceNNP::compute_energy(System* s) {
@@ -115,7 +115,7 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
     T_V_FLOAT system_energy=0.0;
     // Loop over all atoms and add atomic contributions to total energy.
-    Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", s->N_local, [=] (const size_t i, T_V_FLOAT & updated_energy)
+    Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", s->N_local, KOKKOS_LAMBDA (const size_t i, T_V_FLOAT & updated_energy)
     {
         updated_energy += energy(i);
     }, system_energy);

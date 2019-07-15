@@ -72,6 +72,7 @@ public:
     /** Constructor, initializes to ´CT_HARD´.
      */
     CutoffFunction();
+    CutoffFunction(double _rc); 
     /** Set cutoff type.
      *
      * @param[in] cutoffType Type of cutoff used.

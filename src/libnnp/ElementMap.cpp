@@ -22,16 +22,6 @@
 using namespace std;
 using namespace nnp;
 
-string const ElementMap::knownElements[] = {
-"H" , "He", "Li", "Be", "B" , "C" , "N" , "O" , "F" , "Ne", "Na", "Mg", "Al",
-"Si", "P" , "S" , "Cl", "Ar", "K" , "Ca", "Sc", "Ti", "V" , "Cr", "Mn", "Fe",
-"Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y" ,
-"Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te",
-"I" , "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb",
-"Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W" , "Re", "Os", "Ir", "Pt",
-"Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa",
-"U" , "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No"
-};
 
 size_t ElementMap::registerElements(string const& elementLine)
 {
@@ -70,12 +60,14 @@ string ElementMap::getElementsString() const
 
 size_t ElementMap::index(string const& symbol) const
 {
-    return safeFind(forwardMap, symbol);
+    return forwardMap.find(symbol)->second;
+    //return safeFind(forwardMap, symbol);
 }
 
 string ElementMap::symbol(size_t const index) const
 {
-    return safeFind(reverseMap, index);
+    return reverseMap.find(index)->second;
+    //return safeFind(reverseMap, index);
 }
 
 void ElementMap::deregisterElements()
@@ -88,6 +80,16 @@ void ElementMap::deregisterElements()
 
 size_t ElementMap::atomicNumber(string const& symbol)
 {
+    string knownElements[] = {
+    "H" , "He", "Li", "Be", "B" , "C" , "N" , "O" , "F" , "Ne", "Na", "Mg", "Al",
+    "Si", "P" , "S" , "Cl", "Ar", "K" , "Ca", "Sc", "Ti", "V" , "Cr", "Mn", "Fe",
+    "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y" ,
+    "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te",
+    "I" , "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb",
+    "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W" , "Re", "Os", "Ir", "Pt",
+    "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa",
+    "U" , "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No"
+    };
     size_t numKnownElements = sizeof(knownElements) / sizeof(*knownElements);
 
     for (size_t i = 0; i < numKnownElements; i++)
@@ -98,13 +100,23 @@ size_t ElementMap::atomicNumber(string const& symbol)
         }
     }
 
-    throw runtime_error("ERROR: Element \"" + symbol + "\" unknown.\n");
+    //throw runtime_error("ERROR: Element \"" + symbol + "\" unknown.\n");
 
     return 0;
 }
 
 string ElementMap::symbolFromAtomicNumber(size_t atomicNumber)
 {
+    string knownElements[] = {
+    "H" , "He", "Li", "Be", "B" , "C" , "N" , "O" , "F" , "Ne", "Na", "Mg", "Al",
+    "Si", "P" , "S" , "Cl", "Ar", "K" , "Ca", "Sc", "Ti", "V" , "Cr", "Mn", "Fe",
+    "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y" ,
+    "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te",
+    "I" , "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb",
+    "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W" , "Re", "Os", "Ir", "Pt",
+    "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa",
+    "U" , "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No"
+    };
     size_t numKnownElements = sizeof(knownElements) / sizeof(*knownElements);
 
     if (atomicNumber >= numKnownElements)

@@ -21,6 +21,7 @@
 #include <map>     // std::map
 #include <string>  // std::string
 #include <vector>  // std::vector
+#include <types.h>
 
 namespace nnp
 {
@@ -108,7 +109,7 @@ private:
     /// Reverse element map.
     std::map<std::size_t, std::string> reverseMap;
     /// List of element symbols (e.g. "He" for Helium).
-    static std::string const           knownElements[];
+    static std::string knownElements[];
 
     /** Check if arguments are sorted according to atomic number.
      *

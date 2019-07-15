@@ -111,6 +111,29 @@ using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
 enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
                  Types = 3, IDs = 4, Charges = 5 };
 enum NNPNames { G = 0, dEdG = 1, energy = 2};
+enum ScalingType
+{
+    /** @f$G_\text{scaled} = G@f$
+     */
+    ST_NONE,
+    /** @f$G_\text{scaled} = S_\text{min} + \left(S_\text{max} -
+     * S_\text{min}\right) \cdot \frac{G - G_\text{min}}
+     * {G_\text{max} - G_\text{min}} @f$
+     */
+    ST_SCALE,
+    /** @f$G_\text{scaled} = G - \left<G\right>@f$
+     */
+    ST_CENTER,
+    /** @f$G_\text{scaled} = S_\text{min} + \left(S_\text{max} -
+     * S_\text{min}\right) \cdot \frac{G - \left<G\right>}
+     * {G_\text{max} - G_\text{min}} @f$
+     */
+    ST_SCALECENTER,
+    /** @f$G_\text{scaled} = S_\text{min} + \left(S_\text{max} -
+     * S_\text{min}\right) \cdot \frac{G - \left<G\right>}{\sigma_G} @f$
+     */
+    ST_SCALESIGMA
+};
 
 #ifdef CabanaMD_ENABLE_Cuda
 using MemorySpace = Kokkos::CudaUVMSpace;
@@ -132,6 +155,22 @@ using t_particle = Cabana::Tuple<t_tuple>;
 using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[MAX_SF], T_FLOAT[MAX_SF], T_FLOAT>;
 using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
 using t_dGdr = Kokkos::View<T_V_FLOAT*[MAX_SF][3]>;
+
+
+typedef ExecutionSpace::array_layout array_layout; //TODO: check this
+using d_t_SF = Kokkos::View<T_FLOAT**[13]>;
+using t_SF = Kokkos::View<T_FLOAT**[13],array_layout,Kokkos::HostSpace>;
+using d_t_SFscaling = Kokkos::View<T_FLOAT**[8]>;
+using t_SFscaling = Kokkos::View<T_FLOAT**[8],array_layout,Kokkos::HostSpace>;
+using d_t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF]>; 
+using t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF],array_layout,Kokkos::HostSpace>; 
+    
+using d_t_NN = Kokkos::View<T_FLOAT**>;
+using t_NN = Kokkos::View<T_FLOAT**,array_layout,Kokkos::HostSpace>;
+using d_t_bias = Kokkos::View<T_FLOAT***>;
+using t_bias = Kokkos::View<T_FLOAT***,array_layout,Kokkos::HostSpace>;
+using d_t_weights = Kokkos::View<T_FLOAT****>;
+using t_weights = Kokkos::View<T_FLOAT****,array_layout,Kokkos::HostSpace>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
 using t_verletlist_full_2D = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;
