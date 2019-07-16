@@ -47,19 +47,103 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
+#include <iostream>
+#include <fstream>
 #include <input.h>
 #include <property_temperature.h>
 
-Input::Input(System* p):system(p) {
+ItemizedFile::ItemizedFile () {
+  nlines = 0;
+  max_nlines = 0;
+  words = NULL;
+  words_per_line = 32;
+  max_word_size = 32;
+}
+
+void ItemizedFile::allocate_words(int num_lines) {
+  nlines = 0;
+
+  if(max_nlines>=num_lines) {
+    for(int i=0; i<max_nlines; i++)
+      for(int j=0; j<words_per_line; j++)
+        words[i][j][0] = 0;
+    return;
+  }
+
+  free_words();
+  max_nlines = num_lines;
+  words = new char**[max_nlines];
+  for(int i=0; i<max_nlines; i++) {
+    words[i] = new char*[words_per_line];
+    for(int j=0; j<words_per_line; j++) {
+      words[i][j] = new char[max_word_size];
+      words[i][j][0] = 0;
+    }
+  }
+}
+
+void ItemizedFile::free_words() {
+  for(int i=0; i<max_nlines; i++) {
+    for(int j=0; j<words_per_line; j++)
+        delete [] words[i][j];
+      delete [] words[i];
+  }
+  delete [] words;
+}
+
+void ItemizedFile::print_line(int i) {
+  for(int j=0; j<words_per_line; j++) {
+    if(words[i][j][0])
+      std::cout << words[i][j] << " ";
+  }
+  std::cout << std::endl;
+}
+
+int ItemizedFile::words_in_line(int i){
+  int count = 0;
+  for(int j=0; j<words_per_line; j++)
+    if(words[i][j][0]) count++;
+  return count;
+}
+void ItemizedFile::print() {
+  for(int l=0; l<nlines; l++)
+    print_line(l);
+}
+
+void ItemizedFile::add_line(const char* const line) {
+  const char* pos = line;
+  if(nlines<max_nlines) {
+    int j = 0;
+    while((*pos) && (j<words_per_line)) {
+      while(((*pos == ' ') || (*pos == '\t')) && *pos) pos++;
+      int k = 0;
+      while(((*pos != ' ') && (*pos != '\t')) && (*pos) && (k<max_word_size)) {
+        words[nlines][j][k] = *pos;
+        k++; pos++;
+      }
+      words[nlines][j][k] = 0;
+      j++;
+    }
+  }
+  nlines++;
+}
+
+Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(ItemizedFile()) {
 
   comm_type = COMM_MPI;
   integrator_type = INTEGRATOR_NVE;
-  neighbor_type = NEIGH_CABANA_VERLET;
-  force_type = FORCE_LJ_CABANA_NEIGH;
+  neighbor_type = NEIGH_2D;
+  force_type = FORCE_LJ;
   force_iteration_type = FORCE_ITER_NEIGH_FULL;
-  binning_type = BINNING_CABANA;
+  binning_type = BINNING_LINKEDCELL;
 
   // set defaults (matches ExaMiniMD LJ example)
+
+  nsteps = 0;
+  force_coeff_lines = Kokkos::View<int*,Kokkos::HostSpace>("Input::force_coeff_lines",0);
+  input_file_type = -1;
+  data_file_type = -1;
+
   thermo_rate = 0;
   dumpbinary_rate = 0;
   correctness_rate = 0;
@@ -86,47 +170,30 @@ Input::Input(System* p):system(p) {
 
   nsteps = 100;
   thermo_rate = 10;
-  //timestep = 1;
 
   neighbor_skin = 0.3;
   comm_exchange_rate = 20;
   comm_newton = 0;
 
-  ntypes = 1;
-  mass_vec = {2.0};
-  force_coeff = {{1.0, 1.0, 2.5}};
   force_cutoff = 2.5;
 }
 
 void Input::read_command_line_args(int argc, char* argv[]) {
+#define MODULES_OPTION_CHECK
   for(int i = 1; i < argc; i++) {
     // Help command
     if( (strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "--help") == 0) ) {
       if(system->do_print) {
         printf("CabanaMD 0.1 \n\n");
         printf("Options:\n");
-        printf("  --units-style [TYPE]:       Specify units \n");
-        printf("                              (metal, real, lj)\n");
-        printf("  --lattice [TYPE] [CONSTANT] [NX] [NY] [NZ]:    Specify lattice \n");
-        printf("                              (TYPE = fcc)\n");
-        printf("                              (CONSTANT = float lattice constant)\n");
-        printf("                              (NX, NY, NZ = integer unit cells per dimension)\n");
-        printf("  --temperature [TARGET] [SEED]:    System temperature \n");
-        printf("                              (TARGET = float temperature (K))\n");
-        printf("                              (SEED = random seed)\n");
-        printf("  --run [STEPS] [PRINT]:      simulation run parameters \n");
-        printf("                              (STEPS = number of timesteps)\n");
-        printf("                              (PRINT = thermo print frequency)\n");
-        printf("  --neighbor [SKIN] [EXCHANGE] [NEWTON]:    neighbor list parameters \n");
-        printf("                              (SKIN = neighbor list skin distance)\n");
-        printf("                              (EXCHANGE = neighbor list build frequency)\n");
-        printf("                              (NEWTON = (0 or 1) full or half neighbor lists)\n");
-        printf("  --pair-coeff [N] [CUTOFF] [MASS]xN [COEFF]x(N**2+N)/2x4:    Per type/pair parameters \n");
-        printf("                              (N = number of types)\n");
-        printf("                              (CUTOFF = force distance cutoff)\n");
-        printf("                              (MASS = One mass per type)\n");
-	printf("                              (COEFF = Two types and two force coefficients per type (type1, type2, epsilon, sigma))\n");
-	printf("  --dumpbinary [N] [PATH]:    Request that binary output files PATH/output* be generated every N steps\n");
+        printf("  -il [file] / --input-lammps [FILE]: Provide LAMMPS input file\n");
+        printf("  --force-iteration [TYPE]:   Specify which iteration style to use\n");
+        printf("                              for force calculations (NEIGH_FULL, NEIGH_HALF)\n");
+        printf("  --neigh-type [TYPE]:        Specify Neighbor Routines implementation \n");
+        printf("                              (NEIGH_2D, NEIGH_CSR)\n");
+        printf("  --comm-type [TYPE]:         Specify Communication Routines implementation \n");
+        printf("                              (MPI, SERIAL)\n");
+        printf("  --dumpbinary [N] [PATH]:    Request that binary output files PATH/output* be generated every N steps\n");
         printf("                              (N = positive integer)\n");
         printf("                              (PATH = location of directory)\n");
         printf("  --correctness [N] [PATH] [FILE]:   Request that correctness check against files PATH/output* be performed every N steps, correctness data written to FILE\n");
@@ -135,6 +202,23 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       }
     }
 
+    // Read Lammps input deck
+    else if( (strcmp(argv[i], "-il") == 0) || (strcmp(argv[i], "--input-lammps") == 0) ) {
+      input_file = argv[++i];
+      input_file_type = INPUT_LAMMPS;
+    }
+
+    // Force Iteration Type Related
+    else if( (strcmp(argv[i], "--force-iteration") == 0) ) {
+     #include<modules_force.h>
+      ++i;
+    }
+
+    // Neighbor Type
+    else if( (strcmp(argv[i], "--neigh-type") == 0) ) {
+     #include<modules_force.h>
+      ++i;
+    }
     // Dump Binary
     else if( (strcmp(argv[i], "--dumpbinary") == 0) ) {
       dumpbinary_rate = atoi(argv[i+1]);
@@ -152,75 +236,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
       i += 3;
     }
 
-    else if( (strcmp(argv[i],"--units-type")==0)) {
-      if(strcmp(argv[i+1],"metal")==0) {
-	units_style = UNITS_METAL;
-      } else if(strcmp(argv[i+1],"real")==0) {
-        units_style = UNITS_REAL;
-      } else if(strcmp(argv[i+1],"lj")==0) {
-        units_style = UNITS_LJ;
-      }
-      ++i;
-    }
-
-    else if( (strcmp(argv[i],"--lattice")==0)) {
-      if(strcmp(argv[i+1],"fcc")==0) {
-        lattice_style = LATTICE_FCC;
-      } else if(strcmp(argv[i+1],"sc")==0) {
-        lattice_style = LATTICE_SC;
-      }
-      lattice_constant = atof(argv[i+2]);
-
-      box[1] = atoi(argv[i+3]);
-      box[3] = atoi(argv[i+4]);
-      box[5] = atoi(argv[i+5]);
-      i += 5;
-    }
-
-    else if( (strcmp(argv[i],"--temperature")==0)) {
-      temperature_target = atof(argv[i+1]);
-      temperature_seed = atoi(argv[i+2]);
-      i += 2;
-    }
-
-    else if( (strcmp(argv[i],"--run")==0)) {
-      nsteps = atoi(argv[i+1]);
-      thermo_rate = atoi(argv[i+2]);
-      //timestep = atof(argv[i+3]); // determined by units_type
-      i += 2;
-    }
-
-    else if( (strcmp(argv[i],"--neighbor")==0)) {
-      neighbor_skin = atof(argv[i+1]);
-      comm_exchange_rate = atoi(argv[i+2]);
-      comm_newton = atoi(argv[i+3]);
-      if (comm_newton == 0)
-        force_iteration_type = FORCE_ITER_NEIGH_FULL;
-      else
-	force_iteration_type = FORCE_ITER_NEIGH_HALF;
-      i += 3;
-    }
-
-    else if( (strcmp(argv[i],"--pair-coeff")==0)) {
-      ntypes = atoi(argv[i+1]);
-      force_cutoff = atof(argv[i+2]);
-      i += 2;
-
-      int nforce = (pow(ntypes, 2.0) + ntypes)/2;
-      force_coeff.resize(nforce, std::vector<double>(2));
-
-      for (int type = 0; type < ntypes; type++){
-        mass_vec[type] = atof(argv[i]);
-        ++i;
-      }
-      for (int force = 0; force < nforce; force++){
-        for (int coeff = 0; coeff < 2; coeff++){
-          i++;
-          force_coeff[force][coeff] = atof(argv[i]);
-        }
-      }
-    }
-  
     else if( (strstr(argv[i], "--kokkos-") == NULL) ) {
       if(system->do_print)
         printf("ERROR: Unknown command line argument: %s\n",argv[i]);
@@ -228,43 +243,246 @@ void Input::read_command_line_args(int argc, char* argv[]) {
     }
 
   }
+#undef MODULES_OPTION_CHECK
+}
 
-  // Constants dependent on units
-  if (units_style == UNITS_METAL) {
-    system->boltz = 8.617343e-5;
-    //hplanck = 95.306976368;
-    system->mvv2e = 1.0364269e-4;
-    if (!timestepflag)
-      system->dt = 0.001;
-  } else if (units_style == UNITS_REAL) {
-    system->boltz = 0.0019872067;
-    //hplanck = 95.306976368;
-    system->mvv2e = 48.88821291 * 48.88821291;
-    if (!timestepflag)
-      system->dt = 1.0;
-  } else if (units_style == UNITS_LJ) {
-    system->boltz = 1.0;
-    //hplanck = 0.18292026;
-    system->mvv2e = 1.0;
-    if (!timestepflag)
-      system->dt = 0.005;
+void Input::read_file(const char* filename) {
+  if( filename == NULL )
+    filename = input_file;
+  if( input_file_type == INPUT_LAMMPS ) {
+    read_lammps_file(filename);
+    return;
   }
+  if(system->do_print)
+    printf("ERROR: Unknown input file type\n");
+  exit(1);
+}
 
-  lattice_nx = box[1];
-  lattice_ny = box[3];
-  lattice_nz = box[5];
-  if(lattice_style == LATTICE_FCC)
-    lattice_constant = std::pow((4.0 / lattice_constant), (1.0 / 3.0));
+void Input::read_lammps_file(const char* filename) {
+  input_data.allocate_words(100);
 
-  //if (timestepflag)
-  //  system->dt = timestep;
 
-  system->ntypes = ntypes;
-  system->mass = t_mass("System::mass",system->ntypes);
-  for (int type = 0; type < ntypes; type++){
+  std::ifstream file(filename);
+  char* line = new char[512];
+  line[0] = 0;
+  file.getline(line,std::streamsize(511));
+  while(file.good()) {
+    input_data.add_line(line);
+    line[0] = 0;
+    file.getline(line,511);
+  }
+  if(system->do_print) {
+    printf("\n");
+    printf("#InputFile:\n");
+    printf("#=========================================================\n");
+
+    input_data.print();
+
+    printf("#=========================================================\n");
+    printf("\n");
+  }
+  for(int l = 0; l<input_data.nlines; l++)
+    check_lammps_command(l);
+}
+
+void Input::check_lammps_command(int line) {
+  bool known = false;
+  
+  if(input_data.words[line][0][0]==0) { known = true; }
+  if(strstr(input_data.words[line][0],"#")) { known = true; }
+  if(strcmp(input_data.words[line][0],"variable")==0) {
+    if(system->do_print)
+      printf("LAMMPS-Command: 'variable' keyword is not supported in CabanaMD\n");
+  }
+  if(strcmp(input_data.words[line][0],"units")==0) {
+    if(strcmp(input_data.words[line][1],"metal")==0) {
+      known = true;
+      units_style = UNITS_METAL;
+      system->boltz = 8.617343e-5;
+      //hplanck = 95.306976368;
+      system->mvv2e = 1.0364269e-4;
+      system->dt = 0.001;
+    } else if(strcmp(input_data.words[line][1],"real")==0) {
+      known = true;
+      units_style = UNITS_REAL;
+      system->boltz = 0.0019872067;
+      //hplanck = 95.306976368;
+      system->mvv2e = 48.88821291 * 48.88821291;
+      if (!timestepflag)
+        system->dt = 1.0;
+    } else if(strcmp(input_data.words[line][1],"lj")==0) {
+      known = true;
+      units_style = UNITS_LJ;
+      system->boltz = 1.0;
+      //hplanck = 0.18292026;
+      system->mvv2e = 1.0;
+      if (!timestepflag)
+        system->dt = 0.005;
+    } else {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'units' command only supports 'metal', 'real', and 'lj' in CabanaMD\n");
+    }
+  }
+  if(strcmp(input_data.words[line][0],"atom_style")==0) {
+    if(strcmp(input_data.words[line][1],"atomic")==0) {
+      known = true;
+    }
+    else if(strcmp(input_data.words[line][1], "charge")==0) {
+      known = true;
+      system->atom_style = "charge";
+    } 
+    else {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'atom_style' command only supports 'atomic' and 'charge' in CabanaMD\n");
+    }
+  }
+  if(strcmp(input_data.words[line][0],"lattice")==0) {
+    if(strcmp(input_data.words[line][1],"sc")==0) {
+      known = true;
+      lattice_style = LATTICE_SC;
+      lattice_constant = atof(input_data.words[line][2]);
+    } else if(strcmp(input_data.words[line][1],"fcc")==0) {
+      known = true;
+      lattice_style = LATTICE_FCC;
+      lattice_constant = std::pow((4.0 / atof(input_data.words[line][2])), (1.0 / 3.0));
+    } else {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'lattice' command only supports 'sc' and 'fcc' in CabanaMD\n");
+    }
+    if(strcmp(input_data.words[line][3],"origin")==0) {
+       lattice_offset_x = atof(input_data.words[line][4]);
+       lattice_offset_y = atof(input_data.words[line][5]);
+       lattice_offset_z = atof(input_data.words[line][6]);
+    }
+  }
+  if(strcmp(input_data.words[line][0],"region")==0) {
+    if(strcmp(input_data.words[line][2],"block")==0) {
+      known = true;
+      int box[6];
+      box[0] = atoi(input_data.words[line][3]);
+      box[1] = atoi(input_data.words[line][4]);
+      box[2] = atoi(input_data.words[line][5]);
+      box[3] = atoi(input_data.words[line][6]);
+      box[4] = atoi(input_data.words[line][7]);
+      box[5] = atoi(input_data.words[line][8]);
+      if( (box[0]!=0) || (box[2]!=0) || (box[4]!=0))
+        if(system->do_print)
+          printf("LAMMPS-Command: region only allows for boxes with 0,0,0 offset in CabanaMD\n");
+      lattice_nx = box[1];
+      lattice_ny = box[3];
+      lattice_nz = box[5];
+    } else {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'region' command only supports 'block' option in CabanaMD\n");
+    }
+  }
+  if(strcmp(input_data.words[line][0],"create_box")==0) {
+    known = true;
+    system->ntypes = atoi(input_data.words[line][1]);
+    system->mass = t_mass("System::mass",system->ntypes);
+  }
+  if(strcmp(input_data.words[line][0],"create_atoms")==0) {
+    known = true;
+  }
+  if(strcmp(input_data.words[line][0],"mass")==0) {
+    known = true;
+    int type = atoi(input_data.words[line][1])-1;
     Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
-    T_V_FLOAT mass = mass_vec[type];
+    T_V_FLOAT mass = atof(input_data.words[line][2]);
     Kokkos::deep_copy(mass_one,mass);
+  }
+  if(strcmp(input_data.words[line][0],"read_data")==0) {
+    known = true;
+    read_data_flag = true;
+    lammps_data_file = input_data.words[line][1];
+  }  
+
+  if(strcmp(input_data.words[line][0],"pair_style")==0) {
+    if(strcmp(input_data.words[line][1],"lj/cut")==0) {
+      known = true;
+      force_type = FORCE_LJ;
+      force_cutoff = atof(input_data.words[line][2]);
+      force_line = line;
+    }
+    if(strcmp(input_data.words[line][1],"snap")==0) {
+      known = false;
+      force_type = FORCE_SNAP;
+      force_cutoff = 4.73442;// atof(input_data.words[line][2]);
+      force_line = line;
+    }
+    if(system->do_print && !known)
+      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' style in CabanaMD\n");
+  }
+  if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
+    known = true;
+    int n_coeff_lines = force_coeff_lines.dimension_0();
+    Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
+    force_coeff_lines( n_coeff_lines) = line;
+    n_coeff_lines++;
+  }
+  if(strcmp(input_data.words[line][0],"velocity")==0) {
+    known = true;
+    if(strcmp(input_data.words[line][1],"all")!=0) {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'velocity' command can only be applied to 'all' in CabanaMD\n");
+    }
+    if(strcmp(input_data.words[line][2],"create")!=0) {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'velocity' command can only be used with option 'create' in CabanaMD\n");
+    }
+    temperature_target = atof(input_data.words[line][3]);
+    temperature_seed = atoi(input_data.words[line][4]);
+  }
+  if(strcmp(input_data.words[line][0],"neighbor")==0) {
+    known = true;
+    neighbor_skin = atof(input_data.words[line][1]);
+  }
+  if(strcmp(input_data.words[line][0],"neigh_modify")==0) {
+    known = true;
+    for(int i=1; i<input_data.words_per_line-1;i++)
+      if(strcmp(input_data.words[line][i],"every")==0) {
+        comm_exchange_rate = atoi(input_data.words[line][i+1]);
+      }
+  }
+  if(strcmp(input_data.words[line][0],"fix")==0) {
+    if(strcmp(input_data.words[line][3],"nve")==0) {
+      known = true;
+      integrator_type = INTEGRATOR_NVE;
+    } else {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'fix' command only supports 'nve' style in CabanaMD\n");
+    }
+  }
+  if(strcmp(input_data.words[line][0],"run")==0) {
+    known = true;
+    nsteps = atoi(input_data.words[line][1]);
+  }
+  if(strcmp(input_data.words[line][0],"thermo")==0) {
+    known = true;
+    thermo_rate = atoi(input_data.words[line][1]);
+  }
+  if(strcmp(input_data.words[line][0],"timestep")==0) {
+    known = true;
+    system->dt = atof(input_data.words[line][1]);
+    timestepflag = true;
+  }
+  if(strcmp(input_data.words[line][0],"newton")==0) {
+    known = true;
+    if(strcmp(input_data.words[line][1],"on")==0) {
+      comm_newton=1;
+    } else if(strcmp(input_data.words[line][1],"off")==0) {
+      comm_newton=0;
+    } else {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'newton' must be followed by 'on' or 'off'\n");
+    }
+  }
+  if(input_data.words[line][0][0]=='#') {
+    known = true;
+  }
+  if(!known && system->do_print) {
+    printf("ERROR: unknown keyword\n");
+    input_data.print_line(line);
   }
 }
 

@@ -56,6 +56,7 @@ System::System() {
   N_local = 0;
   N_ghost = 0;
   ntypes = 1;
+  atom_style = "atomic"; 
 
   mass = t_mass();
   domain_x = domain_y = domain_z = 0.0;

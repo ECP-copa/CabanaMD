@@ -64,15 +64,17 @@ enum {LATTICE_SC,LATTICE_FCC};
 // Integrator Type
 enum {INTEGRATOR_NVE};
 // Binning Type
-enum {BINNING_CABANA};
+enum {BINNING_LINKEDCELL};
 // Comm Type
 enum {COMM_MPI};
 // Force Type
-enum {FORCE_LJ_CABANA_NEIGH};
+enum {FORCE_LJ,FORCE_SNAP};
 // Force Iteration Type
 enum {FORCE_ITER_NEIGH_FULL, FORCE_ITER_NEIGH_HALF};
 // Neighbor Type
-enum {NEIGH_CABANA_VERLET};
+enum {NEIGH_2D,NEIGH_CSR};
+// Input File Type
+enum {INPUT_LAMMPS};
 
 // Macros to work around the fact that std::max/min is not available on GPUs
 #define MAX(a,b) (a>b?a:b)
@@ -108,19 +110,29 @@ using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
 enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
                  Types = 3, IDs = 4, Charges = 5 };
 
-#ifdef Cabana_ENABLE_Cuda
-using MemorySpace = Cabana::CudaUVMSpace;
+#ifdef CabanaMD_ENABLE_Cuda
+using MemorySpace = Kokkos::CudaUVMSpace;
+using ExecutionSpace = Kokkos::Cuda;
 #else
-using MemorySpace = Cabana::HostSpace;
+using MemorySpace = Kokkos::HostSpace;
+#ifdef CabanaMD_ENABLE_Serial
+using ExecutionSpace = Kokkos::Serial;
+#else // CabanaMD_ENABLE_OpenMP
+using ExecutionSpace = Kokkos::OpenMP;
 #endif
+#endif
+using DeviceType = Kokkos::Device<ExecutionSpace,MemorySpace>;
 
 using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
-using AoSoA = Cabana::AoSoA<t_tuple,MemorySpace,VECLEN>;
+using AoSoA = Cabana::AoSoA<t_tuple,DeviceType,VECLEN>;
 using t_particle = Cabana::Tuple<t_tuple>;
 
-using t_verletlist_full = Cabana::VerletList<MemorySpace,Cabana::FullNeighborTag,Cabana::VerletLayoutCSR>;
-using t_verletlist_half = Cabana::VerletList<MemorySpace,Cabana::HalfNeighborTag,Cabana::VerletLayoutCSR>;
+using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
+using t_verletlist_full_2D = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;
+using t_verletlist_half_2D = Cabana::VerletList<DeviceType,Cabana::HalfNeighborTag,Cabana::VerletLayout2D>;
+using t_verletlist_full_CSR = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayoutCSR>;
+using t_verletlist_half_CSR = Cabana::VerletList<DeviceType,Cabana::HalfNeighborTag,Cabana::VerletLayoutCSR>;
 
 #endif
 

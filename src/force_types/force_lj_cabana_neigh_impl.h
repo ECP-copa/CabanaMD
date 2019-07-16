@@ -49,7 +49,8 @@
 
 #include<force_lj_cabana_neigh.h>
 
-Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_),neigh_cut(0.0) {
+template<class t_neighbor>
+ForceLJ<t_neighbor>::ForceLJ(System* system, bool half_neigh_):Force(system,half_neigh_) {
   ntypes = system->ntypes;
 
   lj1 = t_fparams("ForceLJCabanaNeigh::lj1",ntypes,ntypes);
@@ -60,13 +61,14 @@ Force::Force(System* system, bool half_neigh_):half_neigh(half_neigh_),neigh_cut
   step = 0;
 }
 
-void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<double> force_coeff) {
+template<class t_neighbor>
+void ForceLJ<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut_, char** args) {
   neigh_cut = neigh_cut_;
   step = 0;
 
-  double eps = force_coeff[0];
-  double sigma = force_coeff[1];
-  double cut = force_coeff[2];
+  double eps = atof(args[3]);
+  double sigma = atof(args[4]);
+  double cut = atof(args[5]);
 
   for (int i = 0; i < ntypes; i++) {
     for (int j = 0; j < ntypes; j++) {
@@ -77,7 +79,8 @@ void Force::init_coeff(T_X_FLOAT neigh_cut_, std::vector<double> force_coeff) {
   }
 }
 
-void Force::create_neigh_list(System* system) {
+template<class t_neighbor>
+void ForceLJ<t_neighbor>::create_neigh_list(System* system) {
   N_local = system->N_local;
 
   double grid_min[3] = {-system->domain_x,-system->domain_y,-system->domain_z};
@@ -85,17 +88,12 @@ void Force::create_neigh_list(System* system) {
 
   auto x = Cabana::slice<Positions>(system->xvf);
 
-  if(half_neigh) {
-    t_verletlist_half half( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
-    neigh_list_half = half;
-  }
-  else {
-    t_verletlist_full full( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
-    neigh_list_full = full;
-  }
+  t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
+  neigh_list = list;
 }
 
-void Force::compute(System* system) {
+template<class t_neighbor>
+void ForceLJ<t_neighbor>::compute(System* system) {
   N_local = system->N_local;
   x = Cabana::slice<Positions>(system->xvf);
   f = Cabana::slice<Forces>(system->xvf);
@@ -114,7 +112,8 @@ void Force::compute(System* system) {
   step++;
 }
 
-T_V_FLOAT Force::compute_energy(System* system) {
+template<class t_neighbor>
+T_V_FLOAT ForceLJ<t_neighbor>::compute_energy(System* system) {
   N_local = system->N_local;
   x = Cabana::slice<Positions>(system->xvf);
   f = Cabana::slice<Forces>(system->xvf);
@@ -135,23 +134,25 @@ T_V_FLOAT Force::compute_energy(System* system) {
   return energy;
 }
 
-const char* Force::name() { return half_neigh?"ForceLJCabanaNeighHalf":"ForceLJCabanaNeighFull"; }
+template<class t_neighbor>
+const char* ForceLJ<t_neighbor>::name() {return half_neigh?"Force:LJCabanaVerletHalf":"Force:LJCabanaVerletFull";}
 
+template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagFullNeigh, const T_INT& i) const {
+void ForceLJ<t_neighbor>::operator() (TagFullNeigh, const T_INT& i) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
   const int type_i = type(i);
 
-  int num_neighs = Cabana::NeighborList<t_verletlist_full>::numNeighbor(neigh_list_full, i);
+  int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
 
   T_F_FLOAT fxi = 0.0;
   T_F_FLOAT fyi = 0.0;
   T_F_FLOAT fzi = 0.0;
 
   for(int jj = 0; jj < num_neighs; jj++) {
-    int j = Cabana::NeighborList<t_verletlist_full>::getNeighbor(neigh_list_full, i, jj);
+    int j = Cabana::NeighborList<t_neighbor>::getNeighbor(neigh_list, i, jj);
 
     const T_F_FLOAT dx = x_i - x(j,0);
     const T_F_FLOAT dy = y_i - x(j,1);
@@ -181,20 +182,21 @@ void Force::operator() (TagFullNeigh, const T_INT& i) const {
 
 }
 
+template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagHalfNeigh, const T_INT& i) const {
+void ForceLJ<t_neighbor>::operator() (TagHalfNeigh, const T_INT& i) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
   const int type_i = type(i);
 
-  int num_neighs = Cabana::NeighborList<t_verletlist_half>::numNeighbor(neigh_list_half, i);
+  int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
 
   T_F_FLOAT fxi = 0.0;
   T_F_FLOAT fyi = 0.0;
   T_F_FLOAT fzi = 0.0;
   for(int jj = 0; jj < num_neighs; jj++) {
-    int j = Cabana::NeighborList<t_verletlist_half>::getNeighbor(neigh_list_half, i, jj);
+    int j = Cabana::NeighborList<t_neighbor>::getNeighbor(neigh_list, i, jj);
 
     const T_F_FLOAT dx = x_i - x(j,0);
     const T_F_FLOAT dy = y_i - x(j,1);
@@ -226,18 +228,19 @@ void Force::operator() (TagHalfNeigh, const T_INT& i) const {
 
 }
 
+template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagFullNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
+void ForceLJ<t_neighbor>::operator() (TagFullNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
   const int type_i = type(i);
   const bool shift_flag = true;
 
-  int num_neighs = Cabana::NeighborList<t_verletlist_full>::numNeighbor(neigh_list_full, i);
+  int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
 
   for(int jj = 0; jj < num_neighs; jj++) {
-    int j = Cabana::NeighborList<t_verletlist_full>::getNeighbor(neigh_list_full, i, jj);
+    int j = Cabana::NeighborList<t_neighbor>::getNeighbor(neigh_list, i, jj);
 
     const T_F_FLOAT dx = x_i - x(j,0);
     const T_F_FLOAT dy = y_i - x(j,1);
@@ -265,18 +268,19 @@ void Force::operator() (TagFullNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
   }
 }
 
+template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-void Force::operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
+void ForceLJ<t_neighbor>::operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
   const T_F_FLOAT x_i = x(i,0);
   const T_F_FLOAT y_i = x(i,1);
   const T_F_FLOAT z_i = x(i,2);
   const int type_i = type(i);
   const bool shift_flag = true;
 
-  int num_neighs = Cabana::NeighborList<t_verletlist_half>::numNeighbor(neigh_list_half, i);
+  int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
 
   for(int jj = 0; jj < num_neighs; jj++) {
-    int j = Cabana::NeighborList<t_verletlist_half>::getNeighbor(neigh_list_half, i, jj);
+    int j = Cabana::NeighborList<t_neighbor>::getNeighbor(neigh_list, i, jj);
 
     const T_F_FLOAT dx = x_i - x(j,0);
     const T_F_FLOAT dy = y_i - x(j,1);

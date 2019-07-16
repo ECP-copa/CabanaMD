@@ -83,7 +83,7 @@ void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, 
 
     x = Cabana::slice<Positions>(system->xvf);
 
-    Cabana::LinkedCellList<MemorySpace> cell_list(x, begin, end, delta, min, max );
+    t_linkedcell cell_list(x, begin, end, delta, min, max );
 
     if(sort) {
       Cabana::permute( cell_list, system->xvf );
@@ -91,5 +91,5 @@ void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, 
   }
 }
 
-const char* Binning::name() { return "BinningCabana"; }
+const char* Binning::name() { return "Binning:CabanaLinkedCell"; }
 
