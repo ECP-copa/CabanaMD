@@ -76,6 +76,7 @@ public:
   //TODO: remove this hardcoding as well
   double convLength = 5.8038448995319847E+00; 
   double convEnergy = 2.4265748255366972E+02;
+  double mean_energy = -2.5521343547039809E+01;
   // Simulation domain
   T_X_FLOAT domain_x, domain_y, domain_z;
   T_X_FLOAT box[6];

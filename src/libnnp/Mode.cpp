@@ -821,29 +821,6 @@ void Mode::writeSettingsFile(ofstream* const& file) const
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//------------------- MEGA FUNCTION ATTEMPT --------------//
-
-  //mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, true);
-  //mode->calculateAtomicNeuralNetworks(s, nnp_data, true);
-  //mode->calculateForces(s, numSymmetryFunctionsPerElement, nnp_data, neigh_list);
-  //
-//
-
 void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
     t_mass numSymmetryFunctionsPerElement) 
 {
