@@ -138,12 +138,12 @@ void Comm::create_domain_decomposition() {
   system->sub_domain_x = system->domain_x / proc_grid[0];
   system->sub_domain_y = system->domain_y / proc_grid[1];
   system->sub_domain_z = system->domain_z / proc_grid[2];
-  system->sub_domain_lo_x = proc_pos[0] * system->sub_domain_x;
-  system->sub_domain_lo_y = proc_pos[1] * system->sub_domain_y;
-  system->sub_domain_lo_z = proc_pos[2] * system->sub_domain_z;
-  system->sub_domain_hi_x = ( proc_pos[0] + 1 ) * system->sub_domain_x;
-  system->sub_domain_hi_y = ( proc_pos[1] + 1 ) * system->sub_domain_y;
-  system->sub_domain_hi_z = ( proc_pos[2] + 1 ) * system->sub_domain_z;
+  system->sub_domain_lo_x = proc_pos[0] * system->sub_domain_x + system->domain_lo_x;
+  system->sub_domain_lo_y = proc_pos[1] * system->sub_domain_y + system->domain_lo_y;
+  system->sub_domain_lo_z = proc_pos[2] * system->sub_domain_z + system->domain_lo_z;
+  system->sub_domain_hi_x = ( proc_pos[0] + 1 ) * system->sub_domain_x + system->domain_lo_x;
+  system->sub_domain_hi_y = ( proc_pos[1] + 1 ) * system->sub_domain_y + system->domain_lo_y;
+  system->sub_domain_hi_z = ( proc_pos[2] + 1 ) * system->sub_domain_z + system->domain_lo_z;
 
   for(int p = 0; p < 6; p ++)
     neighbors[p] = proc_neighbors_send[p];
@@ -389,7 +389,7 @@ void Comm::update_force() {
   Kokkos::Profiling::popRegion();
 }
 
-const char* Comm::name() { return "CommMPI"; }
+const char* Comm::name() { return "Comm:CabanaMPI"; }
 
 int Comm::process_rank() { return proc_rank; }
 int Comm::num_processes() { return proc_size; }

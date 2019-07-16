@@ -75,10 +75,12 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // Lets parse the command line arguments
   input->read_command_line_args(argc,argv);
-  printf("Read command line arguments\n");
+  if(system->do_print)
+    printf("Read command line arguments\n");
   // Read input file
   input->read_file();
-  printf("Read input file\n");
+  if(system->do_print)
+    printf("Read input file\n");
   T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
 
   // Now we know which integrator type to use
