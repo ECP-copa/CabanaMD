@@ -1038,7 +1038,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     });
 } 
 
-void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
+void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement)
 {
     //Calculate Atomic Neural Networks 
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -1056,11 +1056,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data)
     {
         int attype = type(atomindex);
         //set input layer of NN
-        //TODO: remove hardcoding 
-        if (attype == 0)
-            numNeuronsPerLayer[0] = 27;
-        else if (attype == 1)
-            numNeuronsPerLayer[0] = 30;
+        numNeuronsPerLayer[0] = numSymmetryFunctionsPerElement(attype);
         
         for (int k = 0; k < numNeuronsPerLayer[0]; ++k)
             NN(0,k) = G(atomindex,k);
@@ -1165,7 +1161,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
         // "unique neighbor" list (but skip the first entry, this is always
         // atom i itself).
         int attype = type(i); 
-        //Reset dGdr to zero TODO: deep_copy
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)

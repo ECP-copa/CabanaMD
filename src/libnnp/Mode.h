@@ -339,7 +339,7 @@ public:
     void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
         t_mass numSymmetryFunctionsPerElement);
     
-    void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data);
+    void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement);
     
     KOKKOS_INLINE_FUNCTION double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
 
