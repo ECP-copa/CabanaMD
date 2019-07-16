@@ -1141,6 +1141,8 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     auto type = Cabana::slice<Types>(s->xvf);
     auto x = Cabana::slice<Positions>(s->xvf);
     auto f = Cabana::slice<Forces>(s->xvf);
+    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
+    f_a = Cabana::slice<Forces>(s->xvf);
     auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     
     double convForce = 1.0;
@@ -1410,17 +1412,17 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
             int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
             for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
             {
-                f(j,0) -= (dEdG(i,k) * dGdr(j,k,0) * s->cfforce * convForce);
-                f(j,1) -= (dEdG(i,k) * dGdr(j,k,1) * s->cfforce * convForce);
-                f(j,2) -= (dEdG(i,k) * dGdr(j,k,2) * s->cfforce * convForce);
+                f_a(j,0) -= (dEdG(i,k) * dGdr(j,k,0) * s->cfforce * convForce);
+                f_a(j,1) -= (dEdG(i,k) * dGdr(j,k,1) * s->cfforce * convForce);
+                f_a(j,2) -= (dEdG(i,k) * dGdr(j,k,2) * s->cfforce * convForce);
             }
         }
         
         for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
         {
-            f(i,0) -= (dEdG(i,k) * dGdr(i,k,0) * s->cfforce * convForce);
-            f(i,1) -= (dEdG(i,k) * dGdr(i,k,1) * s->cfforce * convForce);
-            f(i,2) -= (dEdG(i,k) * dGdr(i,k,2) * s->cfforce * convForce);
+            f_a(i,0) -= (dEdG(i,k) * dGdr(i,k,0) * s->cfforce * convForce);
+            f_a(i,1) -= (dEdG(i,k) * dGdr(i,k,1) * s->cfforce * convForce);
+            f_a(i,2) -= (dEdG(i,k) * dGdr(i,k,2) * s->cfforce * convForce);
         }
 
     });
