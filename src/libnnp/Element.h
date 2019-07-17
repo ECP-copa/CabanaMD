@@ -157,10 +157,10 @@ public:
     /// Symmetry function statistics.
     SymmetryFunctionStatistics statistics;
 
-    KOKKOS_INLINE_FUNCTION void setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
+    inline void setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
                                             double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const;
-    KOKKOS_INLINE_FUNCTION string scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const;
-    KOKKOS_INLINE_FUNCTION double unscale(int attype, double value, int k, t_SFscaling SFscaling);
+    inline string scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const;
+    inline double unscale(int attype, double value, int k, t_SFscaling SFscaling);
 
 
 private:
@@ -214,7 +214,7 @@ inline size_t Element::numSymmetryFunctions(int attype, int (&countertotal)[2]) 
 }
 
 
-KOKKOS_INLINE_FUNCTION void Element::setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
+inline void Element::setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
                                             double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const
 {
     double Gmin, Gmax, Gmean, Gsigma, scalingFactor = 0;
@@ -252,7 +252,7 @@ KOKKOS_INLINE_FUNCTION void Element::setScalingType(ScalingType scalingType, str
 }
 
 
-KOKKOS_INLINE_FUNCTION string Element::scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const
+inline string Element::scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const
 {
     return strpr("%4zu %9.2E %9.2E %9.2E %9.2E %9.2E %5.2f %5.2f %d\n",
                  k + 1,
@@ -267,7 +267,7 @@ KOKKOS_INLINE_FUNCTION string Element::scalingLine(ScalingType scalingType, t_SF
 }
 
 
-KOKKOS_INLINE_FUNCTION double Element::unscale(int attype, double value, int k, t_SFscaling SFscaling)
+inline double Element::unscale(int attype, double value, int k, t_SFscaling SFscaling)
 {
     double scalingType = SFscaling(attype,k,7);
     double scalingFactor = SFscaling(attype,k,6);
