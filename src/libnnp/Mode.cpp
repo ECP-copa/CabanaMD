@@ -704,7 +704,7 @@ void Mode::setupNeuralNetwork()
     }
 
     //initialize Views
-    int maxNeurons = 0;
+    maxNeurons = 0;
     for (int j = 0; j < numLayers; ++j)
         maxNeurons = max(maxNeurons, numNeuronsPerLayer[j]);
 
@@ -713,8 +713,6 @@ void Mode::setupNeuralNetwork()
     
     bias = d_t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
     weights = d_t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
-    NN = d_t_NN("ForceNNP::NN", numLayers, maxNeurons); 
-    dfdx = d_t_NN("ForceNNP::dfdx", numLayers, maxNeurons); 
 
     log << "*****************************************"
            "**************************************\n";
@@ -835,14 +833,12 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     Kokkos::deep_copy(d_SFscaling, SFscaling);
     Kokkos::deep_copy(d_SFGmemberlist, SFGmemberlist);
 
-    std::cout << "Calculating SF groups" << std::endl;
     // Calculate symmetry functions (and derivatives).
     //calculateSFGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, neigh_list, i, countergtotal); 
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
     {
         int attype = type(i);
         T_INT numSymmetryFunctions = numSymmetryFunctionsPerElement(type(i));
-        
         // Check if atom has low number of neighbors.
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
@@ -1036,6 +1032,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
           }
         }
     });
+    Kokkos::fence();
 } 
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement)
@@ -1051,15 +1048,22 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     Kokkos::deep_copy(bias, h_bias);
     Kokkos::deep_copy(weights, h_weights);
 
-    std::cout << "Calculating neural networks" << std::endl;
     Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t atomindex)
     {
+        double** NN = new double*[numLayers];
+        double** dfdx = new double*[numLayers];
+        for (int i = 0; i < numLayers; i++)
+        {
+            NN[i] = new double[maxNeurons];
+            dfdx[i] = new double[maxNeurons];
+        }
+
         int attype = type(atomindex);
         //set input layer of NN
         numNeuronsPerLayer[0] = numSymmetryFunctionsPerElement(attype);
         
         for (int k = 0; k < numNeuronsPerLayer[0]; ++k)
-            NN(0,k) = G(atomindex,k);
+            NN[0][k] = G(atomindex,k);
         //forward propagation
         for (int l = 1; l < numLayers; l++)
         {
@@ -1070,25 +1074,27 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
             {
                 dtmp = 0.0;
                 for (int j = 0; j < numNeuronsPerLayer[l-1]; j++)
-                    dtmp += weights(attype,l-1,i,j) * NN(l-1,j);
+                    dtmp += weights(attype,l-1,i,j) * NN[l-1][j];
                 
                 dtmp += bias(attype,l-1,i);
                 //if (normalizeNeurons) dtmp /= numNeuronsPerLayer[l-1];
 
                 if (AF[l] == 0)
                 {
-                    NN(l,i) = dtmp;
-                    dfdx(l,i) = 1.0; 
+                    NN[l][i] = dtmp;
+                    dfdx[l][i] = 1.0; 
                 }
                 else if (AF[l] == 1)
                 {
                     dtmp = tanh(dtmp);
-                    NN(l,i)  = dtmp;
-                    dfdx(l,i) = 1.0 - dtmp * dtmp;
+                    NN[l][i]  = dtmp;
+                    dfdx[l][i] = 1.0 - dtmp * dtmp;
                 }
-                dtmp = NN(l,i);
+                //dtmp = NN(l,i);
             }
         }
+        
+        energy(atomindex) = NN[numLayers-1][0]; 
 
         //derivative of network w.r.t NN inputs
         double** inner = new double*[numHiddenLayers];
@@ -1101,7 +1107,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         for (int k = 0; k < numNeuronsPerLayer[0]; k++)
         {
             for (int i = 0; i < numNeuronsPerLayer[1]; i++)
-                inner[0][i] = weights(attype,0,i,k) * dfdx(1,i); 
+                inner[0][i] = weights(attype,0,i,k) * dfdx[1][i]; 
             
             for (int l = 1; l < numHiddenLayers+1; l++)
             {
@@ -1111,7 +1117,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
                     
                     for (int i1 = 0; i1 < numNeuronsPerLayer[l]; i1++)
                         outer[l-1][i2] += weights(attype,l,i2,i1) * inner[l-1][i1];
-                    outer[l-1][i2] *= dfdx(l+1,i2);
+                    outer[l-1][i2] *= dfdx[l+1][i2];
                     
                     if (l < numHiddenLayers)
                       inner[l][i2] = outer[l-1][i2];
@@ -1127,9 +1133,17 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         }
         delete[] inner;
         delete[] outer;
+        
+        for (int i = 0; i < numLayers; i++)
+        {
+            delete[] NN[i];
+            delete[] dfdx[i];
+        }
+        delete[] NN;
+        delete[] dfdx;
 
-        energy(atomindex) = NN(numLayers-1,0); 
     });
+    Kokkos::fence();
 }
 
 
@@ -1149,7 +1163,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     if (s->normalize)
       convForce = convLength/convEnergy;
     
-    std::cout << "Calculating forces" << std::endl;
     //Reset dGdr to zero
     Kokkos::deep_copy(dGdr, 0.0);
     Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
@@ -1426,6 +1439,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
         }
 
     });
+    Kokkos::fence();
 
     return;
 }

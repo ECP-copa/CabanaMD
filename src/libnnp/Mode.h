@@ -367,12 +367,11 @@ public:
     t_dGdr dGdr;
    
     //NN data structures
-    d_t_NN NN, dfdx;
     d_t_bias bias; 
     d_t_weights weights; 
     t_bias h_bias;
     t_weights h_weights;
-    int numLayers, numHiddenLayers; 
+    int numLayers, numHiddenLayers, maxNeurons; 
     int numNeuronsPerLayer[4];
     int AF[4];
     //int* AF = new int[numLayers]; 
