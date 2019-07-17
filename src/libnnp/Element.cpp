@@ -71,6 +71,7 @@ void Element::addSymmetryFunction(string const& parameters,
       SF(attype,countertotal[attype],8) = atof(splitLine.at(4).c_str())*convLength; //rs
       SF(attype,countertotal[attype],7) = atof(splitLine.at(5).c_str())*convLength; //rc
       
+      SF(attype,countertotal[attype],13) = countertotal[attype]; 
       countertotal[attype]++;
     }
     
@@ -102,7 +103,6 @@ void Element::addSymmetryFunction(string const& parameters,
       if (splitLine.size() > 8)
           SF(attype,countertotal[attype],8) = atof(splitLine.at(8).c_str())*convLength; //rs
 
-
       T_INT e1 = SF(attype,countertotal[attype],2);
       T_INT e2 = SF(attype,countertotal[attype],3);
       if (e1 > e2)
@@ -118,6 +118,7 @@ void Element::addSymmetryFunction(string const& parameters,
       else
           SF(attype,countertotal[attype],9) = 0;
       
+      SF(attype,countertotal[attype],13) = countertotal[attype]; 
       countertotal[attype]++;
     }
     //TODO: Add this later
@@ -196,7 +197,7 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
                 createNewGroup = false;
                 if (SF(attype,k,1)==2)
                 {
-                    SFGmemberlist(attype,l,countergR) = k;
+                    SFGmemberlist(attype,l,countergR) = SF(attype,k,13);
                     //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
                     countergR++;
                     break;
@@ -204,7 +205,7 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
             
                 else if (SF(attype,k,1)==3)
                 {
-                    SFGmemberlist(attype,l,countergAN) = k;
+                    SFGmemberlist(attype,l,countergAN) = SF(attype,k,13);
                     //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
                     countergAN++;
                     break;
@@ -220,14 +221,14 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
             if (SF(attype,k,1)==2)
             {
               countergR = 0;
-              SFGmemberlist(attype,l,countergR) = k;
+              SFGmemberlist(attype,l,countergR) = SF(attype,k,13);
               //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
               countergR++;
             }
             else if (SF(attype,k,1)==3)
             {
               countergAN = 0;
-              SFGmemberlist(attype,l,countergAN) = k;
+              SFGmemberlist(attype,l,countergAN) = SF(attype,k,13);
               //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
               countergAN++;
             }
