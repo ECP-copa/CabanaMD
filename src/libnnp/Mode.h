@@ -100,7 +100,7 @@ public:
      * Sets up elements, symmetry functions, symmetry function groups, neural
      * networks. No symmetry function scaling data is read, no weights are set.
      */
-    void                     setupGeneric(t_mass numSymmetryFunctionsPerElement);
+    void                     setupGeneric(h_t_mass h_numSymmetryFunctionsPerElement);
     /** Set up normalization.
      *
      * If the keywords `mean_energy`, `conv_length` and
@@ -113,7 +113,7 @@ public:
      * Uses keyword `elements`. This function should follow immediately after
      * settings are loaded via loadSettingsFile().
      */
-    t_mass                     setupElementMap(t_mass numSymmetryFunctionsPerElement);
+    void setupElementMap();
     /** Set up all Element instances.
      *
      * Uses keywords `number_of_elements` and `atom_energy`. This function
@@ -133,7 +133,7 @@ public:
      * Uses keyword `symfunction_short`. Reads all symmetry functions from
      * settings and automatically assigns them to the correct element.
      */
-    t_mass                     setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement);
+    h_t_mass                     setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement);
     /** Set up symmetry function scaling from file.
      *
      * @param[in] fileName Scaling file name.

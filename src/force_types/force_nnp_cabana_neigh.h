@@ -133,7 +133,8 @@ public:
   //dGdr (NxMAX_SFx3)
   t_dGdr dGdr;
   //numSymmetryFunctionsPerElement (per type property)
-  t_mass numSymmetryFunctionsPerElement;
+  t_mass d_numSymmetryFunctionsPerElement;
+  h_t_mass h_numSymmetryFunctionsPerElement;
 
   ForceNNP(System* system, bool half_neigh_);
   void init_coeff(T_X_FLOAT neigh_cutoff, char** args);

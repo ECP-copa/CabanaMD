@@ -181,7 +181,6 @@ vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_S
 void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2])
 {
     int countergR = 0, countergAN = 0;
-    std::cout << "Countertotal[attype] = " << countertotal[attype] << std::endl;
     for (int k = 0; k < countertotal[attype]; ++k)
     {
         bool createNewGroup = true;
@@ -198,7 +197,7 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
                 if (SF(attype,k,1)==2)
                 {
                     SFGmemberlist(attype,l,countergR) = k;
-                    std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+                    //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
                     countergR++;
                     break;
                 }
@@ -206,7 +205,7 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
                 else if (SF(attype,k,1)==3)
                 {
                     SFGmemberlist(attype,l,countergAN) = k;
-                    std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+                    //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
                     countergAN++;
                     break;
                 }
@@ -215,21 +214,21 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
         
         if (createNewGroup)
         {
-            printf("Creating new group\n");
+            //printf("Creating new group\n");
             int l = countergtotal[attype];
             countergtotal[attype]++;
             if (SF(attype,k,1)==2)
             {
               countergR = 0;
               SFGmemberlist(attype,l,countergR) = k;
-              std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+              //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
               countergR++;
             }
             else if (SF(attype,k,1)==3)
             {
               countergAN = 0;
               SFGmemberlist(attype,l,countergAN) = k;
-              std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+              //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
               countergAN++;
             }
         }

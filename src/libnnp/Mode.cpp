@@ -86,13 +86,13 @@ void Mode::loadSettingsFile(string const& fileName)
     return;
 }
 
-void Mode::setupGeneric(t_mass numSymmetryFunctionsPerElement)
+void Mode::setupGeneric(h_t_mass h_numSymmetryFunctionsPerElement)
 {
     setupNormalization();
-    numSymmetryFunctionsPerElement = setupElementMap(numSymmetryFunctionsPerElement);
+    setupElementMap();
     setupElements();
     setupCutoff();
-    numSymmetryFunctionsPerElement = setupSymmetryFunctions(numSymmetryFunctionsPerElement);
+    h_numSymmetryFunctionsPerElement = setupSymmetryFunctions(h_numSymmetryFunctionsPerElement);
 #ifndef NOSFGROUPS
     setupSymmetryFunctionGroups();
 #endif
@@ -150,7 +150,7 @@ void Mode::setupNormalization()
     return;
 }
 
-t_mass Mode::setupElementMap(t_mass d_numSymmetryFunctionsPerElement)
+void Mode::setupElementMap()
 {
     log << "\n";
     log << "*** SETUP: ELEMENT MAP ******************"
@@ -170,8 +170,6 @@ t_mass Mode::setupElementMap(t_mass d_numSymmetryFunctionsPerElement)
     //setup device and host views
     //deep copy back when needed for calculations
 
-    d_numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
-   
     //setup SF info storage
     SF = t_SF("ForceNNP::SF", numElements, MAX_SF);
     SFscaling = t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
@@ -184,7 +182,7 @@ t_mass Mode::setupElementMap(t_mass d_numSymmetryFunctionsPerElement)
     log << "*****************************************"
            "**************************************\n";
 
-    return d_numSymmetryFunctionsPerElement;
+    return;
 }
 
 void Mode::setupElements()
@@ -331,8 +329,9 @@ void Mode::setupCutoff()
     return;
 }
 
-t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
+h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
 {
+    h_numSymmetryFunctionsPerElement = h_t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
     log << "\n";
     log << "*** SETUP: SYMMETRY FUNCTIONS ***********"
            "**************************************\n";
@@ -375,9 +374,6 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
     log << "\n";
     maxCutoffRadius = 0.0;
     
-    t_mass::HostMirror h_numSymmetryFunctionsPerElement = Kokkos::create_mirror_view(numSymmetryFunctionsPerElement);
-    Kokkos::deep_copy(h_numSymmetryFunctionsPerElement, numSymmetryFunctionsPerElement);
-    
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
@@ -397,7 +393,7 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
         log << "-----------------------------------------"
                "--------------------------------------\n";
         //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
-        h_numSymmetryFunctionsPerElement(attype) = it->numSymmetryFunctions(attype, countertotal);
+        h_numSymmetryFunctionsPerElement(attype) = countertotal[attype];
     }
     minNeighbors.resize(numElements, 0);
     minCutoffRadius.resize(numElements, maxCutoffRadius);
@@ -417,7 +413,7 @@ t_mass Mode::setupSymmetryFunctions(t_mass numSymmetryFunctionsPerElement)
     log << "*****************************************"
            "**************************************\n";
 
-    return numSymmetryFunctionsPerElement;
+    return h_numSymmetryFunctionsPerElement;
 }
 
 void Mode::setupSymmetryFunctionScaling(string const& fileName)
@@ -838,7 +834,6 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
     {
         int attype = type(i);
-        T_INT numSymmetryFunctions = numSymmetryFunctionsPerElement(type(i));
         // Check if atom has low number of neighbors.
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
@@ -1060,20 +1055,23 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
 
         int attype = type(atomindex);
         //set input layer of NN
-        numNeuronsPerLayer[0] = numSymmetryFunctionsPerElement(attype);
+        int layer_0, layer_lminusone;
+        layer_0 = (int)numSymmetryFunctionsPerElement(attype);
         
-        for (int k = 0; k < numNeuronsPerLayer[0]; ++k)
+        for (int k = 0; k < layer_0; ++k)
             NN[0][k] = G(atomindex,k);
         //forward propagation
         for (int l = 1; l < numLayers; l++)
         {
             //propagateLayer(layers[i], layers[i-1]);
             //propagateLayer(Layer& layer, Layer& layerPrev) //l and l-1
+            if (l == 1) layer_lminusone = layer_0;
+            else layer_lminusone = numNeuronsPerLayer[l-1];
             double dtmp;
             for (int i = 0; i < numNeuronsPerLayer[l]; i++)
             {
                 dtmp = 0.0;
-                for (int j = 0; j < numNeuronsPerLayer[l-1]; j++)
+                for (int j = 0; j < layer_lminusone; j++)
                     dtmp += weights(attype,l-1,i,j) * NN[l-1][j];
                 
                 dtmp += bias(attype,l-1,i);
@@ -1090,7 +1088,6 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
                     NN[l][i]  = dtmp;
                     dfdx[l][i] = 1.0 - dtmp * dtmp;
                 }
-                //dtmp = NN(l,i);
             }
         }
         
@@ -1167,14 +1164,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     Kokkos::deep_copy(dGdr, 0.0);
     Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
-        //t_dGdr dGdr = t_dGdr("ForceNNP::dGdr", s->N_local+s->N_ghost);
-        // Now loop over all neighbor atoms j of atom i. These may hold
-        // non-zero derivatives of their symmetry functions with respect to
-        // atom i's coordinates. Some atoms may appear multiple times in the
-        // neighbor list because of periodic boundary conditions. To avoid
-        // that the same contributions are added multiple times use the
-        // "unique neighbor" list (but skip the first entry, this is always
-        // atom i itself).
         int attype = type(i); 
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
@@ -1416,7 +1405,11 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                     
           }
         }    
+    });
+    Kokkos::fence();
 
+    Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
+    {
         //Use computed dEdG and dGdr to calculate forces
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
     
@@ -1437,10 +1430,11 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
             f_a(i,1) -= (dEdG(i,k) * dGdr(i,k,1) * s->cfforce * convForce);
             f_a(i,2) -= (dEdG(i,k) * dGdr(i,k,2) * s->cfforce * convForce);
         }
-
     });
     Kokkos::fence();
-
+    printf("%f %f %f\n", f(0,0), f(0,1), f(0,2));    
+    printf("%f %f %f\n", f(1,0), f(1,1), f(1,2));    
+    printf("%f %f %f\n", f(2,0), f(2,1), f(2,2));    
     return;
 }
 
