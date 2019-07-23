@@ -159,8 +159,8 @@ using t_dGdr = Kokkos::View<T_V_FLOAT*[MAX_SF][3],Kokkos::MemoryTraits<Kokkos::A
 
 typedef ExecutionSpace::array_layout array_layout; //TODO: check this
 using h_t_mass =  Kokkos::View<T_V_FLOAT*,array_layout,Kokkos::HostSpace>;
-using d_t_SF = Kokkos::View<T_FLOAT**[14]>;
-using t_SF = Kokkos::View<T_FLOAT**[14],array_layout,Kokkos::HostSpace>;
+using d_t_SF = Kokkos::View<T_FLOAT**[15]>;
+using t_SF = Kokkos::View<T_FLOAT**[15],array_layout,Kokkos::HostSpace>;
 using d_t_SFscaling = Kokkos::View<T_FLOAT**[8]>;
 using t_SFscaling = Kokkos::View<T_FLOAT**[8],array_layout,Kokkos::HostSpace>;
 using d_t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF]>; 

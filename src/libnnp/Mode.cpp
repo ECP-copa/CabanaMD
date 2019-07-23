@@ -354,6 +354,8 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
         //type = atoi(args.at(0).c_str());
         elements.at(element).addSymmetryFunction(it->second.first,
                                                  it->second.second, type, SF, convLength, countertotal);
+        //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
+        h_numSymmetryFunctionsPerElement(type) = countertotal[type];
     }
 
     log << "Abbreviations:\n";
@@ -378,7 +380,7 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
          it != elements.end(); ++it)
     {
         int attype = it->getIndex();
-        //it->sortSymmetryFunctions(t_SF SF);
+        it->sortSymmetryFunctions(SF, h_numSymmetryFunctionsPerElement, attype);
         maxCutoffRadius = max(it->getMaxCutoffRadius(SF,attype,countertotal), maxCutoffRadius);
         it->setCutoffFunction(cutoffType, cutoffAlpha, SF, attype, countertotal);
         log << strpr("Short range atomic symmetry functions element %2s :\n",
@@ -392,8 +394,6 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
         log << it->infoSymmetryFunctionParameters(SF, attype, countertotal);
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
-        h_numSymmetryFunctionsPerElement(attype) = countertotal[attype];
     }
     minNeighbors.resize(numElements, 0);
     minCutoffRadius.resize(numElements, maxCutoffRadius);
@@ -535,7 +535,7 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
         log << " ind       min       max      mean     sigma        sf  Smin  Smax t\n";
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        log << it->infoSymmetryFunctionScaling(scalingType, SFscaling, attype, countertotal);
+        log << it->infoSymmetryFunctionScaling(scalingType, SF, SFscaling, attype, countertotal);
         log << "-----------------------------------------"
                "--------------------------------------\n";
         lines.erase(lines.begin(), lines.begin() + it->numSymmetryFunctions(attype, countertotal));
@@ -832,9 +832,13 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     Cabana::deep_copy(G,0.0); 
 
     // Calculate symmetry functions (and derivatives).
-    //calculateSFGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, neigh_list, i, countergtotal); 
-    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const size_t i) 
+    //calculateSFGroups(s, nnp_data, SF, SFscaling, SFGmemberlist, attype, neigh_list, i, countergtotal);
+    //Eval functor;
+    //Kokkos::parallel_for (s->N_local, functor);
+    //Kokkos::fence();
+    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const int i) 
     {
+        printf("looping over atom %d %d\n", i, id(i)-1);
         int attype = type(i);
         // Check if atom has low number of neighbors.
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
@@ -845,7 +849,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
             int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
             double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
             int size;
-            int memberindex;
+            int memberindex, globalIndex;
             for (int l=0; l < MAX_SF; ++l)
             {
                 if (d_SFGmemberlist(attype,groupIndex,l) == 0 && d_SFGmemberlist(attype,groupIndex,l+1) == 0)
@@ -879,22 +883,27 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                     double temp = tanh(1.0 - rij / rc);
                     double temp2 = temp * temp;
                     pfc = temp * temp2;
+                    //std::cout << "Members: " << std::endl;
                     for (size_t k = 0; k < size; ++k) 
                     {
+                        globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
                         double eta = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 4);
                         double rs = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 8);
                         double pexp = exp(-eta * (rij - rs) * (rij - rs));
-                        G(i,d_SFGmemberlist(attype,groupIndex,k)) += pexp*pfc;
+                        G(i,globalIndex) += pexp*pfc;
+                        //std::cout << d_SFGmemberlist(attype,groupIndex,k) << " " << globalIndex << " " << eta << " " << rs << " " << pexp << " " << pfc << " " << pexp*pfc << std::endl;
                     }
+                    //std::cout << std::endl;
                 }
             }
             double raw_value, scaled_value;
             for (size_t k = 0; k < size; ++k)
             {
+                globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
                 memberindex = d_SFGmemberlist(attype,groupIndex,k);
-                raw_value = G(i,memberindex); 
+                raw_value = G(i,globalIndex);
                 scaled_value = scale(attype, raw_value, memberindex, d_SFscaling);
-                G(i,memberindex) = scaled_value;
+                G(i,globalIndex) = scaled_value;
             }
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
@@ -902,7 +911,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
               int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
               int e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
               double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              int size, memberindex, curr_index, next_index;
+              int size, memberindex, curr_index, next_index,globalIndex;
               for (int l=0; l < MAX_SF; ++l)
               {
                   curr_index = d_SFGmemberlist(attype,groupIndex,l);
@@ -991,6 +1000,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                                       double eta, lambda, zeta, rs;
                                       for (size_t l = 0; l < size; ++l)
                                       {
+                                        globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,l),14);
                                         memberindex = d_SFGmemberlist(attype,groupIndex,l);
                                         eta = d_SF(attype,memberindex,4);
                                         lambda = d_SF(attype,memberindex,5);
@@ -1010,7 +1020,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                                         if (plambda <= 0.0) fg = 0.0;
                                         else
                                             fg *= pow(plambda, (zeta - 1.0));
-                                        G(i,memberindex) += fg * plambda * pfc;
+                                        G(i,globalIndex) += fg * plambda * pfc;
                                       } // l
                                   } // rjk <= rc
                               } // rik <= rc
@@ -1020,12 +1030,16 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
               } // j
 
               double raw_value = 0.0;
+              //std::cout << "placing ";
               for (size_t k = 0; k < size; ++k)
               {
+                  globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
                   memberindex = d_SFGmemberlist(attype,groupIndex,k);
-                  raw_value = G(i,memberindex) * pow(2,(1-d_SF(attype,memberindex,6))); 
-                  G(i,memberindex) = scale(attype, raw_value, memberindex, d_SFscaling);
+                  raw_value = G(i,globalIndex) * pow(2,(1-d_SF(attype,memberindex,6))); 
+                  G(i,globalIndex) = scale(attype, raw_value, memberindex, d_SFscaling);
+                  //std::cout << G(i,globalIndex) << " ";
               }
+              //std::cout << std::endl;
           }
         }
     });
@@ -1036,14 +1050,15 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
       for (int k=0; k < 3; ++k)
         std::cout << x(i,k) << " ";
       std::cout << std::endl;
-    }
-    for (int i=0; i < 3; ++i)
+    }*/
+    
+    for (int i=0; i < s->N_local; ++i)
     {
-      std::cout << "G: " ;
+      std::cout << "G for atom " << i << " : ";
       for (int k=0; k < 30; ++k)
         std::cout << G(i,k) << " ";
       std::cout << std::endl;
-    }*/
+    }
 } 
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement)
@@ -1058,15 +1073,19 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     //deep copy into device Views
     Kokkos::deep_copy(bias, h_bias);
     Kokkos::deep_copy(weights, h_weights);
-
-    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const size_t atomindex)
+    Kokkos::View<T_FLOAT**> NN("Mode::NN",numLayers,maxNeurons);
+    Kokkos::View<T_FLOAT**> dfdx("Mode::dfdx",numLayers,maxNeurons);
+    Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const int atomindex)
     {
-        double** NN = new double*[numLayers];
-        double** dfdx = new double*[numLayers];
-        for (int i = 0; i < numLayers; i++)
+        //double** NN = new double*[numLayers];
+        //double** dfdx = new double*[numLayers];
+        for (int i = 0; i < numLayers; ++i)
         {
-            NN[i] = new double[maxNeurons];
-            dfdx[i] = new double[maxNeurons];
+            for (int j = 0; j < maxNeurons; ++j)
+            {
+                NN(i,j) = 0.0;
+                dfdx(i,j) = 0.0; 
+            }
         }
 
         int attype = type(atomindex);
@@ -1075,7 +1094,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         layer_0 = (int)numSymmetryFunctionsPerElement(attype);
         
         for (int k = 0; k < layer_0; ++k)
-            NN[0][k] = G(atomindex,k);
+            NN(0,k) = G(atomindex,k);
         //forward propagation
         for (int l = 1; l < numLayers; l++)
         {
@@ -1084,30 +1103,36 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
             if (l == 1) layer_lminusone = layer_0;
             else layer_lminusone = numNeuronsPerLayer[l-1];
             double dtmp;
+            //printf("Layer: %d\n", l);
             for (int i = 0; i < numNeuronsPerLayer[l]; i++)
             {
                 dtmp = 0.0;
                 for (int j = 0; j < layer_lminusone; j++)
-                    dtmp += weights(attype,l-1,i,j) * NN[l-1][j];
+                    dtmp += weights(attype,l-1,i,j) * NN(l-1,j);
                 dtmp += bias(attype,l-1,i);
                 //if (normalizeNeurons) dtmp /= numNeuronsPerLayer[l-1];
 
                 if (AF[l] == 0)
                 {
-                    NN[l][i] = dtmp;
-                    dfdx[l][i] = 1.0; 
+                    NN(l,i) = dtmp;
+                    dfdx(l,i) = 1.0; 
+                    //printf("Entered linear atom %d\n",atomindex);
                 }
                 else if (AF[l] == 1)
                 {
                     dtmp = tanh(dtmp);
-                    NN[l][i]  = dtmp;
-                    dfdx[l][i] = 1.0 - dtmp * dtmp;
+                    //printf("tanh %f\n",dtmp);
+                    NN(l,i)  = dtmp;
+                    //printf("Entered tanh atom %d\n",atomindex);
+                    dfdx(l,i) = 1.0 - dtmp * dtmp;
                 }
             }
         }
         
-        energy(atomindex) = NN[numLayers-1][0]; 
-
+        //printf("Almost there\n");
+        energy(atomindex) = NN(numLayers-1, 0); 
+        //printf("Calculated energy\n");
+        
         //derivative of network w.r.t NN inputs
         double** inner = new double*[numHiddenLayers];
         double** outer = new double*[numHiddenLayers];
@@ -1119,7 +1144,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         for (int k = 0; k < numNeuronsPerLayer[0]; k++)
         {
             for (int i = 0; i < numNeuronsPerLayer[1]; i++)
-                inner[0][i] = weights(attype,0,i,k) * dfdx[1][i]; 
+                inner[0][i] = weights(attype,0,i,k) * dfdx(1,i); 
             
             for (int l = 1; l < numHiddenLayers+1; l++)
             {
@@ -1129,13 +1154,13 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
                     
                     for (int i1 = 0; i1 < numNeuronsPerLayer[l]; i1++)
                         outer[l-1][i2] += weights(attype,l,i2,i1) * inner[l-1][i1];
-                    outer[l-1][i2] *= dfdx[l+1][i2];
+                    outer[l-1][i2] *= dfdx(l+1,i2);
                     
                     if (l < numHiddenLayers)
                       inner[l][i2] = outer[l-1][i2];
                 }
             }
-            dEdG(atomindex,k) = outer[numHiddenLayers-1][0];
+            dEdG(id(atomindex),k) = outer[numHiddenLayers-1][0];
         }
 
         for (int i = 0; i < numHiddenLayers; i++)
@@ -1146,16 +1171,22 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         delete[] inner;
         delete[] outer;
         
-        for (int i = 0; i < numLayers; i++)
-        {
-            delete[] NN[i];
-            delete[] dfdx[i];
-        }
-        delete[] NN;
-        delete[] dfdx;
-
     });
     Kokkos::fence();
+    for (int i=0; i < 3; ++i)
+    {
+      std::cout << "E: " ;
+      for (int k=0; k < 1; ++k)
+        std::cout << energy(i) << " ";
+      std::cout << std::endl;
+    }
+    for (int i=0; i < 3; ++i)
+    {
+      std::cout << "dEdG: " ;
+      for (int k=0; k < 30; ++k)
+        std::cout << dEdG(i,k) << " ";
+      std::cout << std::endl;
+    }
 }
 
 
@@ -1174,16 +1205,17 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     double convForce = 1.0;
     if (s->normalize)
       convForce = convLength/convEnergy;
-    
+   
+    Kokkos::View<T_FLOAT*> dGdr("Mode::dGdr",s->N_local*MAX_SF*3);
     Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
         
         int attype = type(i); 
         int jnum = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
         int nsym = numSymmetryFunctionsPerElement(type(i));
-        double *dGdr = new double[(jnum+1)*nsym*3];
+        //double *dGdr = new double[(jnum+1)*nsym*3];
         for (int tt=0; tt < (jnum+1)*nsym*3; tt++) 
-            dGdr[tt] = 0;
+            dGdr(tt) = 0;
         
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
@@ -1191,7 +1223,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
           {
               int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
               double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              int size, memberindex, curr_index, next_index;
+              int size, memberindex, curr_index, next_index, globalIndex;
               for (int l=0; l < MAX_SF; ++l)
               {
                   curr_index = d_SFGmemberlist(attype,groupIndex,l);
@@ -1232,6 +1264,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                       double eta, rs;
                       for (size_t k = 0; k < size; ++k) 
                       {
+                          globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
                           memberindex = d_SFGmemberlist(attype,groupIndex,k);
                           eta = d_SF(attype, memberindex, 4);
                           rs = d_SF(attype, memberindex, 8);
@@ -1240,13 +1273,13 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           double const p1 = d_SFscaling(attype,memberindex,6) * 
                             (pdfc - 2.0 * eta * (rij - rs) * pfc) * pexp / rij;
                           //printf("Add: %f %f %f\n",p1*dxij, p1*dyij, p1*dzij); 
-                          dGdr[jnum*nsym*3 + memberindex*3 + 0] += (p1*dxij);
-                          dGdr[jnum*nsym*3 + memberindex*3 + 1] += (p1*dyij);
-                          dGdr[jnum*nsym*3 + memberindex*3 + 2] += (p1*dzij);
+                          dGdr(jnum*nsym*3 + globalIndex*3 + 0) += (p1*dxij);
+                          dGdr(jnum*nsym*3 + globalIndex*3 + 1) += (p1*dyij);
+                          dGdr(jnum*nsym*3 + globalIndex*3 + 2) += (p1*dzij);
 
-                          dGdr[jj*nsym*3 + memberindex*3 + 0] -= (p1*dxij);
-                          dGdr[jj*nsym*3 + memberindex*3 + 1] -= (p1*dyij);
-                          dGdr[jj*nsym*3 + memberindex*3 + 2] -= (p1*dzij);
+                          dGdr(jj*nsym*3 + globalIndex*3 + 0) -= (p1*dxij);
+                          dGdr(jj*nsym*3 + globalIndex*3 + 1) -= (p1*dyij);
+                          dGdr(jj*nsym*3 + globalIndex*3 + 2) -= (p1*dzij);
                           //std::cout << "dGdr i: " << i << " " << memberindex << " " << jnum*nsym*3 + memberindex*3 + 0 << " " << dGdr[jnum*nsym*3 + memberindex*3 + 0] << " " << dGdr[jnum*nsym*3 + memberindex*3 + 1] << " " << dGdr[jnum*nsym*3 + memberindex*3 + 2] << std::endl;
                           //std::cout << "dGdr j: " << jj << " " << memberindex << " " << jj*nsym*3 + memberindex*3 + 0 << " " << dGdr[jj*nsym*3 + memberindex*3 + 0] << " " << dGdr[jj*nsym*3 + memberindex*3 + 1] << " " << dGdr[jj*nsym*3 + memberindex*3 + 2] << std::endl;
                       }
@@ -1258,7 +1291,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
               int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
               int e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
               double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              int size, memberindex, curr_index, next_index;
+              int size, memberindex, curr_index, next_index, globalIndex;
               for (int l=0; l < MAX_SF; ++l)
               {
                   curr_index = d_SFGmemberlist(attype,groupIndex,l);
@@ -1357,6 +1390,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                                       double rs, eta, lambda, zeta;
                                       for (size_t l = 0; l < size; ++l)
                                       {
+                                        globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,l),14);
                                         memberindex = d_SFGmemberlist(attype,groupIndex,l);
                                         rs = d_SF(attype,memberindex,8);
                                         eta = d_SF(attype,memberindex,4);
@@ -1405,17 +1439,19 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                                             p3 = fg * (pfczl * (rinvijik + p2etapl)
                                                - pr3 * plambda);
                                         }
-                                        dGdr[jnum*nsym*3 + memberindex*3 + 0] += (p1*dxij + p2*dxik);
-                                        dGdr[jnum*nsym*3 + memberindex*3 + 1] += (p1*dyij + p2*dyik);
-                                        dGdr[jnum*nsym*3 + memberindex*3 + 2] += (p1*dzij + p2*dzik);
+                                        //printf("Add: %f %f %f\n",p1*dxij + p2*dxik, p1*dyij + p2*dyik, p1*dzij + p2*dzik); 
+                                        dGdr(jnum*nsym*3 + globalIndex*3 + 0) += (p1*dxij + p2*dxik);
+                                        dGdr(jnum*nsym*3 + globalIndex*3 + 1) += (p1*dyij + p2*dyik);
+                                        dGdr(jnum*nsym*3 + globalIndex*3 + 2) += (p1*dzij + p2*dzik);
+                                        //std::cout << "dGdr: " << i << " " << memberindex << " " << globalIndex << " " << dGdr[jnum*nsym*3 + globalIndex*3 + 0] << " " << dGdr[jnum*nsym*3 + globalIndex*3 + 1] << " " << dGdr[jnum*nsym*3 + globalIndex*3 + 2] << std::endl; 
 
-                                        dGdr[jj*nsym*3 + memberindex*3 + 0] -= (p1*dxij + p3*dxjk);
-                                        dGdr[jj*nsym*3 + memberindex*3 + 1] -= (p1*dyij + p3*dyjk);
-                                        dGdr[jj*nsym*3 + memberindex*3 + 2] -= (p1*dzij + p3*dzjk);
+                                        dGdr(jj*nsym*3 + globalIndex*3 + 0) -= (p1*dxij + p3*dxjk);
+                                        dGdr(jj*nsym*3 + globalIndex*3 + 1) -= (p1*dyij + p3*dyjk);
+                                        dGdr(jj*nsym*3 + globalIndex*3 + 2) -= (p1*dzij + p3*dzjk);
 
-                                        dGdr[kk*nsym*3 + memberindex*3 + 0] -= (p2*dxik - p3*dxjk);
-                                        dGdr[kk*nsym*3 + memberindex*3 + 1] -= (p2*dyik - p3*dyjk);
-                                        dGdr[kk*nsym*3 + memberindex*3 + 2] -= (p2*dzik - p3*dzjk);
+                                        dGdr(kk*nsym*3 + globalIndex*3 + 0) -= (p2*dxik - p3*dxjk);
+                                        dGdr(kk*nsym*3 + globalIndex*3 + 1) -= (p2*dyik - p3*dyjk);
+                                        dGdr(kk*nsym*3 + globalIndex*3 + 2) -= (p2*dzik - p3*dzjk);
                                       } // l
                                   } // rjk <= rc
                               } // rik <= rc
@@ -1433,27 +1469,26 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
             int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
             for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
             {
-                //std::cout << "dGdr: " << j << " " << k << " " << dGdr(j,k,0) << " " << dGdr(j,k,1) << " " << dGdr(j,k,2) << std::endl; 
-                f_a(j,0) -= (dEdG(i,k) * dGdr[jj*nsym*3 + k*3 + 0] * s->cfforce * convForce);
-                f_a(j,1) -= (dEdG(i,k) * dGdr[jj*nsym*3 + k*3 + 1] * s->cfforce * convForce);
-                f_a(j,2) -= (dEdG(i,k) * dGdr[jj*nsym*3 + k*3 + 2] * s->cfforce * convForce);
+                //std::cout << "dGdr: " << j << " " << k << " " << dGdr(j,k,0) << " " << dGdr(j,k,1) << " " << dGdr(j,k,2) << std::endl;
+                f_a(j,0) -= (dEdG(i,k) * dGdr(jj*nsym*3 + k*3 + 0) * s->cfforce * convForce);
+                f_a(j,1) -= (dEdG(i,k) * dGdr(jj*nsym*3 + k*3 + 1) * s->cfforce * convForce);
+                f_a(j,2) -= (dEdG(i,k) * dGdr(jj*nsym*3 + k*3 + 2) * s->cfforce * convForce);
             }
         }
         
         for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
         {
-            //std::cout << "dGdr: " << i << " " << k << " " << dGdr(i,k,0) << " " << dGdr(i,k,1) << " " << dGdr(i,k,2) << std::endl; 
-            f_a(i,0) -= (dEdG(i,k) * dGdr[jnum*nsym*3 + k*3 + 0] * s->cfforce * convForce);
-            f_a(i,1) -= (dEdG(i,k) * dGdr[jnum*nsym*3 + k*3 + 1] * s->cfforce * convForce);
-            f_a(i,2) -= (dEdG(i,k) * dGdr[jnum*nsym*3 + k*3 + 2] * s->cfforce * convForce);
+            f_a(i,0) -= (dEdG(i,k) * dGdr(jnum*nsym*3 + k*3 + 0) * s->cfforce * convForce);
+            f_a(i,1) -= (dEdG(i,k) * dGdr(jnum*nsym*3 + k*3 + 1) * s->cfforce * convForce);
+            f_a(i,2) -= (dEdG(i,k) * dGdr(jnum*nsym*3 + k*3 + 2) * s->cfforce * convForce);
         }
-        delete [] dGdr;
+        //delete [] dGdr;
     });
     
     Kokkos::fence();
-    printf("%f %f %f\n", f(0,0), f(0,1), f(0,2));    
-    printf("%f %f %f\n", f(1,0), f(1,1), f(1,2));    
-    printf("%f %f %f\n", f(2,0), f(2,1), f(2,2));    
+    printf("%d %f %f %f\n", id(0), f(0,0), f(0,1), f(0,2));    
+    printf("%d %f %f %f\n", id(1), f(1,0), f(1,1), f(1,2));    
+    printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
     return;
 }
 

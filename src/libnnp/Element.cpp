@@ -111,6 +111,9 @@ void Element::addSymmetryFunction(string const& parameters,
           e1 = e2; 
           e2 = tmp;
       }
+      SF(attype,countertotal[attype],2) = e1;
+      SF(attype,countertotal[attype],3) = e2;
+      
       T_FLOAT zeta = SF(attype,countertotal[attype],6);
       T_INT zetaInt = round(zeta);
       if (fabs(zeta - zetaInt) <= numeric_limits<double>::min())
@@ -140,30 +143,109 @@ void Element::addSymmetryFunction(string const& parameters,
 }
 
 
-void Element::sortSymmetryFunctions(t_SF SF)
+void Element::sortSymmetryFunctions(t_SF SF, h_t_mass h_numSymmetryFunctionsPerElement, int attype) 
 {
-    /*sort(symmetryFunctions.begin(),
-         symmetryFunctions.end(),
-         comparePointerTargets<SymmetryFunction>);
-
-    for (size_t i = 0; i < symmetryFunctions.size(); ++i)
+    //print initial index
+    int size = h_numSymmetryFunctionsPerElement(attype);
+    int *SFvector = new int[size]; 
+    //std::cout << "initial index: ";
+    for (int i = 0; i < size; ++i)
     {
-        symmetryFunctions.at(i)->setIndex(i);
-    }*/
+      SFvector[i] = i;
+      //std::cout << SFvector[i]+1 << " "; 
+    }
+    //std::cout << std::endl; 
 
+    //naive insertion sort
+    
+    int i,j,tmp;
+    for (i = 1; i < size; ++i)
+    {
+      j = i;
+      //explicit condition for sort
+      while (j > 0 && compareSF(SF,attype,SFvector[j-1],SFvector[j]))
+      {
+        tmp = SFvector[j];
+        SFvector[j] = SFvector[j-1];
+        SFvector[j-1] = tmp;
+        --j;
+      }
+    }
+
+    std::cout << "final index: ";
+    int tmpindex;
+    for (int i = 0; i < size; ++i)
+    {
+      SF(attype,i,13) = SFvector[i];
+      tmpindex = SF(attype,i,13);
+      SF(attype,tmpindex,14) = i;
+      std::cout << SF(attype,i,13)+1 << " "; 
+    } 
+    std::cout << std::endl;
+    
+    std::cout << "final index: ";
+    for (int i = 0; i < size; ++i)
+    {
+      std::cout << SF(attype,i,14)+1 << " "; 
+    } 
+    std::cout << std::endl;
+    delete [] SFvector;
     return;
+}
+
+bool Element::compareSF(t_SF SF, int attype, int index1, int index2)
+{
+    if (SF(attype,index2,0) < SF(attype,index1,0)) return true; //ec
+    else if (SF(attype,index2,0) > SF(attype,index1,0)) return false;
+    
+    if (SF(attype,index2,1) < SF(attype,index1,1)) return true; //type
+    else if (SF(attype,index2,1) > SF(attype,index1,1)) return false;
+    
+    if (SF(attype,index2,11) < SF(attype,index1,11)) return true; //cutofftype
+    else if (SF(attype,index2,11) > SF(attype,index1,11)) return false;
+    
+    if (SF(attype,index2,12) < SF(attype,index1,12)) return true; //cutoffalpha
+    else if (SF(attype,index2,12) > SF(attype,index1,12)) return false;
+    
+    if (SF(attype,index2,7) < SF(attype,index1,7)) return true; //rc
+    else if (SF(attype,index2,7) > SF(attype,index1,7)) return false;
+    
+    if (SF(attype,index2,4) < SF(attype,index1,4)) return true; //eta
+    else if (SF(attype,index2,4) > SF(attype,index1,4)) return false;
+    
+    if (SF(attype,index2,8) < SF(attype,index1,8)) return true; //rs
+    else if (SF(attype,index2,8) > SF(attype,index1,8)) return false;
+    
+    if (SF(attype,index2,6) < SF(attype,index1,6)) return true; //zeta
+    else if (SF(attype,index2,6) > SF(attype,index1,6)) return false;
+    
+    if (SF(attype,index2,5) < SF(attype,index1,5)) return true; //lambda
+    else if (SF(attype,index2,5) > SF(attype,index1,5)) return false;
+
+    if (SF(attype,index2,2) < SF(attype,index1,2)) return true; //e1
+    else if (SF(attype,index2,2) > SF(attype,index1,2)) return false;
+    
+    if (SF(attype,index2,3) < SF(attype,index1,3)) return true; //e2
+    else if (SF(attype,index2,3) > SF(attype,index1,3)) return false;
+    
+    else return false;
 }
 
 vector<string> Element::infoSymmetryFunctionParameters(t_SF SF, int attype, int (&countertotal)[2]) const
 {
     vector<string> v;
     string pushstring = "";
-
+    int index;
+    float writestring;
     for (int i = 0; i < countertotal[attype]; ++i)
     {
+        index = SF(attype,i,13);
         //TODO: improve function
-        for (int j = 0; j < 12 ; ++j)
-          pushstring += to_string(SF(attype,i,j)) + " ";
+        for (int j = 1; j < 12 ; ++j)
+        {
+          writestring = SF(attype,index,j);
+          pushstring += to_string(writestring) + " ";
+        }
         pushstring += "\n"; 
     }
     v.push_back(pushstring);
@@ -171,43 +253,50 @@ vector<string> Element::infoSymmetryFunctionParameters(t_SF SF, int attype, int 
     return v;
 }
 
-vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const
+vector<string> Element::infoSymmetryFunctionScaling(ScalingType scalingType, t_SF SF, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const
 {
     vector<string> v;
+    int index;
     for (int k = 0; k < countertotal[attype]; ++k)
-        v.push_back(scalingLine(scalingType, SFscaling, attype, k));
+    {
+        index = SF(attype,k,13);
+        v.push_back(scalingLine(scalingType, SFscaling, attype, index));
+    }
     return v;
 }
 
 void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2])
 {
-    int countergR = 0, countergAN = 0;
+    int *countergR = new int[countergtotal[attype]];
+    int *countergAN = new int[countergtotal[attype]];
+    int SFindex;
     for (int k = 0; k < countertotal[attype]; ++k)
     {
         bool createNewGroup = true;
+        SFindex = SF(attype,k,13);
         for (int l = 0; l < countergtotal[attype]; ++l)
         {
-            if (( SF(attype,k,0) == SF(attype,SFGmemberlist(attype,l,0),0) ) && //same ec
-                ( SF(attype,k,2) == SF(attype,SFGmemberlist(attype,l,0),2) ) && //same e1
-                ( SF(attype,k,3) == SF(attype,SFGmemberlist(attype,l,0),3) ) && //same e2
-                ( SF(attype,k,7) == SF(attype,SFGmemberlist(attype,l,0),7) ) && //same rc 
-                ( SF(attype,k,11) == SF(attype,SFGmemberlist(attype,l,0),11) ) && //same cutoffType 
-                ( SF(attype,k,12) == SF(attype,SFGmemberlist(attype,l,0),12) ))    //same cutoffAlpha
+            if (( SF(attype,SFindex,0) == SF(attype,SFGmemberlist(attype,l,0),0) ) && //same ec
+                ( SF(attype,SFindex,2) == SF(attype,SFGmemberlist(attype,l,0),2) ) && //same e1
+                ( SF(attype,SFindex,3) == SF(attype,SFGmemberlist(attype,l,0),3) ) && //same e2
+                ( SF(attype,SFindex,7) == SF(attype,SFGmemberlist(attype,l,0),7) ) && //same rc 
+                ( SF(attype,SFindex,11) == SF(attype,SFGmemberlist(attype,l,0),11) ) && //same cutoffType 
+                ( SF(attype,SFindex,12) == SF(attype,SFGmemberlist(attype,l,0),12) ))    //same cutoffAlpha
             {
                 createNewGroup = false;
-                if (SF(attype,k,1)==2)
+                if (SF(attype,SFindex,1)==2)
                 {
-                    SFGmemberlist(attype,l,countergR) = SF(attype,k,13);
-                    //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
-                    countergR++;
+                    SFGmemberlist(attype,l,countergR[l]) = SFindex; 
+                    std::cout << "Added SF " << SFindex+1 << " with global index " << SF(attype,SFindex,14) << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+                    countergR[l]++;
                     break;
                 }
             
-                else if (SF(attype,k,1)==3)
+                else if (SF(attype,SFindex,1)==3)
                 {
-                    SFGmemberlist(attype,l,countergAN) = SF(attype,k,13);
-                    //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
-                    countergAN++;
+                    SFGmemberlist(attype,l,countergAN[l]) = SFindex; 
+                    std::cout << "Added SF " << SFindex+1 << " with global index " << SF(attype,SFindex,14) << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+                    countergAN[l]++;
                     break;
                 }
             }
@@ -218,22 +307,30 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
             //printf("Creating new group\n");
             int l = countergtotal[attype];
             countergtotal[attype]++;
-            if (SF(attype,k,1)==2)
+            if (SF(attype,SFindex,1)==2)
             {
-              countergR = 0;
-              SFGmemberlist(attype,l,countergR) = SF(attype,k,13);
-              //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
-              countergR++;
+              countergR[l] = 0;
+              SFGmemberlist(attype,l,countergR[l]) = SFindex; 
+              std::cout << "Added SF " << SFindex+1 << " with global index " << SF(attype,SFindex,14) << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+              countergR[l]++;
             }
-            else if (SF(attype,k,1)==3)
+            else if (SF(attype,SFindex,1)==3)
             {
-              countergAN = 0;
-              SFGmemberlist(attype,l,countergAN) = SF(attype,k,13);
-              //std::cout << "Added SF " << k+1 << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
-              countergAN++;
+              countergAN[l] = 0;
+              SFGmemberlist(attype,l,countergAN[l]) = SFindex; 
+              std::cout << "Added SF " << SFindex+1 << " with global index " << SF(attype,SFindex,14) << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
+              countergAN[l]++;
             }
         }
     }
+            std::cout << "Members: ";
+            for (size_t k = 0; k < 30; ++k) 
+            {
+                std::cout << SFGmemberlist(attype,0,k) << " ";
+            }
+            std::cout << std::endl;
+
+    //TODO: naive insertion sort
     /*sort(symmetryFunctionGroups.begin(),
          symmetryFunctionGroups.end(),
          comparePointerTargets<SymmetryFunctionGroup>);
@@ -276,9 +373,12 @@ void Element::setCutoffFunction(CutoffFunction::CutoffType const cutoffType,
 void Element::setScaling(ScalingType scalingType, vector<string> const& statisticsLine,
                          double Smin, double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const
 {
+    int index;
     for (int k = 0; k < countertotal[attype]; ++k)
-        setScalingType(scalingType,statisticsLine.at(k),Smin,Smax,SF,SFscaling,attype,k);
-   
+    {
+        index = SF(attype,k,13);
+        setScalingType(scalingType,statisticsLine.at(k),Smin,Smax,SF,SFscaling,attype,index);
+    } 
     //TODO: groups 
     //for (int k = 0; k < countertotal[attype]; ++k)
     //    setScalingFactors(SF,attype,k);

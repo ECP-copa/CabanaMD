@@ -76,11 +76,12 @@ public:
                                                             double convLength);
     /** Sort all symmetry function.
      */
-    void                     sortSymmetryFunctions(t_SF SF);
+    void sortSymmetryFunctions(t_SF SF, h_t_mass h_numSymmetryFunctionsPerElement, int attype); 
     /** Print symmetry function parameter value information.
      */
+    bool compareSF(t_SF SF, int attype, int index1, int index2);
     vector<string> infoSymmetryFunctionParameters(t_SF SF, int attype, int (&countertotal)[2]) const;
-    vector<string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
+    vector<string> infoSymmetryFunctionScaling(ScalingType scalingType, t_SF SF, t_SFscaling SFscaling, int attype, int (&countertotal)[2]) const;
     /** Set up symmetry function groups.
      */
     void setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist, int attype, int (&countertotal)[2], int (&countergtotal)[2]);
@@ -210,6 +211,7 @@ inline string Element::getSymbol() const
 
 inline size_t Element::numSymmetryFunctions(int attype, int (&countertotal)[2]) const
 {
+    std::cout << "countertotal: " << countertotal[0] << " " << countertotal[1] << " " << attype << " " << countertotal[attype] << std::endl;
     return countertotal[attype];
 }
 

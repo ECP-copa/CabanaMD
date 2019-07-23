@@ -379,6 +379,14 @@ public:
 
     int countertotal[2] = {0,0};
     int countergtotal[2] = {0,0};
+  
+    struct Eval
+    {
+       KOKKOS_INLINE_FUNCTION void operator() (const T_INT& i) const 
+       {
+          printf("looping over atom %d\n", i);
+       }
+    };
     
 protected:
     bool                          normalize;
