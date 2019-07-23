@@ -836,9 +836,11 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     //Eval functor;
     //Kokkos::parallel_for (s->N_local, functor);
     //Kokkos::fence();
+    for(int i = 0; i < 3; ++i)
+      printf("index: %d, ID: %d\n",i,id(i));
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const int i) 
     {
-        printf("looping over atom %d %d\n", i, id(i)-1);
+        //printf("looping over atom %d %d\n", i, id(i)-1);
         int attype = type(i);
         // Check if atom has low number of neighbors.
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
@@ -1052,13 +1054,13 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
       std::cout << std::endl;
     }*/
     
-    for (int i=0; i < s->N_local; ++i)
+    /*for (int i=0; i < s->N_local; ++i)
     {
       std::cout << "G for atom " << i << " : ";
       for (int k=0; k < 30; ++k)
         std::cout << G(i,k) << " ";
       std::cout << std::endl;
-    }
+    }*/
 } 
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement)
@@ -1075,6 +1077,10 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     Kokkos::deep_copy(weights, h_weights);
     Kokkos::View<T_FLOAT**> NN("Mode::NN",numLayers,maxNeurons);
     Kokkos::View<T_FLOAT**> dfdx("Mode::dfdx",numLayers,maxNeurons);
+
+    Kokkos::View<T_FLOAT**> inner("Mode::inner",numHiddenLayers,maxNeurons);
+    Kokkos::View<T_FLOAT**> outer("Mode::inner",numHiddenLayers,maxNeurons);
+
     Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const int atomindex)
     {
         //double** NN = new double*[numLayers];
@@ -1087,6 +1093,16 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
                 dfdx(i,j) = 0.0; 
             }
         }
+        
+        for (int i = 0; i < numHiddenLayers; i++)
+        {
+            for (int j = 0; j < maxNeurons; ++j)
+            {
+                inner(i,j) = 0.0;
+                outer(i,j) = 0.0; 
+            }
+        }
+    
 
         int attype = type(atomindex);
         //set input layer of NN
@@ -1134,42 +1150,42 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         //printf("Calculated energy\n");
         
         //derivative of network w.r.t NN inputs
-        double** inner = new double*[numHiddenLayers];
-        double** outer = new double*[numHiddenLayers];
-        for (int i = 0; i < numHiddenLayers; i++)
-        {
-            inner[i] = new double[numNeuronsPerLayer[i+1]];
-            outer[i] = new double[numNeuronsPerLayer[i+2]];
-        }
+        //double** inner = new double*[numHiddenLayers];
+        //double** outer = new double*[numHiddenLayers];
+        //for (int i = 0; i < numHiddenLayers; i++)
+        //{
+        //    inner[i] = new double[numNeuronsPerLayer[i+1]];
+        //    outer[i] = new double[numNeuronsPerLayer[i+2]];
+        //}
         for (int k = 0; k < numNeuronsPerLayer[0]; k++)
         {
             for (int i = 0; i < numNeuronsPerLayer[1]; i++)
-                inner[0][i] = weights(attype,0,i,k) * dfdx(1,i); 
+                inner(0,i) = weights(attype,0,i,k) * dfdx(1,i); 
             
             for (int l = 1; l < numHiddenLayers+1; l++)
             {
                 for (int i2 = 0; i2 < numNeuronsPerLayer[l+1]; i2++)
                 {
-                    outer[l-1][i2] = 0.0;
+                    outer(l-1,i2) = 0.0;
                     
                     for (int i1 = 0; i1 < numNeuronsPerLayer[l]; i1++)
-                        outer[l-1][i2] += weights(attype,l,i2,i1) * inner[l-1][i1];
-                    outer[l-1][i2] *= dfdx(l+1,i2);
+                        outer(l-1,i2) += weights(attype,l,i2,i1) * inner(l-1,i1);
+                    outer(l-1,i2) *= dfdx(l+1,i2);
                     
                     if (l < numHiddenLayers)
-                      inner[l][i2] = outer[l-1][i2];
+                      inner(l,i2) = outer(l-1,i2);
                 }
             }
-            dEdG(id(atomindex),k) = outer[numHiddenLayers-1][0];
+            dEdG(atomindex,k) = outer(numHiddenLayers-1,0);
         }
 
-        for (int i = 0; i < numHiddenLayers; i++)
+        /*for (int i = 0; i < numHiddenLayers; i++)
         {
             delete[] inner[i];
             delete[] outer[i];
         }
         delete[] inner;
-        delete[] outer;
+        delete[] outer;*/
         
     });
     Kokkos::fence();
