@@ -154,7 +154,8 @@ using AoSoA = Cabana::AoSoA<t_tuple,DeviceType,VECLEN>;
 using t_particle = Cabana::Tuple<t_tuple>;
 using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[MAX_SF], T_FLOAT[MAX_SF], T_FLOAT>;
 using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
-using t_dGdr = Kokkos::View<T_V_FLOAT*[MAX_SF][3],Kokkos::MemoryTraits<Kokkos::Atomic>>;
+using AoSoA_dGdr = Cabana::AoSoA<Cabana::MemberTypes<T_FLOAT>,MemorySpace,VECLEN>;
+using t_dGdr = Kokkos::View<T_V_FLOAT*,Kokkos::MemoryTraits<Kokkos::Atomic>>;
 
 
 typedef ExecutionSpace::array_layout array_layout; //TODO: check this
@@ -170,6 +171,7 @@ using d_t_bias = Kokkos::View<T_FLOAT***>;
 using t_bias = Kokkos::View<T_FLOAT***,array_layout,Kokkos::HostSpace>;
 using d_t_weights = Kokkos::View<T_FLOAT****>;
 using t_weights = Kokkos::View<T_FLOAT****,array_layout,Kokkos::HostSpace>;
+using d_t_NN = Kokkos::View<T_FLOAT***>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
 using t_verletlist_full_2D = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;

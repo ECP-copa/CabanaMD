@@ -364,9 +364,9 @@ public:
     t_SFGmemberlist SFGmemberlist;
     d_t_SFscaling d_SFscaling;
     t_SFscaling SFscaling;
-    t_dGdr dGdr;
    
     //NN data structures
+    d_t_NN NN,dfdx,inner,outer;
     d_t_bias bias; 
     d_t_weights weights; 
     t_bias h_bias;
@@ -379,6 +379,8 @@ public:
 
     int countertotal[2] = {0,0};
     int countergtotal[2] = {0,0};
+    
+    AoSoA_dGdr dGdr_aosoa;
   
     struct Eval
     {
@@ -387,6 +389,7 @@ public:
           printf("looping over atom %d\n", i);
        }
     };
+
     
 protected:
     bool                          normalize;
