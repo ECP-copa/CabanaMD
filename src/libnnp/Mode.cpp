@@ -1268,15 +1268,13 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           double const p1 = d_SFscaling(attype,memberindex,6) * 
                             (pdfc - 2.0 * eta * (rij - rs) * pfc) * pexp / rij;
                           //printf("Add: %f %f %f\n",p1*dxij, p1*dyij, p1*dzij); 
-                          dGdr_a(jnum*nsym*3 + globalIndex*3 + 0) += (p1*dxij);
-                          dGdr_a(jnum*nsym*3 + globalIndex*3 + 1) += (p1*dyij);
-                          dGdr_a(jnum*nsym*3 + globalIndex*3 + 2) += (p1*dzij);
+                          f_a(i,0) -= (dEdG(i,globalIndex) * (p1*dxij) * s->cfforce * convForce);
+                          f_a(i,1) -= (dEdG(i,globalIndex) * (p1*dyij) * s->cfforce * convForce);
+                          f_a(i,2) -= (dEdG(i,globalIndex) * (p1*dzij) * s->cfforce * convForce);
 
-                          dGdr_a(jj*nsym*3 + globalIndex*3 + 0) -= (p1*dxij);
-                          dGdr_a(jj*nsym*3 + globalIndex*3 + 1) -= (p1*dyij);
-                          dGdr_a(jj*nsym*3 + globalIndex*3 + 2) -= (p1*dzij);
-                          //std::cout << "dGdr i: " << i << " " << memberindex << " " << jnum*nsym*3 + memberindex*3 + 0 << " " << dGdr[jnum*nsym*3 + memberindex*3 + 0] << " " << dGdr[jnum*nsym*3 + memberindex*3 + 1] << " " << dGdr[jnum*nsym*3 + memberindex*3 + 2] << std::endl;
-                          //std::cout << "dGdr j: " << jj << " " << memberindex << " " << jj*nsym*3 + memberindex*3 + 0 << " " << dGdr[jj*nsym*3 + memberindex*3 + 0] << " " << dGdr[jj*nsym*3 + memberindex*3 + 1] << " " << dGdr[jj*nsym*3 + memberindex*3 + 2] << std::endl;
+                          f_a(j,0) += (dEdG(i,globalIndex) * (p1*dxij) * s->cfforce * convForce);
+                          f_a(j,1) += (dEdG(i,globalIndex) * (p1*dyij) * s->cfforce * convForce);
+                          f_a(j,2) += (dEdG(i,globalIndex) * (p1*dzij) * s->cfforce * convForce);
                       }
                   }
               }
@@ -1436,18 +1434,17 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                                                - pr3 * plambda);
                                         }
                                         //printf("Add: %f %f %f\n",p1*dxij + p2*dxik, p1*dyij + p2*dyik, p1*dzij + p2*dzik); 
-                                        dGdr_a(jnum*nsym*3 + globalIndex*3 + 0) += (p1*dxij + p2*dxik);
-                                        dGdr_a(jnum*nsym*3 + globalIndex*3 + 1) += (p1*dyij + p2*dyik);
-                                        dGdr_a(jnum*nsym*3 + globalIndex*3 + 2) += (p1*dzij + p2*dzik);
-                                        //std::cout << "dGdr: " << i << " " << memberindex << " " << globalIndex << " " << dGdr[jnum*nsym*3 + globalIndex*3 + 0] << " " << dGdr[jnum*nsym*3 + globalIndex*3 + 1] << " " << dGdr[jnum*nsym*3 + globalIndex*3 + 2] << std::endl; 
+                                        f_a(i,0) -= (dEdG(i,globalIndex) * (p1*dxij + p2*dxik) * s->cfforce * convForce);
+                                        f_a(i,1) -= (dEdG(i,globalIndex) * (p1*dyij + p2*dyik) * s->cfforce * convForce);
+                                        f_a(i,2) -= (dEdG(i,globalIndex) * (p1*dzij + p2*dzik) * s->cfforce * convForce);
 
-                                        dGdr_a(jj*nsym*3 + globalIndex*3 + 0) -= (p1*dxij + p3*dxjk);
-                                        dGdr_a(jj*nsym*3 + globalIndex*3 + 1) -= (p1*dyij + p3*dyjk);
-                                        dGdr_a(jj*nsym*3 + globalIndex*3 + 2) -= (p1*dzij + p3*dzjk);
-
-                                        dGdr_a(kk*nsym*3 + globalIndex*3 + 0) -= (p2*dxik - p3*dxjk);
-                                        dGdr_a(kk*nsym*3 + globalIndex*3 + 1) -= (p2*dyik - p3*dyjk);
-                                        dGdr_a(kk*nsym*3 + globalIndex*3 + 2) -= (p2*dzik - p3*dzjk);
+                                        f_a(j,0) += (dEdG(i,globalIndex) * (p1*dxij + p3*dxjk) * s->cfforce * convForce);
+                                        f_a(j,1) += (dEdG(i,globalIndex) * (p1*dyij + p3*dyjk) * s->cfforce * convForce);
+                                        f_a(j,2) += (dEdG(i,globalIndex) * (p1*dzij + p3*dzjk) * s->cfforce * convForce);
+                                        
+                                        f_a(k,0) += (dEdG(i,globalIndex) * (p2*dxik - p3*dxjk) * s->cfforce * convForce);
+                                        f_a(k,1) += (dEdG(i,globalIndex) * (p2*dyik - p3*dyjk) * s->cfforce * convForce);
+                                        f_a(k,2) += (dEdG(i,globalIndex) * (p2*dzik - p3*dzjk) * s->cfforce * convForce);
                                       } // l
                                   } // rjk <= rc
                               } // rik <= rc
@@ -1459,7 +1456,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
         }
         
         //Use computed dEdG and dGdr to calculate forces
-        int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+        /*int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
         for (size_t jj = 0; jj < num_neighs; ++jj)
         {
             int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
@@ -1477,7 +1474,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
             f_a(i,0) -= (dEdG(i,k) * dGdr_a(jnum*nsym*3 + k*3 + 0) * s->cfforce * convForce);
             f_a(i,1) -= (dEdG(i,k) * dGdr_a(jnum*nsym*3 + k*3 + 1) * s->cfforce * convForce);
             f_a(i,2) -= (dEdG(i,k) * dGdr_a(jnum*nsym*3 + k*3 + 2) * s->cfforce * convForce);
-        }
+        }*/
         //delete [] dGdr;
     });
     
