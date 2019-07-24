@@ -836,8 +836,8 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     //Eval functor;
     //Kokkos::parallel_for (s->N_local, functor);
     //Kokkos::fence();
-    for(int i = 0; i < 3; ++i)
-      printf("index: %d, ID: %d, type: %d\n",i,id(i)-1,type(i));
+    //for(int i = 0; i < 3; ++i)
+    //  printf("index: %d, ID: %d, type: %d\n",i,id(i)-1,type(i));
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const int i) 
     {
         //printf("looping over atom %d %d\n", i, id(i)-1);
@@ -1164,12 +1164,12 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         }
     });
     Kokkos::fence();
-    for (int i=0; i < 3; ++i)
+    /*for (int i=0; i < 3; ++i)
     {
       std::cout << "E for atom " << i << " with id " << id(i)-1 <<" : ";
       std::cout << energy(i) << " ";
       std::cout << std::endl;
-    }
+    }*/
     /*for (int i=0; i < 3; ++i)
     {
       std::cout << "dEdG for atom " << i << " with id " << id(i)-1 <<" : ";
@@ -1479,9 +1479,9 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     });
     
     Kokkos::fence();
-    printf("%d %f %f %f\n", id(0), f(0,0), f(0,1), f(0,2));    
-    printf("%d %f %f %f\n", id(1), f(1,0), f(1,1), f(1,2));    
-    printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
+    //printf("%d %f %f %f\n", id(0), f(0,0), f(0,1), f(0,2));    
+    //printf("%d %f %f %f\n", id(1), f(1,0), f(1,1), f(1,2));    
+    //printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
     return;
 }
 
