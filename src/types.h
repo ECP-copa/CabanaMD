@@ -164,8 +164,8 @@ using d_t_SF = Kokkos::View<T_FLOAT**[15]>;
 using t_SF = Kokkos::View<T_FLOAT**[15],array_layout,Kokkos::HostSpace>;
 using d_t_SFscaling = Kokkos::View<T_FLOAT**[8]>;
 using t_SFscaling = Kokkos::View<T_FLOAT**[8],array_layout,Kokkos::HostSpace>;
-using d_t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF]>; 
-using t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF][MAX_SF],array_layout,Kokkos::HostSpace>; 
+using d_t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF+1][MAX_SF+1]>; //+1 to store size of memberlist 
+using t_SFGmemberlist = Kokkos::View<T_INT*[MAX_SF+1][MAX_SF+1],array_layout,Kokkos::HostSpace>; 
     
 using d_t_bias = Kokkos::View<T_FLOAT***>;
 using t_bias = Kokkos::View<T_FLOAT***,array_layout,Kokkos::HostSpace>;

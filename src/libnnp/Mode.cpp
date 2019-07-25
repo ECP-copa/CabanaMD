@@ -790,34 +790,19 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
           {
             int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
             double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-            int size;
+            int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
             int memberindex, globalIndex;
-            for (int l=0; l < MAX_SF; ++l)
-            {
-                if (d_SFGmemberlist(attype,groupIndex,l) == 0 && d_SFGmemberlist(attype,groupIndex,l+1) == 0)
-                {
-                  size = l;
-                  break;
-                }
-            }
-            int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-            size_t numNeighbors = num_neighs;
             double pfc;
-            for (size_t jj = 0; jj < numNeighbors; ++jj)
+            for (size_t jj = 0; jj < num_neighs; ++jj)
             {
                 int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
                 size_t const nej = type(j);
                 T_F_FLOAT dxij = x(i,0) - x(j,0);
                 T_F_FLOAT dyij = x(i,1) - x(j,1);
                 T_F_FLOAT dzij = x(i,2) - x(j,2);
-                dxij *= s->cflength;
-                dyij *= s->cflength;
-                dzij *= s->cflength;
-                if (s->normalize) {
-                  dxij *= s->convLength;
-                  dyij *= s->convLength;
-                  dzij *= s->convLength;
-                }
+                dxij *= s->cflength * convLength;
+                dyij *= s->cflength * convLength;
+                dzij *= s->cflength * convLength;
                 double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                 double const rij = sqrt(r2ij); 
                 if (e1 == type(j) && rij < rc)
@@ -825,7 +810,6 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                     double temp = tanh(1.0 - rij / rc);
                     double temp2 = temp * temp;
                     pfc = temp * temp2;
-                    //std::cout << "Members: " << std::endl;
                     for (size_t k = 0; k < size; ++k) 
                     {
                         globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
@@ -833,9 +817,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                         double rs = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 8);
                         double pexp = exp(-eta * (rij - rs) * (rij - rs));
                         G(i,globalIndex) += pexp*pfc;
-                        //std::cout << d_SFGmemberlist(attype,groupIndex,k) << " " << globalIndex << " " << eta << " " << rs << " " << pexp << " " << pfc << " " << pexp*pfc << std::endl;
                     }
-                    //std::cout << std::endl;
                 }
             }
             double raw_value, scaled_value;
@@ -853,37 +835,20 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
               int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
               int e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
               double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              int size, memberindex, curr_index, next_index,globalIndex;
-              for (int l=0; l < MAX_SF; ++l)
-              {
-                  curr_index = d_SFGmemberlist(attype,groupIndex,l);
-                  next_index = d_SFGmemberlist(attype,groupIndex,l+1);
-                  if (curr_index == 0 && next_index == 0)
-                  {
-                    size = l;
-                    break;
-                  }
-              }
-              int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-              double const rc2 = rc * rc;
-              size_t numNeighbors = num_neighs; 
+              int size, memberindex, globalIndex;
+              size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
               // Prevent problematic condition in loop test below (j < numNeighbors - 1).
-              if (numNeighbors == 0) numNeighbors = 1;
-              for (size_t jj = 0; jj < numNeighbors - 1; jj++)
+              if (num_neighs == 0) num_neighs = 1;
+              for (size_t jj = 0; jj < num_neighs - 1; jj++)
               {
                   int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
                   size_t const nej = type(j);
                   T_F_FLOAT dxij = x(i,0) - x(j,0);
                   T_F_FLOAT dyij = x(i,1) - x(j,1);
                   T_F_FLOAT dzij = x(i,2) - x(j,2);
-                  dxij *= s->cflength;
-                  dyij *= s->cflength;
-                  dzij *= s->cflength;
-                  if (s->normalize) {
-                    dxij *= s->convLength;
-                    dyij *= s->convLength;
-                    dzij *= s->convLength;
-                  }
+                  dxij *= s->cflength * convLength;
+                  dyij *= s->cflength * convLength;
+                  dzij *= s->cflength * convLength;
                   double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                   double const rij = sqrt(r2ij);
                   if ((e1 == nej || e2 == nej) && rij < rc)
@@ -894,7 +859,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                       double temp2 = temp * temp;
                       pfcij = temp * temp2;
                       
-                      for (size_t kk = jj + 1; kk < numNeighbors; kk++)
+                      for (size_t kk = jj + 1; kk < num_neighs ; kk++)
                       {
                           int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
                           size_t const nek = type(k);
@@ -904,14 +869,9 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                               T_F_FLOAT dxik = x(i,0) - x(k,0);
                               T_F_FLOAT dyik = x(i,1) - x(k,1);
                               T_F_FLOAT dzik = x(i,2) - x(k,2);
-                              dxik *= s->cflength;
-                              dyik *= s->cflength;
-                              dzik *= s->cflength;
-                              if (s->normalize) {
-                                dxik *= s->convLength;
-                                dyik *= s->convLength;
-                                dzik *= s->convLength;
-                              }
+                              dxik *= s->cflength * convLength;
+                              dyik *= s->cflength * convLength;
+                              dzik *= s->cflength * convLength;
                               double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
                               double const rik = sqrt(r2ik);
                               if (rik < rc) 
@@ -920,7 +880,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                                   double dyjk = dyik - dyij;
                                   double dzjk = dzik - dzij;
                                   double r2jk = dxjk*dxjk + dyjk*dyjk + dzjk*dzjk; 
-                                  if (r2jk < rc2)
+                                  if (r2jk < rc*rc)
                                   {
                                       // Energy calculation.
                                       double pfcik;
@@ -972,35 +932,17 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
               } // j
 
               double raw_value = 0.0;
-              //std::cout << "placing ";
               for (size_t k = 0; k < size; ++k)
               {
                   globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
                   memberindex = d_SFGmemberlist(attype,groupIndex,k);
                   raw_value = G(i,globalIndex) * pow(2,(1-d_SF(attype,memberindex,6))); 
                   G(i,globalIndex) = scale(attype, raw_value, memberindex, d_SFscaling);
-                  //std::cout << G(i,globalIndex) << " ";
               }
-              //std::cout << std::endl;
           }
         }
     });
     Kokkos::fence();
-    /*for (int i=0; i < 3; ++i)
-    {
-      std::cout << "x: " ;
-      for (int k=0; k < 3; ++k)
-        std::cout << x(i,k) << " ";
-      std::cout << std::endl;
-    }*/
-    
-    /*for (int i=0; i < s->N_local; ++i)
-    {
-      std::cout << "G for atom " << i << " with id " << id(i)-1 <<" : ";
-      for (int k=0; k < 30; ++k)
-        std::cout << G(i,k) << " ";
-      std::cout << std::endl;
-    }*/
 } 
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement)
@@ -1104,19 +1046,6 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         }
     });
     Kokkos::fence();
-    /*for (int i=0; i < 3; ++i)
-    {
-      std::cout << "E for atom " << i << " with id " << id(i)-1 <<" : ";
-      std::cout << energy(i) << " ";
-      std::cout << std::endl;
-    }*/
-    /*for (int i=0; i < 3; ++i)
-    {
-      std::cout << "dEdG for atom " << i << " with id " << id(i)-1 <<" : ";
-      for (int k=0; k < 30; ++k)
-        std::cout << dEdG(i,k) << " ";
-      std::cout << std::endl;
-    }*/
 }
 
 
@@ -1139,53 +1068,36 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     
     double convForce = 1.0;
     if (s->normalize)
+    {
       convForce = convLength/convEnergy;
+    }
    
     Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
         
         int attype = type(i); 
-        int jnum = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-        int nsym = numSymmetryFunctionsPerElement(type(i));
-        //double *dGdr = new double[(jnum+1)*nsym*3];
         for (int tt=0; tt < (s->N)*MAX_SF*3; ++tt) 
             dGdr_a(tt) = 0;
         
+        int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
         for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
         {
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
           {
-              //printf("Radial\n");
               int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
               double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              int size, memberindex, curr_index, next_index, globalIndex;
-              for (int l=0; l < MAX_SF; ++l)
-              {
-                  curr_index = d_SFGmemberlist(attype,groupIndex,l);
-                  next_index = d_SFGmemberlist(attype,groupIndex,l+1);
-                  if (curr_index == 0 && next_index == 0)
-                  {
-                    size = l;
-                    break;
-                  }
-              }
-              int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-              size_t numNeighbors = num_neighs;
+              int size, memberindex, globalIndex;
+              size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
               double pfc, pdfc;
-              for (size_t jj = 0; jj < numNeighbors; ++jj)
+              for (size_t jj = 0; jj < num_neighs; ++jj)
               {
                   int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
                   T_F_FLOAT dxij = x(i,0) - x(j,0);
                   T_F_FLOAT dyij = x(i,1) - x(j,1);
                   T_F_FLOAT dzij = x(i,2) - x(j,2);
-                  dxij *= s->cflength;
-                  dyij *= s->cflength;
-                  dzij *= s->cflength;
-                  if (s->normalize) {
-                    dxij *= s->convLength;
-                    dyij *= s->convLength;
-                    dzij *= s->convLength;
-                  }
+                  dxij *= s->cflength * convLength;
+                  dyij *= s->cflength * convLength;
+                  dzij *= s->cflength * convLength;
                   double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                   double const rij = sqrt(r2ij); 
                   if (e1 == type(j) && rij < rc)
@@ -1221,42 +1133,26 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
           {
-              //printf("Angular\n");
               int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
               int e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
               double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              int size, memberindex, curr_index, next_index, globalIndex;
-              for (int l=0; l < MAX_SF; ++l)
-              {
-                  curr_index = d_SFGmemberlist(attype,groupIndex,l);
-                  next_index = d_SFGmemberlist(attype,groupIndex,l+1);
-                  if (curr_index == 0 && next_index == 0)
-                  {
-                    size = l;
-                    break;
-                  }
-              }
-              int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
+              int size, memberindex, globalIndex;
+              size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
               double const rc2 = rc * rc;
-              size_t numNeighbors = num_neighs; 
               // Prevent problematic condition in loop test below (j < numNeighbors - 1).
-              if (numNeighbors == 0) numNeighbors = 1;
+              // TODO: remove this condition
+              if (num_neighs == 0) num_neighs = 1;
 
-              for (size_t jj = 0; jj < numNeighbors - 1; jj++)
+              for (size_t jj = 0; jj < num_neighs - 1; jj++)
               {
                   int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
                   size_t const nej = type(j);
                   T_F_FLOAT dxij = x(i,0) - x(j,0);
                   T_F_FLOAT dyij = x(i,1) - x(j,1);
                   T_F_FLOAT dzij = x(i,2) - x(j,2);
-                  dxij *= s->cflength;
-                  dyij *= s->cflength;
-                  dzij *= s->cflength;
-                  if (s->normalize) {
-                    dxij *= s->convLength;
-                    dyij *= s->convLength;
-                    dzij *= s->convLength;
-                  }
+                  dxij *= s->cflength * convLength;
+                  dyij *= s->cflength * convLength;
+                  dzij *= s->cflength * convLength;
                   double const r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                   double const rij = sqrt(r2ij);
                   if ((e1 == nej || e2 == nej) && rij < rc)
@@ -1269,7 +1165,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                       pfcij = temp * temp2;
                       pdfcij = 3.0 * temp2 * (temp2 - 1.0) / rc;
                       
-                      for (size_t kk = jj + 1; kk < numNeighbors; kk++)
+                      for (size_t kk = jj + 1; kk < num_neighs ; kk++)
                       {
                           int k = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, kk);
                           size_t const nek = type(k);
@@ -1279,14 +1175,9 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                               T_F_FLOAT dxik = x(i,0) - x(k,0);
                               T_F_FLOAT dyik = x(i,1) - x(k,1);
                               T_F_FLOAT dzik = x(i,2) - x(k,2);
-                              dxik *= s->cflength;
-                              dyik *= s->cflength;
-                              dzik *= s->cflength;
-                              if (s->normalize) {
-                                dxik *= s->convLength;
-                                dyik *= s->convLength;
-                                dzik *= s->convLength;
-                              }
+                              dxik *= s->cflength * convLength;
+                              dyik *= s->cflength * convLength;
+                              dzik *= s->cflength * convLength;
                               double const r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
                               double const rik = sqrt(r2ik);
                               if (rik < rc)
@@ -1395,27 +1286,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
           }
         }
         
-        //Use computed dEdG and dGdr to calculate forces
-        /*int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
-        for (size_t jj = 0; jj < num_neighs; ++jj)
-        {
-            int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
-            for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
-            {
-                //std::cout << "dGdr: " << j << " " << k << " " << dGdr(j,k,0) << " " << dGdr(j,k,1) << " " << dGdr(j,k,2) << std::endl;
-                f_a(j,0) -= (dEdG(i,k) * dGdr_a(jj*nsym*3 + k*3 + 0) * s->cfforce * convForce);
-                f_a(j,1) -= (dEdG(i,k) * dGdr_a(jj*nsym*3 + k*3 + 1) * s->cfforce * convForce);
-                f_a(j,2) -= (dEdG(i,k) * dGdr_a(jj*nsym*3 + k*3 + 2) * s->cfforce * convForce);
-            }
-        }
-        
-        for (size_t k = 0; k < numSymmetryFunctionsPerElement(type(i)); ++k)
-        {
-            f_a(i,0) -= (dEdG(i,k) * dGdr_a(jnum*nsym*3 + k*3 + 0) * s->cfforce * convForce);
-            f_a(i,1) -= (dEdG(i,k) * dGdr_a(jnum*nsym*3 + k*3 + 1) * s->cfforce * convForce);
-            f_a(i,2) -= (dEdG(i,k) * dGdr_a(jnum*nsym*3 + k*3 + 2) * s->cfforce * convForce);
-        }*/
-        //delete [] dGdr;
     });
     
     Kokkos::fence();

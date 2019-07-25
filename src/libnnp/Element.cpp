@@ -21,6 +21,7 @@
 #include <algorithm> // std::sort, std::min, std::max
 #include <limits>    // std::numeric_limits
 #include <stdexcept> // std::runtime_error
+#define MAX_SF 30
 
 using namespace std;
 using namespace nnp;
@@ -283,16 +284,16 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
                 if (SF(attype,SFindex,1)==2)
                 {
                     SFGmemberlist(attype,l,countergR[l]) = SFindex; 
-                    std::cout << "Added SF " << SFindex+1 << " with global index " << SF(attype,SFindex,14) << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
                     countergR[l]++;
+                    SFGmemberlist(attype,l,MAX_SF)++;
                     break;
                 }
             
                 else if (SF(attype,SFindex,1)==3)
                 {
                     SFGmemberlist(attype,l,countergAN[l]) = SFindex; 
-                    std::cout << "Added SF " << SFindex+1 << " with global index " << SF(attype,SFindex,14) << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
                     countergAN[l]++;
+                    SFGmemberlist(attype,l,MAX_SF)++;
                     break;
                 }
             }
@@ -300,32 +301,25 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
         
         if (createNewGroup)
         {
-            //printf("Creating new group\n");
             int l = countergtotal[attype];
             countergtotal[attype]++;
             if (SF(attype,SFindex,1)==2)
             {
               countergR[l] = 0;
               SFGmemberlist(attype,l,countergR[l]) = SFindex; 
-              std::cout << "Added SF " << SFindex+1 << " with global index " << SF(attype,SFindex,14) << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
               countergR[l]++;
+              SFGmemberlist(attype,l,MAX_SF)++;
             }
             else if (SF(attype,SFindex,1)==3)
             {
               countergAN[l] = 0;
               SFGmemberlist(attype,l,countergAN[l]) = SFindex; 
-              std::cout << "Added SF " << SFindex+1 << " with global index " << SF(attype,SFindex,14) << " to group " << l+1 << " of atom type " << attype+1 << std::endl;
               countergAN[l]++;
+              SFGmemberlist(attype,l,MAX_SF)++;
             }
         }
     }
-            std::cout << "Members: ";
-            for (size_t k = 0; k < 30; ++k) 
-            {
-                std::cout << SFGmemberlist(attype,0,k) << " ";
-            }
-            std::cout << std::endl;
-
+    
     //TODO: naive insertion sort
     /*sort(symmetryFunctionGroups.begin(),
          symmetryFunctionGroups.end(),
