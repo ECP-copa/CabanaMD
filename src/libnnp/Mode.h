@@ -19,10 +19,8 @@
 
 #include "CutoffFunction.h"
 #include "Element.h"
-#include "ElementMap.h"
 #include "Log.h"
 #include "Settings.h"
-#include "SymmetryFunction.h"
 #include <cstddef> // std::size_t
 #include <string>  // std::string
 #include <vector>  // std::vector
@@ -95,12 +93,6 @@ public:
      */
     void                     loadSettingsFile(std::string const& fileName
                                                                  = "input.nn");
-    /** Combine multiple setup routines and provide a basic NNP setup.
-     *
-     * Sets up elements, symmetry functions, symmetry function groups, neural
-     * networks. No symmetry function scaling data is read, no weights are set.
-     */
-    void                     setupGeneric(h_t_mass h_numSymmetryFunctionsPerElement);
     /** Set up normalization.
      *
      * If the keywords `mean_energy`, `conv_length` and
@@ -322,7 +314,7 @@ public:
                                              std::ofstream* const& file) const;
 
     /// Global element map, populated by setupElementMap().
-    ElementMap elementMap;
+    //ElementMap elementMap;
     /// Global list of number of atoms per element
     std::vector<std::size_t> numAtomsPerElement;
     /** Allocate vectors related to symmetry functions (#G, #dEdG).
@@ -406,6 +398,7 @@ protected:
     Settings                      settings;
     CutoffFunction::CutoffType    cutoffType;
     std::vector<Element>          elements;
+    std::vector<string>           elementStrings;
 };
 
 //////////////////////////////////

@@ -16,15 +16,11 @@
 
 #include "Mode.h"
 #include "utility.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 #include <algorithm> // std::min, std::max
 #include <cstdlib>   // atoi, atof
 #include <fstream>   // std::ifstream
 #include <limits>    // std::numeric_limits
 #include <stdexcept> // std::runtime_error
-#include <iostream> //TODO: remove this 
 #include <string>
 #define MAX_SF 30
 
@@ -60,10 +56,6 @@ void Mode::initialize()
     log << "Git branch  : " NNP_GIT_BRANCH "\n";
     log << "Git revision: " NNP_GIT_REV_SHORT " (" NNP_GIT_REV ")\n";
     log << "\n";
-#ifdef _OPENMP
-    log << strpr("Number of OpenMP threads: %d", omp_get_max_threads());
-    log << "\n";
-#endif
     log << "*****************************************"
            "**************************************\n";
 
@@ -82,21 +74,6 @@ void Mode::loadSettingsFile(string const& fileName)
 
     log << "*****************************************"
            "**************************************\n";
-
-    return;
-}
-
-void Mode::setupGeneric(h_t_mass h_numSymmetryFunctionsPerElement)
-{
-    setupNormalization();
-    setupElementMap();
-    setupElements();
-    setupCutoff();
-    h_numSymmetryFunctionsPerElement = setupSymmetryFunctions(h_numSymmetryFunctionsPerElement);
-#ifndef NOSFGROUPS
-    setupSymmetryFunctionGroups();
-#endif
-    setupNeuralNetwork();
 
     return;
 }
@@ -157,19 +134,18 @@ void Mode::setupElementMap()
            "**************************************\n";
     log << "\n";
 
-    elementMap.registerElements(settings["elements"]);
-    log << strpr("Number of element strings found: %d\n", elementMap.size());
-    for (size_t i = 0; i < elementMap.size(); ++i)
+    elementStrings = split(reduce(settings["elements"]));
+    
+    log << strpr("Number of element strings found: %d\n", elementStrings.size());
+    for (size_t i = 0; i < elementStrings.size(); ++i)
     {
-        log << strpr("Element %2zu: %2s (%3zu)\n", i, elementMap[i].c_str(),
-                     elementMap.atomicNumber(i));
+        log << strpr("Element %2zu: %2s\n", i, elementStrings[i].c_str());
     }
     //resize numSymmetryFunctionsPerElement to have size = num of atom types in system
-    numElements = elementMap.size();
+    numElements = elementStrings.size();
     
     //setup device and host views
     //deep copy back when needed for calculations
-
     //setup SF info storage
     SF = t_SF("ForceNNP::SF", numElements, MAX_SF);
     SFscaling = t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
@@ -193,7 +169,7 @@ void Mode::setupElements()
     log << "\n";
 
     numElements = (size_t)atoi(settings["number_of_elements"].c_str());
-    if (numElements != elementMap.size())
+    if (numElements != elementStrings.size())
     {
         throw runtime_error("ERROR: Inconsistent number of elements.\n");
     }
@@ -201,12 +177,13 @@ void Mode::setupElements()
 
     for (size_t i = 0; i < numElements; ++i)
     {
-        elements.push_back(Element(i, elementMap));
+        elements.push_back(Element(i));
     }
 
     if (settings.keywordExists("atom_energy"))
     {
        log << "atom_energy not supported for now\n";
+       //TODO: Add back support for offsets 
        /* Settings::KeyRange r = settings.getValues("atom_energy");
         for (Settings::KeyMap::const_iterator it = r.first;
              it != r.second; ++it)
@@ -229,8 +206,7 @@ void Mode::setupElements()
            "energies.\n";
     log << "*****************************************"
            "**************************************\n";
-    numAtomsPerElement.resize(numElements, 0);
-    TODO: Add back support for offsets */ 
+    numAtomsPerElement.resize(numElements, 0);*/
     return;
 }
 
@@ -341,7 +317,6 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
     for (Settings::KeyMap::const_iterator it = r.first; it != r.second; ++it)
     {
         vector<string> args    = split(reduce(it->second.first));
-        size_t         element = elementMap[args.at(0)];
         int type;
         const char* estring = args.at(0).c_str();
         const char* hstring = "H";
@@ -352,7 +327,7 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
         else if (strcmp(estring, ostring) == 0)
           type = 1;
         //type = atoi(args.at(0).c_str());
-        elements.at(element).addSymmetryFunction(it->second.first,
+        elements.at(type).addSymmetryFunction(it->second.first,
                                                  it->second.second, type, SF, convLength, countertotal);
         //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
         h_numSymmetryFunctionsPerElement(type) = countertotal[type];
@@ -619,18 +594,18 @@ void Mode::setupSymmetryFunctionStatistics(bool collectStatistics,
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        it->statistics.collectStatistics = collectStatistics;
-        it->statistics.collectExtrapolationWarnings =
-                                                  collectExtrapolationWarnings;
-        it->statistics.writeExtrapolationWarnings = writeExtrapolationWarnings;
-        it->statistics.stopOnExtrapolationWarnings =
-                                                   stopOnExtrapolationWarnings;
+        //it->statistics.collectStatistics = collectStatistics;
+        //it->statistics.collectExtrapolationWarnings =
+        //                                          collectExtrapolationWarnings;
+        //it->statistics.writeExtrapolationWarnings = writeExtrapolationWarnings;
+        //it->statistics.stopOnExtrapolationWarnings =
+        //                                           stopOnExtrapolationWarnings;
     }
 
-    checkExtrapolationWarnings = collectStatistics
+    /*checkExtrapolationWarnings = collectStatistics
                               || collectExtrapolationWarnings
                               || writeExtrapolationWarnings
-                              || stopOnExtrapolationWarnings;
+                              || stopOnExtrapolationWarnings;*/
 
     log << "*****************************************"
            "**************************************\n";
@@ -724,12 +699,18 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
     log << "\n";
 
     log << strpr("Weight file name format: %s\n", fileNameFormat.c_str());
+    int count = 0;
+    int AN = 0;
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        string fileName = strpr(fileNameFormat.c_str(), it->getAtomicNumber());
+        if (count == 0)
+          AN = 1;
+        else
+          AN = 8;
+        string fileName = strpr(fileNameFormat.c_str(), AN);
         log << strpr("Weight file for element %2s: %s\n",
-                     it->getSymbol().c_str(),
+                     elementStrings[count].c_str(),
                      fileName.c_str());
         ifstream file;
         file.open(fileName.c_str());
@@ -762,55 +743,14 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
             }
         }
         file.close();
+        count += 1;
     }
     log << "*****************************************"
            "**************************************\n";
     return;
 }
 
-void Mode::resetExtrapolationWarnings()
-{
-    for (vector<Element>::iterator it = elements.begin();
-         it != elements.end(); ++it)
-    {
-        it->statistics.resetExtrapolationWarnings();
-    }
 
-    return;
-}
-
-size_t Mode::getNumExtrapolationWarnings() const
-{
-    size_t numExtrapolationWarnings = 0;
-
-    for (vector<Element>::const_iterator it = elements.begin();
-         it != elements.end(); ++it)
-    {
-        numExtrapolationWarnings +=
-            it->statistics.countExtrapolationWarnings();
-    }
-
-    return numExtrapolationWarnings;
-}
-
-
-bool Mode::settingsKeywordExists(std::string const& keyword) const
-{
-    return settings.keywordExists(keyword);
-}
-
-string Mode::settingsGetValue(std::string const& keyword) const
-{
-    return settings.getValue(keyword);
-}
-
-
-void Mode::writeSettingsFile(ofstream* const& file) const
-{
-    settings.writeSettingsFile(file);
-
-    return;
-}
 
 
 

@@ -18,9 +18,6 @@
 #define ELEMENT_H
 
 #include "CutoffFunction.h"
-#include "ElementMap.h"
-#include "SymmetryFunction.h"
-#include "SymmetryFunctionStatistics.h"
 #include "utility.h"
 #include <cstddef> // size_t
 #include <string>  // string
@@ -40,7 +37,7 @@ class Element
 public:
     /** Constructor using index.
      */
-    Element(size_t const index, ElementMap const& elementMap);
+    Element(size_t const index);
     /** Destructor.
      *
      * Necessary because of #symmetryFunctions vector of pointers.
@@ -153,10 +150,10 @@ public:
      *
      * @return Symmetry function object.
      */
-    SymmetryFunction const&  getSymmetryFunction(size_t index) const;
+    //SymmetryFunction const&  getSymmetryFunction(size_t index) const;
 
     /// Symmetry function statistics.
-    SymmetryFunctionStatistics statistics;
+    //SymmetryFunctionStatistics statistics;
 
     inline void setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
                                             double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const;
@@ -166,7 +163,6 @@ public:
 
 private:
     /// Copy of element map.
-    ElementMap                          elementMap;
     /// Global index of this element.
     size_t                         index;
     /// Atomic number of this element.

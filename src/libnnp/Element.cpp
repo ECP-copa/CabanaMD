@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "Element.h"
-#include "SymmetryFunctionGroup.h"
 #include "utility.h"
 #include <iostream>  // std::cerr
 #include <cstdlib>   // atoi
@@ -26,12 +25,9 @@
 using namespace std;
 using namespace nnp;
 
-Element::Element(size_t const index, ElementMap const& elementMap) :
-    elementMap        (elementMap                    ),
+Element::Element(size_t const index) :
     index             (index                         ),
-    atomicNumber      (elementMap.atomicNumber(index)),
-    atomicEnergyOffset(0.0                           ),
-    symbol            (elementMap.symbol(index)      )
+    atomicEnergyOffset(0.0                           )
 {
 }
 
