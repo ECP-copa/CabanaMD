@@ -154,8 +154,6 @@ using AoSoA = Cabana::AoSoA<t_tuple,DeviceType,VECLEN>;
 using t_particle = Cabana::Tuple<t_tuple>;
 using t_tuple_NNP = Cabana::MemberTypes<T_FLOAT[MAX_SF], T_FLOAT[MAX_SF], T_FLOAT>;
 using AoSoA_NNP = Cabana::AoSoA<t_tuple_NNP,MemorySpace,VECLEN>;
-using AoSoA_dGdr = Cabana::AoSoA<Cabana::MemberTypes<T_FLOAT>,MemorySpace,VECLEN>;
-using t_dGdr = Kokkos::View<T_V_FLOAT*,Kokkos::MemoryTraits<Kokkos::Atomic>>;
 
 
 typedef ExecutionSpace::array_layout array_layout; //TODO: check this
