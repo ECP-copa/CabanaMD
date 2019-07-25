@@ -362,6 +362,9 @@ public:
     int countertotal[2] = {0,0};
     int countergtotal[2] = {0,0};
     
+    //Kokkos Timer
+    Kokkos::Timer timer;
+
     struct Eval
     {
        KOKKOS_INLINE_FUNCTION void operator() (const T_INT& i) const 

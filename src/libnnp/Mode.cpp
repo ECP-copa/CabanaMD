@@ -776,6 +776,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     //Eval functor;
     //Kokkos::parallel_for (s->N_local, functor);
     //Kokkos::fence();
+    timer.reset();
     Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const int i) 
     {
         double temp;
@@ -925,6 +926,8 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
         }
     });
     Kokkos::fence();
+    double time1 = timer.seconds();
+    printf("Time taken for calculateSF: %f\n", time1);
 } 
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement)
@@ -945,6 +948,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     inner = d_t_NN("Mode::inner",s->N,numHiddenLayers,maxNeurons);
     outer = d_t_NN("Mode::inner",s->N,numHiddenLayers,maxNeurons);
     
+    timer.reset();
     Kokkos::parallel_for ("Mode::calculateAtomicNeuralNetworks", s->N_local, KOKKOS_LAMBDA (const int atomindex)
     {
         for (int i = 0; i < numLayers; ++i)
@@ -1028,6 +1032,8 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
         }
     });
     Kokkos::fence();
+    double time2 = timer.seconds();
+    printf("Time taken for calculateAN: %f\n", time2);
 }
 
 
@@ -1049,6 +1055,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
       convForce = convLength/convEnergy;
     }
    
+    timer.reset();
     Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
     {
         double temp;
@@ -1113,7 +1120,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
               rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
               size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
               // Prevent problematic condition in loop test below (j < numNeighbors - 1).
-              // TODO: remove this condition
               if (num_neighs == 0) num_neighs = 1;
 
               for (size_t jj = 0; jj < num_neighs - 1; jj++)
@@ -1245,6 +1251,8 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     });
     
     Kokkos::fence();
+    double time3 = timer.seconds();
+    printf("Time taken for calculateForces: %f\n", time3);
     //printf("%d %f %f %f\n", id(0), f(0,0), f(0,1), f(0,2));    
     //printf("%d %f %f %f\n", id(1), f(1,0), f(1,1), f(1,2));    
     //printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
