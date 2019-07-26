@@ -762,6 +762,8 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     auto type = Cabana::slice<Types>(s->xvf);
     auto x = Cabana::slice<Positions>(s->xvf);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
+    typename AoSoA_NNP::member_slice_type<NNPNames::G>::atomic_access_slice G_a;
+    G_a = Cabana::slice<NNPNames::G>(nnp_data);
     
     //deep copy into device Views
     Kokkos::deep_copy(d_SF, SF);
@@ -777,18 +779,12 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     //Kokkos::parallel_for (s->N_local, functor);
     //Kokkos::fence();
     timer.reset();
-    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (const int i) 
+    
+    Kokkos::TeamPolicy<> team_policy (s->N_local, Kokkos::AUTO());
+    typedef Kokkos::TeamPolicy<>::member_type member_type;
+    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", team_policy, KOKKOS_LAMBDA (member_type team_member)
     {
-        double temp;
-        double pfcij, pfcik, pfcjk;
-        double raw_value, scaled_value;
-        size_t nej, nek;
-        double rij, r2ij, rik, r2ik, rjk, r2jk, rc;
-        T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
-        double eta, rs, lambda, zeta;
-        int e1, e2;
-        int size, memberindex, globalIndex;
-
+        const int i = team_member.league_rank();
         int attype = type(i);
         // Check if atom has low number of neighbors.
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
@@ -796,11 +792,15 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
         {
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
           {
-            e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
-            rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-            size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
-            for (size_t jj = 0; jj < num_neighs; ++jj)
+            int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
+            double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
+            int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
+            Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
             {
+                double temp, pfcij, eta, rs;
+                size_t nej;
+                double rij, r2ij; 
+                T_F_FLOAT dxij, dyij, dzij;
                 int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
                 nej = type(j);
                 dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
@@ -808,19 +808,25 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                 dzij = (x(i,2) - x(j,2)) * s->cflength * convLength;
                 r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                 rij = sqrt(r2ij); 
-                if (e1 == type(j) && rij < rc)
+                if (e1 == nej && rij < rc)
                 {
                     temp = tanh(1.0 - rij / rc);
                     pfcij = temp * temp * temp;
                     for (size_t k = 0; k < size; ++k) 
                     {
-                        globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
+                        int globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
                         eta = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 4);
                         rs = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 8);
-                        G(i,globalIndex) += exp(-eta * (rij - rs) * (rij - rs))*pfcij;
+                        //lsum += exp(-eta * (rij - rs) * (rij - rs))*pfcij;
+                        G_a(i,globalIndex) += exp(-eta * (rij - rs) * (rij - rs))*pfcij;
                     }
                 }
-            }
+            });
+            
+            team_member.team_barrier();
+             
+            double raw_value, scaled_value;
+            int memberindex, globalIndex;
             for (size_t k = 0; k < size; ++k)
             {
                 globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
@@ -832,14 +838,20 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
           {
-              e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
-              e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
-              rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
+              int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
+              int e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
+              double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
+              int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
               // Prevent problematic condition in loop test below (j < numNeighbors - 1).
               if (num_neighs == 0) num_neighs = 1;
-              for (size_t jj = 0; jj < num_neighs - 1; jj++)
+              Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
               {
+                  double temp, pfcij, pfcik, pfcjk;
+                  size_t nej, nek;
+                  int memberindex, globalIndex;
+                  double rij, r2ij, rik, r2ik, rjk, r2jk;
+                  T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
+                  double eta, rs, lambda, zeta;
                   int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
                   nej = type(j);
                   dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
@@ -906,19 +918,25 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                                         if (plambda <= 0.0) fg = 0.0;
                                         else
                                             fg *= pow(plambda, (zeta - 1.0));
-                                        G(i,globalIndex) += fg * plambda * pfcij * pfcik * pfcjk;
+                                        //lsum += fg * plambda * pfcij * pfcik * pfcjk;
+                                        G_a(i,globalIndex) += fg * plambda * pfcij * pfcik * pfcjk;
                                       } // l
                                   } // rjk <= rc
                               } // rik <= rc
                           } // elem
                       } // k
                   } // rij <= rc
-              } // j
-
+              }); // j
+              
+              team_member.team_barrier();
+              
+              double raw_value;
+              int memberindex, globalIndex;
               for (size_t k = 0; k < size; ++k)
               {
                   globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
                   memberindex = d_SFGmemberlist(attype,groupIndex,k);
+                  //raw_value = sum * pow(2,(1-d_SF(attype,memberindex,6))); 
                   raw_value = G(i,globalIndex) * pow(2,(1-d_SF(attype,memberindex,6))); 
                   G(i,globalIndex) = scale(attype, raw_value, memberindex, d_SFscaling);
               }
@@ -1056,16 +1074,11 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     }
    
     timer.reset();
-    Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (const size_t i)
+    Kokkos::TeamPolicy<> team_policy (s->N_local, Kokkos::AUTO());
+    typedef Kokkos::TeamPolicy<>::member_type member_type;
+    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", team_policy, KOKKOS_LAMBDA (member_type team_member)
     {
-        double temp;
-        double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
-        size_t nej, nek;
-        double rij, r2ij, rik, r2ik, rjk, r2jk, rc;
-        T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
-        double eta, rs, lambda, zeta;
-        int e1, e2;
-        int size, memberindex, globalIndex;
+        const int i = team_member.league_rank();
         
         int attype = type(i); 
         
@@ -1074,18 +1087,24 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
         {
           if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 2)
           {
-              e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
-              rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
-              for (size_t jj = 0; jj < num_neighs; ++jj)
+              int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
+              double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
+              int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
+              Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
               {
+                  double temp, pfcij, pdfcij;
+                  double rij, r2ij; 
+                  T_F_FLOAT dxij, dyij, dzij;
+                  double eta, rs;
+                  int memberindex, globalIndex;
                   int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+                  size_t nej = type(j);
                   dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
                   dyij = (x(i,1) - x(j,1)) * s->cflength * convLength;
                   dzij = (x(i,2) - x(j,2)) * s->cflength * convLength;
                   r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                   rij = sqrt(r2ij); 
-                  if (e1 == type(j) && rij < rc)
+                  if (e1 == nej && rij < rc)
                   {
                       // Energy calculation.
                       // Calculate cutoff function and derivative.
@@ -1111,19 +1130,26 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           f_a(j,2) += (dEdG(i,globalIndex) * (p1*dzij) * s->cfforce * convForce);
                       }
                   }
-              }
+              });
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
           {
-              e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
-              e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
-              rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
-              size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
+              int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
+              int e2 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 3);
+              double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
+              int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
               // Prevent problematic condition in loop test below (j < numNeighbors - 1).
               if (num_neighs == 0) num_neighs = 1;
 
-              for (size_t jj = 0; jj < num_neighs - 1; jj++)
+              Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
               {
+                  double temp;
+                  double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
+                  size_t nej, nek;
+                  double rij, r2ij, rik, r2ik, rjk, r2jk;
+                  T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
+                  double eta, rs, lambda, zeta;
+                  int memberindex, globalIndex;
                   int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
                   nej = type(j);
                   dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
@@ -1244,7 +1270,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           } // elem
                       } // k
                   } // rij <= rc
-              } // j
+              }); // j
           }
         }
         
