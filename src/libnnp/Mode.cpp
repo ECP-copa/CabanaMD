@@ -1082,11 +1082,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     f_a = Cabana::slice<Forces>(s->xvf);
     auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     
-    double convForce = 1.0;
-    if (s->normalize)
-    {
-      convForce = convLength/convEnergy;
-    }
+    double convForce = convLength/convEnergy;
    
     timer.reset();
     Kokkos::TeamPolicy<> team_policy (s->N_local, Kokkos::AUTO());

@@ -68,15 +68,10 @@ public:
   // Per Type Property
   t_mass mass;
 
-  //NNP constants passed in via pair_style(TODO: remove hardcoding)
-  bool normalize = true;
+  //NNP conversion factors (TODO: remove hardcoding)
   double cflength = 1.889726;
   double cfenergy = 0.036749;
   double cfforce = cflength/cfenergy;
-  //TODO: remove this hardcoding as well
-  double convLength = 1.0; //5.8038448995319847E+00; 
-  double convEnergy = 1.0; //2.4265748255366972E+02;
-  double mean_energy = 0.0; //-2.5521343547039809E+01;
   // Simulation domain
   T_X_FLOAT domain_x, domain_y, domain_z;
   T_X_FLOAT box[6];

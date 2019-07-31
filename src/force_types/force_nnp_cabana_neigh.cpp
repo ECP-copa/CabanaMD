@@ -71,9 +71,6 @@ void ForceNNP::create_neigh_list(System* system) {
   double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x, 
     system->sub_domain_hi_y + system->sub_domain_y, system->sub_domain_hi_z + system->sub_domain_z};
 
-  //double grid_min[3] = {-system->domain_x,-system->domain_y,-system->domain_z};
-  //double grid_max[3] = {2*system->domain_x,2*system->domain_y,2*system->domain_z};
-
   auto x = Cabana::slice<Positions>(system->xvf);
   auto id = Cabana::slice<IDs>(system->xvf);
   t_verletlist_full_2D list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
@@ -107,9 +104,7 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
 
 
 void ForceNNP::compute(System* s) {
-  //nnp::Mode* mode = new(nnp::Mode);
   nnp_data.resize(s->N_local);
-  //Kokkos::resize(dGdr,(s->N_local+s->N_ghost),(s->N_local+s->N_ghost));
   Kokkos::deep_copy(d_numSymmetryFunctionsPerElement, h_numSymmetryFunctionsPerElement);
   mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, d_numSymmetryFunctionsPerElement);
   mode->calculateAtomicNeuralNetworks(s, nnp_data, d_numSymmetryFunctionsPerElement);
@@ -118,20 +113,20 @@ void ForceNNP::compute(System* s) {
 
 T_V_FLOAT ForceNNP::compute_energy(System* s) {
     
-    auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
-    T_V_FLOAT system_energy=0.0;
-    // Loop over all atoms and add atomic contributions to total energy.
-    Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", s->N_local, KOKKOS_LAMBDA (const size_t i, T_V_FLOAT & updated_energy)
-    {
-        updated_energy += energy(i);
-    }, system_energy);
+  auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
+  T_V_FLOAT system_energy=0.0;
+  // Loop over all atoms and add atomic contributions to total energy.
+  Kokkos::parallel_reduce("ForceNNPCabanaNeigh::compute_energy", s->N_local, KOKKOS_LAMBDA (const size_t i, T_V_FLOAT & updated_energy)
+  {
+      updated_energy += energy(i);
+  }, system_energy);
 
   Kokkos::fence();
   system_energy += s->N*atomicEnergyOffset(0); //TODO: replace hardcoded
   system_energy /= s->cfenergy;
-  if (s->normalize)
-    system_energy /= s->convEnergy;
-  system_energy += s->N*s->mean_energy;
+  if (mode->normalize)
+    system_energy /= mode->convEnergy;
+  system_energy += s->N*mode->meanEnergy;
   //system_energy *= 27.211384021355236; //hartree to eV conversion (TODO: look into this)
   step++;
   return system_energy;

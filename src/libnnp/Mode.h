@@ -387,7 +387,6 @@ public:
     };
 
     
-protected:
     bool                          normalize;
     bool                          checkExtrapolationWarnings;
     std::size_t                   numElements;
