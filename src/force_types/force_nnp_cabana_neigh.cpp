@@ -123,11 +123,11 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
     }, system_energy);
 
   Kokkos::fence();
+  system_energy += s->N*atomicEnergyOffset(0); //TODO: replace hardcoded
   //system_energy /= s->cfenergy;
   if (s->normalize)
     system_energy /= s->convEnergy;
   system_energy += s->N*s->mean_energy;
-  system_energy += s->N*atomicEnergyOffset(0); //TODO: replace hardcoded
   system_energy *= 27.211384021355236; //hartree to eV conversion (TODO: look into this)
   step++;
   return system_energy;
