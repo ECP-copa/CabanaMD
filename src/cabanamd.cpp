@@ -170,11 +170,7 @@ void CabanaMD::init(int argc, char* argv[]) {
 
 void CabanaMD::run(int nsteps) {
   T_F_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
-  auto f = Cabana::slice<Forces>(system->xvf);
-  auto v = Cabana::slice<Velocities>(system->xvf);
-  auto x = Cabana::slice<Positions>(system->xvf);
-  auto type = Cabana::slice<Types>(system->xvf);
-  auto mass = system->mass;
+  
   Temperature temp(comm);
   PotE pote(comm);
   KinE kine(comm);
