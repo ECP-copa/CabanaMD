@@ -159,16 +159,10 @@ void Element::addSymmetryFunction(string const& parameters, vector<string> eleme
 
 void Element::sortSymmetryFunctions(t_SF SF, h_t_mass h_numSymmetryFunctionsPerElement, int attype) 
 {
-    //print initial index
     int size = h_numSymmetryFunctionsPerElement(attype);
     int *SFvector = new int[size]; 
-    //std::cout << "initial index: ";
     for (int i = 0; i < size; ++i)
-    {
       SFvector[i] = i;
-      //std::cout << SFvector[i]+1 << " "; 
-    }
-    //std::cout << std::endl; 
 
     //naive insertion sort
     

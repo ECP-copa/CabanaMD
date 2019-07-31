@@ -192,31 +192,10 @@ void CabanaMD::run(int nsteps) {
   for(int step = 1; step <= nsteps; step++ ) {
     
     // Do first part of the verlet time step integration 
-    /*std::cout << "positions before verlet I: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl;
-    std::cout << "velocities before verlet I: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << v(i,0) << " " << v(i,1) << " " << v(i,2) << std::endl;
-    std::cout << "forces before verlet I: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
-    */
-    
     integrate_timer.reset();
     integrator->initial_integrate();
     integrate_time += integrate_timer.seconds();
-    /*
-    std::cout << "positions after verlet I: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl;
-    std::cout << "velocities after verlet I: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << v(i,0) << " " << v(i,1) << " " << v(i,2) << std::endl;
-    std::cout << "forces after verlet I: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
-    */
+    
     if(step%input->comm_exchange_rate==0 && step >0) {
       // Exchange particles
       comm_timer.reset();
@@ -249,9 +228,6 @@ void CabanaMD::run(int nsteps) {
     auto f = Cabana::slice<Forces>(system->xvf);
     Cabana::deep_copy(f, 0.0);
 
-    //std::cout << "forces before verlet II: " << std::endl;
-    //for(int i=0; i< system->N; i++)
-    //  std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
     // Compute Short Range Force
     force->compute(system);
     force_time += force_timer.seconds();
@@ -266,22 +242,10 @@ void CabanaMD::run(int nsteps) {
     }
 
     // Do second part of the verlet time step integration 
-    //std::cout << "forces before verlet II: " << std::endl;
-    //for(int i=0; i< system->N; i++)
-    //  std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
     integrate_timer.reset();
     integrator->final_integrate();
     integrate_time += integrate_timer.seconds();
-    /*std::cout << "positions after verlet II: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << x(i,0) << " " << x(i,1) << " " << x(i,2) << std::endl;
-    std::cout << "velocities after verlet II: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << v(i,0) << " " << v(i,1) << " " << v(i,2) << std::endl;
-    std::cout << "forces after verlet II: " << std::endl;
-    for(int i=0; i< system->N; i++)
-      std::cout << f(i,0) << " " << f(i,1) << " " << f(i,2) << std::endl;
-    */
+    
     other_timer.reset();
     // On output steps print output
     if(step%input->thermo_rate==0) {

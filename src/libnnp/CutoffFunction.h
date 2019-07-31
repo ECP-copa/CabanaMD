@@ -73,41 +73,6 @@ public:
      */
     CutoffFunction();
     CutoffFunction(double _rc); 
-    /** Set cutoff type.
-     *
-     * @param[in] cutoffType Type of cutoff used.
-     */
-    void   setCutoffType(CutoffType const cutoffType);
-    /** Set cutoff radius.
-     *
-     * @param[in] cutoffRadius Cutoff radius @f$r_c@f$.
-     */
-    void   setCutoffRadius(double const cutoffRadius);
-    /** Set parameter for polynomial cutoff function (CT_POLY).
-     *
-     * @param[in] alpha Width parameter @f$\alpha@f$.
-     */
-    void   setCutoffParameter(double const alpha);
-    /** Cutoff function @f$f_c@f$.
-     *
-     * @param[in] r Distance.
-     * @return Cutoff function value.
-     */
-    double f(double r) const;
-    /** Derivative of cutoff function @f$\frac{d f_c}{d r}@f$.
-     *
-     * @param[in] r Distance.
-     * @return Value of cutoff function derivative.
-     */
-    double df(double r) const;
-    /** Calculate cutoff function @f$f_c@f$ and derivative
-     * @f$\frac{d f_c}{d r}@f$.
-     *
-     * @param[in] r Distance.
-     * @param[out] fc Cutoff function value.
-     * @param[out] dfc Value of cutoff function derivative.
-     */
-    void   fdf(double r, double& fc, double& dfc) const;
 
 private:
     static double const PI;
@@ -127,97 +92,7 @@ private:
     double     alpha;
     /// Inverse width of cutoff function @f$\frac{1}{r_c - r_{ci}}@f$.
     double     iw;
-    /// Function pointer to f.
-    double     (CutoffFunction::*fPtr)(double r) const;
-    /// Function pointer to df.
-    double     (CutoffFunction::*dfPtr)(double r) const;
-    /// Function pointer to fdf.
-    void       (CutoffFunction::*fdfPtr)(double  r,
-                                         double& fc,
-                                         double& dfc) const;
-
-    // Individual cutoff functions.
-    double   fHARD (double r) const;
-    double  dfHARD (double r) const;
-    void   fdfHARD (double r, double& fc, double& dfc) const;
-
-    double   fCOS  (double r) const;
-    double  dfCOS  (double r) const;
-    void   fdfCOS  (double r, double& fc, double& dfc) const;
-
-    double   fTANHU(double r) const;
-    double  dfTANHU(double r) const;
-    void   fdfTANHU(double r, double& fc, double& dfc) const;
-
-    double   fTANH (double r) const;
-    double  dfTANH (double r) const;
-    void   fdfTANH (double r, double& fc, double& dfc) const;
-
-    double   fPOLY1(double r) const;
-    double  dfPOLY1(double r) const;
-    void   fdfPOLY1(double r, double& fc, double& dfc) const;
-
-    double   fPOLY2(double r) const;
-    double  dfPOLY2(double r) const;
-    void   fdfPOLY2(double r, double& fc, double& dfc) const;
-
-    double   fPOLY3(double r) const;
-    double  dfPOLY3(double r) const;
-    void   fdfPOLY3(double r, double& fc, double& dfc) const;
-
-    double   fPOLY4(double r) const;
-    double  dfPOLY4(double r) const;
-    void   fdfPOLY4(double r, double& fc, double& dfc) const;
-
-    double   fEXP  (double r) const;
-    double  dfEXP  (double r) const;
-    void   fdfEXP  (double r, double& fc, double& dfc) const;
 };
-
-//////////////////////////////////
-// Inlined function definitions //
-//////////////////////////////////
-
-inline double CutoffFunction::f(double r) const
-{
-    if (r >= rc) return 0.0;
-    return (this->*fPtr)(r);
-}
-
-inline double CutoffFunction::df(double r) const
-{
-    if (r >= rc) return 0.0;
-    return (this->*dfPtr)(r);
-}
-
-inline void CutoffFunction::fdf(double r, double& fc, double& dfc) const
-{
-    if (r >= rc)
-    {
-        fc = 0.0;
-        dfc = 0.0;
-        return;
-    }
-    (this->*fdfPtr)(r, fc, dfc);
-    return;
-}
-
-inline double CutoffFunction::fHARD(double /*r*/) const
-{
-    return 1.0;
-}
-
-inline double CutoffFunction::dfHARD(double /*r*/) const
-{
-    return 0.0;
-}
-
-inline void CutoffFunction::fdfHARD(double /*r*/, double& fc, double& dfc) const
-{
-    fc = 1.0;
-    dfc = 0.0;
-    return;
-}
 
 }
 

@@ -395,11 +395,6 @@ void Input::check_lammps_command(int line) {
     Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
     T_V_FLOAT mass = atof(input_data.words[line][2]);
     Kokkos::deep_copy(mass_one,mass);
-    //int type = atoi(input_data.words[line][1])-1;
-    //Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
-    //T_V_FLOAT mass_read = atof(input_data.words[line][2]);
-    //system->mass(type) = mass_read;
-    //Kokkos::deep_copy(mass_one,mass);
   }
   if(strcmp(input_data.words[line][0],"read_data")==0) {
     known = true;
@@ -603,7 +598,6 @@ void Input::create_lattice(Comm* comm) {
     system->domain_hi_x = system->domain_x;
     system->domain_hi_y = system->domain_y;
     system->domain_hi_z = system->domain_z;
-    //printf("DOMAIN: %f %f %f %f %d\n",system->domain_x, system->domain_y,system->domain_z, lattice_constant, lattice_nx);
     comm->create_domain_decomposition();
     s = *system;
 
