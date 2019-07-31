@@ -132,7 +132,7 @@ public:
   AoSoA_NNP nnp_data;
   //numSymmetryFunctionsPerElement (per type property)
   t_mass d_numSymmetryFunctionsPerElement;
-  h_t_mass h_numSymmetryFunctionsPerElement;
+  h_t_mass h_numSymmetryFunctionsPerElement, atomicEnergyOffset;
 
   ForceNNP(System* system, bool half_neigh_);
   void init_coeff(T_X_FLOAT neigh_cutoff, char** args);

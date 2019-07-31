@@ -111,7 +111,7 @@ public:
      * Uses keywords `number_of_elements` and `atom_energy`. This function
      * should follow immediately after setupElementMap().
      */
-    void                     setupElements();
+    h_t_mass                     setupElements(h_t_mass atomicEnergyOffset);
     /** Set up cutoff function for all symmetry functions.
      *
      * Uses keyword `cutoff_type`. Cutoff parameters are read from settings
@@ -338,6 +338,18 @@ public:
 
     /// Global log file.
     Log        log;
+    
+    /// list of element symbols in order of periodic table
+    vector<string> knownElements = { 
+    "H" , "He", "Li", "Be", "B" , "C" , "N" , "O" , "F" , "Ne", "Na", "Mg", "Al",
+    "Si", "P" , "S" , "Cl", "Ar", "K" , "Ca", "Sc", "Ti", "V" , "Cr", "Mn", "Fe",
+    "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y" ,
+    "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te",
+    "I" , "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb",
+    "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W" , "Re", "Os", "Ir", "Pt",
+    "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa",
+    "U" , "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No"
+    };
     
     //SymmetryFunctionTypes
     d_t_SF d_SF;

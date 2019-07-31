@@ -87,7 +87,7 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   mode->loadSettingsFile(settingsfile);
   mode->setupNormalization();
   mode->setupElementMap();
-  mode->setupElements();
+  atomicEnergyOffset = mode->setupElements(atomicEnergyOffset);
   mode->setupCutoff();
   h_numSymmetryFunctionsPerElement = mode->setupSymmetryFunctions(h_numSymmetryFunctionsPerElement);
   d_numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", 2);
@@ -127,6 +127,7 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
   if (s->normalize)
     system_energy /= s->convEnergy;
   system_energy += s->N*s->mean_energy;
+  system_energy += s->N*atomicEnergyOffset(0); //TODO: replace hardcoded
   system_energy *= 27.211384021355236; //hartree to eV conversion (TODO: look into this)
   step++;
   return system_energy;

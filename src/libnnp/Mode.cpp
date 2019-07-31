@@ -161,7 +161,7 @@ void Mode::setupElementMap()
     return;
 }
 
-void Mode::setupElements()
+h_t_mass Mode::setupElements(h_t_mass atomicEnergyOffset)
 {
     log << "\n";
     log << "*** SETUP: ELEMENTS *********************"
@@ -169,6 +169,7 @@ void Mode::setupElements()
     log << "\n";
 
     numElements = (size_t)atoi(settings["number_of_elements"].c_str());
+    atomicEnergyOffset = h_t_mass("ForceNNP::atomicEnergyOffset", numElements);
     if (numElements != elementStrings.size())
     {
         throw runtime_error("ERROR: Inconsistent number of elements.\n");
@@ -182,32 +183,32 @@ void Mode::setupElements()
 
     if (settings.keywordExists("atom_energy"))
     {
-       log << "atom_energy not supported for now\n";
-       //TODO: Add back support for offsets 
-       /* Settings::KeyRange r = settings.getValues("atom_energy");
-        for (Settings::KeyMap::const_iterator it = r.first;
-             it != r.second; ++it)
+        Settings::KeyRange r = settings.getValues("atom_energy");
+        for (Settings::KeyMap::const_iterator it = r.first; it != r.second; ++it)
         {
             vector<string> args    = split(reduce(it->second.first));
-            size_t         element = elementMap[args.at(0)];
-            elements.at(element).
-                setAtomicEnergyOffset(atof(args.at(1).c_str()));
-        }*/
+            const char* estring = args.at(0).c_str();
+            //np.where element symbol == symbol encountered during parsing 
+            for (int i = 0; i < elementStrings.size(); ++i)
+            {
+              if (strcmp(elementStrings[i].c_str(), estring) == 0)
+                atomicEnergyOffset(i) = atof(args.at(1).c_str());
+            }
+        }
     }
-    /*
+    
     log << "Atomic energy offsets per element:\n";
-    for (size_t i = 0; i < elementMap.size(); ++i)
+    for (size_t i = 0; i < elementStrings.size(); ++i)
     {
         log << strpr("Element %2zu: %16.8E\n",
-                     i, elements.at(i).getAtomicEnergyOffset());
+                     i, atomicEnergyOffset(i));
     }
 
     log << "Energy offsets are automatically subtracted from reference "
            "energies.\n";
     log << "*****************************************"
            "**************************************\n";
-    numAtomsPerElement.resize(numElements, 0);*/
-    return;
+    return atomicEnergyOffset;
 }
 
 void Mode::setupCutoff()
@@ -319,14 +320,12 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
         vector<string> args    = split(reduce(it->second.first));
         int type;
         const char* estring = args.at(0).c_str();
-        const char* hstring = "H";
-        const char* ostring = "O";
-        //TODO: hardcoded symbol to type conversions
-        if (strcmp(estring, hstring) == 0)
-          type = 0;
-        else if (strcmp(estring, ostring) == 0)
-          type = 1;
-        //type = atoi(args.at(0).c_str());
+        //np.where element symbol == symbol encountered during parsing 
+        for (int i = 0; i < elementStrings.size(); ++i)
+        {
+          if (strcmp(elementStrings[i].c_str(), estring) == 0)
+             type = i; 
+        }
         elements.at(type).addSymmetryFunction(it->second.first,
                                                  it->second.second, type, SF, convLength, countertotal);
         //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
@@ -704,10 +703,17 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
     {
-        if (count == 0)
-          AN = 1;
-        else
-          AN = 8;
+        const char* estring = elementStrings[count].c_str();
+        //np.where element symbol == symbol encountered in knownElements 
+        for (int i = 0; i < knownElements.size(); ++i)
+        {
+          if (strcmp(knownElements[i].c_str(), estring) == 0)
+          {
+            AN = i+1;
+            break;
+          } 
+        }
+        
         string fileName = strpr(fileNameFormat.c_str(), AN);
         log << strpr("Weight file for element %2s: %s\n",
                      elementStrings[count].c_str(),
