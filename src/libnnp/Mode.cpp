@@ -326,7 +326,7 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
           if (strcmp(elementStrings[i].c_str(), estring) == 0)
              type = i; 
         }
-        elements.at(type).addSymmetryFunction(it->second.first,
+        elements.at(type).addSymmetryFunction(it->second.first, elementStrings,
                                                  it->second.second, type, SF, convLength, countertotal);
         //set numSymmetryFunctionsPerElement to have number of symmetry functions detected after reading
         h_numSymmetryFunctionsPerElement(type) = countertotal[type];
@@ -768,8 +768,6 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     auto type = Cabana::slice<Types>(s->xvf);
     auto x = Cabana::slice<Positions>(s->xvf);
     auto G = Cabana::slice<NNPNames::G>(nnp_data);
-    typename AoSoA_NNP::member_slice_type<NNPNames::G>::atomic_access_slice G_a;
-    G_a = Cabana::slice<NNPNames::G>(nnp_data);
     
     //deep copy into device Views
     Kokkos::deep_copy(d_SF, SF);
@@ -801,13 +799,15 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
             int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
             double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
             int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
+            //printf("i: %f %f %f %f\n", x(i,0), x(i,1), x(i,2), rc);
             Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
             {
-                double temp, pfcij, eta, rs;
+                double temp, pfcij, pdfcij, eta, rs;
                 size_t nej;
                 double rij, r2ij; 
                 T_F_FLOAT dxij, dyij, dzij;
                 int j = Cabana::NeighborList<t_verletlist_full_2D>::getNeighbor(neigh_list, i, jj);
+                //printf("j: %f %f %f\n", x(j,0), x(j,1), x(j,2));
                 nej = type(j);
                 dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
                 dyij = (x(i,1) - x(j,1)) * s->cflength * convLength;
@@ -816,15 +816,14 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                 rij = sqrt(r2ij); 
                 if (e1 == nej && rij < rc)
                 {
-                    temp = tanh(1.0 - rij / rc);
-                    pfcij = temp * temp * temp;
+                    compute_cutoff(cutoffType, pfcij, pdfcij, rij, rc, false);
                     for (size_t k = 0; k < size; ++k) 
                     {
                         int globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
                         eta = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 4);
                         rs = d_SF(attype, d_SFGmemberlist(attype,groupIndex,k), 8);
                         //lsum += exp(-eta * (rij - rs) * (rij - rs))*pfcij;
-                        G_a(i,globalIndex) += exp(-eta * (rij - rs) * (rij - rs))*pfcij;
+                        G(i,globalIndex) += exp(-eta * (rij - rs) * (rij - rs))*pfcij;
                     }
                 }
             });
@@ -852,7 +851,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
               if (num_neighs == 0) num_neighs = 1;
               Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
               {
-                  double temp, pfcij, pfcik, pfcjk;
+                  double temp, pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
                   size_t nej, nek;
                   int memberindex, globalIndex;
                   double rij, r2ij, rik, r2ik, rjk, r2jk;
@@ -868,8 +867,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                   if ((e1 == nej || e2 == nej) && rij < rc)
                   {
                       // Calculate cutoff function and derivative.
-                      temp = tanh(1.0 - rij/rc);
-                      pfcij = temp * temp * temp;
+                      compute_cutoff(cutoffType, pfcij, pdfcij, rij, rc, false);
                       
                       for (size_t kk = jj + 1; kk < num_neighs ; kk++)
                       {
@@ -892,12 +890,10 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                                   if (r2jk < rc*rc)
                                   {
                                       // Energy calculation.
-                                      temp = tanh(1.0 - rik/rc);
-                                      pfcik = temp * temp * temp;
+                                      compute_cutoff(cutoffType, pfcik, pdfcik, rik, rc, false);
                                       
                                       rjk = sqrt(r2jk);
-                                      temp = tanh(1.0 - rjk/rc);
-                                      pfcjk = temp * temp * temp;
+                                      compute_cutoff(cutoffType, pfcjk, pdfcjk, rjk, rc, false);
                                       
                                       double const rinvijik = 1.0 / rij / rik;
                                       double const costijk = (dxij*dxik + dyij*dyik + dzij*dzik)* rinvijik;
@@ -925,7 +921,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                                         else
                                             fg *= pow(plambda, (zeta - 1.0));
                                         //lsum += fg * plambda * pfcij * pfcik * pfcjk;
-                                        G_a(i,globalIndex) += fg * plambda * pfcij * pfcik * pfcjk;
+                                        G(i,globalIndex) += fg * plambda * pfcij * pfcik * pfcjk;
                                       } // l
                                   } // rjk <= rc
                               } // rik <= rc
@@ -1015,7 +1011,6 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
                     dtmp += weights(attype,l-1,i,j) * NN(atomindex,l-1,j);
                 dtmp += bias(attype,l-1,i);
                 //if (normalizeNeurons) dtmp /= numNeuronsPerLayer[l-1];
-
                 if (AF[l] == 0)
                 {
                     NN(atomindex,l,i) = dtmp;
@@ -1057,7 +1052,21 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     });
     Kokkos::fence();
     double time2 = timer.seconds();
-    printf("Time taken for calculateAN: %f\n", time2);
+    /*for (int i=0; i < 4; ++i)
+    {    
+      printf("Layer %d:\n",i);
+      for (int k = 0; k < numNeuronsPerLayer[i]; k++)
+      {
+        printf("%f ", dfdx(0,i,k));
+      }
+      printf("\n");
+      printf("Layer %d:\n",i);
+      for (int k = 0; k < numNeuronsPerLayer[i]; k++)
+      {
+        printf("%f ", NN(0,i,k));
+      }
+      printf("\n");
+    }*/
 }
 
 
@@ -1082,7 +1091,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     timer.reset();
     Kokkos::TeamPolicy<> team_policy (s->N_local, Kokkos::AUTO());
     typedef Kokkos::TeamPolicy<>::member_type member_type;
-    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", team_policy, KOKKOS_LAMBDA (member_type team_member)
+    Kokkos::parallel_for ("Mode::calculateForces", team_policy, KOKKOS_LAMBDA (member_type team_member)
     {
         const int i = team_member.league_rank();
         
@@ -1114,9 +1123,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                   {
                       // Energy calculation.
                       // Calculate cutoff function and derivative.
-                      temp = tanh(1.0 - rij / rc);
-                      pfcij = temp * temp * temp;
-                      pdfcij = 3.0 * temp*temp * (temp*temp - 1.0) / rc;
+                      compute_cutoff(cutoffType, pfcij, pdfcij, rij, rc, true);
                       for (size_t k = 0; k < size; ++k) 
                       {
                           globalIndex = d_SF(attype,d_SFGmemberlist(attype,groupIndex,k),14);
@@ -1166,9 +1173,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                   if ((e1 == nej || e2 == nej) && rij < rc)
                   {
                       // Calculate cutoff function and derivative.
-                      temp = tanh(1.0 - rij/rc);
-                      pfcij = temp * temp * temp;
-                      pdfcij = 3.0 * temp*temp * (temp*temp - 1.0) / rc;
+                      compute_cutoff(cutoffType, pfcij, pdfcij, rij, rc, true);
                       
                       for (size_t kk = jj + 1; kk < num_neighs ; kk++)
                       {
@@ -1191,14 +1196,10 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                                   if (r2jk < rc*rc)
                                   {
                                       // Energy calculation.
-                                      temp = tanh(1.0 - rik/rc);
-                                      pfcik = temp * temp * temp;
-                                      pdfcik = 3.0 * temp*temp * (temp*temp - 1.0) / rc;
+                                      compute_cutoff(cutoffType, pfcik, pdfcik, rik, rc, true);
                                       rjk = sqrt(r2jk);
-
-                                      temp = tanh(1.0 - rjk/rc);
-                                      pfcjk = temp * temp * temp;
-                                      pdfcjk = 3.0 * temp*temp * (temp*temp - 1.0) / rc;
+                                      
+                                      compute_cutoff(cutoffType, pfcjk, pdfcjk, rjk, rc, true);
                                       
                                       double const rinvijik = 1.0 / rij / rik;
                                       double const costijk = (dxij*dxik + dyij*dyik + dzij*dzik)* rinvijik;

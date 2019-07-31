@@ -66,9 +66,13 @@ ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
 
 void ForceNNP::create_neigh_list(System* system) {
   N_local = system->N_local;
+  double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x, 
+    system->sub_domain_lo_y - system->sub_domain_y, system->sub_domain_lo_z - system->sub_domain_z};
+  double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x, 
+    system->sub_domain_hi_y + system->sub_domain_y, system->sub_domain_hi_z + system->sub_domain_z};
 
-  double grid_min[3] = {-system->domain_x,-system->domain_y,-system->domain_z};
-  double grid_max[3] = {2*system->domain_x,2*system->domain_y,2*system->domain_z};
+  //double grid_min[3] = {-system->domain_x,-system->domain_y,-system->domain_z};
+  //double grid_max[3] = {2*system->domain_x,2*system->domain_y,2*system->domain_z};
 
   auto x = Cabana::slice<Positions>(system->xvf);
   auto id = Cabana::slice<IDs>(system->xvf);
@@ -124,11 +128,11 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
 
   Kokkos::fence();
   system_energy += s->N*atomicEnergyOffset(0); //TODO: replace hardcoded
-  //system_energy /= s->cfenergy;
+  system_energy /= s->cfenergy;
   if (s->normalize)
     system_energy /= s->convEnergy;
   system_energy += s->N*s->mean_energy;
-  system_energy *= 27.211384021355236; //hartree to eV conversion (TODO: look into this)
+  //system_energy *= 27.211384021355236; //hartree to eV conversion (TODO: look into this)
   step++;
   return system_energy;
 }

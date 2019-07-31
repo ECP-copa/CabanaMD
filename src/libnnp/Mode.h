@@ -328,6 +328,7 @@ public:
      */
     void allocate(System* s, T_INT numSymmetryFunctions, bool all);
     
+    KOKKOS_INLINE_FUNCTION void compute_cutoff(CutoffFunction::CutoffType cutoffType, double &fc, double &dfc, double r, double rc, bool derivative);
     KOKKOS_INLINE_FUNCTION double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
 
     void calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
@@ -439,6 +440,39 @@ inline bool Mode::useNormalization() const
 }
 
 //------------------- HELPERS TO MEGA FUNCTION  --------------//
+
+KOKKOS_INLINE_FUNCTION void Mode::compute_cutoff(CutoffFunction::CutoffType cutoffType, double &fc, double &dfc, double r, double rc, bool derivative)
+{
+   double temp;
+   if (cutoffType == CutoffFunction::CT_TANHU)
+   {
+      temp = tanh(1.0 - r/rc);
+      fc = temp * temp * temp;
+      if (derivative)
+        dfc = 3.0 * temp*temp * (temp*temp - 1.0) / rc;
+   }
+
+   if (cutoffType == CutoffFunction::CT_COS)
+   {
+      
+      double rci = rc * cutoffAlpha;
+      double iw = 1.0 / (rc - rci);
+      double PI = 4.0 * atan(1.0);
+      if (r < rci)
+      {
+          fc = 1.0;
+          dfc = 0.0;
+      }
+      else
+      {
+          temp = cos(PI * (r - rci) * iw);
+          fc = 0.5 * (temp + 1.0);
+          if (derivative)
+            dfc = -0.5 * iw * PI * sqrt(1.0 - temp * temp);
+      }
+   }
+
+}
 
 KOKKOS_INLINE_FUNCTION double Mode::scale(int attype, double value, int k, d_t_SFscaling SFscaling)
 {

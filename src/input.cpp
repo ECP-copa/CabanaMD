@@ -600,7 +600,10 @@ void Input::create_lattice(Comm* comm) {
     system->domain_x = lattice_constant * lattice_nx;
     system->domain_y = lattice_constant * lattice_ny;
     system->domain_z = lattice_constant * lattice_nz;
-
+    system->domain_hi_x = system->domain_x;
+    system->domain_hi_y = system->domain_y;
+    system->domain_hi_z = system->domain_z;
+    //printf("DOMAIN: %f %f %f %f %d\n",system->domain_x, system->domain_y,system->domain_z, lattice_constant, lattice_nx);
     comm->create_domain_decomposition();
     s = *system;
 

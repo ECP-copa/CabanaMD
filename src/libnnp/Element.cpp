@@ -37,29 +37,34 @@ Element::~Element()
 
 }
 
-void Element::addSymmetryFunction(string const& parameters,
+void Element::addSymmetryFunction(string const& parameters, vector<string> elementStrings,
                                   size_t const& lineNumber, int attype, t_SF SF, double convLength, int (&countertotal)[2])
 {
     vector<string> args = split(reduce(parameters));
     size_t         type = (size_t)atoi(args.at(1).c_str());
     const char* estring;
-    const char* hstring = "H";
-    const char* ostring = "O";
     int el;
     
     vector<string> splitLine = split(reduce(parameters));
     if (type == 2)
     {
       estring = splitLine.at(0).c_str();
-      //TODO: symbol to type map to replace hardcoded values 
-      if (strcmp(estring, hstring) == 0) el = 0;
-      else if (strcmp(estring, ostring) == 0) el = 1;
+      //np.where element symbol == symbol encountered during parsing 
+      for (int i = 0; i < elementStrings.size(); ++i)
+      {
+        if (strcmp(elementStrings[i].c_str(), estring) == 0)
+          el = i; 
+      }
       SF(attype,countertotal[attype],0) = el; //ec 
       SF(attype,countertotal[attype],1) = type; //type
       
       estring = splitLine.at(2).c_str();
-      if (strcmp(estring, hstring) == 0) el = 0;
-      else if (strcmp(estring, ostring) == 0) el = 1;
+      //np.where element symbol == symbol encountered during parsing 
+      for (int i = 0; i < elementStrings.size(); ++i)
+      {
+        if (strcmp(elementStrings[i].c_str(), estring) == 0)
+          el = i; 
+      }
       SF(attype,countertotal[attype],2) = el; //e1
       //set e2 to arbit high number for ease in creating groups
       SF(attype,countertotal[attype],3) = 100000; //e2
@@ -77,19 +82,31 @@ void Element::addSymmetryFunction(string const& parameters,
       if (type != (size_t)atoi(splitLine.at(1).c_str()))
           throw runtime_error("ERROR: Incorrect symmetry function type.\n");
       estring = splitLine.at(0).c_str();
-      if (strcmp(estring, hstring) == 0) el = 0;
-      else if (strcmp(estring, ostring) == 0) el = 1;
+      //np.where element symbol == symbol encountered during parsing 
+      for (int i = 0; i < elementStrings.size(); ++i)
+      {
+        if (strcmp(elementStrings[i].c_str(), estring) == 0)
+          el = i; 
+      }
       SF(attype,countertotal[attype],0) = el; //ec
       SF(attype,countertotal[attype],1) = type; //type
       
       estring = splitLine.at(2).c_str();
-      if (strcmp(estring, hstring) == 0) el = 0;
-      else if (strcmp(estring, ostring) == 0) el = 1;
+      //np.where element symbol == symbol encountered during parsing 
+      for (int i = 0; i < elementStrings.size(); ++i)
+      {
+        if (strcmp(elementStrings[i].c_str(), estring) == 0)
+          el = i; 
+      }
       SF(attype,countertotal[attype],2) = el; //e1
       
       estring = splitLine.at(3).c_str();
-      if (strcmp(estring, hstring) == 0) el = 0;
-      else if (strcmp(estring, ostring) == 0) el = 1;
+      //np.where element symbol == symbol encountered during parsing 
+      for (int i = 0; i < elementStrings.size(); ++i)
+      {
+        if (strcmp(elementStrings[i].c_str(), estring) == 0)
+          el = i; 
+      }
       
       SF(attype,countertotal[attype],3) = el; //e2
       SF(attype,countertotal[attype],4) = atof(splitLine.at(4).c_str())/(convLength*convLength); //eta
