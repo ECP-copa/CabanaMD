@@ -1282,9 +1282,9 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     Kokkos::fence();
     double time3 = timer.seconds();
     printf("Time taken for calculateForces: %f\n", time3);
-    //printf("%d %f %f %f\n", id(0), f(0,0), f(0,1), f(0,2));    
-    //printf("%d %f %f %f\n", id(1), f(1,0), f(1,1), f(1,2));    
-    //printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
+    printf("%d %f %f %f\n", id(0), f(0,0), f(0,1), f(0,2));    
+    printf("%d %f %f %f\n", id(1), f(1,0), f(1,1), f(1,2));    
+    printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
     return;
 }
 

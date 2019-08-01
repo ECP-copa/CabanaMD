@@ -79,7 +79,6 @@ System::System() {
 
 void System::init() {
   AoSoA xvf ( "All", N_max );
-  ntypes = 2; //TODO: hardcoded 
   mass = t_mass("System::mass",ntypes);
 }
 

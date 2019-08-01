@@ -74,7 +74,6 @@ public:
   double cfforce = cflength/cfenergy;
   // Simulation domain
   T_X_FLOAT domain_x, domain_y, domain_z;
-  T_X_FLOAT box[6];
   T_X_FLOAT domain_lo_x, domain_lo_y, domain_lo_z;
   T_X_FLOAT domain_hi_x, domain_hi_y, domain_hi_z;
 

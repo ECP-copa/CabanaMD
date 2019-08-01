@@ -112,20 +112,20 @@ void read_lammps_header(ifstream &file, System* s)
     }
     else if(line.find("xlo xhi") != string::npos) {
       sscanf(temp, "%lg %lg", &xlo, &xhi);
-      s->box[0] = xlo;
-      s->box[1] = xhi;
+      s->domain_lo_x = xlo;
+      s->domain_hi_x = xhi;
       s->domain_x = xhi - xlo;
     }
     else if(line.find("ylo yhi") != string::npos) {
       sscanf(temp, "%lg %lg", &ylo, &yhi);
-      s->box[2] = ylo;
-      s->box[3] = yhi;
+      s->domain_lo_y = ylo;
+      s->domain_hi_y = yhi;
       s->domain_y = yhi - ylo;
     }
     else if(line.find("zlo zhi") != string::npos) {
       sscanf(temp, "%lg %lg", &zlo, &zhi);
-      s->box[4] = zlo;
-      s->box[5] = zhi;
+      s->domain_lo_z = zlo;
+      s->domain_hi_z = zhi;
       s->domain_z = zhi - zlo;
       break;
     }
