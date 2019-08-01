@@ -126,6 +126,10 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
   system_energy /= s->cfenergy;
   if (mode->normalize)
     system_energy /= mode->convEnergy;
+  //std::cout << "Mean energy: " << mode->meanEnergy << std::endl;
+  //std::cout << "conv energy: " << mode->convEnergy << std::endl;
+  //std::cout << "Mean energy: " << mode->meanEnergy << std::endl;
+  //std::cout << "cfenergy: " << s->cfenergy << std::endl;
   system_energy += s->N*mode->meanEnergy;
   system_energy *= 27.211384021355236; //hartree to eV conversion (TODO: look into this)
   step++;

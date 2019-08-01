@@ -131,7 +131,7 @@ void CabanaMD::init(int argc, char* argv[]) {
   Cabana::deep_copy(f, 0.0);
   force->compute(system);
 
-  if(input->comm_newton) {
+  if(input->comm_newton || input->force_type == 2) { //update force if nnp pair style
     // Reverse Communicate Force Update on Halo
     comm->update_force();
   }
@@ -229,7 +229,7 @@ void CabanaMD::run(int nsteps) {
     // This is where Bonds, Angles and KSpace should go eventually 
     
     // Reverse Communicate Force Update on Halo
-    if(input->comm_newton) {
+    if(input->comm_newton or input->force_type == 2) { //update force if nnp pair style
       comm_timer.reset();
       comm->update_force();
       comm_time += comm_timer.seconds();
@@ -267,7 +267,16 @@ void CabanaMD::run(int nsteps) {
 
     other_time += other_timer.seconds();
   }
-
+    auto f = Cabana::slice<Forces>(system->xvf);
+    auto id = Cabana::slice<IDs>(system->xvf);
+ 
+    printf("TXXXX: \n");
+    printf("%d %f %f %f\n", id(0), f(0,0), f(0,1), f(0,2));    
+    printf("%d %f %f %f\n", id(1), f(1,0), f(1,1), f(1,2));    
+    printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
+    printf("%d %f %f %f\n", id(3), f(3,0), f(3,1), f(3,2));    
+    printf("%d %f %f %f\n", id(4), f(4,0), f(4,1), f(4,2));    
+    printf("%d %f %f %f\n", id(5), f(5,0), f(5,1), f(5,2));    
   double time = timer.seconds();
 
   if(system->do_print) {

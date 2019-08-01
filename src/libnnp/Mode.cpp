@@ -1117,6 +1117,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                   rij = sqrt(r2ij); 
                   if (e1 == nej && rij < rc)
                   {
+                      //std::cout << "i : " << id(i) << " j: " << id(j) << " rij: " << rij << " radial groupIndex: " << groupIndex << std::endl;
                       // Energy calculation.
                       // Calculate cutoff function and derivative.
                       compute_cutoff(cutoffType, pfcij, pdfcij, rij, rc, true);
@@ -1178,6 +1179,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           
                           if ((e1 == nej && e2 == nek) || (e2 == nej && e1 == nek))
                           {
+                              //std::cout << "i : " << id(i) << " j: " << id(j) << " k: " << id(k) << " angular groupIndex: " << groupIndex << std::endl;
                               dxik = (x(i,0) - x(k,0)) * s->cflength * convLength;
                               dyik = (x(i,1) - x(k,1)) * s->cflength * convLength;
                               dzik = (x(i,2) - x(k,2)) * s->cflength * convLength;
@@ -1282,9 +1284,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     Kokkos::fence();
     double time3 = timer.seconds();
     printf("Time taken for calculateForces: %f\n", time3);
-    printf("%d %f %f %f\n", id(0), f(0,0), f(0,1), f(0,2));    
-    printf("%d %f %f %f\n", id(1), f(1,0), f(1,1), f(1,2));    
-    printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
     return;
 }
 
