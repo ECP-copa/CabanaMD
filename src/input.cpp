@@ -348,7 +348,10 @@ void Input::check_lammps_command(int line) {
     } else if(strcmp(input_data.words[line][1],"fcc")==0) {
       known = true;
       lattice_style = LATTICE_FCC;
-      lattice_constant = std::pow((4.0 / atof(input_data.words[line][2])), (1.0 / 3.0));
+      if ( units_style == UNITS_LJ )
+        lattice_constant = std::pow((4.0 / atof(input_data.words[line][2])), (1.0 / 3.0));
+      else
+        lattice_constant = atof(input_data.words[line][2]);
     } else {
       if(system->do_print)
         printf("LAMMPS-Command: 'lattice' command only supports 'sc' and 'fcc' in CabanaMD\n");
@@ -502,6 +505,9 @@ void Input::create_lattice(Comm* comm) {
     system->domain_x = lattice_constant * lattice_nx; 
     system->domain_y = lattice_constant * lattice_ny; 
     system->domain_z = lattice_constant * lattice_nz; 
+    system->domain_hi_x = system->domain_x;
+    system->domain_hi_y = system->domain_y;
+    system->domain_hi_z = system->domain_z;
 
     comm->create_domain_decomposition();
     s = *system;
@@ -583,6 +589,9 @@ void Input::create_lattice(Comm* comm) {
     system->domain_x = lattice_constant * lattice_nx;
     system->domain_y = lattice_constant * lattice_ny;
     system->domain_z = lattice_constant * lattice_nz;
+    system->domain_hi_x = system->domain_x;
+    system->domain_hi_y = system->domain_y;
+    system->domain_hi_z = system->domain_z;
 
     comm->create_domain_decomposition();
     s = *system;
