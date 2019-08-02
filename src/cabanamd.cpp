@@ -267,7 +267,7 @@ void CabanaMD::run(int nsteps) {
 
     other_time += other_timer.seconds();
   }
-    auto f = Cabana::slice<Forces>(system->xvf);
+    /*auto f = Cabana::slice<Forces>(system->xvf);
     auto id = Cabana::slice<IDs>(system->xvf);
  
     printf("TXXXX: \n");
@@ -276,7 +276,7 @@ void CabanaMD::run(int nsteps) {
     printf("%d %f %f %f\n", id(2), f(2,0), f(2,1), f(2,2));    
     printf("%d %f %f %f\n", id(3), f(3,0), f(3,1), f(3,2));    
     printf("%d %f %f %f\n", id(4), f(4,0), f(4,1), f(4,2));    
-    printf("%d %f %f %f\n", id(5), f(5,0), f(5,1), f(5,2));    
+    printf("%d %f %f %f\n", id(5), f(5,0), f(5,1), f(5,2));*/ 
   double time = timer.seconds();
 
   if(system->do_print) {

@@ -802,7 +802,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
             //printf("i: %f %f %f %f\n", x(i,0), x(i,1), x(i,2), rc);
             Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
             {
-                double temp, pfcij, pdfcij, eta, rs;
+                double pfcij, pdfcij, eta, rs;
                 size_t nej;
                 double rij, r2ij; 
                 T_F_FLOAT dxij, dyij, dzij;
@@ -851,7 +851,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
               if (num_neighs == 0) num_neighs = 1;
               Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
               {
-                  double temp, pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
+                  double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
                   size_t nej, nek;
                   int memberindex, globalIndex;
                   double rij, r2ij, rik, r2ik, rjk, r2jk;
@@ -947,7 +947,11 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     });
     Kokkos::fence();
     double time1 = timer.seconds();
-    printf("Time taken for calculateSF: %f\n", time1);
+    //printf("Time taken for calculateSF: %f\n", time1);
+    printf("Sym funcs: \n");
+    printf("%d %f %f %f\n", id(0), G(0,0), G(0,1), G(0,2));    
+    printf("%d %f %f %f\n", id(1), G(1,0), G(1,1), G(1,2));    
+    printf("%d %f %f %f\n", id(2), G(2,0), G(2,1), G(2,2));    
 } 
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement)
@@ -1052,6 +1056,11 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     });
     Kokkos::fence();
     double time2 = timer.seconds();
+    printf("dEdG: \n");
+    printf("%d %f %f %f\n", id(0), dEdG(0,0), dEdG(0,1), dEdG(0,2));    
+    printf("%d %f %f %f\n", id(1), dEdG(1,0), dEdG(1,1), dEdG(1,2));    
+    printf("%d %f %f %f\n", id(2), dEdG(2,0), dEdG(2,1), dEdG(2,2));    
+    //printf("Time taken for NN: %f\n", time2);
     /*for (int i=0; i < 4; ++i)
     {    
       printf("Layer %d:\n",i);
@@ -1103,7 +1112,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
               int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
               Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
               {
-                  double temp, pfcij, pdfcij;
+                  double pfcij, pdfcij;
                   double rij, r2ij; 
                   T_F_FLOAT dxij, dyij, dzij;
                   double eta, rs;
@@ -1153,7 +1162,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
 
               Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
               {
-                  double temp;
                   double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
                   size_t nej, nek;
                   double rij, r2ij, rik, r2ik, rjk, r2jk;
@@ -1283,7 +1291,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     
     Kokkos::fence();
     double time3 = timer.seconds();
-    printf("Time taken for calculateForces: %f\n", time3);
+    //printf("Time taken for calculateForces: %f\n", time3);
     return;
 }
 

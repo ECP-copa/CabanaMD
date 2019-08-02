@@ -123,9 +123,7 @@ T_V_FLOAT ForceNNP::compute_energy(System* s) {
 
   Kokkos::fence();
   system_energy += s->N*atomicEnergyOffset(0); //TODO: replace hardcoded
-  system_energy /= s->cfenergy;
-  if (mode->normalize)
-    system_energy /= mode->convEnergy;
+  system_energy /= mode->convEnergy;
   //std::cout << "Mean energy: " << mode->meanEnergy << std::endl;
   //std::cout << "conv energy: " << mode->convEnergy << std::endl;
   //std::cout << "Mean energy: " << mode->meanEnergy << std::endl;
