@@ -783,12 +783,39 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     //Kokkos::parallel_for (s->N_local, functor);
     //Kokkos::fence();
     timer.reset();
-    
-    Kokkos::TeamPolicy<> team_policy (s->N_local, Kokkos::AUTO());
-    typedef Kokkos::TeamPolicy<>::member_type member_type;
-    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", team_policy, KOKKOS_LAMBDA (member_type team_member)
+    /*printf("Positions : \n");
+    printf("%d %f %f %f\n", id(0), x(0,0), x(0,1), x(0,2));    
+    printf("%d %f %f %f\n", id(1), x(1,0), x(1,1), x(1,2));    
+    printf("%d %f %f %f\n", id(2), x(2,0), x(2,1), x(2,2));    
+    printf("%d %f %f %f\n", id(3), x(3,0), x(3,1), x(3,2));    
+    printf("%d %f %f %f\n", id(4), x(4,0), x(4,1), x(4,2));    
+    printf("%d %f %f %f\n", id(5), x(5,0), x(5,1), x(5,2));    
+   
+    printf("Sym func props: \n");
+    int attype = 1;
+    for (int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex)
     {
-        const int i = team_member.league_rank();
+        int e1 = SF(attype, SFGmemberlist(attype,groupIndex,0), 2);
+        int e2 = SF(attype, SFGmemberlist(attype,groupIndex,0), 3);
+        double rc = SF(attype, SFGmemberlist(attype,groupIndex,0), 7);
+        int size = SFGmemberlist(attype,groupIndex,MAX_SF);
+        printf("%d %d %f %d\n", e1, e2, rc, size);    
+        for (size_t k = 0; k < size; ++k) 
+        {
+            int globalIndex = SF(attype,SFGmemberlist(attype,groupIndex,k),14);
+            double eta = SF(attype, SFGmemberlist(attype,groupIndex,k), 4);
+            double rs = SF(attype, SFGmemberlist(attype,groupIndex,k), 8);
+            double lambda = SF(attype,SFGmemberlist(attype,groupIndex,k),5);
+            double zeta = SF(attype,SFGmemberlist(attype,groupIndex,k),6);
+            printf("%d %f %f %f %f\n", globalIndex, eta, rs, lambda, zeta);    
+        }
+    }*/
+    //Kokkos::TeamPolicy<> team_policy (s->N_local, Kokkos::AUTO());
+    //typedef Kokkos::TeamPolicy<>::member_type member_type;
+    //Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", team_policy, KOKKOS_LAMBDA (member_type team_member)
+    Kokkos::parallel_for ("Mode::calculateSymmetryFunctionGroups", s->N_local, KOKKOS_LAMBDA (int i)
+    {
+        //const int i = team_member.league_rank();
         int attype = type(i);
         // Check if atom has low number of neighbors.
         int num_neighs = Cabana::NeighborList<t_verletlist_full_2D>::numNeighbor(neigh_list, i);
@@ -800,7 +827,8 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
             double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
             int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
             //printf("i: %f %f %f %f\n", x(i,0), x(i,1), x(i,2), rc);
-            Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
+            //Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
+            for (int jj = 0; jj < num_neighs; ++jj)
             {
                 double pfcij, pdfcij, eta, rs;
                 size_t nej;
@@ -826,9 +854,9 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                         G(i,globalIndex) += exp(-eta * (rij - rs) * (rij - rs))*pfcij;
                     }
                 }
-            });
+            }//);
             
-            team_member.team_barrier();
+            //team_member.team_barrier();
              
             double raw_value, scaled_value;
             int memberindex, globalIndex;
@@ -849,7 +877,8 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
               int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
               // Prevent problematic condition in loop test below (j < numNeighbors - 1).
               if (num_neighs == 0) num_neighs = 1;
-              Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
+              for (int jj = 0; jj < num_neighs-1; ++jj)
+              //Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
               {
                   double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
                   size_t nej, nek;
@@ -928,9 +957,9 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
                           } // elem
                       } // k
                   } // rij <= rc
-              }); // j
+              }//); // j
               
-              team_member.team_barrier();
+              //team_member.team_barrier();
               
               double raw_value;
               int memberindex, globalIndex;
@@ -948,10 +977,13 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verl
     Kokkos::fence();
     double time1 = timer.seconds();
     //printf("Time taken for calculateSF: %f\n", time1);
-    printf("Sym funcs: \n");
+    /*printf("Sym funcs: \n");
     printf("%d %f %f %f\n", id(0), G(0,0), G(0,1), G(0,2));    
     printf("%d %f %f %f\n", id(1), G(1,0), G(1,1), G(1,2));    
     printf("%d %f %f %f\n", id(2), G(2,0), G(2,1), G(2,2));    
+    printf("%d %f %f %f\n", id(3), G(3,0), G(3,1), G(3,2));    
+    printf("%d %f %f %f\n", id(4), G(4,0), G(4,1), G(4,2));    
+    printf("%d %f %f %f\n", id(5), G(5,0), G(5,1), G(5,2));*/    
 } 
 
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement)
@@ -1056,26 +1088,11 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     });
     Kokkos::fence();
     double time2 = timer.seconds();
-    printf("dEdG: \n");
+    /*printf("dEdG: \n");
     printf("%d %f %f %f\n", id(0), dEdG(0,0), dEdG(0,1), dEdG(0,2));    
     printf("%d %f %f %f\n", id(1), dEdG(1,0), dEdG(1,1), dEdG(1,2));    
-    printf("%d %f %f %f\n", id(2), dEdG(2,0), dEdG(2,1), dEdG(2,2));    
+    printf("%d %f %f %f\n", id(2), dEdG(2,0), dEdG(2,1), dEdG(2,2));*/ 
     //printf("Time taken for NN: %f\n", time2);
-    /*for (int i=0; i < 4; ++i)
-    {    
-      printf("Layer %d:\n",i);
-      for (int k = 0; k < numNeuronsPerLayer[i]; k++)
-      {
-        printf("%f ", dfdx(0,i,k));
-      }
-      printf("\n");
-      printf("Layer %d:\n",i);
-      for (int k = 0; k < numNeuronsPerLayer[i]; k++)
-      {
-        printf("%f ", NN(0,i,k));
-      }
-      printf("\n");
-    }*/
 }
 
 
@@ -1094,11 +1111,12 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
     double convForce = convLength/convEnergy;
    
     timer.reset();
-    Kokkos::TeamPolicy<> team_policy (s->N_local, Kokkos::AUTO());
-    typedef Kokkos::TeamPolicy<>::member_type member_type;
-    Kokkos::parallel_for ("Mode::calculateForces", team_policy, KOKKOS_LAMBDA (member_type team_member)
+    //Kokkos::TeamPolicy<> team_policy (s->N_local, Kokkos::AUTO());
+    //typedef Kokkos::TeamPolicy<>::member_type member_type;
+    //Kokkos::parallel_for ("Mode::calculateForces", team_policy, KOKKOS_LAMBDA (member_type team_member)
+    Kokkos::parallel_for ("Mode::calculateForces", s->N_local, KOKKOS_LAMBDA (int i)
     {
-        const int i = team_member.league_rank();
+        //const int i = team_member.league_rank();
         
         int attype = type(i); 
         
@@ -1110,7 +1128,8 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
               int e1 = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 2);
               double rc = d_SF(attype, d_SFGmemberlist(attype,groupIndex,0), 7);
               int size = d_SFGmemberlist(attype,groupIndex,MAX_SF);
-              Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
+              //Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs), [=] (int jj) 
+              for (int jj = 0; jj < num_neighs; ++jj)
               {
                   double pfcij, pdfcij;
                   double rij, r2ij; 
@@ -1126,7 +1145,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                   rij = sqrt(r2ij); 
                   if (e1 == nej && rij < rc)
                   {
-                      //std::cout << "i : " << id(i) << " j: " << id(j) << " rij: " << rij << " radial groupIndex: " << groupIndex << std::endl;
                       // Energy calculation.
                       // Calculate cutoff function and derivative.
                       compute_cutoff(cutoffType, pfcij, pdfcij, rij, rc, true);
@@ -1149,7 +1167,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           f_a(j,2) += (dEdG(i,globalIndex) * (p1*dzij) * s->cfforce * convForce);
                       }
                   }
-              });
+              }//);
           }
           else if (d_SF(attype,d_SFGmemberlist(attype,groupIndex,0),1) == 3)
           {
@@ -1160,7 +1178,8 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
               // Prevent problematic condition in loop test below (j < numNeighbors - 1).
               if (num_neighs == 0) num_neighs = 1;
 
-              Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
+              //Kokkos::parallel_for (Kokkos::TeamThreadRange(team_member,num_neighs-1), [=] (int jj) 
+              for (int jj = 0; jj < num_neighs-1; ++jj)
               {
                   double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
                   size_t nej, nek;
@@ -1187,7 +1206,6 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           
                           if ((e1 == nej && e2 == nek) || (e2 == nej && e1 == nek))
                           {
-                              //std::cout << "i : " << id(i) << " j: " << id(j) << " k: " << id(k) << " angular groupIndex: " << groupIndex << std::endl;
                               dxik = (x(i,0) - x(k,0)) * s->cflength * convLength;
                               dyik = (x(i,1) - x(k,1)) * s->cflength * convLength;
                               dzik = (x(i,2) - x(k,2)) * s->cflength * convLength;
@@ -1283,7 +1301,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D n
                           } // elem
                       } // k
                   } // rij <= rc
-              }); // j
+              }//); // j
           }
         }
         
