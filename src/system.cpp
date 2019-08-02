@@ -62,6 +62,8 @@ System::System() {
   mass = t_mass();
   domain_x = domain_y = domain_z = 0.0;
   sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
+  domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
+  domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
   sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
   sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
   mvv2e = boltz = dt = 0.0;
