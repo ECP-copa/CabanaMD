@@ -91,7 +91,7 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   atomicEnergyOffset = mode->setupElements(atomicEnergyOffset);
   mode->setupCutoff();
   h_numSymmetryFunctionsPerElement = mode->setupSymmetryFunctions(h_numSymmetryFunctionsPerElement);
-  d_numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", 2);
+  d_numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", mode->numElements);
   mode->setupSymmetryFunctionGroups();
   mode->setupNeuralNetwork();
   std::string scalingfile = std::string(args[3]) + "/scaling.data";

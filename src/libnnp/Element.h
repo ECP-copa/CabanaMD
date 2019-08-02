@@ -63,7 +63,7 @@ public:
      * @param[in] parameters String containing settings for symmetry function.
      * @param[in] lineNumber Line number of symmetry function in settings file.
      */
-    void addSymmetryFunction(string const& parameters$, vector<string> elementStrings,
+    void addSymmetryFunction(string const& parameters, vector<string> elementStrings,
                              size_t const& lineNumber, int attype, t_SF SF, double convLength, int (&countertotal)[2]);
     /** Change length unit for all symmetry functions.
      *
