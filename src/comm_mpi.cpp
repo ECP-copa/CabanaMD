@@ -269,7 +269,7 @@ void Comm::exchange_halo() {
   N_ghost = 0;
 
   s = *system;
-  x = s.xvf.slice<Positions>();
+  x = Cabana::slice<Positions>(s.xvf);
 
   for(phase = 0; phase < 6; phase ++) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
@@ -307,7 +307,7 @@ void Comm::exchange_halo() {
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
     system->resize( halo.numLocal() + halo.numGhost() );
     s=*system;
-    x = s.xvf.slice<Positions>();
+    x = Cabana::slice<Positions>(s.xvf);
     Cabana::gather( halo, s.xvf );
 
     proc_num_recv[phase] = halo.numGhost();
@@ -336,7 +336,7 @@ void Comm::update_halo() {
   N_local = system->N_local;
   N_ghost = 0;
   s=*system;
-  x = s.xvf.slice<Positions>();
+  x = Cabana::slice<Positions>(s.xvf);
 
   for(phase = 0; phase<6; phase++) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
@@ -348,7 +348,7 @@ void Comm::update_halo() {
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
     system->resize( halo.numLocal() + halo.numGhost() );
     s=*system;
-    x = s.xvf.slice<Positions>();
+    x = Cabana::slice<Positions>(s.xvf);
     Cabana::gather( halo, s.xvf );
 
     Kokkos::parallel_for("CommMPI::halo_update_PBC",
@@ -369,7 +369,7 @@ void Comm::update_force() {
   N_local = system->N_local;
   N_ghost = 0;
   s=*system;
-  f = s.xvf.slice<Forces>();
+  f = Cabana::slice<Forces>(s.xvf);
 
   for(phase = 5; phase>=0; phase--) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
@@ -381,7 +381,7 @@ void Comm::update_force() {
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
     system->resize( halo.numLocal() + halo.numGhost() );
     s=*system;
-    f = s.xvf.slice<Forces>();
+    f = Cabana::slice<Forces>(s.xvf);
     Cabana::scatter( halo, f );
 
     N_ghost += proc_num_recv[phase];
