@@ -51,8 +51,8 @@
 
 Comm::Comm(System* s, T_X_FLOAT comm_depth_):neighbors(7),system(s),comm_depth(comm_depth_) {
   pack_count = Kokkos::View<int>("CommMPI::pack_count");
-  pack_indicies_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_indicies_all",6,200);
-  pack_ranks_all = Kokkos::View<T_INT**,Kokkos::LayoutRight>("CommMPI::pack_ranks_all",6,200);
+  pack_indicies_all = Kokkos::View<T_INT**,Kokkos::LayoutRight,DeviceType>("CommMPI::pack_indicies_all",6,200);
+  pack_ranks_all = Kokkos::View<T_INT**,Kokkos::LayoutRight,DeviceType>("CommMPI::pack_ranks_all",6,200);
 }
 
 void Comm::init() {}
@@ -61,6 +61,7 @@ void Comm::create_domain_decomposition() {
 
   MPI_Comm_size(MPI_COMM_WORLD, &proc_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &proc_rank);
+
   int ipx = 1;
 
   double area_xy = system->domain_x * system->domain_y;
@@ -209,7 +210,7 @@ void Comm::exchange() {
   s = *system;
   x = Cabana::slice<Positions>(s.xvf);
 
-  pack_ranks_migrate = Kokkos::View<T_INT*,MemorySpace>( "pack_ranks_migrate", x.size());
+  pack_ranks_migrate = Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType>( "pack_ranks_migrate", x.size());
   Kokkos::parallel_for("CommMPI::exchange_self",
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
 
@@ -238,7 +239,7 @@ void Comm::exchange() {
       Kokkos::deep_copy(count,pack_count);
       proc_num_send[phase] = count;
 
-      Cabana::Distributor<MemorySpace> distributor( MPI_COMM_WORLD, pack_ranks_migrate, neighbors );
+      Cabana::Distributor<DeviceType> distributor( MPI_COMM_WORLD, pack_ranks_migrate, neighbors );
       Cabana::migrate( distributor, s.xvf );
       system->resize(distributor.totalNumImport()); // Resized by migrate, but not within System
       s = *system;
@@ -302,7 +303,7 @@ void Comm::exchange_halo() {
     Kokkos::resize(pack_indicies, count);
     Kokkos::resize(pack_ranks, count);
 
-    Cabana::Halo<MemorySpace> halo(
+    Cabana::Halo<DeviceType> halo(
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
     system->resize( halo.numLocal() + halo.numGhost() );
     s=*system;
@@ -343,7 +344,7 @@ void Comm::update_halo() {
     pack_ranks = Kokkos::subview(pack_ranks_all,phase,Kokkos::ALL());
     Kokkos::resize(pack_ranks, proc_num_send[phase]);
 
-    Cabana::Halo<MemorySpace> halo(
+    Cabana::Halo<DeviceType> halo(
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
     system->resize( halo.numLocal() + halo.numGhost() );
     s=*system;
@@ -376,7 +377,7 @@ void Comm::update_force() {
     pack_ranks = Kokkos::subview(pack_ranks_all,phase,Kokkos::ALL());
     Kokkos::resize(pack_ranks, proc_num_send[phase]);
 
-    Cabana::Halo<MemorySpace> halo(
+    Cabana::Halo<DeviceType> halo(
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
     system->resize( halo.numLocal() + halo.numGhost() );
     s=*system;

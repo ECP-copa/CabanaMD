@@ -85,11 +85,11 @@ class Comm {
 
   Kokkos::View<int, Kokkos::MemoryTraits<Kokkos::Atomic> > pack_count;
 
-  Kokkos::View<T_INT**,Kokkos::LayoutRight> pack_indicies_all;
-  Kokkos::View<T_INT*,Kokkos::LayoutRight> pack_indicies;
-  Kokkos::View<T_INT**,Kokkos::LayoutRight> pack_ranks_all;
-  Kokkos::View<T_INT*,MemorySpace> pack_ranks;
-  Kokkos::View<T_INT*,MemorySpace> pack_ranks_migrate;
+  Kokkos::View<T_INT**,Kokkos::LayoutRight,DeviceType> pack_indicies_all;
+  Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_indicies;
+  Kokkos::View<T_INT**,Kokkos::LayoutRight,DeviceType> pack_ranks_all;
+  Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks;
+  Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks_migrate;
   std::vector<int> neighbors;
 
 protected:
