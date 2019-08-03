@@ -51,6 +51,7 @@
 
 template<class t_neighbor>
 ForceLJ<t_neighbor>::ForceLJ(System* system, bool half_neigh_):Force(system,half_neigh_) {
+  half_neigh = half_neigh_;
   ntypes = system->ntypes;
 
   lj1 = t_fparams("ForceLJCabanaNeigh::lj1",ntypes,ntypes);
@@ -83,8 +84,12 @@ template<class t_neighbor>
 void ForceLJ<t_neighbor>::create_neigh_list(System* system) {
   N_local = system->N_local;
 
-  double grid_min[3] = {-system->domain_x,-system->domain_y,-system->domain_z};
-  double grid_max[3] = {2*system->domain_x,2*system->domain_y,2*system->domain_z};
+  double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
+                        system->sub_domain_lo_y - system->sub_domain_y,
+                        system->sub_domain_lo_z - system->sub_domain_z};
+  double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
+                        system->sub_domain_hi_y + system->sub_domain_y,
+                        system->sub_domain_hi_z + system->sub_domain_z};
 
   auto x = Cabana::slice<Positions>(system->xvf);
 

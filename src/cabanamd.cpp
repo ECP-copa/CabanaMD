@@ -69,9 +69,8 @@ CabanaMD::CabanaMD() {
 
 void CabanaMD::init(int argc, char* argv[]) {
 
-  if(system->do_print) {
-     Kokkos::DefaultExecutionSpace::print_configuration(std::cout);
-  }
+  if(system->do_print)
+    Kokkos::DefaultExecutionSpace::print_configuration(std::cout);
 
   // Lets parse the command line arguments
   input->read_command_line_args(argc,argv);
@@ -91,14 +90,15 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // Create Force Type
   if(false) {}
-  #define FORCE_MODULES_INSTANTIATION
-  #include<modules_force.h>
-  #undef FORCE_MODULES_INSTANTIATION
+#define FORCE_MODULES_INSTANTIATION
+#include<modules_force.h>
+#undef FORCE_MODULES_INSTANTIATION
   else comm->error("Invalid ForceType");
   for(std::size_t line = 0; line < input->force_coeff_lines.dimension_0(); line++) {
-   force->init_coeff(neigh_cutoff,
-                    input->input_data.words[input->force_coeff_lines(line)]);
+    force->init_coeff(neigh_cutoff,
+                      input->input_data.words[input->force_coeff_lines(line)]);
   }
+
   // Create Communication Submodule
   comm = new Comm(system, neigh_cutoff);
 
@@ -186,7 +186,7 @@ void CabanaMD::run(int nsteps) {
 
   // Timestep Loop
   for(int step = 1; step <= nsteps; step++ ) {
-    
+
     // Do first part of the verlet time step integration 
     integrate_timer.reset();
     integrator->initial_integrate();
