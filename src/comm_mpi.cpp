@@ -274,7 +274,6 @@ void Comm::exchange_halo() {
   for(phase = 0; phase < 6; phase ++) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
     pack_ranks = Kokkos::subview(pack_ranks_all,phase,Kokkos::ALL());
-    Kokkos::deep_copy(pack_ranks,proc_rank);
 
     T_INT count = 0;
     Kokkos::deep_copy(pack_count,0);
@@ -288,10 +287,8 @@ void Comm::exchange_halo() {
     if((unsigned) count > pack_indicies.extent(0)) {
       Kokkos::resize(pack_indicies_all,6,count*1.1);
       pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
-      Kokkos::realloc(pack_ranks_all,6,count*1.1);
-      Kokkos::deep_copy(pack_ranks_all,proc_rank);
+      Kokkos::resize(pack_ranks_all,6,count*1.1);
       pack_ranks = Kokkos::subview(pack_ranks_all,phase,Kokkos::ALL());
-      Kokkos::deep_copy(pack_ranks,proc_rank);
 
       Kokkos::deep_copy(pack_count,0);
       Kokkos::parallel_for("CommMPI::halo_exchange_pack",
@@ -321,8 +318,6 @@ void Comm::exchange_halo() {
 
     N_ghost += count;
   }
-  static int step = 0;
-  step++;
 
   system->N_ghost = N_ghost;
 
