@@ -78,12 +78,12 @@ System::System() {
 }
 
 void System::init() {
-  t_AoSoA_x aosoa_x ( "All", N_max );
-  t_AoSoA_x aosoa_v ( "All", N_max );
-  t_AoSoA_x aosoa_f ( "All", N_max );
-  t_AoSoA_int aosoa_type ( "All", N_max );
-  t_AoSoA_int aosoa_id ( "All", N_max );
-  t_AoSoA_fl aosoa_q ( "All", N_max );
+  t_AoSoA_x aosoa_x ( "Positions", N_max );
+  t_AoSoA_x aosoa_v ( "Velocities", N_max );
+  t_AoSoA_x aosoa_f ( "Forces", N_max );
+  t_AoSoA_int aosoa_type ( "Types", N_max );
+  t_AoSoA_int aosoa_id ( "IDs", N_max );
+  t_AoSoA_fl aosoa_q ( "Charges", N_max );
   mass = t_mass("System::mass",ntypes);
 }
 
@@ -92,12 +92,12 @@ void System::destroy() {
   N_local = 0;
   N_ghost = 0;
   ntypes = 1;
-  t_AoSoA_x aosoa_x ( "All", 0 );
-  t_AoSoA_x aosoa_v ( "All", 0 );
-  t_AoSoA_x aosoa_f ( "All", 0 );
-  t_AoSoA_int aosoa_type ( "All", 0 );
-  t_AoSoA_int aosoa_id ( "All", 0 );
-  t_AoSoA_fl aosoa_q ( "All", 0 );
+  t_AoSoA_x aosoa_x ( "Positions", 0 );
+  t_AoSoA_x aosoa_v ( "Velocities", 0 );
+  t_AoSoA_x aosoa_f ( "Forces", 0 );
+  t_AoSoA_int aosoa_type ( "Types", 0 );
+  t_AoSoA_int aosoa_id ( "IDs", 0 );
+  t_AoSoA_fl aosoa_q ( "Charges", 0 );
   mass = t_mass();
 }
 
