@@ -81,12 +81,17 @@ void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, 
     T_X_FLOAT min[3] = {minx,miny,minz};
     T_X_FLOAT max[3] = {maxx,maxy,maxz};
 
-    x = Cabana::slice<Positions>(system->xvf);
+    x = Cabana::slice<0>(system->aosoa_x);
 
     t_linkedcell cell_list(x, begin, end, delta, min, max );
 
     if(sort) {
-      Cabana::permute( cell_list, system->xvf );
+      Cabana::permute( cell_list, system->aosoa_x );
+      Cabana::permute( cell_list, system->aosoa_v );
+      Cabana::permute( cell_list, system->aosoa_f );
+      Cabana::permute( cell_list, system->aosoa_id );
+      Cabana::permute( cell_list, system->aosoa_type );
+      Cabana::permute( cell_list, system->aosoa_q );
     }
   }
 }

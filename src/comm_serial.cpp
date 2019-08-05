@@ -58,7 +58,7 @@ Comm::~Comm() {}
 void Comm::exchange() {
   s = *system;
   N_local = system->N_local;
-  x = Cabana::slice<Positions>(s.xvf);
+  x = Cabana::slice<0>(s.aosoa_x);
 
   Kokkos::parallel_for("CommSerial::exchange_self",
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
@@ -70,7 +70,7 @@ void Comm::exchange_halo() {
   N_ghost = 0;
 
   s = *system;
-  x = Cabana::slice<Positions>(s.xvf);
+  x = Cabana::slice<0>(s.aosoa_x);
 
   for(phase = 0; phase < 6; phase ++) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
@@ -87,7 +87,7 @@ void Comm::exchange_halo() {
     if((unsigned) N_local+N_ghost+count > x.size()) {
       system->resize(N_local + N_ghost + count);
       s = *system;
-      x = Cabana::slice<Positions>(s.xvf); // reslice after resize
+      x = Cabana::slice<0>(s.aosoa_x); // reslice after resize
       redo = true;
     }
     if((unsigned) count > pack_indicies.extent(0)) {
@@ -116,7 +116,7 @@ void Comm::exchange_halo() {
 void Comm::update_halo() {
   N_ghost = 0;
   s=*system;
-  x = Cabana::slice<Positions>(s.xvf);
+  x = Cabana::slice<0>(s.aosoa_x);
   for(phase = 0; phase<6; phase++) {
     pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
 
@@ -130,7 +130,7 @@ void Comm::update_halo() {
 void Comm::update_force() {
   //printf("Update Force\n");
   s=*system;
-  f = Cabana::slice<Forces>(s.xvf);
+  f = Cabana::slice<0>(s.aosoa_f);
   ghost_offsets[0] = s.N_local;
   for(phase = 1; phase<6; phase++) {
     ghost_offsets[phase] = ghost_offsets[phase-1] + num_ghost[phase-1];

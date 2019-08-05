@@ -78,7 +78,12 @@ System::System() {
 }
 
 void System::init() {
-  AoSoA xvf ( "All", N_max );
+  t_AoSoA_x aosoa_x ( "All", N_max );
+  t_AoSoA_x aosoa_v ( "All", N_max );
+  t_AoSoA_x aosoa_f ( "All", N_max );
+  t_AoSoA_int aosoa_type ( "All", N_max );
+  t_AoSoA_int aosoa_id ( "All", N_max );
+  t_AoSoA_fl aosoa_q ( "All", N_max );
   mass = t_mass("System::mass",ntypes);
 }
 
@@ -87,7 +92,12 @@ void System::destroy() {
   N_local = 0;
   N_ghost = 0;
   ntypes = 1;
-  AoSoA xvf( "All", 0 );
+  t_AoSoA_x aosoa_x ( "All", 0 );
+  t_AoSoA_x aosoa_v ( "All", 0 );
+  t_AoSoA_x aosoa_f ( "All", 0 );
+  t_AoSoA_int aosoa_type ( "All", 0 );
+  t_AoSoA_int aosoa_id ( "All", 0 );
+  t_AoSoA_fl aosoa_q ( "All", 0 );
   mass = t_mass();
 }
 
@@ -96,16 +106,21 @@ void System::resize(T_INT N_new) {
     N_max = N_new; // Number of global Particles
   }
   // Grow/shrink, slice.size() needs to be accurate
-  xvf.resize( N_new );
+  aosoa_x.resize( N_new );
+  aosoa_v.resize( N_new );
+  aosoa_f.resize( N_new );
+  aosoa_type.resize( N_new );
+  aosoa_id.resize( N_new );
+  aosoa_q.resize( N_new );
 }
 
 void System::print_particles() {
 
-  auto x = Cabana::slice<Positions>(xvf);
-  auto v = Cabana::slice<Velocities>(xvf);
-  auto f = Cabana::slice<Forces>(xvf);
-  auto type = Cabana::slice<Types>(xvf);
-  auto q = Cabana::slice<Charges>(xvf);
+  auto x = Cabana::slice<0>(aosoa_x);
+  auto v = Cabana::slice<0>(aosoa_v);
+  auto f = Cabana::slice<0>(aosoa_f);
+  auto type = Cabana::slice<0>(aosoa_type);
+  auto q = Cabana::slice<0>(aosoa_q);
 
   printf("Print all particles: \n");
   printf("  Owned: %d\n",N_local);

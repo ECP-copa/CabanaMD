@@ -105,10 +105,9 @@ typedef Kokkos::View<const T_V_FLOAT*>    t_mass_const; // Mass
 
 
 //Cabana
-using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
-                                    T_INT, T_INT, T_FLOAT>;
-enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
-                 Types = 3, IDs = 4, Charges = 5 };
+using t_tuple_x = Cabana::MemberTypes<T_FLOAT[3]>;
+using t_tuple_int = Cabana::MemberTypes<T_INT>;
+using t_tuple_fl = Cabana::MemberTypes<T_FLOAT>;
 
 #ifdef CabanaMD_ENABLE_Cuda
 using MemorySpace = Kokkos::CudaUVMSpace;
@@ -125,8 +124,13 @@ using DeviceType = Kokkos::Device<ExecutionSpace,MemorySpace>;
 
 using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
-using AoSoA = Cabana::AoSoA<t_tuple,DeviceType,VECLEN>;
-using t_particle = Cabana::Tuple<t_tuple>;
+using t_AoSoA_x = Cabana::AoSoA<t_tuple_x,DeviceType,VECLEN>;
+using t_AoSoA_int = Cabana::AoSoA<t_tuple_int,DeviceType,VECLEN>;
+using t_AoSoA_fl = Cabana::AoSoA<t_tuple_fl,DeviceType,VECLEN>;
+
+using t_particle_x = Cabana::Tuple<t_tuple_x>;
+using t_particle_int = Cabana::Tuple<t_tuple_int>;
+using t_particle_fl = Cabana::Tuple<t_tuple_fl>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
 using t_verletlist_full_2D = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;

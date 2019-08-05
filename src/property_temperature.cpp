@@ -52,8 +52,8 @@
 Temperature::Temperature(Comm* comm_):comm(comm_) {}
 
 T_V_FLOAT Temperature::compute(System* system) {
-  v = Cabana::slice<Velocities>(system->xvf);
-  type = Cabana::slice<Types>(system->xvf);
+  v = Cabana::slice<0>(system->aosoa_v);
+  type = Cabana::slice<0>(system->aosoa_type);
   mass = system->mass;
 
   T_V_FLOAT T; 

@@ -61,8 +61,8 @@ class Comm {
   T_INT N_ghost;
 
   System s;
-  typename AoSoA::member_slice_type<Positions> x;
-  typename AoSoA::member_slice_type<Forces> f;
+  typename t_AoSoA_x::member_slice_type<0> x;
+  typename t_AoSoA_x::member_slice_type<0> f;
 
   // Owned Variables
 
@@ -130,8 +130,7 @@ public:
         if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
            (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
+          s.set_particle(i, N_local + N_ghost + pack_idx);
           x(N_local + N_ghost + pack_idx,0) -= s.domain_x;
         }
       }
@@ -142,8 +141,7 @@ public:
         if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
            (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
+          s.set_particle(i, N_local + N_ghost + pack_idx);
           x(N_local + N_ghost + pack_idx,0) += s.domain_x;
         }
       }
@@ -154,8 +152,7 @@ public:
         if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
            (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
+          s.set_particle(i, N_local + N_ghost + pack_idx);
           x(N_local + N_ghost + pack_idx,1) -= s.domain_y;
         }
       }
@@ -166,8 +163,7 @@ public:
         if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
            (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
+          s.set_particle(i, N_local + N_ghost + pack_idx);
           x(N_local + N_ghost + pack_idx,1) += s.domain_y;
         }
       }
@@ -178,8 +174,7 @@ public:
         if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
            (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
+          s.set_particle(i, N_local + N_ghost + pack_idx);
           x(N_local + N_ghost + pack_idx,2) -= s.domain_z;
         }
       }
@@ -190,8 +185,7 @@ public:
         if(((unsigned) pack_idx < pack_indicies.extent(0)) &&
            (((unsigned) N_local+N_ghost+pack_idx) < x.size())) {
           pack_indicies(pack_idx) = i;
-          t_particle p = s.get_particle(i);
-          s.set_particle(N_local + N_ghost + pack_idx, p);
+          s.set_particle(i, N_local + N_ghost + pack_idx);
           x(N_local + N_ghost + pack_idx,2) += s.domain_z;
         }
       }
@@ -203,8 +197,7 @@ public:
   void operator() (const TagHaloUpdateSelf,
                    const T_INT& i) const {
 
-    t_particle p = s.get_particle(pack_indicies(i));
-    s.set_particle(N_local + N_ghost + i, p);
+    s.set_particle(pack_indicies(i), N_local + N_ghost + i);
     switch (phase) {
       case 0: x(N_local + N_ghost + i,0) -= s.domain_x; break;
       case 1: x(N_local + N_ghost + i,0) += s.domain_x; break;

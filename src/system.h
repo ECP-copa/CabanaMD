@@ -64,7 +64,12 @@ public:
   std::string atom_style; 
 
   // Per Particle Property
-  AoSoA xvf;
+  t_AoSoA_x aosoa_x;
+  t_AoSoA_x aosoa_v;
+  t_AoSoA_x aosoa_f;
+  t_AoSoA_int aosoa_type;
+  t_AoSoA_int aosoa_id;
+  t_AoSoA_fl aosoa_q;
   // Per Type Property
   t_mass mass;
 
@@ -94,22 +99,22 @@ public:
   void resize(T_INT new_N);
 
   KOKKOS_INLINE_FUNCTION
-  t_particle get_particle(const T_INT& i) const {
-    return xvf.getTuple(i);
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void set_particle(const T_INT& i, const t_particle& p) const {
-    xvf.setTuple(i, p);
+  void set_particle(const T_INT& iget, const T_INT& iset) const {
+    aosoa_x.setTuple(iset, aosoa_x.getTuple(iget));
+    aosoa_v.setTuple(iset, aosoa_v.getTuple(iget));
+    aosoa_f.setTuple(iset, aosoa_f.getTuple(iget));
+    aosoa_type.setTuple(iset, aosoa_type.getTuple(iget));
+    aosoa_id.setTuple(iset, aosoa_id.getTuple(iget));
+    aosoa_q.setTuple(iset, aosoa_q.getTuple(iget));
   }
 
   KOKKOS_INLINE_FUNCTION
   void copy(T_INT dest, T_INT src, int nx, int ny, int nz) const {
-    auto x = Cabana::slice<Positions>(xvf);
-    auto v = Cabana::slice<Velocities>(xvf);
-    auto q = Cabana::slice<Charges>(xvf);
-    auto id = Cabana::slice<IDs>(xvf);
-    auto type = Cabana::slice<Types>(xvf);
+    auto x = Cabana::slice<0>(aosoa_x);
+    auto v = Cabana::slice<0>(aosoa_v);
+    auto q = Cabana::slice<0>(aosoa_q);
+    auto id = Cabana::slice<0>(aosoa_id);
+    auto type = Cabana::slice<0>(aosoa_type);
 
     x(dest,0) = x(src,0) + domain_x * nx;
     x(dest,1) = x(src,1) + domain_y * ny;
@@ -124,7 +129,7 @@ public:
 
   KOKKOS_INLINE_FUNCTION
   void copy_halo_update(T_INT dest, T_INT src, int nx, int ny, int nz) const {
-    auto x = Cabana::slice<Positions>(xvf);
+    auto x = Cabana::slice<0>(aosoa_x);
 
     x(dest,0) = x(src,0) + domain_x * nx;
     x(dest,1) = x(src,1) + domain_y * ny;

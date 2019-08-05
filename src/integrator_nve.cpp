@@ -56,27 +56,32 @@ Integrator::Integrator(System* p):system(p) {
 
 namespace {
   struct InitialIntegrateFunctor {
-    AoSoA xvf;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Velocities> v;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Types> type;
+    t_AoSoA_x aosoa_x;
+    t_AoSoA_x aosoa_v;
+    t_AoSoA_x aosoa_f;
+    t_AoSoA_int aosoa_type;
+    typename t_AoSoA_x::member_slice_type<0> x;
+    typename t_AoSoA_x::member_slice_type<0> v;
+    typename t_AoSoA_x::member_slice_type<0> f;
+    typename t_AoSoA_int::member_slice_type<0> type;
 
     t_mass_const mass;
 
     T_V_FLOAT dtf,dtv;
     int step;
 
-    InitialIntegrateFunctor(
-      AoSoA& xvf_,
-      t_mass mass_, T_V_FLOAT dtf_, T_V_FLOAT dtv_, int step_
-    ): xvf(xvf_),
-      mass(mass_),dtf(dtf_),dtv(dtv_),step(step_)
-      {
-      x = Cabana::slice<Positions>(xvf);
-      v = Cabana::slice<Velocities>(xvf);
-      f = Cabana::slice<Forces>(xvf);
-      type = Cabana::slice<Types>(xvf);
+    InitialIntegrateFunctor(t_AoSoA_x &aosoa_x_, t_AoSoA_x &aosoa_v_,
+                            t_AoSoA_x &aosoa_f_, t_AoSoA_int &aosoa_type_,
+                            t_mass mass_, T_V_FLOAT dtf_,
+                            T_V_FLOAT dtv_, int step_
+                            ): aosoa_x(aosoa_x_),aosoa_v(aosoa_v_),
+                               aosoa_f(aosoa_f_),aosoa_type(aosoa_type_),
+                               mass(mass_),dtf(dtf_),dtv(dtv_),step(step_)
+    {
+      x = Cabana::slice<0>(aosoa_x);
+      v = Cabana::slice<0>(aosoa_v);
+      f = Cabana::slice<0>(aosoa_f);
+      type = Cabana::slice<0>(aosoa_type);
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -95,34 +100,42 @@ namespace {
 void Integrator::initial_integrate() {
   static int step =1;
   Kokkos::parallel_for("IntegratorNVE::initial_integrate",system->N_local,
-                       InitialIntegrateFunctor(system->xvf, system->mass, dtf, dtv, step));
+                       InitialIntegrateFunctor(system->aosoa_x, system->aosoa_v,
+                                               system->aosoa_f, system->aosoa_type,
+                                               system->mass, dtf, dtv, step)
+                       );
   step++;
 }
 
 
 namespace {
   struct FinalIntegrateFunctor {
-    AoSoA xvf;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Velocities> v;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Types> type;
+    t_AoSoA_x aosoa_x;
+    t_AoSoA_x aosoa_v;
+    t_AoSoA_x aosoa_f;
+    t_AoSoA_int aosoa_type;
+    typename t_AoSoA_x::member_slice_type<0> x;
+    typename t_AoSoA_x::member_slice_type<0> v;
+    typename t_AoSoA_x::member_slice_type<0> f;
+    typename t_AoSoA_int::member_slice_type<0> type;
 
     t_mass_const mass;
 
     T_V_FLOAT dtf,dtv;
     int step;
 
-    FinalIntegrateFunctor(
-      AoSoA& xvf_,
-      t_mass mass_, T_V_FLOAT dtf_, T_V_FLOAT dtv_, int step_
-    ): xvf(xvf_), mass(mass_),
-      dtf(dtf_),dtv(dtv_),step(step_)
-      {
-      x = Cabana::slice<Positions>(xvf);
-      v = Cabana::slice<Velocities>(xvf);
-      f = Cabana::slice<Forces>(xvf);
-      type = Cabana::slice<Types>(xvf);
+    FinalIntegrateFunctor(t_AoSoA_x &aosoa_x_, t_AoSoA_x &aosoa_v_,
+                          t_AoSoA_x &aosoa_f_, t_AoSoA_int &aosoa_type_,
+                          t_mass mass_, T_V_FLOAT dtf_,
+                          T_V_FLOAT dtv_, int step_
+                          ): aosoa_x(aosoa_x_),aosoa_v(aosoa_v_),
+                             aosoa_f(aosoa_f_),aosoa_type(aosoa_type_),
+                             mass(mass_),dtf(dtf_),dtv(dtv_),step(step_)
+    {
+      x = Cabana::slice<0>(aosoa_x);
+      v = Cabana::slice<0>(aosoa_v);
+      f = Cabana::slice<0>(aosoa_f);
+      type = Cabana::slice<0>(aosoa_type);
     }
 
     KOKKOS_INLINE_FUNCTION
@@ -138,7 +151,10 @@ namespace {
 void Integrator::final_integrate() {
   static int step = 1;
   Kokkos::parallel_for("IntegratorNVE::final_integrate",system->N_local, 
-                       FinalIntegrateFunctor(system->xvf, system->mass, dtf, dtv, step));
+                       FinalIntegrateFunctor(system->aosoa_x, system->aosoa_v,
+                                             system->aosoa_f, system->aosoa_type,
+                                             system->mass, dtf, dtv, step)
+                       );
   step++;
 }
 

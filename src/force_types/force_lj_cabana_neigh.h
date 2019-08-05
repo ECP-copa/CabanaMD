@@ -97,11 +97,11 @@ template<class t_neighbor>
 class ForceLJ: public Force {
 private:
   int N_local,ntypes;
-  typename AoSoA::member_slice_type<Positions> x;
-  typename AoSoA::member_slice_type<Forces> f;
-  typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-  typename AoSoA::member_slice_type<IDs> id;
-  typename AoSoA::member_slice_type<Types> type;
+  typename t_AoSoA_x::member_slice_type<0> x;
+  typename t_AoSoA_x::member_slice_type<0> f;
+  typename t_AoSoA_x::member_slice_type<0>::atomic_access_slice f_a;
+  typename t_AoSoA_int::member_slice_type<0> id;
+  typename t_AoSoA_int::member_slice_type<0> type;
 
   int step;
 

@@ -543,11 +543,11 @@ void Input::create_lattice(Comm* comm) {
     system->N = n;
     system->resize(n);
     s = *system;
-    auto x = Cabana::slice<Positions>(s.xvf);
-    auto v = Cabana::slice<Velocities>(s.xvf);
-    auto id = Cabana::slice<IDs>(s.xvf);
-    auto type = Cabana::slice<Types>(s.xvf);
-    auto q = Cabana::slice<Charges>(s.xvf);
+    auto x = Cabana::slice<0>(s.aosoa_x);
+    auto v = Cabana::slice<0>(s.aosoa_v);
+    auto id = Cabana::slice<0>(s.aosoa_id);
+    auto type = Cabana::slice<0>(s.aosoa_type);
+    auto q = Cabana::slice<0>(s.aosoa_q);
 
     n = 0;
     for(T_INT iz=iz_start; iz<=iz_end; iz++) {
@@ -642,11 +642,11 @@ void Input::create_lattice(Comm* comm) {
     system->N = n;
     system->resize(n);
     s = *system;
-    auto x = Cabana::slice<Positions>(s.xvf);
-    auto v = Cabana::slice<Velocities>(s.xvf);
-    auto id = Cabana::slice<IDs>(s.xvf);
-    auto type = Cabana::slice<Types>(s.xvf);
-    auto q = Cabana::slice<Charges>(s.xvf);
+    auto x = Cabana::slice<0>(s.aosoa_x);
+    auto v = Cabana::slice<0>(s.aosoa_v);
+    auto id = Cabana::slice<0>(s.aosoa_id);
+    auto type = Cabana::slice<0>(s.aosoa_type);
+    auto q = Cabana::slice<0>(s.aosoa_q);
 
     n = 0;
 
@@ -693,10 +693,10 @@ void Input::create_lattice(Comm* comm) {
   
   {  // Scope s
     System s = *system;
-    auto x = Cabana::slice<Positions>(s.xvf);
-    auto v = Cabana::slice<Velocities>(s.xvf);
-    auto type = Cabana::slice<Types>(s.xvf);
-    auto q = Cabana::slice<Charges>(s.xvf);
+    auto x = Cabana::slice<0>(s.aosoa_x);
+    auto v = Cabana::slice<0>(s.aosoa_v);
+    auto type = Cabana::slice<0>(s.aosoa_type);
+    auto q = Cabana::slice<0>(s.aosoa_q);
 
     T_FLOAT total_mass = 0.0;
     T_FLOAT total_momentum_x = 0.0;
