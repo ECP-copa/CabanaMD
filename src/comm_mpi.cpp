@@ -297,8 +297,8 @@ void Comm::exchange_halo() {
     }
     proc_num_send[phase] = count;
 
-    Kokkos::resize(pack_indicies, count);
-    Kokkos::resize(pack_ranks, count);
+    pack_indicies = Kokkos::subview(pack_indicies, std::pair<size_t, size_t>(0,proc_num_send[phase]));
+    pack_ranks = Kokkos::subview(pack_ranks, std::pair<size_t, size_t>(0,proc_num_send[phase]));
 
     Cabana::Halo<DeviceType> halo(
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
@@ -334,10 +334,8 @@ void Comm::update_halo() {
   x = Cabana::slice<Positions>(s.xvf);
 
   for(phase = 0; phase<6; phase++) {
-    pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
-    Kokkos::resize(pack_indicies, proc_num_send[phase]);
-    pack_ranks = Kokkos::subview(pack_ranks_all,phase,Kokkos::ALL());
-    Kokkos::resize(pack_ranks, proc_num_send[phase]);
+    pack_indicies = Kokkos::subview(pack_indicies_all, phase, std::pair<size_t, size_t>(0,proc_num_send[phase]));
+    pack_ranks = Kokkos::subview(pack_ranks_all, phase, std::pair<size_t, size_t>(0,proc_num_send[phase]));
 
     Cabana::Halo<DeviceType> halo(
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
@@ -367,10 +365,8 @@ void Comm::update_force() {
   f = Cabana::slice<Forces>(s.xvf);
 
   for(phase = 5; phase>=0; phase--) {
-    pack_indicies = Kokkos::subview(pack_indicies_all,phase,Kokkos::ALL());
-    Kokkos::resize(pack_indicies, proc_num_send[phase]);
-    pack_ranks = Kokkos::subview(pack_ranks_all,phase,Kokkos::ALL());
-    Kokkos::resize(pack_ranks, proc_num_send[phase]);
+    pack_indicies = Kokkos::subview(pack_indicies_all, phase, std::pair<size_t, size_t>(0,proc_num_send[phase]));
+    pack_ranks = Kokkos::subview(pack_ranks_all, phase, std::pair<size_t, size_t>(0,proc_num_send[phase]));
 
     Cabana::Halo<DeviceType> halo(
         MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
