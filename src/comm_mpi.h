@@ -56,6 +56,10 @@
 #include <types.h>
 #include <system.h>
 
+#include <algorithm>
+#include <memory>
+#include <vector>
+
 class Comm {
 
   // Variables Comm doesn't own but requires for computations
@@ -91,6 +95,8 @@ class Comm {
   Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks;
   Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks_migrate;
   std::vector<int> neighbors;
+
+  std::vector<std::shared_ptr<Cabana::Halo<DeviceType>>> halo_all;
 
 protected:
   System* system;
