@@ -344,7 +344,7 @@ void Comm::update_halo() {
     Cabana::gather( *halo_all[phase], s.xvf );
 
     Kokkos::parallel_for("CommMPI::halo_update_PBC",
-                Kokkos::RangePolicy<TagHaloUpdatePBC, Kokkos::IndexType<T_INT> >(
+                Kokkos::RangePolicy<TagHaloPBC, Kokkos::IndexType<T_INT> >(
                                   halo_all[phase]->numLocal(),halo_all[phase]->numLocal()+halo_all[phase]->numGhost()),
                 *this);
 

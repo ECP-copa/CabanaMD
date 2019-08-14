@@ -110,7 +110,6 @@ public:
   
   struct TagHaloPack {};
   struct TagHaloPBC {};
-  struct TagHaloUpdatePBC {};
 
   Comm(System* s, T_X_FLOAT comm_depth_);
   void init();
@@ -269,41 +268,10 @@ public:
     }
   }
 
-  // Wrap atoms after halo exchange
-  // (after MPI, from the perspective of receiving rank)
-  KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloPBC,
-                   const T_INT& i) const {
-    if(phase == 0) {
-      if(proc_pos[0] == 0)
-        x(i,0) -= s.domain_x;
-    }
-    if(phase == 1) {
-      if(proc_pos[0] == proc_grid[0]-1)
-        x(i,0) += s.domain_x;
-    }
-    if(phase == 2) {
-      if(proc_pos[1] == 0)
-        x(i,1) -= s.domain_y;
-    }
-    if(phase == 3) {
-      if(proc_pos[1] == proc_grid[1]-1)
-        x(i,1) += s.domain_y;
-    }
-    if(phase == 4) {
-      if(proc_pos[2] == 0)
-        x(i,2) -= s.domain_z;
-    }
-    if(phase == 5) {
-      if(proc_pos[2] == proc_grid[2]-1)
-        x(i,2) += s.domain_z;
-    }
-  }
-
   // Wrap ghosts after update from local counterpart
   // (after MPI, from the perspective of receiving rank)
   KOKKOS_INLINE_FUNCTION
-  void operator() (const TagHaloUpdatePBC,
+  void operator() (const TagHaloPBC,
                    const T_INT& i) const {
 
     switch (phase) {
