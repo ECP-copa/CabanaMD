@@ -66,7 +66,7 @@ enum {INTEGRATOR_NVE};
 // Binning Type
 enum {BINNING_LINKEDCELL};
 // Comm Type
-enum {COMM_SERIAL};
+enum {COMM_MPI};
 // Force Type
 enum {FORCE_LJ,FORCE_SNAP};
 // Force Iteration Type

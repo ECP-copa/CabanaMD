@@ -41,7 +41,7 @@
 ---------------------------------------------------------------------- */
 #include <cstring>
 #include <string>
-#include <comm_serial.h>
+#include <comm_mpi.h>
 #include <iostream>
 #include <fstream>
 #include <types.h>

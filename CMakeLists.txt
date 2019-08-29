@@ -49,6 +49,8 @@ if( CabanaMD_ENABLE_Cuda )
   endif(CUDA_FOUND)
 endif()
 
+find_package(MPI REQUIRED)
+
 if(NOT DEFINED CABANA_DIR)
   set(CABANA_DIR ~/install/cabana/)
 endif()
@@ -86,5 +88,5 @@ link_directories(${CABANA_DIR}/lib64)
 link_directories(${CABANA_DIR}/lib)
 
 add_executable(CabanaMD ${SOURCES})
-target_link_libraries(CabanaMD cabanacore kokkos dl)
+target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX)
 install(TARGETS CabanaMD DESTINATION bin)

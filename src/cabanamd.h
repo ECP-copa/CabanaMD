@@ -52,8 +52,8 @@
 
 #include<system.h>
 #include<integrator_nve.h>
-#include<force.h> // multiple options
-#include<comm_serial.h>
+#include<force.h>
+#include<comm_mpi.h>
 #include<input.h>
 #include<binning_cabana.h>
 
