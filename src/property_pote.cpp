@@ -49,6 +49,7 @@
 
 #include <cabanamd.h>
 #include <property_pote.h>
+#include <iostream>
 
 PotE::PotE(Comm* comm_):comm(comm_) {}
 

@@ -176,6 +176,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   thermo_rate = 10;
 
   neighbor_skin = 0.3;
+  neighbor_skin = 0.0; //for metal and real units
   comm_exchange_rate = 20;
   comm_newton = 0;
 
@@ -417,15 +418,26 @@ void Input::check_lammps_command(int line) {
       force_cutoff = 4.73442;// atof(input_data.words[line][2]);
       force_line = line;
     }
+    if(strcmp(input_data.words[line][1],"nnp")==0) {
+      known = true;
+      force_type = FORCE_NNP;
+      force_line = line; //TODO: process this line to read in the right directories
+      Kokkos::resize(force_coeff_lines,1);
+      force_coeff_lines(0) = line;
+    }
     if(system->do_print && !known)
-      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' style in CabanaMD\n");
+      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' and 'nnp' style in CabanaMD\n");
   }
   if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
     known = true;
+    if (force_type == FORCE_NNP)
+      force_cutoff = atof(input_data.words[line][3]);
+    else {
     int n_coeff_lines = force_coeff_lines.dimension_0();
     Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
     force_coeff_lines( n_coeff_lines) = line;
     n_coeff_lines++;
+    }
   }
   if(strcmp(input_data.words[line][0],"velocity")==0) {
     known = true;
