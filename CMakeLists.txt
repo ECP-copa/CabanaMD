@@ -57,6 +57,11 @@ if(NOT DEFINED KOKKOS_DIR)
   set(KOKKOS_DIR ~/install/kokkos/)
 endif()
 
+option(CabanaMD_ENABLE_N2P2 "Build CabanaMD with neural network potential library n2p2" OFF)
+if(NOT DEFINED N2P2_DIR)
+  set(N2P2_DIR ~/install/n2p2/)
+endif()
+
 ##---------------------------------------------------------------------------##
 ## Print the revision number to stdout
 ##---------------------------------------------------------------------------##
@@ -76,15 +81,21 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-include_directories(src src/force_types src/libnnp)
-file(GLOB SOURCES src/libnnp/*.cpp src/*.cpp src/force_types/*.cpp)
+include_directories(src src/force_types)
+file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
 
 include_directories(SYSTEM ${KOKKOS_DIR}/include)
 link_directories(${KOKKOS_DIR}/lib)
 include_directories(${CABANA_DIR}/include)
 link_directories(${CABANA_DIR}/lib64)
 link_directories(${CABANA_DIR}/lib)
+include_directories(${N2P2_DIR}/include)
+link_directories(${N2P2_DIR}/lib)
 
 add_executable(CabanaMD ${SOURCES})
-target_link_libraries(CabanaMD cabanacore kokkos dl)
+if(CabanaMD_ENABLE_N2P2)
+  target_link_libraries(CabanaMD cabanacore kokkos nnp dl)
+else()
+  target_link_libraries(CabanaMD cabanacore kokkos dl)
+endif()
 install(TARGETS CabanaMD DESTINATION bin)
