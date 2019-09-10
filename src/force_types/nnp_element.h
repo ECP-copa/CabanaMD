@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef ELEMENT_H
-#define ELEMENT_H
+#ifndef CBN_ELEMENT_H
+#define CBN_ELEMENT_H
 
-#include "CutoffFunction.h"
+#include "nnp_cutoff.h"
 #include "utility.h"
 #include <cstddef> // size_t
 #include <string>  // string
@@ -26,7 +26,7 @@
 #include <system.h>
 
 using namespace std;
-namespace nnp
+namespace nnpCbn
 {
 
 class SymmetryFunctionGroup;
@@ -213,7 +213,7 @@ inline void Element::setScalingType(ScalingType scalingType, string statisticsLi
                                             double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const
 {
     double Gmin, Gmax, Gmean, Gsigma, scalingFactor = 0;
-    vector<string> s = split(reduce(statisticsLine));
+    vector<string> s = nnp::split(nnp::reduce(statisticsLine));
     
     Gmin       = atof(s.at(2).c_str());
     Gmax       = atof(s.at(3).c_str());
@@ -249,7 +249,7 @@ inline void Element::setScalingType(ScalingType scalingType, string statisticsLi
 
 inline string Element::scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const
 {
-    return strpr("%4zu %9.2E %9.2E %9.2E %9.2E %9.2E %5.2f %5.2f %d\n",
+    return nnp::strpr("%4zu %9.2E %9.2E %9.2E %9.2E %9.2E %5.2f %5.2f %d\n",
                  k + 1,
                  SFscaling(attype,k,0),
                  SFscaling(attype,k,1),

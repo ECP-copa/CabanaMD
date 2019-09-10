@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "Element.h"
+#include "nnp_element.h"
 #include "utility.h"
 #include <iostream>  // std::cerr
 #include <cstdlib>   // atoi
@@ -24,7 +24,7 @@
 #define MAX_SF 30
 
 using namespace std;
-using namespace nnp;
+using namespace nnpCbn;
 
 Element::Element(size_t const index) :
     index             (index                         ),
@@ -40,12 +40,12 @@ Element::~Element()
 void Element::addSymmetryFunction(string const& parameters, vector<string> elementStrings,
                                   size_t const& lineNumber, int attype, t_SF SF, double convLength, int (&countertotal)[2])
 {
-    vector<string> args = split(reduce(parameters));
+    vector<string> args = nnp::split(nnp::reduce(parameters));
     size_t         type = (size_t)atoi(args.at(1).c_str());
     const char* estring;
     int el;
     
-    vector<string> splitLine = split(reduce(parameters));
+    vector<string> splitLine = nnp::split(nnp::reduce(parameters));
     if (type == 2)
     {
       estring = splitLine.at(0).c_str();

@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "CutoffFunction.h"
+#include "nnp_cutoff.h"
 #include <stdexcept>
 #include <cmath>  // cos, sin, tanh, exp, pow
 #include <limits> // std::numeric_limits
 #include <iostream>
 
 using namespace std;
-using namespace nnp;
+using namespace nnpCbn;
 
 double const CutoffFunction::PI = 4.0 * atan(1.0);
 double const CutoffFunction::PI_2 = 2.0 * atan(1.0);

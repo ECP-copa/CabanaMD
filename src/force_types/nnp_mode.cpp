@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "Mode.h"
+#include "nnp_mode.h"
 #include "utility.h"
 #include <algorithm> // std::min, std::max
 #include <cstdlib>   // atoi, atof
@@ -30,7 +30,7 @@
 #define NNP_GIT_BRANCH "master"
 
 using namespace std;
-using namespace nnp;
+using namespace nnpCbn;
 
 Mode::Mode() : normalize                 (false),
                checkExtrapolationWarnings(false),
@@ -94,9 +94,9 @@ void Mode::setupNormalization()
         convEnergy = atof(settings["conv_energy"].c_str());
         convLength = atof(settings["conv_length"].c_str());
         log << "Data set normalization is used.\n";
-        log << strpr("Mean energy per atom     : %24.16E\n", meanEnergy);
-        log << strpr("Conversion factor energy : %24.16E\n", convEnergy);
-        log << strpr("Conversion factor length : %24.16E\n", convLength);
+        log << nnp::strpr("Mean energy per atom     : %24.16E\n", meanEnergy);
+        log << nnp::strpr("Conversion factor energy : %24.16E\n", convEnergy);
+        log << nnp::strpr("Conversion factor length : %24.16E\n", convLength);
         if (settings.keywordExists("atom_energy"))
         {
             log << "\n";
@@ -134,12 +134,12 @@ void Mode::setupElementMap()
            "**************************************\n";
     log << "\n";
 
-    elementStrings = split(reduce(settings["elements"]));
+    elementStrings = nnp::split(nnp::reduce(settings["elements"]));
     
-    log << strpr("Number of element strings found: %d\n", elementStrings.size());
+    log << nnp::strpr("Number of element strings found: %d\n", elementStrings.size());
     for (size_t i = 0; i < elementStrings.size(); ++i)
     {
-        log << strpr("Element %2zu: %2s\n", i, elementStrings[i].c_str());
+        log << nnp::strpr("Element %2zu: %2s\n", i, elementStrings[i].c_str());
     }
     //resize numSymmetryFunctionsPerElement to have size = num of atom types in system
     numElements = elementStrings.size();
@@ -174,7 +174,7 @@ h_t_mass Mode::setupElements(h_t_mass atomicEnergyOffset)
     {
         throw runtime_error("ERROR: Inconsistent number of elements.\n");
     }
-    log << strpr("Number of elements is consistent: %zu\n", numElements);
+    log << nnp::strpr("Number of elements is consistent: %zu\n", numElements);
 
     for (size_t i = 0; i < numElements; ++i)
     {
@@ -183,10 +183,10 @@ h_t_mass Mode::setupElements(h_t_mass atomicEnergyOffset)
 
     if (settings.keywordExists("atom_energy"))
     {
-        Settings::KeyRange r = settings.getValues("atom_energy");
-        for (Settings::KeyMap::const_iterator it = r.first; it != r.second; ++it)
+        nnp::Settings::KeyRange r = settings.getValues("atom_energy");
+        for (nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second; ++it)
         {
-            vector<string> args    = split(reduce(it->second.first));
+            vector<string> args    = nnp::split(nnp::reduce(it->second.first));
             const char* estring = args.at(0).c_str();
             //np.where element symbol == symbol encountered during parsing 
             for (int i = 0; i < elementStrings.size(); ++i)
@@ -200,7 +200,7 @@ h_t_mass Mode::setupElements(h_t_mass atomicEnergyOffset)
     log << "Atomic energy offsets per element:\n";
     for (size_t i = 0; i < elementStrings.size(); ++i)
     {
-        log << strpr("Element %2zu: %16.8E\n",
+        log << nnp::strpr("Element %2zu: %16.8E\n",
                      i, atomicEnergyOffset(i));
     }
 
@@ -218,7 +218,7 @@ void Mode::setupCutoff()
            "**************************************\n";
     log << "\n";
 
-    vector<string> args = split(settings["cutoff_type"]);
+    vector<string> args = nnp::split(settings["cutoff_type"]);
 
     cutoffType = (CutoffFunction::CutoffType) atoi(args.at(0).c_str());
     if (args.size() > 1)
@@ -229,19 +229,19 @@ void Mode::setupCutoff()
             throw invalid_argument("ERROR: 0 <= alpha < 1.0 is required.\n");
         }
     }
-    log << strpr("Parameter alpha for inner cutoff: %f\n", cutoffAlpha);
+    log << nnp::strpr("Parameter alpha for inner cutoff: %f\n", cutoffAlpha);
     log << "Inner cutoff = Symmetry function cutoff * alpha\n";
 
     log << "Equal cutoff function type for all symmetry functions:\n";
     if (cutoffType == CutoffFunction::CT_COS)
     {
-        log << strpr("CutoffFunction::CT_COS (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_COS (%d)\n", cutoffType);
         log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
         log << "f(x) = 1/2 * (cos(pi*x) + 1)\n";
     }
     else if (cutoffType == CutoffFunction::CT_TANHU)
     {
-        log << strpr("CutoffFunction::CT_TANHU (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_TANHU (%d)\n", cutoffType);
         log << "f(r) = tanh^3(1 - r/rc)\n";
         if (cutoffAlpha > 0.0)
         {
@@ -251,7 +251,7 @@ void Mode::setupCutoff()
     }
     else if (cutoffType == CutoffFunction::CT_TANH)
     {
-        log << strpr("CutoffFunction::CT_TANH (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_TANH (%d)\n", cutoffType);
         log << "f(r) = c * tanh^3(1 - r/rc), f(0) = 1\n";
         if (cutoffAlpha > 0.0)
         {
@@ -261,37 +261,37 @@ void Mode::setupCutoff()
     }
     else if (cutoffType == CutoffFunction::CT_POLY1)
     {
-        log << strpr("CutoffFunction::CT_POLY1 (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_POLY1 (%d)\n", cutoffType);
         log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
         log << "f(x) = (2x - 3)x^2 + 1\n";
     }
     else if (cutoffType == CutoffFunction::CT_POLY2)
     {
-        log << strpr("CutoffFunction::CT_POLY2 (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_POLY2 (%d)\n", cutoffType);
         log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
         log << "f(x) = ((15 - 6x)x - 10)x^3 + 1\n";
     }
     else if (cutoffType == CutoffFunction::CT_POLY3)
     {
-        log << strpr("CutoffFunction::CT_POLY3 (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_POLY3 (%d)\n", cutoffType);
         log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
         log << "f(x) = (x(x(20x - 70) + 84) - 35)x^4 + 1\n";
     }
     else if (cutoffType == CutoffFunction::CT_POLY4)
     {
-        log << strpr("CutoffFunction::CT_POLY4 (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_POLY4 (%d)\n", cutoffType);
         log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
         log << "f(x) = (x(x((315 - 70x)x - 540) + 420) - 126)x^5 + 1\n";
     }
     else if (cutoffType == CutoffFunction::CT_EXP)
     {
-        log << strpr("CutoffFunction::CT_EXP (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_EXP (%d)\n", cutoffType);
         log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
         log << "f(x) = exp(-1 / 1 - x^2)\n";
     }
     else if (cutoffType == CutoffFunction::CT_HARD)
     {
-        log << strpr("CutoffFunction::CT_HARD (%d)\n", cutoffType);
+        log << nnp::strpr("CutoffFunction::CT_HARD (%d)\n", cutoffType);
         log << "f(r) = 1\n";
         log << "WARNING: Hard cutoff used!\n";
     }
@@ -314,10 +314,10 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
            "**************************************\n";
     log << "\n";
 
-    Settings::KeyRange r = settings.getValues("symfunction_short");
-    for (Settings::KeyMap::const_iterator it = r.first; it != r.second; ++it)
+    nnp::Settings::KeyRange r = settings.getValues("symfunction_short");
+    for (nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second; ++it)
     {
-        vector<string> args    = split(reduce(it->second.first));
+        vector<string> args    = nnp::split(nnp::reduce(it->second.first));
         int type;
         const char* estring = args.at(0).c_str();
         //np.where element symbol == symbol encountered during parsing 
@@ -357,7 +357,7 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
         it->sortSymmetryFunctions(SF, h_numSymmetryFunctionsPerElement, attype);
         maxCutoffRadius = max(it->getMaxCutoffRadius(SF,attype,countertotal), maxCutoffRadius);
         it->setCutoffFunction(cutoffType, cutoffAlpha, SF, attype, countertotal);
-        log << strpr("Short range atomic symmetry functions element %2s :\n",
+        log << nnp::strpr("Short range atomic symmetry functions element %2s :\n",
                      it->getSymbol().c_str());
         log << "-----------------------------------------"
                "--------------------------------------\n";
@@ -377,11 +377,11 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement)
         int nSF = h_numSymmetryFunctionsPerElement(attype);
         minNeighbors.at(i) = elements.at(i).getMinNeighbors(attype, SF, nSF);
         minCutoffRadius.at(i) = elements.at(i).getMinCutoffRadius(SF,attype,countertotal);
-        log << strpr("Minimum cutoff radius for element %2s: %f\n",
+        log << nnp::strpr("Minimum cutoff radius for element %2s: %f\n",
                      elements.at(i).getSymbol().c_str(),
                      minCutoffRadius.at(i) / convLength);
     }
-    log << strpr("Maximum cutoff radius (global)      : %f\n",
+    log << nnp::strpr("Maximum cutoff radius (global)      : %f\n",
                  maxCutoffRadius / convLength);
 
     log << "*****************************************"
@@ -402,33 +402,33 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
         && (!settings.keywordExists("center_symmetry_functions")))
     {
         scalingType = ST_SCALE;
-        log << strpr("Scaling type::ST_SCALE (%d)\n", scalingType);
+        log << nnp::strpr("Scaling type::ST_SCALE (%d)\n", scalingType);
         log << "Gs = Smin + (Smax - Smin) * (G - Gmin) / (Gmax - Gmin)\n";
     }
     else if (   (!settings.keywordExists("scale_symmetry_functions" ))
              && ( settings.keywordExists("center_symmetry_functions")))
     {
         scalingType = ST_CENTER;
-        log << strpr("Scaling type::ST_CENTER (%d)\n", scalingType);
+        log << nnp::strpr("Scaling type::ST_CENTER (%d)\n", scalingType);
         log << "Gs = G - Gmean\n";
     }
     else if (   ( settings.keywordExists("scale_symmetry_functions" ))
              && ( settings.keywordExists("center_symmetry_functions")))
     {
         scalingType = ST_SCALECENTER;
-        log << strpr("Scaling type::ST_SCALECENTER (%d)\n", scalingType);
+        log << nnp::strpr("Scaling type::ST_SCALECENTER (%d)\n", scalingType);
         log << "Gs = Smin + (Smax - Smin) * (G - Gmean) / (Gmax - Gmin)\n";
     }
     else if (settings.keywordExists("scale_symmetry_functions_sigma"))
     {
         scalingType = ST_SCALESIGMA;
-        log << strpr("Scaling type::ST_SCALESIGMA (%d)\n", scalingType);
+        log << nnp::strpr("Scaling type::ST_SCALESIGMA (%d)\n", scalingType);
         log << "Gs = Smin + (Smax - Smin) * (G - Gmean) / Gsigma\n";
     }
     else
     {
         scalingType = ST_NONE;
-        log << strpr("Scaling type::ST_NONE (%d)\n", scalingType);
+        log << nnp::strpr("Scaling type::ST_NONE (%d)\n", scalingType);
         log << "Gs = G\n";
         log << "WARNING: No symmetry function scaling!\n";
     }
@@ -461,11 +461,11 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
             Smax = 1.0;
         }
 
-        log << strpr("Smin = %f\n", Smin);
-        log << strpr("Smax = %f\n", Smax);
+        log << nnp::strpr("Smin = %f\n", Smin);
+        log << nnp::strpr("Smax = %f\n", Smax);
     }
 
-    log << strpr("Symmetry function scaling statistics from file: %s\n",
+    log << nnp::strpr("Symmetry function scaling statistics from file: %s\n",
                  fileName.c_str());
     log << "-----------------------------------------"
            "--------------------------------------\n";
@@ -502,7 +502,7 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
     {
         int attype = it->getIndex();
         it->setScaling(scalingType, lines, Smin, Smax, SF, SFscaling, attype, countertotal);
-        log << strpr("Scaling data for symmetry functions element %2s :\n",
+        log << nnp::strpr("Scaling data for symmetry functions element %2s :\n",
                      it->getSymbol().c_str());
         log << "-----------------------------------------"
                "--------------------------------------\n";
@@ -552,7 +552,7 @@ void Mode::setupSymmetryFunctionGroups()
     {
         int attype = it->getIndex();
         it->setupSymmetryFunctionGroups(SF, SFGmemberlist, attype, countertotal, countergtotal);
-        log << strpr("Short range atomic symmetry function groups "
+        log << nnp::strpr("Short range atomic symmetry function groups "
                      "element %2s :\n", it->getSymbol().c_str());
         log << "-----------------------------------------"
                "--------------------------------------\n";
@@ -582,13 +582,13 @@ void Mode::setupSymmetryFunctionStatistics(bool collectStatistics,
     log << "\n";
 
     log << "Equal symmetry function statistics for all elements.\n";
-    log << strpr("Collect min/max/mean/sigma                        : %d\n",
+    log << nnp::strpr("Collect min/max/mean/sigma                        : %d\n",
                  (int)collectStatistics);
-    log << strpr("Collect extrapolation warnings                    : %d\n",
+    log << nnp::strpr("Collect extrapolation warnings                    : %d\n",
                  (int)collectExtrapolationWarnings);
-    log << strpr("Write extrapolation warnings immediately to stderr: %d\n",
+    log << nnp::strpr("Write extrapolation warnings immediately to stderr: %d\n",
                  (int)writeExtrapolationWarnings);
-    log << strpr("Halt on any extrapolation warning                 : %d\n",
+    log << nnp::strpr("Halt on any extrapolation warning                 : %d\n",
                  (int)stopOnExtrapolationWarnings);
     for (vector<Element>::iterator it = elements.begin();
          it != elements.end(); ++it)
@@ -622,9 +622,9 @@ void Mode::setupNeuralNetwork()
     numHiddenLayers = numLayers - 2;
     
     vector<string> numNeuronsPerHiddenLayer =
-        split(reduce(settings["global_nodes_short"]));
+        nnp::split(nnp::reduce(settings["global_nodes_short"]));
     vector<string> activationFunctions =
-        split(reduce(settings["global_activation_short"]));
+        nnp::split(nnp::reduce(settings["global_activation_short"]));
 
     for (int i = 0; i < numLayers; i++)
     {
@@ -644,7 +644,7 @@ void Mode::setupNeuralNetwork()
 
     //TODO: add normalization of neurons
     bool normalizeNeurons = settings.keywordExists("normalize_nodes");
-    log << strpr("Normalize neurons (all elements): %d\n",
+    log << nnp::strpr("Normalize neurons (all elements): %d\n",
                  (int)normalizeNeurons);
     log << "-----------------------------------------"
            "--------------------------------------\n";
@@ -654,7 +654,7 @@ void Mode::setupNeuralNetwork()
     {
         int attype = it->getIndex();
         numNeuronsPerLayer[0] = it->numSymmetryFunctions(attype, countertotal);
-        log << strpr("Atomic short range NN for "
+        log << nnp::strpr("Atomic short range NN for "
                      "element %2s :\n", it->getSymbol().c_str());
 
         int numWeights = 0, numBiases = 0, numConnections = 0;
@@ -664,10 +664,10 @@ void Mode::setupNeuralNetwork()
             numBiases += numNeuronsPerLayer[j];
         }
         numConnections = numWeights + numBiases;
-        log << strpr("Number of weights    : %6zu\n", numWeights);
-        log << strpr("Number of biases     : %6zu\n", numBiases);
-        log << strpr("Number of connections: %6zu\n", numConnections);
-        log << strpr("Architecture    %6zu    %6zu    %6zu    %6zu\n", numNeuronsPerLayer[0], numNeuronsPerLayer[1],
+        log << nnp::strpr("Number of weights    : %6zu\n", numWeights);
+        log << nnp::strpr("Number of biases     : %6zu\n", numBiases);
+        log << nnp::strpr("Number of connections: %6zu\n", numConnections);
+        log << nnp::strpr("Architecture    %6zu    %6zu    %6zu    %6zu\n", numNeuronsPerLayer[0], numNeuronsPerLayer[1],
             numNeuronsPerLayer[2], numNeuronsPerLayer[3]);
         log << "-----------------------------------------"
                "--------------------------------------\n";
@@ -697,7 +697,7 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
            "**************************************\n";
     log << "\n";
 
-    log << strpr("Weight file name format: %s\n", fileNameFormat.c_str());
+    log << nnp::strpr("Weight file name format: %s\n", fileNameFormat.c_str());
     int count = 0;
     int AN = 0;
     for (vector<Element>::iterator it = elements.begin();
@@ -714,8 +714,8 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
           } 
         }
         
-        string fileName = strpr(fileNameFormat.c_str(), AN);
-        log << strpr("Weight file for element %2s: %s\n",
+        string fileName = nnp::strpr(fileNameFormat.c_str(), AN);
+        log << nnp::strpr("Weight file for element %2s: %s\n",
                      elementStrings[count].c_str(),
                      fileName.c_str());
         ifstream file;
@@ -732,7 +732,7 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
         {
             if (line.at(0) != '#')
             {
-                vector<string> splitLine = split(reduce(line));
+                vector<string> splitLine = nnp::split(nnp::reduce(line));
                 if (strcmp(splitLine.at(1).c_str(), "a") == 0)
                 {
                     layer = atoi(splitLine.at(3).c_str());

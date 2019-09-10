@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef CUTOFFFUNCTION_H
-#define CUTOFFFUNCTION_H
+#ifndef CBN_CUTOFFFUNCTION_H
+#define CBN_CUTOFFFUNCTION_H
 
-namespace nnp
+namespace nnpCbn
 {
 
 class CutoffFunction

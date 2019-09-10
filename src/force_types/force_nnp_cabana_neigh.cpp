@@ -51,7 +51,7 @@
 #include <string.h>
 #include <string>
 #include <iostream>
-#define VECLEN 16
+
 #define MAX_SF 30 //TODO: hardcoded 
 
 ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
@@ -82,7 +82,7 @@ const char* ForceNNP::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"For
 
 void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   neigh_cut = neigh_cutoff;
-  mode = new(nnp::Mode);
+  mode = new(nnpCbn::Mode);
   mode->initialize();
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
   mode->loadSettingsFile(settingsfile);

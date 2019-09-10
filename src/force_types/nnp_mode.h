@@ -14,11 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef MODE_H
-#define MODE_H
+#ifndef CBN_MODE_H
+#define CBN_MODE_H
 
-#include "CutoffFunction.h"
-#include "Element.h"
+#include "nnp_cutoff.h"
+#include "nnp_element.h"
 #include "Log.h"
 #include "Settings.h"
 #include <cstddef> // std::size_t
@@ -29,7 +29,7 @@
 #include <Cabana_Slice.hpp>
 #include <types.h>
 
-namespace nnp
+namespace nnpCbn
 {
 
 /** Base class for all NNP applications.
@@ -338,7 +338,7 @@ public:
         t_mass numSymmetryFunctionsPerElement); 
 
     /// Global log file.
-    Log        log;
+    nnp::Log        log;
     
     /// list of element symbols in order of periodic table
     vector<string> knownElements = { 
@@ -398,7 +398,7 @@ public:
     double                        convEnergy;
     double                        convLength;
     ScalingType                   scalingType;
-    Settings                      settings;
+    nnp::Settings                 settings;
     CutoffFunction::CutoffType    cutoffType;
     std::vector<Element>          elements;
     std::vector<string>           elementStrings;

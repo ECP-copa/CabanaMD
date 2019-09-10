@@ -92,7 +92,7 @@
 #include <force.h>
 #include <types.h>
 #include <system.h>
-#include "Mode.h"
+#include "nnp_mode.h"
 
 class ForceNNP: public Force {
 private:
@@ -124,7 +124,7 @@ public:
   bool half_neigh, comm_newton;
   T_X_FLOAT neigh_cut;
 
-  nnp::Mode* mode;
+  nnpCbn::Mode* mode;
   t_verletlist_full_2D neigh_list;
   
   /// AoSoAs of use to compute energy and force
