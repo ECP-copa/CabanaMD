@@ -49,19 +49,19 @@ Element::~Element()
 }
 
 void Element::addSymmetryFunction(string const& parameters, vector<string> elementStrings,
-                                  size_t const& lineNumber, int attype, t_SF SF, double convLength, int (&countertotal)[2])
+                                  int attype, t_SF SF, double convLength, int (&countertotal)[2])
 {
     vector<string> args = nnp::split(nnp::reduce(parameters));
     size_t         type = (size_t)atoi(args.at(1).c_str());
     const char* estring;
-    int el;
+    int el = 0;
     
     vector<string> splitLine = nnp::split(nnp::reduce(parameters));
     if (type == 2)
     {
       estring = splitLine.at(0).c_str();
       //np.where element symbol == symbol encountered during parsing 
-      for (int i = 0; i < elementStrings.size(); ++i)
+      for (size_t i = 0; i < elementStrings.size(); ++i)
       {
         if (strcmp(elementStrings[i].c_str(), estring) == 0)
           el = i; 
@@ -71,7 +71,7 @@ void Element::addSymmetryFunction(string const& parameters, vector<string> eleme
       
       estring = splitLine.at(2).c_str();
       //np.where element symbol == symbol encountered during parsing 
-      for (int i = 0; i < elementStrings.size(); ++i)
+      for (size_t i = 0; i < elementStrings.size(); ++i)
       {
         if (strcmp(elementStrings[i].c_str(), estring) == 0)
           el = i; 
@@ -94,7 +94,7 @@ void Element::addSymmetryFunction(string const& parameters, vector<string> eleme
           throw runtime_error("ERROR: Incorrect symmetry function type.\n");
       estring = splitLine.at(0).c_str();
       //np.where element symbol == symbol encountered during parsing 
-      for (int i = 0; i < elementStrings.size(); ++i)
+      for (size_t i = 0; i < elementStrings.size(); ++i)
       {
         if (strcmp(elementStrings[i].c_str(), estring) == 0)
           el = i; 
@@ -104,7 +104,7 @@ void Element::addSymmetryFunction(string const& parameters, vector<string> eleme
       
       estring = splitLine.at(2).c_str();
       //np.where element symbol == symbol encountered during parsing 
-      for (int i = 0; i < elementStrings.size(); ++i)
+      for (size_t i = 0; i < elementStrings.size(); ++i)
       {
         if (strcmp(elementStrings[i].c_str(), estring) == 0)
           el = i; 
@@ -113,7 +113,7 @@ void Element::addSymmetryFunction(string const& parameters, vector<string> eleme
       
       estring = splitLine.at(3).c_str();
       //np.where element symbol == symbol encountered during parsing 
-      for (int i = 0; i < elementStrings.size(); ++i)
+      for (size_t i = 0; i < elementStrings.size(); ++i)
       {
         if (strcmp(elementStrings[i].c_str(), estring) == 0)
           el = i; 
@@ -168,9 +168,9 @@ void Element::addSymmetryFunction(string const& parameters, vector<string> eleme
 }
 
 
-void Element::sortSymmetryFunctions(t_SF SF, h_t_mass h_numSymmetryFunctionsPerElement, int attype) 
+void Element::sortSymmetryFunctions(t_SF SF, h_t_mass h_numSFperElem, int attype)
 {
-    int size = h_numSymmetryFunctionsPerElement(attype);
+    int size = h_numSFperElem(attype);
     int *SFvector = new int[size]; 
     for (int i = 0; i < size; ++i)
       SFvector[i] = i;
@@ -341,17 +341,7 @@ void Element::setupSymmetryFunctionGroups(t_SF SF, t_SFGmemberlist SFGmemberlist
             }
         }
     }
-    
-    //TODO: naive insertion sort
-    /*sort(symmetryFunctionGroups.begin(),
-         symmetryFunctionGroups.end(),
-         comparePointerTargets<SymmetryFunctionGroup>);
 
-    for (size_t i = 0; i < symmetryFunctionGroups.size(); ++i)
-    {
-        symmetryFunctionGroups.at(i)->sortMembers();
-        symmetryFunctionGroups.at(i)->setIndex(i);
-    }*/
     return;
 }
 
@@ -389,7 +379,7 @@ void Element::setScaling(ScalingType scalingType, vector<string> const& statisti
     for (int k = 0; k < countertotal[attype]; ++k)
     {
         index = SF(attype,k,13);
-        setScalingType(scalingType,statisticsLine.at(k),Smin,Smax,SF,SFscaling,attype,index);
+        setScalingType(scalingType,statisticsLine.at(k),Smin,Smax,SFscaling,attype,index);
     } 
     //TODO: groups 
     //for (int k = 0; k < countertotal[attype]; ++k)
@@ -437,74 +427,10 @@ double Element::getMaxCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) 
     return maxCutoffRadius;
 }
 
-
-void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, T_INT atomindex)
+//TODO:add functionality
+/*
+void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data, ...)
 {
-    auto type = Cabana::slice<TypeNames::Types>(s->xvf);
-    /*if (type(atomindex) != index)
-    {
-        throw runtime_error("ERROR: Atom has a different element index.\n");
-    }*/
-
-    /*if (atom.numSymmetryFunctions != symmetryFunctions.size())
-    {
-        throw runtime_error("ERROR: Number of symmetry functions"
-                            " does not match.\n");
-    }*/
-
-    auto G = Cabana::slice<NNPNames::G>(nnp_data);
-    //TODO:add functionality
-    /*for (size_t i = 0; i < symmetryFunctions.size(); ++i)
-    {
-        double const Gmin = symmetryFunctions.at(i)->getGmin();
-        double const Gmax = symmetryFunctions.at(i)->getGmax();
-        double const value = symmetryFunctions.at(i)->unscale(G(atomindex, i));
-        size_t const index = symmetryFunctions.at(i)->getIndex();
-        if (statistics.collectStatistics)
-        {
-            statistics.addValue(index, value);
-        }
-
-        if (value < Gmin || value > Gmax)
-        {
-            if (statistics.collectExtrapolationWarnings)
-            {
-                statistics.addExtrapolationWarning(index,
-                                                   value,
-                                                   Gmin,
-                                                   Gmax,
-                                                   0, //TODO: indexStructure?
-                                                   atomindex);
-            }
-            if (statistics.writeExtrapolationWarnings)
-            {
-                cerr << strpr("### NNP EXTRAPOLATION WARNING ### "
-                              "STRUCTURE: %6zu ATOM: %6zu SYMFUNC: %4zu "
-                              "VALUE: %10.3E MIN: %10.3E MAX: %10.3E\n",
-                              0,
-                              atomindex,
-                              i,
-                              value,
-                              Gmin,
-                              Gmax);
-            }
-            if (statistics.stopOnExtrapolationWarnings)
-            {
-                throw out_of_range(
-                        strpr("### NNP EXTRAPOLATION WARNING ### "
-                              "STRUCTURE: %6zu ATOM: %6zu SYMFUNC: %4zu "
-                              "VALUE: %10.3E MIN: %10.3E MAX: %10.3E\n"
-                              "ERROR: Symmetry function value out of range.\n",
-                              0,
-                              atomindex,
-                              i,
-                              value,
-                              Gmin,
-                              Gmax));
-            }
-        }
-    }
-    */
-
     return;
 }
+*/

@@ -75,7 +75,7 @@ public:
      * @param[in] lineNumber Line number of symmetry function in settings file.
      */
     void addSymmetryFunction(string const& parameters, vector<string> elementStrings,
-                             size_t const& lineNumber, int attype, t_SF SF, double convLength, int (&countertotal)[2]);
+                             int attype, t_SF SF, double convLength, int (&countertotal)[2]);
     /** Change length unit for all symmetry functions.
      *
      * @param[in] convLength Length unit conversion factor.
@@ -84,7 +84,7 @@ public:
                                                             double convLength);
     /** Sort all symmetry function.
      */
-    void sortSymmetryFunctions(t_SF SF, h_t_mass h_numSymmetryFunctionsPerElement, int attype); 
+    void sortSymmetryFunctions(t_SF SF, h_t_mass h_numSFperElem, int attype);
     /** Print symmetry function parameter value information.
      */
     bool compareSF(t_SF SF, int attype, int index1, int index2);
@@ -149,9 +149,9 @@ public:
      *
      * This function checks also for extrapolation warnings.
      */
-    void                     updateSymmetryFunctionStatistics(
-                                                             System* s, AoSoA_NNP nnp_data,
-                                                             T_INT i);
+    //void                     updateSymmetryFunctionStatistics(
+    //                                                         System* s, AoSoA_NNP nnp_data,...);
+
     /** Get symmetry function instance.
      *
      * @param[in] index Symmetry function index.
@@ -164,7 +164,7 @@ public:
     //SymmetryFunctionStatistics statistics;
 
     inline void setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
-                                            double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const;
+                                            double Smax, t_SFscaling SFscaling, int attype, int k) const;
     inline string scalingLine(ScalingType scalingType, t_SFscaling SFscaling, int attype, int k) const;
     inline double unscale(int attype, double value, int k, t_SFscaling SFscaling);
 
@@ -221,9 +221,9 @@ inline size_t Element::numSymmetryFunctions(int attype, int (&countertotal)[2]) 
 
 
 inline void Element::setScalingType(ScalingType scalingType, string statisticsLine, double Smin, 
-                                            double Smax, t_SF SF, t_SFscaling SFscaling, int attype, int k) const
+                                            double Smax, t_SFscaling SFscaling, int attype, int k) const
 {
-    double Gmin, Gmax, Gmean, Gsigma, scalingFactor = 0;
+    double Gmin, Gmax, Gmean, Gsigma = 0, scalingFactor = 0;
     vector<string> s = nnp::split(nnp::reduce(statisticsLine));
     
     Gmin       = atof(s.at(2).c_str());
@@ -278,11 +278,11 @@ inline double Element::unscale(int attype, double value, int k, t_SFscaling SFsc
     double scalingType = SFscaling(attype,k,7);
     double scalingFactor = SFscaling(attype,k,6);
     double Gmin = SFscaling(attype,k,0);
-    double Gmax = SFscaling(attype,k,1);
+    //double Gmax = SFscaling(attype,k,1);
     double Gmean = SFscaling(attype,k,2);
-    double Gsigma = SFscaling(attype,k,3);
+    //double Gsigma = SFscaling(attype,k,3);
     double Smin = SFscaling(attype,k,4);
-    double Smax = SFscaling(attype,k,5);
+    //double Smax = SFscaling(attype,k,5);
 
     if (scalingType == 0.0)
     {
@@ -310,6 +310,6 @@ inline double Element::unscale(int attype, double value, int k, t_SFscaling SFsc
     }
 }
 
-
 }
+
 #endif

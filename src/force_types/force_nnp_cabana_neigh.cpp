@@ -54,8 +54,8 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   mode->setupElementMap();
   atomicEnergyOffset = mode->setupElements(atomicEnergyOffset);
   mode->setupCutoff();
-  h_numSymmetryFunctionsPerElement = mode->setupSymmetryFunctions(h_numSymmetryFunctionsPerElement);
-  d_numSymmetryFunctionsPerElement = t_mass("ForceNNP::numSymmetryFunctionsPerElement", mode->numElements);
+  h_numSFperElem = mode->setupSymmetryFunctions(h_numSFperElem);
+  d_numSFperElem = t_mass("ForceNNP::numSymmetryFunctionsPerElement", mode->numElements);
   mode->setupSymmetryFunctionGroups();
   mode->setupNeuralNetwork();
   std::string scalingfile = std::string(args[3]) + "/scaling.data";
@@ -69,10 +69,10 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
 
 void ForceNNP::compute(System* s) {
   nnp_data.resize(s->N_local);
-  Kokkos::deep_copy(d_numSymmetryFunctionsPerElement, h_numSymmetryFunctionsPerElement);
-  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list, d_numSymmetryFunctionsPerElement);
-  mode->calculateAtomicNeuralNetworks(s, nnp_data, d_numSymmetryFunctionsPerElement);
-  mode->calculateForces(s, nnp_data, neigh_list, d_numSymmetryFunctionsPerElement);
+  Kokkos::deep_copy(d_numSFperElem, h_numSFperElem);
+  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list);
+  mode->calculateAtomicNeuralNetworks(s, nnp_data, d_numSFperElem);
+  mode->calculateForces(s, nnp_data, neigh_list);
 }
 
 T_V_FLOAT ForceNNP::compute_energy(System* s) {

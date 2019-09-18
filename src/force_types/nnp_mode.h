@@ -136,7 +136,7 @@ public:
      * Uses keyword `symfunction_short`. Reads all symmetry functions from
      * settings and automatically assigns them to the correct element.
      */
-    h_t_mass                     setupSymmetryFunctions(h_t_mass h_numSymmetryFunctionsPerElement);
+    h_t_mass                     setupSymmetryFunctions(h_t_mass h_numSFperElem);
     /** Set up symmetry function scaling from file.
      *
      * @param[in] fileName Scaling file name.
@@ -339,14 +339,16 @@ public:
      */
     void allocate(System* s, T_INT numSymmetryFunctions, bool all);
     
-    KOKKOS_INLINE_FUNCTION void compute_cutoff(CutoffFunction::CutoffType cutoffType, double &fc, double &dfc, double r, double rc, bool derivative);
-    KOKKOS_INLINE_FUNCTION double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
+    KOKKOS_INLINE_FUNCTION
+    void compute_cutoff(CutoffFunction::CutoffType cutoffType, double &fc,
+                        double &dfc, double r, double rc, bool derivative);
 
-    void calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list,
-        t_mass numSymmetryFunctionsPerElement);
-    void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSymmetryFunctionsPerElement);
-    void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list, 
-        t_mass numSymmetryFunctionsPerElement); 
+    KOKKOS_INLINE_FUNCTION
+    double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
+
+    void calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list);
+    void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSFperElem);
+    void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list);
 
     /// Global log file.
     nnp::Log        log;
@@ -380,14 +382,11 @@ public:
     int numLayers, numHiddenLayers, maxNeurons; 
     int numNeuronsPerLayer[4];
     int AF[4];
-    //int* AF = new int[numLayers]; 
     //int* numNeuronsPerLayer = new int[numLayers];
+    //int* AF = new int[numLayers];
 
     int countertotal[2] = {0,0};
     int countergtotal[2] = {0,0};
-    
-    //Kokkos Timer
-    Kokkos::Timer timer;
 
     struct Eval
     {
@@ -489,11 +488,11 @@ KOKKOS_INLINE_FUNCTION double Mode::scale(int attype, double value, int k, d_t_S
     double scalingType = SFscaling(attype,k,7);
     double scalingFactor = SFscaling(attype,k,6);
     double Gmin = SFscaling(attype,k,0);
-    double Gmax = SFscaling(attype,k,1);
+    //double Gmax = SFscaling(attype,k,1);
     double Gmean = SFscaling(attype,k,2);
-    double Gsigma = SFscaling(attype,k,3);
+    //double Gsigma = SFscaling(attype,k,3);
     double Smin = SFscaling(attype,k,4);
-    double Smax = SFscaling(attype,k,5);
+    //double Smax = SFscaling(attype,k,5);
     
     if (scalingType == 0.0)
     {
