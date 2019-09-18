@@ -58,6 +58,9 @@ if(NOT DEFINED KOKKOS_DIR)
 endif()
 
 option(CabanaMD_ENABLE_N2P2 "Build CabanaMD with neural network potential library n2p2" OFF)
+if( CabanaMD_ENABLE_N2P2 )
+  add_definitions(-DCabanaMD_ENABLE_N2P2=ON)
+endif()
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/install/n2p2/)
 endif()
@@ -82,7 +85,11 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
 include_directories(src src/force_types)
-file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
+if(CabanaMD_ENABLE_N2P2)
+  file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
+else()
+  file(GLOB SOURCES src/*.cpp src/force_types/force_lj*.cpp)
+endif()
 
 include_directories(SYSTEM ${KOKKOS_DIR}/include)
 link_directories(${KOKKOS_DIR}/lib)
