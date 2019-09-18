@@ -69,9 +69,9 @@ enum {BINNING_LINKEDCELL};
 // Comm Type
 enum {COMM_SERIAL};
 // Force Type
-enum {FORCE_LJ,FORCE_SNAP, FORCE_NNP};
+enum {FORCE_LJ,FORCE_SNAP,FORCE_NNP};
 // Force Iteration Type
-enum {FORCE_ITER_NEIGH_FULL, FORCE_ITER_NEIGH_HALF};
+enum {FORCE_ITER_NEIGH_FULL,FORCE_ITER_NEIGH_HALF};
 // Neighbor Type
 enum {NEIGH_2D,NEIGH_CSR};
 // Input File Type

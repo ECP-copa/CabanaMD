@@ -28,13 +28,15 @@ ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
 
 void ForceNNP::create_neigh_list(System* system) {
   N_local = system->N_local;
-  double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x, 
-    system->sub_domain_lo_y - system->sub_domain_y, system->sub_domain_lo_z - system->sub_domain_z};
-  double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x, 
-    system->sub_domain_hi_y + system->sub_domain_y, system->sub_domain_hi_z + system->sub_domain_z};
+  double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
+                        system->sub_domain_lo_y - system->sub_domain_y,
+                        system->sub_domain_lo_z - system->sub_domain_z};
+  double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
+                        system->sub_domain_hi_y + system->sub_domain_y,
+                        system->sub_domain_hi_z + system->sub_domain_z};
 
   auto x = Cabana::slice<Positions>(system->xvf);
-  auto id = Cabana::slice<IDs>(system->xvf);
+
   t_verletlist_full_2D list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
   neigh_list = list;
 }
