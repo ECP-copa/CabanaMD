@@ -50,6 +50,6 @@
 // Include Module header files for force
 #include <force_lj_cabana_neigh.h>
 
-#ifdef CabanaMD_ENABLE_N2P2
+#ifdef CabanaMD_ENABLE_NNP
 #include <force_nnp_cabana_neigh.h>
 #endif

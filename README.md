@@ -23,7 +23,7 @@ CabanaMD has the following dependencies:
 |CMake      | 3.9+    | Yes      | Build system
 |Kokkos     | 2.7.0   | Yes      | Provides portable on-node parallelism
 |Cabana     | 0.3-dev | Yes      | Performance portable particle algorithms
-
+|libnnp     | 1.0.0   | No       | Neural network potential utilities
 
 Build Kokkos, followed by Cabana:
 https://github.com/ECP-copa/Cabana/wiki/Build-Instructions
@@ -68,4 +68,13 @@ cmake \
     -D CabanaMD_ENABLE_Cuda=ON \
     \
     .. ;
+```
+
+## Neural network potential build
+If using the optional neural network potential, additional flags for the
+location of the libnnp library (https://github.com/CompPhysVienna/n2p2)
+and enabling the potential are needed for CMake:
+```
+    -D N2P2_DIR=$N2P2_INSTALL_DIR \
+    -D CabanaMD_ENABLE_NNP=ON \
 ```
