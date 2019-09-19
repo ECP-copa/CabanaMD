@@ -28,15 +28,17 @@
       bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
       if (input->neighbor_type == NEIGH_2D) {
         if (half_neigh)
-          force = NULL;
+          throw std::runtime_error( "Half neighbor list not implemented "
+                                    "for the neural network potential." );
         else
-          force = new ForceNNP(system,half_neigh);
+          force = new ForceNNP<t_verletlist_full_2D>(system,half_neigh);
       }
       else if (input->neighbor_type == NEIGH_CSR) {
         if (half_neigh)
-          force = NULL; 
+          throw std::runtime_error( "Half neighbor list not implemented "
+                                    "for the neural network potential." );
         else
-          force = NULL;
+          force = new ForceNNP<t_verletlist_full_CSR>(system,half_neigh);
       }
       #undef FORCETYPE_ALLOCATION_MACRO
     }
@@ -54,8 +56,9 @@
 #include <force.h>
 #include <types.h>
 #include <system.h>
-#include "nnp_mode.h"
+#include "nnp_mode_impl.h"
 
+template<class t_neighbor>
 class ForceNNP: public Force {
 private:
   int N_local,ntypes;
@@ -87,7 +90,7 @@ public:
   T_X_FLOAT neigh_cut;
 
   nnpCbn::Mode* mode;
-  t_verletlist_full_2D neigh_list;
+  t_neighbor neigh_list;
   
   /// AoSoAs of use to compute energy and force
   /// Allow storage of G, dEdG and energy (per atom properties)

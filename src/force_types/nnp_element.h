@@ -140,9 +140,6 @@ public:
      * @return Maximum cutoff radius.
      */
     double                   getMaxCutoffRadius(t_SF SF, int attype, int (&countertotal)[2]) const;
-    /** Calculate symmetry functions via groups.
-     */
-    void calculateSymmetryFunctionGroups(System* s, AoSoA_NNP nnp_data, t_SF SF, t_SFscaling SFscaling, t_SFGmemberlist SFGmemberlist, int attype, t_verletlist_full_2D neigh_list, T_INT i, int (&countergtotal)[2]) const;
     /** Update symmetry function statistics.
      *
      * @param[in] atom Atom with symmetry function values.

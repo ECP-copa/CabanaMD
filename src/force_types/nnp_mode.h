@@ -40,6 +40,8 @@
 #include <Cabana_Slice.hpp>
 #include <types.h>
 
+#define MAX_SF 30
+
 namespace nnpCbn
 {
 
@@ -346,9 +348,14 @@ public:
     KOKKOS_INLINE_FUNCTION
     double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
 
-    void calculateForces(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list);
+    template<class t_neighbor>
+    void calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list);
+
+    template<class t_neighbor>
     void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSFperElem);
-    void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_verletlist_full_2D neigh_list);
+
+    template<class t_neighbor>
+    void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list);
 
     /// Global log file.
     nnp::Log        log;

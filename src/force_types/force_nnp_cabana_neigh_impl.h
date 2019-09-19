@@ -16,7 +16,8 @@
 
 #define MAX_SF 30 //TODO: hardcoded 
 
-ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
+template<class t_neighbor>
+ForceNNP<t_neighbor>::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
   ntypes = system->ntypes;
   N_local = 0;
   step = 0;
@@ -26,7 +27,8 @@ ForceNNP::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
 }
 
 
-void ForceNNP::create_neigh_list(System* system) {
+template<class t_neighbor>
+void ForceNNP<t_neighbor>::create_neigh_list(System* system) {
   N_local = system->N_local;
   double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
                         system->sub_domain_lo_y - system->sub_domain_y,
@@ -37,14 +39,16 @@ void ForceNNP::create_neigh_list(System* system) {
 
   auto x = Cabana::slice<Positions>(system->xvf);
 
-  t_verletlist_full_2D list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
+  t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
   neigh_list = list;
 }
 
 
-const char* ForceNNP::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
+template<class t_neighbor>
+const char* ForceNNP<t_neighbor>::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
 
-void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
+template<class t_neighbor>
+void ForceNNP<t_neighbor>::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   neigh_cut = neigh_cutoff;
   mode = new(nnpCbn::Mode);
   mode->initialize();
@@ -66,16 +70,17 @@ void ForceNNP::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
 
 }
 
-
-void ForceNNP::compute(System* s) {
+template<class t_neighbor>
+void ForceNNP<t_neighbor>::compute(System* s) {
   nnp_data.resize(s->N_local);
   Kokkos::deep_copy(d_numSFperElem, h_numSFperElem);
-  mode->calculateSymmetryFunctionGroups(s, nnp_data, neigh_list);
-  mode->calculateAtomicNeuralNetworks(s, nnp_data, d_numSFperElem);
-  mode->calculateForces(s, nnp_data, neigh_list);
+  mode->calculateSymmetryFunctionGroups<t_neighbor>(s, nnp_data, neigh_list);
+  mode->calculateAtomicNeuralNetworks<t_neighbor>(s, nnp_data, d_numSFperElem);
+  mode->calculateForces<t_neighbor>(s, nnp_data, neigh_list);
 }
 
-T_V_FLOAT ForceNNP::compute_energy(System* s) {
+template<class t_neighbor>
+T_V_FLOAT ForceNNP<t_neighbor>::compute_energy(System* s) {
     
   auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
   T_V_FLOAT system_energy=0.0;
