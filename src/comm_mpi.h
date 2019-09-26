@@ -94,7 +94,7 @@ class Comm {
   Kokkos::View<T_INT**,Kokkos::LayoutRight,DeviceType> pack_ranks_all;
   Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks;
   Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks_migrate;
-  std::vector<int> neighbors;
+  std::vector<std::vector<int>> neighbors_halo, neighbors_dist;
 
   std::vector<std::shared_ptr<Cabana::Halo<DeviceType>>> halo_all;
 
