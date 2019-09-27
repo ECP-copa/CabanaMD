@@ -226,17 +226,15 @@ void Comm::exchange() {
   for(phase = 0; phase < 6; phase ++) {
     proc_num_send[phase] = 0;
     proc_num_recv[phase] = 0;
-    Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
 
     T_INT count = 0;
     Kokkos::deep_copy(pack_count,0);
 
     if(proc_grid[phase/2]>1) {
       // If a previous phase resized the AoSoA, export ranks needs to be resized as well
-      if(pack_ranks_migrate.extent(0) != x.size()) {
-        Kokkos::resize(pack_ranks_migrate, x.size());
-        Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
-      }
+      if(pack_ranks_migrate.extent(0) != x.size())
+        Kokkos::realloc(pack_ranks_migrate, x.size());
+      Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
 
       Kokkos::parallel_for("CommMPI::exchange_pack",
                 Kokkos::RangePolicy<TagExchangePack, Kokkos::IndexType<T_INT> >(0,x.size()),
@@ -345,7 +343,7 @@ void Comm::update_halo() {
     system->resize( halo_all[phase]->numLocal() + halo_all[phase]->numGhost() );
     s=*system;
     x = Cabana::slice<Positions>(s.xvf);
-    Cabana::gather( *halo_all[phase], s.xvf );
+    Cabana::gather( *halo_all[phase], x );
 
     Kokkos::parallel_for("CommMPI::halo_update_PBC",
                 Kokkos::RangePolicy<TagHaloPBC, Kokkos::IndexType<T_INT> >(
