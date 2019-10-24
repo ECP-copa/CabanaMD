@@ -363,7 +363,7 @@ void CabanaMD::check_correctness(int step) {
     printf("Mismatch in current and reference atom counts\n");
   }
 
-  AoSoA xvf_ref( n );
+  AoSoA xvf_ref( "ref", n );
   auto xref = Cabana::slice<Positions>(xvf_ref);
   auto vref = Cabana::slice<Velocities>(xvf_ref);
   auto fref = Cabana::slice<Forces>(xvf_ref);
