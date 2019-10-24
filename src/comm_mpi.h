@@ -51,8 +51,9 @@
 #define COMM_MPI_H
 
 #include "mpi.h"
-#include <Cabana_Distributor.hpp>
-#include <Cabana_Halo.hpp>
+
+#include <Cabana_Core.hpp>
+
 #include <types.h>
 #include <system.h>
 

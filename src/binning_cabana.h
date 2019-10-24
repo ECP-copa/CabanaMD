@@ -49,8 +49,7 @@
 
 #ifndef BINNING_CABANA_H
 #define BINNING_CABANA_H
-#include <Cabana_LinkedCellList.hpp>
-#include <Cabana_Slice.hpp>
+#include <Cabana_Core.hpp>
 
 #include <types.h>
 #include <system.h>

@@ -50,9 +50,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 #include<Kokkos_Core.hpp>
-#include<Cabana_AoSoA.hpp>
-#include<Cabana_VerletList.hpp>
-#include<CabanaCore_config.hpp>
+#include <Cabana_Core.hpp>
 
 #define VECLEN 16
 
