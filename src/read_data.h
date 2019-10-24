@@ -39,12 +39,15 @@
 
    Please read the accompanying LICENSE_MINIMD file.
 ---------------------------------------------------------------------- */
+#include <Cabana_Core.hpp>
+
+#include <comm_mpi.h>
+#include <types.h>
+
 #include <cstring>
 #include <string>
-#include <comm_mpi.h>
 #include <iostream>
 #include <fstream>
-#include <types.h>
 
 using namespace std;
 

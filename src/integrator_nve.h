@@ -49,7 +49,8 @@
 
 #ifndef INTEGRATOR_NVE_H
 #define INTEGRATOR_NVE_H
-#include <Cabana_AoSoA.hpp>
+#include <Kokkos_Core.hpp>
+#include <Cabana_Core.hpp>
 
 #include <types.h>
 #include <system.h>

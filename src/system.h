@@ -49,7 +49,9 @@
 
 #ifndef SYSTEM_H
 #define SYSTEM_H
-#include <Cabana_Slice.hpp>
+#include <Kokkos_Core.hpp>
+#include <Cabana_Core.hpp>
+
 #include<types.h>
 #include <string>
 

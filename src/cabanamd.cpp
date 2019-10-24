@@ -94,7 +94,7 @@ void CabanaMD::init(int argc, char* argv[]) {
 #include<modules_force.h>
 #undef FORCE_MODULES_INSTANTIATION
   else comm->error("Invalid ForceType");
-  for(std::size_t line = 0; line < input->force_coeff_lines.dimension_0(); line++) {
+  for(std::size_t line = 0; line < input->force_coeff_lines.extent(0); line++) {
     force->init_coeff(neigh_cutoff,
                       input->input_data.words[input->force_coeff_lines(line)]);
   }
@@ -363,7 +363,7 @@ void CabanaMD::check_correctness(int step) {
     printf("Mismatch in current and reference atom counts\n");
   }
 
-  AoSoA xvf_ref( n );
+  AoSoA xvf_ref( "ref", n );
   auto xref = Cabana::slice<Positions>(xvf_ref);
   auto vref = Cabana::slice<Velocities>(xvf_ref);
   auto fref = Cabana::slice<Forces>(xvf_ref);
