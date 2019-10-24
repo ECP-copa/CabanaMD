@@ -47,6 +47,7 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
+#include <Kokkos_Core.hpp>
 #include <Cabana_Core.hpp>
 
 #include <types.h>

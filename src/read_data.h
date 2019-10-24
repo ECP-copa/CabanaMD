@@ -39,6 +39,8 @@
 
    Please read the accompanying LICENSE_MINIMD file.
 ---------------------------------------------------------------------- */
+#include <Cabana_Core.hpp>
+
 #include <comm_mpi.h>
 #include <types.h>
 
