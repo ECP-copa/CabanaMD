@@ -418,7 +418,7 @@ void Input::check_lammps_command(int line) {
   }
   if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
     known = true;
-    int n_coeff_lines = force_coeff_lines.dimension_0();
+    int n_coeff_lines = force_coeff_lines.extent(0);
     Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
     force_coeff_lines( n_coeff_lines) = line;
     n_coeff_lines++;
