@@ -148,8 +148,7 @@ void Comm::create_domain_decomposition() {
 
   for(int p = 0; p < 6; p ++) {
     neighbors_dist[p] = { proc_rank, proc_neighbors_send[p], proc_neighbors_recv[p] };
-    neighbors_halo[p] = neighbors_dist[p];
-    neighbors_halo[p].erase( neighbors_halo[p].begin() );
+    neighbors_halo[p] = { proc_neighbors_send[p], proc_neighbors_recv[p] };
 
     std::sort( neighbors_halo[p].begin(), neighbors_halo[p].end() );
     auto unique_end = std::unique( neighbors_halo[p].begin(), neighbors_halo[p].end() );
