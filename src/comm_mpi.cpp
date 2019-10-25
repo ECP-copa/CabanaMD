@@ -49,7 +49,7 @@
 
 #include<comm_mpi.h>
 
-Comm::Comm(System* s, T_X_FLOAT comm_depth_):neighbors(7),system(s),comm_depth(comm_depth_),halo_all(6) {
+Comm::Comm(System* s, T_X_FLOAT comm_depth_):neighbors_halo(6),neighbors_dist(6),system(s),comm_depth(comm_depth_),halo_all(6) {
   pack_count = Kokkos::View<int>("CommMPI::pack_count");
   pack_indicies_all = Kokkos::View<T_INT**,Kokkos::LayoutRight,DeviceType>("CommMPI::pack_indicies_all",6,200);
   pack_ranks_all = Kokkos::View<T_INT**,Kokkos::LayoutRight,DeviceType>("CommMPI::pack_ranks_all",6,200);
@@ -105,8 +105,8 @@ void Comm::create_domain_decomposition() {
                                                                 proc_rank - (proc_grid[0]-1);
 
   } else {
-    proc_neighbors_send[0] = -1;
-    proc_neighbors_send[1] = -1;
+    proc_neighbors_send[0] = proc_rank;
+    proc_neighbors_send[1] = proc_rank;
   }
 
   if(proc_grid[1]>1) {
@@ -115,8 +115,8 @@ void Comm::create_domain_decomposition() {
     proc_neighbors_send[2] = ( proc_pos[1] < (proc_grid[1]-1) ) ? proc_rank + proc_grid[0] :
                                                                 proc_rank - proc_grid[0]*(proc_grid[1]-1);
   } else {
-    proc_neighbors_send[2] = -1;
-    proc_neighbors_send[3] = -1;
+    proc_neighbors_send[2] = proc_rank;
+    proc_neighbors_send[3] = proc_rank;
   }
 
   if(proc_grid[2]>1) {
@@ -125,8 +125,8 @@ void Comm::create_domain_decomposition() {
     proc_neighbors_send[4] = ( proc_pos[2] < (proc_grid[2]-1) ) ? proc_rank + proc_grid[0]*proc_grid[1] :
                                                                 proc_rank - proc_grid[0]*proc_grid[1]*(proc_grid[2]-1);
   } else {
-    proc_neighbors_send[4] = -1;
-    proc_neighbors_send[5] = -1;
+    proc_neighbors_send[4] = proc_rank;
+    proc_neighbors_send[5] = proc_rank;
   }
 
   proc_neighbors_recv[0] = proc_neighbors_send[1];
@@ -146,15 +146,18 @@ void Comm::create_domain_decomposition() {
   system->sub_domain_hi_y = ( proc_pos[1] + 1 ) * system->sub_domain_y + system->domain_lo_y;
   system->sub_domain_hi_z = ( proc_pos[2] + 1 ) * system->sub_domain_z + system->domain_lo_z;
 
-  for(int p = 0; p < 6; p ++)
-    neighbors[p] = proc_neighbors_send[p];
-  neighbors[6] = proc_rank;
+  for(int p = 0; p < 6; p ++) {
+    neighbors_dist[p] = { proc_rank, proc_neighbors_send[p], proc_neighbors_recv[p] };
+    neighbors_halo[p] = { proc_neighbors_send[p], proc_neighbors_recv[p] };
 
-  std::sort( neighbors.begin(), neighbors.end() );
-  auto unique_end = std::unique( neighbors.begin(), neighbors.end() );
-  neighbors.resize( std::distance(neighbors.begin(), unique_end) );
-  if (neighbors[0] < 0)
-    neighbors.erase(neighbors.begin());
+    std::sort( neighbors_halo[p].begin(), neighbors_halo[p].end() );
+    auto unique_end = std::unique( neighbors_halo[p].begin(), neighbors_halo[p].end() );
+    neighbors_halo[p].resize( std::distance(neighbors_halo[p].begin(), unique_end) );
+
+    std::sort( neighbors_dist[p].begin(), neighbors_dist[p].end() );
+    unique_end = std::unique( neighbors_dist[p].begin(), neighbors_dist[p].end() );
+    neighbors_dist[p].resize( std::distance(neighbors_dist[p].begin(), unique_end) );
+  }
 }
 
 
@@ -210,9 +213,11 @@ void Comm::exchange() {
   s = *system;
   x = Cabana::slice<Positions>(s.xvf);
 
+  max_local = x.size()*1.1;
+
   std::shared_ptr<Cabana::Distributor<DeviceType>> distributor;
 
-  pack_ranks_migrate = Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType>( "pack_ranks_migrate", x.size());
+  pack_ranks_migrate_all = Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType>( "pack_ranks_migrate", max_local );
   Kokkos::parallel_for("CommMPI::exchange_self",
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
 
@@ -222,17 +227,18 @@ void Comm::exchange() {
   for(phase = 0; phase < 6; phase ++) {
     proc_num_send[phase] = 0;
     proc_num_recv[phase] = 0;
-    Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
 
     T_INT count = 0;
     Kokkos::deep_copy(pack_count,0);
 
     if(proc_grid[phase/2]>1) {
       // If a previous phase resized the AoSoA, export ranks needs to be resized as well
-      if(pack_ranks_migrate.extent(0) != x.size()) {
-        Kokkos::resize(pack_ranks_migrate, x.size());
-        Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
+      if(pack_ranks_migrate_all.extent(0) < x.size()) {
+        max_local *= 1.1;
+        Kokkos::realloc(pack_ranks_migrate_all, max_local);
       }
+      pack_ranks_migrate = Kokkos::subview(pack_ranks_migrate_all, std::pair<size_t, size_t>(0,x.size()));
+      Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
 
       Kokkos::parallel_for("CommMPI::exchange_pack",
                 Kokkos::RangePolicy<TagExchangePack, Kokkos::IndexType<T_INT> >(0,x.size()),
@@ -241,7 +247,7 @@ void Comm::exchange() {
       Kokkos::deep_copy(count,pack_count);
       proc_num_send[phase] = count;
 
-      distributor = std::make_shared<Cabana::Distributor<DeviceType>>( MPI_COMM_WORLD, pack_ranks_migrate, neighbors );
+      distributor = std::make_shared<Cabana::Distributor<DeviceType>>( MPI_COMM_WORLD, pack_ranks_migrate, neighbors_dist[phase] );
       Cabana::migrate( *distributor, s.xvf );
       system->resize(distributor->totalNumImport()); // Resized by migrate, but not within System
       s = *system;
@@ -302,7 +308,7 @@ void Comm::exchange_halo() {
     pack_indicies = Kokkos::subview(pack_indicies, std::pair<size_t, size_t>(0,proc_num_send[phase]));
     pack_ranks = Kokkos::subview(pack_ranks, std::pair<size_t, size_t>(0,proc_num_send[phase]));
 
-    halo_all[phase] = std::make_shared<Cabana::Halo<DeviceType>>( MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors );
+    halo_all[phase] = std::make_shared<Cabana::Halo<DeviceType>>( MPI_COMM_WORLD, N_local+N_ghost, pack_indicies, pack_ranks, neighbors_halo[phase] );
     system->resize( halo_all[phase]->numLocal() + halo_all[phase]->numGhost() );
     s=*system;
     x = Cabana::slice<Positions>(s.xvf);
@@ -341,7 +347,7 @@ void Comm::update_halo() {
     system->resize( halo_all[phase]->numLocal() + halo_all[phase]->numGhost() );
     s=*system;
     x = Cabana::slice<Positions>(s.xvf);
-    Cabana::gather( *halo_all[phase], s.xvf );
+    Cabana::gather( *halo_all[phase], x );
 
     Kokkos::parallel_for("CommMPI::halo_update_PBC",
                 Kokkos::RangePolicy<TagHaloPBC, Kokkos::IndexType<T_INT> >(
