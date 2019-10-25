@@ -214,9 +214,11 @@ void Comm::exchange() {
   s = *system;
   x = Cabana::slice<Positions>(s.xvf);
 
+  max_local = x.size()*1.1;
+
   std::shared_ptr<Cabana::Distributor<DeviceType>> distributor;
 
-  pack_ranks_migrate = Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType>( "pack_ranks_migrate", x.size());
+  pack_ranks_migrate_all = Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType>( "pack_ranks_migrate", max_local );
   Kokkos::parallel_for("CommMPI::exchange_self",
             Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT> >(0,N_local), *this);
 
@@ -232,8 +234,11 @@ void Comm::exchange() {
 
     if(proc_grid[phase/2]>1) {
       // If a previous phase resized the AoSoA, export ranks needs to be resized as well
-      if(pack_ranks_migrate.extent(0) != x.size())
-        Kokkos::realloc(pack_ranks_migrate, x.size());
+      if(pack_ranks_migrate_all.extent(0) < x.size()) {
+        max_local *= 1.1;
+        Kokkos::realloc(pack_ranks_migrate_all, max_local);
+      }
+      pack_ranks_migrate = Kokkos::subview(pack_ranks_migrate_all, std::pair<size_t, size_t>(0,x.size()));
       Kokkos::deep_copy(pack_ranks_migrate,proc_rank);
 
       Kokkos::parallel_for("CommMPI::exchange_pack",

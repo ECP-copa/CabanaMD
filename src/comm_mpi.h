@@ -86,6 +86,7 @@ class Comm {
   int proc_grid[3];      // Process Grid size
   int proc_rank;         // My Process rank
   int proc_size;         // Number of processes
+  int max_local;
 
   Kokkos::View<int, Kokkos::MemoryTraits<Kokkos::Atomic> > pack_count;
 
@@ -93,6 +94,7 @@ class Comm {
   Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_indicies;
   Kokkos::View<T_INT**,Kokkos::LayoutRight,DeviceType> pack_ranks_all;
   Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks;
+  Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks_migrate_all;
   Kokkos::View<T_INT*,Kokkos::LayoutRight,DeviceType> pack_ranks_migrate;
   std::vector<std::vector<int>> neighbors_halo, neighbors_dist;
 
