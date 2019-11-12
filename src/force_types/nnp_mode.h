@@ -37,6 +37,7 @@
 #include <vector>  // std::vector
 #include <system.h>
 #include <Cabana_NeighborList.hpp>
+#include <Cabana_Parallel.hpp>
 #include <Cabana_Slice.hpp>
 #include <types.h>
 
