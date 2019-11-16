@@ -52,11 +52,6 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
     typename AoSoA_NNP::member_slice_type<NNPNames::G>::atomic_access_slice G;
     G = Cabana::slice<NNPNames::G>(nnp_data);
     
-    //deep copy into device Views
-    Kokkos::deep_copy(d_SF, SF);
-    Kokkos::deep_copy(d_SFscaling, SFscaling);
-    Kokkos::deep_copy(d_SFGmemberlist, SFGmemberlist);
-
     Cabana::deep_copy(G,0.0); 
 
     Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
@@ -242,35 +237,13 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
 
-    //deep copy into device Views
-    Kokkos::deep_copy(bias, h_bias);
-    Kokkos::deep_copy(weights, h_weights);
-
     NN = d_t_NN("Mode::NN",s->N,numLayers,maxNeurons);
     dfdx = d_t_NN("Mode::dfdx",s->N,numLayers,maxNeurons);
     inner = d_t_NN("Mode::inner",s->N,numHiddenLayers,maxNeurons);
-    outer = d_t_NN("Mode::inner",s->N,numHiddenLayers,maxNeurons);
+    outer = d_t_NN("Mode::outer",s->N,numHiddenLayers,maxNeurons);
     
     auto calc_nn_op = KOKKOS_LAMBDA (const int atomindex)
     {
-        for (int i = 0; i < numLayers; ++i)
-        {
-            for (int j = 0; j < maxNeurons; ++j)
-            {
-                NN(atomindex,i,j) = 0.0;
-                dfdx(atomindex,i,j) = 0.0; 
-            }
-        }
-        
-        for (int i = 0; i < numHiddenLayers; i++)
-        {
-            for (int j = 0; j < maxNeurons; ++j)
-            {
-                inner(atomindex,i,j) = 0.0;
-                outer(atomindex,i,j) = 0.0; 
-            }
-        }
-    
         int attype = type(atomindex);
         //set input layer of NN
         int layer_0, layer_lminusone;

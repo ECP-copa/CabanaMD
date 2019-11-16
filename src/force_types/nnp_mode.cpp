@@ -529,6 +529,10 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
     log << "*****************************************"
            "**************************************\n";
 
+    Kokkos::deep_copy(d_SF, SF);
+    Kokkos::deep_copy(d_SFscaling, SFscaling);
+    Kokkos::deep_copy(d_SFGmemberlist, SFGmemberlist);
+
     return;
 }
 
@@ -764,6 +768,10 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
     }
     log << "*****************************************"
            "**************************************\n";
+
+    Kokkos::deep_copy(bias, h_bias);
+    Kokkos::deep_copy(weights, h_weights);
+
     return;
 }
 
