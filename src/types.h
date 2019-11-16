@@ -51,6 +51,7 @@
 #define TYPES_H
 #include<Kokkos_Core.hpp>
 #include<Cabana_AoSoA.hpp>
+#include<Cabana_Parallel.hpp>
 #include<Cabana_VerletList.hpp>
 #include<CabanaCore_config.hpp>
 
@@ -72,6 +73,8 @@ enum {COMM_SERIAL};
 enum {FORCE_LJ,FORCE_SNAP,FORCE_NNP};
 // Force Iteration Type
 enum {FORCE_ITER_NEIGH_FULL,FORCE_ITER_NEIGH_HALF};
+// Force neighbor parallel Type
+enum {FORCE_PARALLEL_NEIGH_SERIAL,FORCE_PARALLEL_NEIGH_TEAM,FORCE_PARALLEL_NEIGH_VECTOR};
 // Neighbor Type
 enum {NEIGH_2D,NEIGH_CSR};
 // Input File Type
@@ -154,6 +157,11 @@ using t_verletlist_full_2D = Cabana::VerletList<DeviceType,Cabana::FullNeighborT
 using t_verletlist_half_2D = Cabana::VerletList<DeviceType,Cabana::HalfNeighborTag,Cabana::VerletLayout2D>;
 using t_verletlist_full_CSR = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayoutCSR>;
 using t_verletlist_half_CSR = Cabana::VerletList<DeviceType,Cabana::HalfNeighborTag,Cabana::VerletLayoutCSR>;
+
+using t_neighborop_serial = Cabana::SerialNeighborOpTag;
+using t_neighborop_team = Cabana::TeamNeighborOpTag;
+using t_angleop_serial = Cabana::SerialAngularNeighborOpTag;
+using t_angleop_vector = Cabana::VectorAngularNeighborOpTag;
 
 #endif
 

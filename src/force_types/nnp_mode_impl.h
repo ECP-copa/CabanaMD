@@ -43,7 +43,7 @@
 using namespace std;
 using namespace nnpCbn;
 
-template<class t_neighbor>
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
 {
     auto id = Cabana::slice<IDs>(s->xvf);
@@ -60,6 +60,8 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
     Cabana::deep_copy(G,0.0); 
 
     Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
+    t_neigh_parallel neigh_op_tag;
+    t_angle_parallel angle_op_tag;
 
     auto calc_radial_symm_op = KOKKOS_LAMBDA (const int i, const int j)
     {
@@ -100,7 +102,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
         }
     };
     Cabana::neighbor_parallel_for(policy, calc_radial_symm_op, neigh_list,
-                                  Cabana::TeamNeighborOpTag(),
+                                  neigh_op_tag,
                                   "Mode::calculateRadialSymmetryFunctionGroups");
     Kokkos::fence();
 
@@ -195,9 +197,9 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
             }
         }
     };
-    Cabana::angular_neighbor_parallel_for(policy, calc_angular_symm_op, neigh_list,
-                                          Cabana::SerialNeighborOpTag(),
-                                          "Mode::calculateAngularSymmetryFunctionGroups");
+    Cabana::neighbor_parallel_for(policy, calc_angular_symm_op, neigh_list,
+                                  neigh_op_tag, angle_op_tag,
+                                  "Mode::calculateAngularSymmetryFunctionGroups");
     Kokkos::fence();
 
     auto scale_symm_op = KOKKOS_LAMBDA (const int i)
@@ -232,7 +234,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
 
 } 
 
-template<class t_neighbor>
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSFperElem)
 {
     auto type = Cabana::slice<Types>(s->xvf);
@@ -332,7 +334,7 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
 }
 
 
-template<class t_neighbor>
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
 {
     //Calculate Forces 
@@ -346,6 +348,8 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
     double convForce = convLength/convEnergy;
 
     Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
+    t_neigh_parallel neigh_op_tag;
+    t_angle_parallel angle_op_tag;
 
     auto calc_radial_force_op = KOKKOS_LAMBDA (const int i, const int j)
     {
@@ -399,7 +403,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
         }
     };
     Cabana::neighbor_parallel_for(policy, calc_radial_force_op, neigh_list,
-                                  Cabana::TeamNeighborOpTag(),
+                                  neigh_op_tag,
                                   "Mode::calculateRadialForces");
     Kokkos::fence();
 
@@ -535,9 +539,9 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
             }
         }
     };
-    Cabana::angular_neighbor_parallel_for(policy, calc_angular_force_op, neigh_list,
-                                          Cabana::SerialNeighborOpTag(),
-                                          "Mode::calculateAngularForces");
+    Cabana::neighbor_parallel_for(policy, calc_angular_force_op, neigh_list,
+                                  neigh_op_tag, angle_op_tag,
+                                  "Mode::calculateAngularForces");
     Kokkos::fence();
 
     return;

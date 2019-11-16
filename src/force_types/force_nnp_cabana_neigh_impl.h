@@ -16,8 +16,8 @@
 
 #define MAX_SF 30 //TODO: hardcoded 
 
-template<class t_neighbor>
-ForceNNP<t_neighbor>::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
+ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
   ntypes = system->ntypes;
   N_local = 0;
   step = 0;
@@ -27,8 +27,8 @@ ForceNNP<t_neighbor>::ForceNNP(System* system, bool half_neigh_):Force(system,ha
 }
 
 
-template<class t_neighbor>
-void ForceNNP<t_neighbor>::create_neigh_list(System* system) {
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
+void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::create_neigh_list(System* system) {
   N_local = system->N_local;
   double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
                         system->sub_domain_lo_y - system->sub_domain_y,
@@ -44,11 +44,11 @@ void ForceNNP<t_neighbor>::create_neigh_list(System* system) {
 }
 
 
-template<class t_neighbor>
-const char* ForceNNP<t_neighbor>::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
+const char* ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
 
-template<class t_neighbor>
-void ForceNNP<t_neighbor>::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
+void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   neigh_cut = neigh_cutoff;
   mode = new(nnpCbn::Mode);
   mode->initialize();
@@ -70,17 +70,17 @@ void ForceNNP<t_neighbor>::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
 
 }
 
-template<class t_neighbor>
-void ForceNNP<t_neighbor>::compute(System* s) {
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
+void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute(System* s) {
   nnp_data.resize(s->N_local);
   Kokkos::deep_copy(d_numSFperElem, h_numSFperElem);
-  mode->calculateSymmetryFunctionGroups<t_neighbor>(s, nnp_data, neigh_list);
-  mode->calculateAtomicNeuralNetworks<t_neighbor>(s, nnp_data, d_numSFperElem);
-  mode->calculateForces<t_neighbor>(s, nnp_data, neigh_list);
+  mode->calculateSymmetryFunctionGroups<t_neighbor, t_neigh_parallel, t_angle_parallel>(s, nnp_data, neigh_list);
+  mode->calculateAtomicNeuralNetworks<t_neighbor, t_neigh_parallel, t_angle_parallel>(s, nnp_data, d_numSFperElem);
+  mode->calculateForces<t_neighbor, t_neigh_parallel, t_angle_parallel>(s, nnp_data, neigh_list);
 }
 
-template<class t_neighbor>
-T_V_FLOAT ForceNNP<t_neighbor>::compute_energy(System* s) {
+template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
+T_V_FLOAT ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute_energy(System* s) {
     
   auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
   T_V_FLOAT system_energy=0.0;

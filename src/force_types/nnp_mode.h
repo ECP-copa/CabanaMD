@@ -349,13 +349,13 @@ public:
     KOKKOS_INLINE_FUNCTION
     double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
 
-    template<class t_neighbor>
+    template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
     void calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list);
 
-    template<class t_neighbor>
+    template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
     void calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass numSFperElem);
 
-    template<class t_neighbor>
+    template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
     void calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list);
 
     /// Global log file.

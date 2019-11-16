@@ -139,6 +139,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   neighbor_type = NEIGH_2D;
   force_type = FORCE_LJ;
   force_iteration_type = FORCE_ITER_NEIGH_FULL;
+  force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
   binning_type = BINNING_LINKEDCELL;
 
   // set defaults (matches ExaMiniMD LJ example)
@@ -192,8 +193,10 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("CabanaMD 0.1 \n\n");
         printf("Options:\n");
         printf("  -il [file] / --input-lammps [FILE]: Provide LAMMPS input file\n");
-        printf("  --force-iteration [TYPE]:   Specify which iteration style to use\n");
-        printf("                              for force calculations (NEIGH_FULL, NEIGH_HALF)\n");
+        printf("  --force-iteration [TYPE]:   Specify iteration style for force calculations\n");
+        printf("                              (NEIGH_FULL, NEIGH_HALF)\n");
+        printf("  --neigh-parallel [TYPE]:    Specify neighbor parallelism and, if applicable, angular neighbor parallelism\n");
+        printf("                              (SERIAL, TEAM, TEAM_VECTOR)\n");
         printf("  --neigh-type [TYPE]:        Specify Neighbor Routines implementation \n");
         printf("                              (NEIGH_2D, NEIGH_CSR)\n");
         printf("  --comm-type [TYPE]:         Specify Communication Routines implementation \n");
@@ -206,7 +209,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("                              (PATH = location of directory)\n");
       }
     }
-
     // Read Lammps input deck
     else if( (strcmp(argv[i], "-il") == 0) || (strcmp(argv[i], "--input-lammps") == 0) ) {
       input_file = argv[++i];
@@ -224,6 +226,12 @@ void Input::read_command_line_args(int argc, char* argv[]) {
      #include<modules_force.h>
       ++i;
     }
+
+    else if( (strcmp(argv[i], "--neigh-parallel") == 0) ) {
+      #include<modules_force.h>
+      ++i;
+    }
+
     // Dump Binary
     else if( (strcmp(argv[i], "--dumpbinary") == 0) ) {
       dumpbinary_rate = atoi(argv[i+1]);
