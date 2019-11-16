@@ -441,10 +441,10 @@ void Input::check_lammps_command(int line) {
     if (force_type == FORCE_NNP)
       force_cutoff = atof(input_data.words[line][3]);
     else {
-    int n_coeff_lines = force_coeff_lines.dimension_0();
-    Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
-    force_coeff_lines( n_coeff_lines) = line;
-    n_coeff_lines++;
+      int n_coeff_lines = force_coeff_lines.extent(0);
+      Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
+      force_coeff_lines( n_coeff_lines) = line;
+      n_coeff_lines++;
     }
   }
   if(strcmp(input_data.words[line][0],"velocity")==0) {
