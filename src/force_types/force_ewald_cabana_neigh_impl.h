@@ -114,13 +114,88 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   double eps_r = _eps_r;
   double k_max = _k_max;
   
-  //TODO: WIP!
-
-
+  auto init_p = KOKKOS_LAMBDA( const int idx )
+  {
+    p( idx ) = 0.0;
+  };
+  Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_max ), init_parameters );
   Kokkos::fence();
 
-  step++;
-}
+  // In order to compute the k-space contribution in parallel
+  // first the following sums need to be created for each
+  // k-vector:
+  //              sum(1<=i<=N_part) sin/cos (dot(k,r_i))
+  // This can be achieved by computing partial sums on each
+  // MPI process, reducing them over all processes and
+  // afterward using the pre-computed values to compute
+  // the forces and potentials acting on the particles
+  // in parallel independently again.
+ 
+  // determine number of required sine / cosine values  
+  int k_int = std::ceil( k_max ) + 1;
+  int n_kvec = ( 2 * k_int + 1 ) * ( 2 * k_int ) * ( 2 * k_int + 1 );
+
+  //allocate View to store them
+  Kokkos::View<double *, MemorySpace> U_trigonometric(
+      "sine and cosine contributions", 2 * n_kvec );
+
+  //set all values to zero
+  Kokkos::parallel_for( 2 * n_kvec, KOKKOS_LAMBDA( const int idx ) {
+      U_trigonometric( idx ) = 0.0;
+  } );
+  Kokkos::fence();
+
+  //Compute partial sums
+
+kkos::parallel_for( n_max, KOKKOS_LAMBDA( const int idx ) {
+        for ( int kz = -k_int; kz <= k_int; ++kz )
+        {
+            // compute wave vector component
+            double _kz = 2.0 * PI / lz * (double)kz;
+            for ( int ky = -k_int; ky <= k_int; ++ky )
+            {
+                // compute wave vector component
+                double _ky = 2.0 * PI / ly * (double)ky;
+                for ( int kx = -k_int; kx <= k_int; ++kx )
+                {
+                    // no values required for the central box
+                    if ( kx == 0 && ky == 0 && kz == 0 )
+                       continue;
+                    // compute index in contribution array
+                    int kidx =
+                        ( kz + k_int ) * ( 2 * k_int + 1 ) * ( 2 * k_int + 1 ) * ( 2 * k_int + 1 ) +
+                        ( ky + k_int ) * ( 2 * k_int + 1 ) + ( kx + k_int );
+                    // compute wave vector component
+                    double _kx = 2.0 * PI / lx * (double)kx;
+                    // compute dot product with local particle and wave
+                    // vector
+                    double kr = _kz * x( idx, 0 ) + _ky * x( idx, 1 ) + _kz * x( idx, 2 );
+                    //add contributions
+                    Kokkos::atomic_add( &U_trigonometric( 2 * kidx ), q( idx ) * cos( kr ) );
+                    Kokkos::atomic_add( &U_trigonometric( 2 * kidx + 1 ), q( idx ) * sin( kr ) );
+                }
+            }
+        }
+    } );
+    Kokkos::fence();
+
+    //reduce the partial results
+
+    double *U_trigon_array = new double[2 * n_kvec];
+    for ( int idx = 0; idx < 2 * n_kvec; ++idx )
+        U_trigon_array[idx] = U_trigonometric( idx );
+
+    MPI_Allreduce( MPI_IN_PLACE, U_trigon_array, 2 * n_kvec, MPI_DOUBLE,
+                   MPI_SUM, comm );
+
+    for ( int idx = 0; idx < 2 * n_kvec; ++idx )
+        U_trigonometric( idx ) = U_trigon_array[idx];
+
+    delete[] U_trigon_array;
+
+
+
+
 
 template<class t_neighbor>
 T_V_FLOAT ForceLJ<t_neighbor>::compute_energy(System* system) {
