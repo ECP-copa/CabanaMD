@@ -47,39 +47,12 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <Kokkos_Core.hpp>
-#include <Cabana_Core.hpp>
+#include<lrforce.h>
 
-#include <types.h>
-#include <system.h>
-#include <integrator_nve.h>
-#include <force.h>
-#include <lrforce.h>
-#include <comm_mpi.h>
-#include <input.h>
-#include <binning_cabana.h>
+LRForce::LRForce(System*, bool half_neigh_):half_neigh(half_neigh_) {}
 
-class CabanaMD {
-  public:
-    System* system;
-    Integrator* integrator;
-    Force* force;
-    LRForce* lrforce;
-    Comm* comm;
-    Input* input;
-    Binning* binning;
-
-    CabanaMD();
-
-    void init(int argc,char* argv[]);
-       
-    void run(int nsteps);
-
-    void dump_binary(int);
-    void check_correctness(int);
-
-    void print_performance();
-
-    void shutdown();
-};
+void LRForce::init_coeff(T_X_FLOAT, char**) {}
+void LRForce::create_neigh_list(System*) {}
+void LRForce::compute(System*) {}
+const char* LRForce::name() { return "LRForceNone"; }
 

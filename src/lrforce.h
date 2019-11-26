@@ -47,39 +47,24 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <Kokkos_Core.hpp>
-#include <Cabana_Core.hpp>
+#ifndef FORCE_H
+#define FORCE_H
+#include<types.h>
+#include<system.h>
 
-#include <types.h>
-#include <system.h>
-#include <integrator_nve.h>
-#include <force.h>
-#include <lrforce.h>
-#include <comm_mpi.h>
-#include <input.h>
-#include <binning_cabana.h>
+class LRForce {
+public:
+  bool half_neigh, comm_newton;
+  Force(System* system, bool half_neigh_);
 
-class CabanaMD {
-  public:
-    System* system;
-    Integrator* integrator;
-    Force* force;
-    LRForce* lrforce;
-    Comm* comm;
-    Input* input;
-    Binning* binning;
+  virtual void init_coeff(T_X_FLOAT neigh_cut, char** args);
+  virtual void create_neigh_list(System* system);
 
-    CabanaMD();
+  virtual void compute(System* system);
+  virtual T_F_FLOAT compute_energy(System*){return 0.0;} // Only needed for thermo output
 
-    void init(int argc,char* argv[]);
-       
-    void run(int nsteps);
-
-    void dump_binary(int);
-    void check_correctness(int);
-
-    void print_performance();
-
-    void shutdown();
+  virtual const char* name();
 };
 
+#include<modules_force.h>
+#endif

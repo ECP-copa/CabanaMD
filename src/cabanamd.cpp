@@ -98,6 +98,7 @@ void CabanaMD::init(int argc, char* argv[]) {
     force->init_coeff(neigh_cutoff,
                       input->input_data.words[input->force_coeff_lines(line)]);
   }
+  //TODO: make sure longrange force can also be grabbed from input deck
 
   // Create Communication Submodule
   comm = new Comm(system, neigh_cutoff);
@@ -107,7 +108,8 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // system->print_particles();
   if(system->do_print) {
-    printf("Using: %s %s %s %s\n",force->name(),comm->name(),binning->name(),integrator->name());
+    printf("Using: %s %s %s %s %s\n",force->name(),lrforce->name(),comm->name(),binning->name(),integrator->name());
+
   }
 
   // Ok lets go ahead and create the particles if that didn't happen yet
@@ -132,6 +134,7 @@ void CabanaMD::init(int argc, char* argv[]) {
   auto f = Cabana::slice<Forces>(system->xvf);
   Cabana::deep_copy(f, 0.0);
   force->compute(system);
+  lrforce->compute(system);
 
   if(input->comm_newton) {
     // Reverse Communicate Force Update on Halo
@@ -146,6 +149,7 @@ void CabanaMD::init(int argc, char* argv[]) {
     KinE kine(comm);
     T_FLOAT T = temp.compute(system);
     T_FLOAT PE = pote.compute(system,force)/system->N;
+    //TODO: add longrange contribution to PE
     T_FLOAT KE = kine.compute(system)/system->N;
     if(system->do_print) {
       if (!system->print_lammps) {
@@ -176,13 +180,14 @@ void CabanaMD::run(int nsteps) {
   KinE kine(comm);
 
   double force_time = 0;
+  double lrforce_time = 0;
   double comm_time  = 0;
   double neigh_time = 0;
   double integrate_time = 0;
   double other_time = 0;
 
   double last_time = 0;
-  Kokkos::Timer timer,force_timer,comm_timer,neigh_timer,integrate_timer,other_timer;
+  Kokkos::Timer timer,force_timer,lrforce_timer,comm_timer,neigh_timer,integrate_timer,other_timer;
 
   // Timestep Loop
   for(int step = 1; step <= nsteps; step++ ) {
@@ -227,6 +232,11 @@ void CabanaMD::run(int nsteps) {
     // Compute Short Range Force
     force->compute(system);
     force_time += force_timer.seconds();
+
+    //Compute Long Range Force
+    lrforce_timer.reset();
+    lrforce->compute(system);
+    lrforce_time += lrforce_timer.seconds();
 
     // This is where Bonds, Angles and KSpace should go eventually 
     

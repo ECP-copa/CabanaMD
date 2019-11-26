@@ -47,39 +47,94 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <Kokkos_Core.hpp>
+//TODO: I don't really understand this first part
+#ifdef MODULES_OPTION_CHECK
+  if( (strcmp(argv[i], "--force-iteration") == 0) ) {
+    if( (strcmp(argv[i+1], "NEIGH_FULL") == 0) )
+      lrforce_iteration_type = FORCE_ITER_NEIGH_FULL;
+    if( (strcmp(argv[i+1], "NEIGH_HALF") == 0) )
+      lrforce_iteration_type = FORCE_ITER_NEIGH_HALF;
+  }
+  if( (strcmp(argv[i], "--neigh-type") == 0) ) {
+    if( (strcmp(argv[i+1], "NEIGH_2D") == 0) )
+      neighbor_type = NEIGH_2D;
+    if( (strcmp(argv[i+1], "NEIGH_CSR") == 0) )
+      neighbor_type = NEIGH_CSR;
+  }
+#endif
+#ifdef FORCE_MODULES_INSTANTIATION
+    else if (input->lrforce_type == FORCE_EWALD) {
+      bool half_neigh = input->lrforce_iteration_type == FORCE_ITER_NEIGH_HALF;
+      if (input->neighbor_type == NEIGH_2D) {
+        if (half_neigh)
+          lrforce = new ForceEwald<t_verletlist_half_2D>(system,half_neigh);
+        else
+          lrforce = new ForceEwald<t_verletlist_full_2D>(system,half_neigh);
+      }
+      else if (input->neighbor_type == NEIGH_CSR) {
+	if (half_neigh)
+          lrforce = new ForceEwald<t_verletlist_half_CSR>(system,half_neigh);
+        else
+          lrforce = new ForceEwald<t_verletlist_full_CSR>(system,half_neigh);
+      }
+      #undef FORCETYPE_ALLOCATION_MACRO
+    }
+#endif
+
+
+#if !defined(MODULES_OPTION_CHECK) && \
+    !defined(FORCE_MODULES_INSTANTIATION)
+
+#ifndef FORCE_EWALD_CABANA_NEIGH_H
+#define FORCE_EWALD_CABANA_NEIGH_H
 #include <Cabana_Core.hpp>
 
-#include <types.h>
-#include <system.h>
-#include <integrator_nve.h>
-#include <force.h>
-#include <lrforce.h>
-#include <comm_mpi.h>
-#include <input.h>
-#include <binning_cabana.h>
+#include<lrforce.h>
+#include<types.h>
+#include<system.h>
 
-class CabanaMD {
-  public:
-    System* system;
-    Integrator* integrator;
-    Force* force;
-    LRForce* lrforce;
-    Comm* comm;
-    Input* input;
-    Binning* binning;
+template<class t_neighbor>
+class ForceEwald: public LRForce {
+private:
+  //int N_local,ntypes;
+  //typename AoSoA::member_slice_type<Positions> x;
+  //typename AoSoA::member_slice_type<Forces> f;
+  //typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;//TODO: what is this for?
+  //typename AoSoA::member_slice_type<IDs> id;
+  //typename AoSoA::member_slice_type<Types> type;
+  typename AoSoA::member_slice_type<Charges> q;
 
-    CabanaMD();
+  double _alpha;
+  double _r_max;
+  double _k_max;
 
-    void init(int argc,char* argv[]);
-       
-    void run(int nsteps);
+  //dielectric constant
+  double _eps_r = 1.0; //Assume 1 for now (vacuum)
 
-    void dump_binary(int);
-    void check_correctness(int);
+  double *EwaldUk_coeffs;
+  
+  //Kokkos::View<double *, MemorySpace> domain_width;
 
-    void print_performance();
+  //MPI_Comm comm;
 
-    void shutdown();
+public:
+
+  bool half_neigh;
+  T_X_FLOAT neigh_cut;
+
+  t_neighbor neigh_list;
+
+  ForceEwald(System* system, bool half_neigh);
+
+  void tune(char** args);
+
+  //void create_neigh_list(System* system);
+
+  void compute(System* system);
+  T_F_FLOAT compute_energy(System* system);
+
+  const char* name();
 };
 
+#endif
+#endif
