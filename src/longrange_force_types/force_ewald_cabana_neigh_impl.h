@@ -55,7 +55,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   double Ur = 0.0, Uk = 0.0, Uself = 0.0, Udip = 0.0;
   double Udip_vec[3];
 
-  N_local = system->N_local;
+  N_local = system->N_local;//TODO: rename this n_max or other way around?
   x = Cabana::slice<Positions>(system->xvf);
   f = Cabana::slice<Forces>(system->xvf);
   f_a = Cabana::slice<Forces>(system->xvf);//TODO: What is this?
@@ -79,7 +79,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   auto init_p = KOKKOS_LAMBDA( const int idx )
   {
     p( idx ) = 0.0;
-  };
+  };//TODO: Is n_max here the N_local? I think so.
   Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_max ), init_parameters );
   Kokkos::fence();
 
@@ -108,8 +108,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   Kokkos::fence();
 
   //Compute partial sums
-
-kkos::parallel_for( n_max, KOKKOS_LAMBDA( const int idx ) {
+  Kokkkos::parallel_for( n_max, KOKKOS_LAMBDA( const int idx ) {
         for ( int kz = -k_int; kz <= k_int; ++kz )
         {
             // compute wave vector component
@@ -155,6 +154,94 @@ kkos::parallel_for( n_max, KOKKOS_LAMBDA( const int idx ) {
 
     delete[] U_trigon_array;
 
+    Kokkos::parallel_reduce(
+        n_max,
+        KOKKOS_LAMBDA( const int idx, double &Uk_part ) {
+            // general coefficient
+            double coeff = 4.0 * PI / ( lx * ly * lz );
+            double k[3];
+            
+            for ( int kz = -k_int; kz <= k_int; ++kz )
+            {
+                // compute wave vector component
+                k[2] = 2.0 * PI / lz * (double)kz;
+                for ( int ky = -k_int; ky <= k_int; ++ky )
+                {
+                    // compute wave vector component
+                    k[1] = 2.0 * PI / ly * (double)ky;
+                    for ( int kx = -k_int; kx <= k_int; ++kx )
+                    {
+                        // no values required for the central box
+                        if ( kx == 0 && ky == 0 && kz == 0 )
+                            continue;
+                            // compute index in contribution array
+                            int kidx = ( kz + k_int ) * ( 2 * k_int + 1 ) *
+                                           ( 2 * k_int + 1 ) +
+                                       ( ky + k_int ) * ( 2 * k_int + 1 ) +
+                                       ( kx + k_int );
+                            // compute wave vector component
+                            k[0] = 2.0 * PI / lx * (double)kx;
+                            // compute dot product of wave vector with itself
+                            double kk = k[0] * k[0] + k[1] * k[1] + k[2] * k[2];
+                            ;
+                            // compute dot product with local particle and wave
+                            // vector
+                            double kr = k[0] * r( idx, 0 ) + k[1] * r( idx, 1 ) +
+                                        k[2] * r( idx, 2 );
+
+                            // coefficient dependent on wave vector
+                            double k_coeff =
+                                exp( -kk / ( 4 * alpha * alpha ) ) / kk;
+
+                            // contribution to potential energy
+                            double contrib =
+                                coeff * k_coeff *
+                                ( U_trigonometric( 2 * kidx ) *
+                                      U_trigonometric( 2 * kidx ) +
+                                  U_trigonometric( 2 * kidx + 1 ) *
+                                      U_trigonometric( 2 * kidx + 1 ) );
+
+                            p( idx ) += contrib;
+                            Uk_part += contrib;
+
+                            for ( int dim = 0; dim < 3; ++dim )
+                                f( idx, dim ) +=
+                                    k_coeff * 2.0 * q( idx ) * k[dim] *
+                                    ( U_trigonometric( 2 * kidx + 1 ) * cos( kr ) -
+                                      U_trigonometric( 2 * kidx ) * sin( kr ) );
+                    }
+                }
+            }
+        },
+        Uk );
+    Kokkos::fence();
+
+    MPI_Allreduce( MPI_IN_PLACE, &Uk, 1, MPI_DOUBLE, MPI_SUM, comm );
+
+// computation real-space contribution
+//
+// In order to compute the real-space contribution to potentials and
+// forces the Cabana implementation of halos and Verlet lists is
+// used. The halos are used to communicate particles along the
+// borders of MPI domains to their respective neighbors, so that
+// complete Verlet lists can be created. To save computation time
+// the half shell variant is used, that means that Newton's third
+// law of motion is used: F(i,j) = -F(j,i). The downside of this
+// is that the computed partial forces and potentials of the
+// ghost particles need to be communicated back to the source
+// process, which is done by using the 'scatter' implementation
+// of Cabana.
+// TODO: change comment to reflect usage of CabanaMD neighborlist
+
+
+//TODO: now in Ewald implementation is the creation of a neighbor 
+//      list with the construction of a halo
+//      How to do all the work there but with the neighbor list 
+//      already created in short-range force calcs?
+
+
+//TODO: progress is up to line 338 in ewald.cpp where real-space
+//      contributions are calculated
 
 
 
