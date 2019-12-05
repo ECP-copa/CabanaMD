@@ -53,4 +53,4 @@
 
 
 // Include Module header files for longrange force
-#include <force_ewald.h>
+#include <force_ewald_cabana_neigh.h>
