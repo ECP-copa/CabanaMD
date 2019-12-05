@@ -54,7 +54,6 @@
 #include <system.h>
 #include <integrator_nve.h>
 #include <force.h>
-#include <lrforce.h>
 #include <comm_mpi.h>
 #include <input.h>
 #include <binning_cabana.h>
@@ -64,7 +63,7 @@ class CabanaMD {
     System* system;
     Integrator* integrator;
     Force* force;
-    LRForce* lrforce;
+    Force* lrforce;
     Comm* comm;
     Input* input;
     Binning* binning;

@@ -66,7 +66,7 @@ enum {BINNING_LINKEDCELL};
 // Comm Type
 enum {COMM_MPI};
 // Force Type
-enum {FORCE_LJ,FORCE_SNAP};
+enum {FORCE_LJ,FORCE_SNAP,FORCE_EWALD};
 // Force Iteration Type
 enum {FORCE_ITER_NEIGH_FULL, FORCE_ITER_NEIGH_HALF};
 // Neighbor Type
@@ -104,9 +104,9 @@ typedef Kokkos::View<const T_V_FLOAT*>    t_mass_const; // Mass
 
 //Cabana
 using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
-                                    T_INT, T_INT, T_FLOAT>;
+                                    T_INT, T_INT, T_FLOAT, T_FLOAT>;
 enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
-                 Types = 3, IDs = 4, Charges = 5 };
+                 Types = 3, IDs = 4, Charges = 5, Potentials = 6 };
 
 #ifdef CabanaMD_ENABLE_Cuda
 using MemorySpace = Kokkos::CudaUVMSpace;

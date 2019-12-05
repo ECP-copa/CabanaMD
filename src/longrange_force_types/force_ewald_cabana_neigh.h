@@ -52,20 +52,20 @@
 #define FORCE_EWALD_CABANA_NEIGH_H
 #include <Cabana_Core.hpp>
 
-#include<lrforce.h>
 #include<types.h>
 #include<system.h>
 
 template<class t_neighbor>
-class ForceEwald: public LRForce {
+class ForceEwald: public Force {
 private:
-  //int N_local,ntypes;
-  //typename AoSoA::member_slice_type<Positions> x;
-  //typename AoSoA::member_slice_type<Forces> f;
-  //typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;//TODO: what is this for?
-  //typename AoSoA::member_slice_type<IDs> id;
-  //typename AoSoA::member_slice_type<Types> type;
+  int N_local,ntypes;
+  typename AoSoA::member_slice_type<Positions> x;
+  typename AoSoA::member_slice_type<Forces> f;
+  //typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
+  typename AoSoA::member_slice_type<IDs> id;
+  typename AoSoA::member_slice_type<Types> type;
   typename AoSoA::member_slice_type<Charges> q;
+  typename AoSoA::member_slice_type<Potentials> p;
 
   double _alpha;
   double _r_max;
