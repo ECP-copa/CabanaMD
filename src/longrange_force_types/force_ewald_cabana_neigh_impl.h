@@ -11,13 +11,20 @@
 
 #include<force_ewald_cabana_neigh.h>
 
+constexpr double PI(3.141592653589793238462643);
+constexpr double PI_SQRT(1.772453850905516);
+constexpr double PI_SQ(PI*PI);// 9.869604401089359
+constexpr double PI_DIV_SQ(1.0/PI_SQ);//0.101321183642338
+
+
 template<class t_neighbor>
-ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_, MPI_Comm comm):LRForce(system,half_neigh_,comm) {
+ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(system,half_neigh_) {
     half_neigh = half_neigh_;
     assert( half_neigh == true );
-    MPI_Topo_test( comm, &comm_type );
-    assert( comm_type == MPI_CART );
-    this->comm = comm;
+    //TODO: assert MPI_Comm as Cartesian elsewhere?
+    //MPI_Topo_test( comm, &comm_type );
+    //assert( comm_type == MPI_CART );
+    //this->comm = comm;
     
 }
 
@@ -66,9 +73,12 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
   // compute subdomain size and make it available in the kernels
   Kokkos::View<double *, MemorySpace> sub_domain_size( "sub_domain size", 3);
-  sub_domain_size( 0 ) = (system->sub_domain_hi_x + system->sub_domain_x) - (system_sub_domain_lo_x - system_sub_domain_x);
-  sub_domain_size( 1 ) = (system->sub_domain_hi_y + system->sub_domain_y) - (system_sub_domain_lo_y - system_sub_domain_y);
-  sub_domain_size( 2 ) = (system->sub_domain_hi_z + system->sub_domain_z) - (system_sub_domain_lo_z - system_sub_domain_z);
+  sub_domain_size( 0 ) = system->sub_domain_x;
+  sub_domain_size( 1 ) = system->sub_domain_y;
+  sub_domain_size( 2 ) = system->sub_domain_z;
+  //sub_domain_size( 0 ) = (system->sub_domain_hi_x + system->sub_domain_x) - (system_sub_domain_lo_x - system_sub_domain_x);
+  //sub_domain_size( 1 ) = (system->sub_domain_hi_y + system->sub_domain_y) - (system_sub_domain_lo_y - system_sub_domain_y);
+  //sub_domain_size( 2 ) = (system->sub_domain_hi_z + system->sub_domain_z) - (system_sub_domain_lo_z - system_sub_domain_z);
   //sub_domain_size( 1 ) = system->subdomain_hi_y - system_subdomain_y;
   //sub_domain_size( 2 ) = system->subdomain_hi_z - system_subdomain_z;
  
@@ -145,7 +155,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   double lz = domain_size(2);
 
   //Compute partial sums
-  Kokkkos::parallel_for( N_local, KOKKOS_LAMBDA( const int idx ) {
+  Kokkos::parallel_for( N_local, KOKKOS_LAMBDA( const int idx ) {
         for ( int kz = -k_int; kz <= k_int; ++kz )
         {
             // compute wave vector component
@@ -193,7 +203,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
     // In orig Ewald this was reduction to Uk
     // Now, it's a parallel_for to update each p(idx)
-    auto kspace_potential = KOKKOS_LAMBDA( const int idx, double &Uk_part ) {
+    auto kspace_potential = KOKKOS_LAMBDA( const int idx ) {
         // general coefficient
         double coeff = 4.0 * PI / ( lx * ly * lz );
         double k[3];
@@ -223,8 +233,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
                         ;
                         // compute dot product with local particle and wave
                         // vector
-                        double kr = k[0] * r( idx, 0 ) + k[1] * r( idx, 1 ) +
-                                    k[2] * r( idx, 2 );
+                        double kr = k[0] * x( idx, 0 ) + k[1] * x( idx, 1 ) +
+                                    k[2] * x( idx, 2 );
 
                         // coefficient dependent on wave vector
                         double k_coeff =
@@ -238,7 +248,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
                               U_trigonometric( 2 * kidx + 1 ) *
                                   U_trigonometric( 2 * kidx + 1 ) );
                         p( idx ) += contrib;
-                        Uk_part += contrib;
+                        //Uk_part += contrib;
 
                         for ( int dim = 0; dim < 3; ++dim )
                             f( idx, dim ) +=
@@ -274,206 +284,16 @@ void ForceEwald<t_neighbor>::compute(System* system) {
     //TODO: progress is up to line 338 in ewald.cpp where real-space
     //      contributions are calculated
 
-
+}
 
 
 template<class t_neighbor>
-T_V_FLOAT ForceLJ<t_neighbor>::compute_energy(System* system) {
-  N_local = system->N_local;
-  x = Cabana::slice<Positions>(system->xvf);
-  f = Cabana::slice<Forces>(system->xvf);
-  f_a = Cabana::slice<Forces>(system->xvf);
-  id = Cabana::slice<IDs>(system->xvf);
-  type = Cabana::slice<Types>(system->xvf);
+T_V_FLOAT ForceEwald<t_neighbor>::compute_energy(System* system) {
 
-  T_V_FLOAT energy;
-
-  if(half_neigh)
-    Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_half_neigh_pe_stackparams(0, system->N_local), *this, energy);
-  else
-    Kokkos::parallel_reduce("ForceLJCabanaNeigh::compute_energy", t_policy_full_neigh_pe_stackparams(0, system->N_local), *this, energy);
-
-  Kokkos::fence();
-
-  step++;
-  return energy;
+  //step++;
+  return 0.0;
 }
 
 template<class t_neighbor>
-const char* ForceLJ<t_neighbor>::name() {return half_neigh?"Force:LJCabanaVerletHalf":"Force:LJCabanaVerletFull";}
+const char* ForceEwald<t_neighbor>::name() {return "Ewald";}
 
-template<class t_neighbor>
-KOKKOS_INLINE_FUNCTION
-void ForceLJ<t_neighbor>::operator() (TagFullNeigh, const T_INT& i) const {
-  const T_F_FLOAT x_i = x(i,0);
-  const T_F_FLOAT y_i = x(i,1);
-  const T_F_FLOAT z_i = x(i,2);
-  const int type_i = type(i);
-
-  int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
-
-  T_F_FLOAT fxi = 0.0;
-  T_F_FLOAT fyi = 0.0;
-  T_F_FLOAT fzi = 0.0;
-
-  for(int jj = 0; jj < num_neighs; jj++) {
-    int j = Cabana::NeighborList<t_neighbor>::getNeighbor(neigh_list, i, jj);
-
-    const T_F_FLOAT dx = x_i - x(j,0);
-    const T_F_FLOAT dy = y_i - x(j,1);
-    const T_F_FLOAT dz = z_i - x(j,2);
-
-    const int type_j = type(j);
-    const T_F_FLOAT rsq = dx*dx + dy*dy + dz*dz;
-
-    const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
-
-    if( rsq < cutsq_ij ) {
-      const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
-      const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
-
-      T_F_FLOAT r2inv = 1.0/rsq;
-      T_F_FLOAT r6inv = r2inv*r2inv*r2inv;
-      T_F_FLOAT fpair = (r6inv * (lj1_ij*r6inv - lj2_ij)) * r2inv;
-      fxi += dx*fpair;
-      fyi += dy*fpair;
-      fzi += dz*fpair;
-    }
-  }
-
-  f(i,0) += fxi;
-  f(i,1) += fyi;
-  f(i,2) += fzi;
-
-}
-
-template<class t_neighbor>
-KOKKOS_INLINE_FUNCTION
-void ForceLJ<t_neighbor>::operator() (TagHalfNeigh, const T_INT& i) const {
-  const T_F_FLOAT x_i = x(i,0);
-  const T_F_FLOAT y_i = x(i,1);
-  const T_F_FLOAT z_i = x(i,2);
-  const int type_i = type(i);
-
-  int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
-
-  T_F_FLOAT fxi = 0.0;
-  T_F_FLOAT fyi = 0.0;
-  T_F_FLOAT fzi = 0.0;
-  for(int jj = 0; jj < num_neighs; jj++) {
-    int j = Cabana::NeighborList<t_neighbor>::getNeighbor(neigh_list, i, jj);
-
-    const T_F_FLOAT dx = x_i - x(j,0);
-    const T_F_FLOAT dy = y_i - x(j,1);
-    const T_F_FLOAT dz = z_i - x(j,2);
-
-    const int type_j = type(j);
-    const T_F_FLOAT rsq = dx*dx + dy*dy + dz*dz;
-
-    const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
-
-    if( rsq < cutsq_ij ) {
-      const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
-      const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
-
-      T_F_FLOAT r2inv = 1.0/rsq;
-      T_F_FLOAT r6inv = r2inv*r2inv*r2inv;
-      T_F_FLOAT fpair = (r6inv * (lj1_ij*r6inv - lj2_ij)) * r2inv;
-      fxi += dx*fpair;
-      fyi += dy*fpair;
-      fzi += dz*fpair;
-      f_a(j,0) -= dx*fpair;
-      f_a(j,1) -= dy*fpair;
-      f_a(j,2) -= dz*fpair;
-    }
-  }
-  f_a(i,0) += fxi;
-  f_a(i,1) += fyi;
-  f_a(i,2) += fzi;
-
-}
-
-template<class t_neighbor>
-KOKKOS_INLINE_FUNCTION
-void ForceLJ<t_neighbor>::operator() (TagFullNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
-  const T_F_FLOAT x_i = x(i,0);
-  const T_F_FLOAT y_i = x(i,1);
-  const T_F_FLOAT z_i = x(i,2);
-  const int type_i = type(i);
-  const bool shift_flag = true;
-
-  int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
-
-  for(int jj = 0; jj < num_neighs; jj++) {
-    int j = Cabana::NeighborList<t_neighbor>::getNeighbor(neigh_list, i, jj);
-
-    const T_F_FLOAT dx = x_i - x(j,0);
-    const T_F_FLOAT dy = y_i - x(j,1);
-    const T_F_FLOAT dz = z_i - x(j,2);
-
-    const int type_j = type(j);
-    const T_F_FLOAT rsq = dx*dx + dy*dy + dz*dz;
-
-    const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
-
-    if( rsq < cutsq_ij ) {
-      const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
-      const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
-
-      T_F_FLOAT r2inv = 1.0/rsq;
-      T_F_FLOAT r6inv = r2inv*r2inv*r2inv;
-      PE += 0.5*r6inv * (0.5*lj1_ij*r6inv - lj2_ij) / 6.0; // optimize later
-
-      if (shift_flag) {
-        T_F_FLOAT r2invc = 1.0/cutsq_ij;
-        T_F_FLOAT r6invc = r2invc*r2invc*r2invc;
-        PE -= 0.5*r6invc * (0.5*lj1_ij*r6invc - lj2_ij) / 6.0; // optimize later
-      }
-    }
-  }
-}
-
-template<class t_neighbor>
-KOKKOS_INLINE_FUNCTION
-void ForceLJ<t_neighbor>::operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const {
-  const T_F_FLOAT x_i = x(i,0);
-  const T_F_FLOAT y_i = x(i,1);
-  const T_F_FLOAT z_i = x(i,2);
-  const int type_i = type(i);
-  const bool shift_flag = true;
-
-  int num_neighs = Cabana::NeighborList<t_neighbor>::numNeighbor(neigh_list, i);
-
-  for(int jj = 0; jj < num_neighs; jj++) {
-    int j = Cabana::NeighborList<t_neighbor>::getNeighbor(neigh_list, i, jj);
-
-    const T_F_FLOAT dx = x_i - x(j,0);
-    const T_F_FLOAT dy = y_i - x(j,1);
-    const T_F_FLOAT dz = z_i - x(j,2);
-
-    const int type_j = type(j);
-    const T_F_FLOAT rsq = dx*dx + dy*dy + dz*dz;
-
-    const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
-
-    if( rsq < cutsq_ij ) {
-      const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
-      const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
-
-      T_F_FLOAT r2inv = 1.0/rsq;
-      T_F_FLOAT r6inv = r2inv*r2inv*r2inv;
-      T_F_FLOAT fac;
-      if(j<N_local) fac = 1.0;
-      else fac = 0.5;
-
-      PE += fac * r6inv * (0.5*lj1_ij*r6inv - lj2_ij) / 6.0;  // optimize later
-
-      if (shift_flag) {
-        T_F_FLOAT r2invc = 1.0/cutsq_ij;
-        T_F_FLOAT r6invc = r2invc*r2invc*r2invc;
-        PE -= fac * r6invc * (0.5*lj1_ij*r6invc - lj2_ij) / 6.0;  // optimize later
-      }
-    }
-  }
-
-}

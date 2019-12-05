@@ -108,7 +108,8 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // system->print_particles();
   if(system->do_print) {
-    printf("Using: %s %s %s %s %s\n",force->name(),lrforce->name(),comm->name(),binning->name(),integrator->name());
+    //printf("Using: %s %s %s %s %s\n",force->name(),lrforce->name(),comm->name(),binning->name(),integrator->name());
+    printf("Using: %s %s %s %s\n",force->name(),comm->name(),binning->name(),integrator->name());//TODO:add name() for Ewald
 
   }
 

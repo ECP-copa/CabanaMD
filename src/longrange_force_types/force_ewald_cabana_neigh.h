@@ -51,9 +51,10 @@
 #ifndef FORCE_EWALD_CABANA_NEIGH_H
 #define FORCE_EWALD_CABANA_NEIGH_H
 #include <Cabana_Core.hpp>
-
+#include<force.h>
 #include<types.h>
 #include<system.h>
+#include <comm_mpi.h>
 
 template<class t_neighbor>
 class ForceEwald: public Force {
@@ -61,7 +62,7 @@ private:
   int N_local,ntypes;
   typename AoSoA::member_slice_type<Positions> x;
   typename AoSoA::member_slice_type<Forces> f;
-  //typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
+  typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
   typename AoSoA::member_slice_type<IDs> id;
   typename AoSoA::member_slice_type<Types> type;
   typename AoSoA::member_slice_type<Charges> q;
@@ -78,7 +79,7 @@ private:
   
   //Kokkos::View<double *, MemorySpace> domain_width;
 
-  //MPI_Comm comm;
+  MPI_Comm comm;
 
 public:
 
@@ -88,8 +89,9 @@ public:
   t_neighbor neigh_list;
 
   ForceEwald(System* system, bool half_neigh);
+  ForceEwald(System* system, bool half_neigh, Comm comm);
 
-  void tune(char** args);
+  void init_coeff(char** args);
 
   //void create_neigh_list(System* system);
 
