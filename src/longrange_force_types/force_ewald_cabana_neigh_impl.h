@@ -55,32 +55,65 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   double Ur = 0.0, Uk = 0.0, Uself = 0.0, Udip = 0.0;
   double Udip_vec[3];
 
-  N_local = system->N_local;//TODO: rename this n_max or other way around?
+  N_local = system->N_local;//TODO: rename all N_local to N_local
   x = Cabana::slice<Positions>(system->xvf);
   f = Cabana::slice<Forces>(system->xvf);
-  f_a = Cabana::slice<Forces>(system->xvf);//TODO: What is this?
+  //f_a = Cabana::slice<Forces>(system->xvf);
   id = Cabana::slice<IDs>(system->xvf);
   //type = Cabana::slice<Types>(system->xvf);
   q = Cabana::slice<Charges>(system->xvf);
-  p = Cabana::slice<Potentials>//TODO: Should we have potentials as part of the system AoSoA?
+  p = Cabana::slice<Potentials>(system->xvf);//TODO: Add potentials as part of the system AoSoA?
 
-  //Kokkos::View<double *, MemorySpace> domain_size( "domain size", 3);
-  //TODO: How do the "domain" and "subdomain" of system compare to Rene's use of "domain" in ewald?
-  //domain_size( 0 ) = system->domain_hi_x - system_domain_x;
-  //domain_size( 1 ) = system->domain_hi_y - system_domain_y;
-  //domain_size( 2 ) = system->domain_hi_z - system_domain_z;
-  
+  // compute subdomain size and make it available in the kernels
+  Kokkos::View<double *, MemorySpace> sub_domain_size( "sub_domain size", 3);
+  sub_domain_size( 0 ) = (system->sub_domain_hi_x + system->sub_domain_x) - (system_sub_domain_lo_x - system_sub_domain_x);
+  sub_domain_size( 1 ) = (system->sub_domain_hi_y + system->sub_domain_y) - (system_sub_domain_lo_y - system_sub_domain_y);
+  sub_domain_size( 2 ) = (system->sub_domain_hi_z + system->sub_domain_z) - (system_sub_domain_lo_z - system_sub_domain_z);
+  //sub_domain_size( 1 ) = system->subdomain_hi_y - system_subdomain_y;
+  //sub_domain_size( 2 ) = system->subdomain_hi_z - system_subdomain_z;
+ 
+  // compute domain size and make it available in the kernels
+  Kokkos::View<double *, MemorySpace> domain_size( "domain size", 3 );
+  domain_size( 0 ) = (system->domain_hi_x + system->domain_x) - (system->domain_lo_x - system->domain_x);
+  domain_size( 1 ) = (system->domain_hi_y + system->domain_y) - (system->domain_lo_y - system->domain_y);
+  domain_size( 2 ) = (system->domain_hi_z + system->domain_z) - (system->domain_lo_z - system->domain_z);
+ 
   //get the solver parameters
   double alpha = _alpha;
   double r_max = _r_max;
   double eps_r = _eps_r;
   double k_max = _k_max;
-  
-  auto init_p = KOKKOS_LAMBDA( const int idx )
+
+  // store MPI information
+  int rank, n_ranks;
+  std::vector<int> loc_dims( 3 );
+  std::vector<int> cart_dims( 3 );
+  std::vector<int> cart_periods( 3 );
+  MPI_Comm_rank( comm, &rank );
+  MPI_Comm_size( comm, &n_ranks );
+  MPI_Cart_get( comm, 3, cart_dims.data(), cart_periods.data(),
+                loc_dims.data() );
+
+  // neighbor information
+  std::vector<int> neighbor_low( 3 );
+  std::vector<int> neighbor_up( 3 );
+
+  // get neighbors in parallel decomposition
+  for ( int dim = 0; dim < 3; ++dim )
   {
-    p( idx ) = 0.0;
-  };//TODO: Is n_max here the N_local? I think so.
-  Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_max ), init_parameters );
+      MPI_Cart_shift( comm, dim, 1, &neighbor_low.at( dim ),
+                      &neighbor_up.at( dim ) );
+  }
+
+  // initialize potential and force to zero
+  auto init_parameters = KOKKOS_LAMBDA( const int idx )
+    {
+        p( idx ) = 0.0;
+        f( idx, 0 ) = 0.0;
+        f( idx, 1 ) = 0.0;
+        f( idx, 2 ) = 0.0;
+    }; 
+  Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_local ), init_parameters );
   Kokkos::fence();
 
   // In order to compute the k-space contribution in parallel
@@ -106,9 +139,13 @@ void ForceEwald<t_neighbor>::compute(System* system) {
       U_trigonometric( idx ) = 0.0;
   } );
   Kokkos::fence();
+  
+  double lx = domain_size(0);
+  double ly = domain_size(1);
+  double lz = domain_size(2);
 
   //Compute partial sums
-  Kokkkos::parallel_for( n_max, KOKKOS_LAMBDA( const int idx ) {
+  Kokkkos::parallel_for( N_local, KOKKOS_LAMBDA( const int idx ) {
         for ( int kz = -k_int; kz <= k_int; ++kz )
         {
             // compute wave vector component
@@ -154,94 +191,88 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
     delete[] U_trigon_array;
 
-    Kokkos::parallel_reduce(
-        n_max,
-        KOKKOS_LAMBDA( const int idx, double &Uk_part ) {
-            // general coefficient
-            double coeff = 4.0 * PI / ( lx * ly * lz );
-            double k[3];
-            
-            for ( int kz = -k_int; kz <= k_int; ++kz )
+    // In orig Ewald this was reduction to Uk
+    // Now, it's a parallel_for to update each p(idx)
+    auto kspace_potential = KOKKOS_LAMBDA( const int idx, double &Uk_part ) {
+        // general coefficient
+        double coeff = 4.0 * PI / ( lx * ly * lz );
+        double k[3];
+        
+        for ( int kz = -k_int; kz <= k_int; ++kz )
+        {
+            // compute wave vector component
+            k[2] = 2.0 * PI / lz * (double)kz;
+            for ( int ky = -k_int; ky <= k_int; ++ky )
             {
                 // compute wave vector component
-                k[2] = 2.0 * PI / lz * (double)kz;
-                for ( int ky = -k_int; ky <= k_int; ++ky )
+                k[1] = 2.0 * PI / ly * (double)ky;
+                for ( int kx = -k_int; kx <= k_int; ++kx )
                 {
-                    // compute wave vector component
-                    k[1] = 2.0 * PI / ly * (double)ky;
-                    for ( int kx = -k_int; kx <= k_int; ++kx )
-                    {
-                        // no values required for the central box
-                        if ( kx == 0 && ky == 0 && kz == 0 )
-                            continue;
-                            // compute index in contribution array
-                            int kidx = ( kz + k_int ) * ( 2 * k_int + 1 ) *
-                                           ( 2 * k_int + 1 ) +
-                                       ( ky + k_int ) * ( 2 * k_int + 1 ) +
-                                       ( kx + k_int );
-                            // compute wave vector component
-                            k[0] = 2.0 * PI / lx * (double)kx;
-                            // compute dot product of wave vector with itself
-                            double kk = k[0] * k[0] + k[1] * k[1] + k[2] * k[2];
-                            ;
-                            // compute dot product with local particle and wave
-                            // vector
-                            double kr = k[0] * r( idx, 0 ) + k[1] * r( idx, 1 ) +
-                                        k[2] * r( idx, 2 );
+                    // no values required for the central box
+                    if ( kx == 0 && ky == 0 && kz == 0 )
+                        continue;
+                        // compute index in contribution array
+                        int kidx = ( kz + k_int ) * ( 2 * k_int + 1 ) *
+                                       ( 2 * k_int + 1 ) +
+                                   ( ky + k_int ) * ( 2 * k_int + 1 ) +
+                                   ( kx + k_int );
+                        // compute wave vector component
+                        k[0] = 2.0 * PI / lx * (double)kx;
+                        // compute dot product of wave vector with itself
+                        double kk = k[0] * k[0] + k[1] * k[1] + k[2] * k[2];
+                        ;
+                        // compute dot product with local particle and wave
+                        // vector
+                        double kr = k[0] * r( idx, 0 ) + k[1] * r( idx, 1 ) +
+                                    k[2] * r( idx, 2 );
 
-                            // coefficient dependent on wave vector
-                            double k_coeff =
-                                exp( -kk / ( 4 * alpha * alpha ) ) / kk;
+                        // coefficient dependent on wave vector
+                        double k_coeff =
+                            exp( -kk / ( 4 * alpha * alpha ) ) / kk;
 
-                            // contribution to potential energy
-                            double contrib =
-                                coeff * k_coeff *
-                                ( U_trigonometric( 2 * kidx ) *
-                                      U_trigonometric( 2 * kidx ) +
-                                  U_trigonometric( 2 * kidx + 1 ) *
-                                      U_trigonometric( 2 * kidx + 1 ) );
+                        // contribution to potential energy
+                        double contrib =
+                            coeff * k_coeff *
+                            ( U_trigonometric( 2 * kidx ) *
+                                  U_trigonometric( 2 * kidx ) +
+                              U_trigonometric( 2 * kidx + 1 ) *
+                                  U_trigonometric( 2 * kidx + 1 ) );
+                        p( idx ) += contrib;
+                        Uk_part += contrib;
 
-                            p( idx ) += contrib;
-                            Uk_part += contrib;
-
-                            for ( int dim = 0; dim < 3; ++dim )
-                                f( idx, dim ) +=
-                                    k_coeff * 2.0 * q( idx ) * k[dim] *
-                                    ( U_trigonometric( 2 * kidx + 1 ) * cos( kr ) -
-                                      U_trigonometric( 2 * kidx ) * sin( kr ) );
-                    }
+                        for ( int dim = 0; dim < 3; ++dim )
+                            f( idx, dim ) +=
+                                k_coeff * 2.0 * q( idx ) * k[dim] *
+                                ( U_trigonometric( 2 * kidx + 1 ) * cos( kr ) -
+                                  U_trigonometric( 2 * kidx ) * sin( kr ) );
                 }
             }
-        },
-        Uk );
+        }
+    };
+    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_local ), kspace_potential );
     Kokkos::fence();
 
-    MPI_Allreduce( MPI_IN_PLACE, &Uk, 1, MPI_DOUBLE, MPI_SUM, comm );
+    //MPI_Allreduce( MPI_IN_PLACE, &Uk, 1, MPI_DOUBLE, MPI_SUM, comm );
 
-// computation real-space contribution
-//
-// In order to compute the real-space contribution to potentials and
-// forces the Cabana implementation of halos and Verlet lists is
-// used. The halos are used to communicate particles along the
-// borders of MPI domains to their respective neighbors, so that
-// complete Verlet lists can be created. To save computation time
-// the half shell variant is used, that means that Newton's third
-// law of motion is used: F(i,j) = -F(j,i). The downside of this
-// is that the computed partial forces and potentials of the
-// ghost particles need to be communicated back to the source
-// process, which is done by using the 'scatter' implementation
-// of Cabana.
-// TODO: change comment to reflect usage of CabanaMD neighborlist
-
-
-//TODO: now in Ewald implementation is the creation of a neighbor 
-//      list with the construction of a halo
-//      How to do all the work there but with the neighbor list 
-//      already created in short-range force calcs?
+    // computation real-space contribution
+    //
+    // In order to compute the real-space contribution to potentials and
+    // forces the Cabana implementation of halos and Verlet lists is
+    // used. The halos are used to communicate particles along the
+    // borders of MPI domains to their respective neighbors, so that
+    // complete Verlet lists can be created. To save computation time
+    // the half shell variant is used, that means that Newton's third
+    // law of motion is used: F(i,j) = -F(j,i). The downside of this
+    // is that the computed partial forces and potentials of the
+    // ghost particles need to be communicated back to the source
+    // process, which is done by using the 'scatter' implementation
+    // of Cabana.
+    // TODO: Enable re-use of CabanaMD neighborlist from short-range forces
 
 
-//TODO: progress is up to line 338 in ewald.cpp where real-space
-//      contributions are calculated
+
+    //TODO: progress is up to line 338 in ewald.cpp where real-space
+    //      contributions are calculated
 
 
 
