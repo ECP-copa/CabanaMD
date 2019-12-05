@@ -130,12 +130,19 @@ void ItemizedFile::add_line(const char* const line) {
 
 Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(ItemizedFile()) {
 
+  binning_type = BINNING_LINKEDCELL;
   comm_type = COMM_MPI;
   integrator_type = INTEGRATOR_NVE;
   neighbor_type = NEIGH_2D;
   force_type = FORCE_LJ;
   force_iteration_type = FORCE_ITER_NEIGH_FULL;
-  binning_type = BINNING_LINKEDCELL;
+  lrforce_type = FORCE_NONE;
+  lrforce_iteration_type = force_iteration_type;
+
+  longrange = false;
+  #ifdef CabanaMD_ENABLE_LongRange
+  longrange = true;
+  #endif
 
   // set defaults (matches ExaMiniMD LJ example)
 

@@ -66,7 +66,7 @@ enum {BINNING_LINKEDCELL};
 // Comm Type
 enum {COMM_MPI};
 // Force Type
-enum {FORCE_LJ,FORCE_SNAP,FORCE_EWALD};
+enum {FORCE_LJ,FORCE_SNAP,FORCE_EWALD,FORCE_NONE};
 // Force Iteration Type
 enum {FORCE_ITER_NEIGH_FULL, FORCE_ITER_NEIGH_HALF};
 // Neighbor Type

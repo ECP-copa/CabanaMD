@@ -108,9 +108,10 @@ void CabanaMD::init(int argc, char* argv[]) {
 
   // system->print_particles();
   if(system->do_print) {
-    //printf("Using: %s %s %s %s %s\n",force->name(),lrforce->name(),comm->name(),binning->name(),integrator->name());
-    printf("Using: %s %s %s %s\n",force->name(),comm->name(),binning->name(),integrator->name());//TODO:add name() for Ewald
-
+    if(input->longrange)
+      printf("Using: %s %s %s %s %s\n",force->name(),lrforce->name(),comm->name(),binning->name(),integrator->name());
+    else
+      printf("Using: %s %s %s %s\n",force->name(),comm->name(),binning->name(),integrator->name());
   }
 
   // Ok lets go ahead and create the particles if that didn't happen yet
@@ -135,7 +136,8 @@ void CabanaMD::init(int argc, char* argv[]) {
   auto f = Cabana::slice<Forces>(system->xvf);
   Cabana::deep_copy(f, 0.0);
   force->compute(system);
-  lrforce->compute(system);
+  if(input->longrange)
+    lrforce->compute(system);
 
   if(input->comm_newton) {
     // Reverse Communicate Force Update on Halo
@@ -235,11 +237,13 @@ void CabanaMD::run(int nsteps) {
     force_time += force_timer.seconds();
 
     //Compute Long Range Force
-    lrforce_timer.reset();
-    lrforce->compute(system);
-    lrforce_time += lrforce_timer.seconds();
+    if(input->longrange) {
+      lrforce_timer.reset();
+      lrforce->compute(system);
+      lrforce_time += lrforce_timer.seconds();
+    }
 
-    // This is where Bonds, Angles and KSpace should go eventually 
+    // This is where Bonds, Angles, etc. should go eventually
     
     // Reverse Communicate Force Update on Halo
     if(input->comm_newton) {

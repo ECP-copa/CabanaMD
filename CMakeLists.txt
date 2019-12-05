@@ -59,6 +59,11 @@ if(NOT DEFINED KOKKOS_DIR)
   set(KOKKOS_DIR ~/install/kokkos/)
 endif()
 
+option(CabanaMD_ENABLE_LongRange "Build CabanaMD with longrange forces (Ewald)" OFF)
+if( CabanaMD_ENABLE_LongRange )
+  add_definitions(-DCabanaMD_ENABLE_LongRange=ON)
+endif()
+
 ##---------------------------------------------------------------------------##
 ## Print the revision number to stdout
 ##---------------------------------------------------------------------------##
@@ -78,8 +83,13 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-include_directories(src src/force_types src/longrange_force_types)
-file(GLOB SOURCES src/*.cpp src/force_types/*.cpp src/longrange_force_types/*.cpp)
+if( CabanaMD_ENABLE_LongRange )
+  include_directories(src src/force_types src/longrange_force_types)
+  file(GLOB SOURCES src/*.cpp src/force_types/*.cpp src/longrange_force_types/*.cpp)
+else()
+  include_directories(src src/force_types)
+  file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
+endif()
 
 include_directories(SYSTEM ${KOKKOS_DIR}/include)
 link_directories(${KOKKOS_DIR}/lib)
@@ -89,4 +99,5 @@ link_directories(${CABANA_DIR}/lib)
 
 add_executable(CabanaMD ${SOURCES})
 target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX)
+
 install(TARGETS CabanaMD DESTINATION bin)
