@@ -61,6 +61,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
   double Ur = 0.0, Uk = 0.0, Uself = 0.0, Udip = 0.0;
   double Udip_vec[3];
+  double N_local, N_max;
 
   N_local = system->N_local;
   N_max = system->N_max;
@@ -71,6 +72,15 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   //type = Cabana::slice<Types>(system->xvf);
   q = Cabana::slice<Charges>(system->xvf);
   p = Cabana::slice<Potentials>(system->xvf);//TODO: Add potentials as part of the system AoSoA?
+
+  //This seems awkward. Could remove?
+  Kokkos::View<double *, MemorySpace> domain_length( "domain length", 6 );
+  domain_length( 0 ) = system->sub_domain_lo_x;
+  domain_length( 1 ) = system->sub_domain_hi_x;
+  domain_length( 2 ) = system->sub_domain_lo_y;
+  domain_length( 3 ) = system->sub_domain_hi_y;
+  domain_length( 4 ) = system->sub_domain_lo_z;
+  domain_length( 5 ) = system->sub_domain_hi_z;
 
   // compute subdomain size and make it available in the kernels
   Kokkos::View<double *, MemorySpace> sub_domain_size( "sub_domain size", 3);
@@ -396,18 +406,18 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         //i = Cabana::slice<Index>( particles );
 
         // gather data for halo regions
-        Cabana::gather( *( halos.at( 2 * dim ) ), r );
+        Cabana::gather( *( halos.at( 2 * dim ) ), x );
         Cabana::gather( *( halos.at( 2 * dim ) ), q );
         Cabana::gather( *( halos.at( 2 * dim ) ), p );
         Cabana::gather( *( halos.at( 2 * dim ) ), f );
-        Cabana::gather( *( halos.at( 2 * dim ) ), i );
+        Cabana::gather( *( halos.at( 2 * dim ) ), id );
 
         // do periodic corrections and reset partial forces
         // and potentials of ghost particles
         // (they are accumulated during the scatter step)
-        for ( int idx = n_local + offset;
+        for ( int idx = N_local + offset;
               (std::size_t)idx <
-              n_local + offset + halos.at( 2 * dim )->numGhost();
+              N_local + offset + halos.at( 2 * dim )->numGhost();
               ++idx )
         {
             p( idx ) = 0.0;
@@ -441,18 +451,18 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
         // gather data for halo regions
 
-        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), r );
+        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), x );
         Cabana::gather( *( halos.at( 2 * dim + 1 ) ), q );
         Cabana::gather( *( halos.at( 2 * dim + 1 ) ), p );
         Cabana::gather( *( halos.at( 2 * dim + 1 ) ), f );
-        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), i );
+        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), id );
 
         // do periodic corrections and reset partial forces
         // and potentials of ghost particles
         // (they are accumulated during the scatter step)
         for ( int idx = N_local + offset;
               (std::size_t)idx <
-              n_local + offset + halos.at( 2 * dim + 1 )->numGhost();
+              N_local + offset + halos.at( 2 * dim + 1 )->numGhost();
               ++idx )
         {
             p( idx ) = 0.0;
@@ -479,14 +489,14 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         min_coords[dim] = domain_size( dim ) + 2.0 * r_max;
     }
 
-    for ( int idx = 0; idx < n_max; ++idx )
+    for ( int idx = 0; idx < N_max; ++idx )
     {
         for ( int dim = 0; dim < 3; ++dim )
         {
-            if ( r( idx, dim ) < min_coords[dim] )
-                min_coords[dim] = r( idx, dim );
-            if ( r( idx, dim ) > max_coords[dim] )
-                max_coords[dim] = r( idx, dim );
+            if ( x( idx, dim ) < min_coords[dim] )
+                min_coords[dim] = x( idx, dim );
+            if ( x( idx, dim ) > max_coords[dim] )
+                max_coords[dim] = x( idx, dim );
         }
     }
 
@@ -498,7 +508,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
                                       ( grid_max[2] - grid_min[2] ) / 20.0 ) ),
                   1.0 );
 
-    ListType verlet_list( r, 0, N_local, r_max, cell_size, grid_min, grid_max );
+    ListType verlet_list( x, 0, N_local, r_max, cell_size, grid_min, grid_max );
 
     Kokkos::parallel_for( N_local, KOKKOS_LAMBDA( const int idx ) {
         int num_n =
@@ -545,8 +555,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         Cabana::scatter( *( halos.at( n_halo ) ), p );
         Cabana::scatter( *( halos.at( n_halo ) ), f );
 
-        n_max -= halos.at( n_halo )->numGhost();
-        particles.resize( N_max );
+        N_max -= halos.at( n_halo )->numGhost();
+        system->xvf.resize( N_max );
         // update slices
         x = Cabana::slice<Positions>(system->xvf);
         f = Cabana::slice<Forces>(system->xvf);
@@ -566,7 +576,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
     auto calc_Uself = KOKKOS_LAMBDA( int idx )
     {
         p( idx ) += -alpha / PI_SQRT * q( idx ) * q( idx );
-    }
+    };
     Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_max ), calc_Uself );
     Kokkos::fence();
 
