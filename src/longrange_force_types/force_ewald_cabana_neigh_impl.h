@@ -62,7 +62,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   double Ur = 0.0, Uk = 0.0, Uself = 0.0, Udip = 0.0;
   double Udip_vec[3];
 
-  N_local = system->N_local;//TODO: rename all N_local to N_local
+  N_local = system->N_local;
+  N_max = system->N_max;
   x = Cabana::slice<Positions>(system->xvf);
   f = Cabana::slice<Forces>(system->xvf);
   //f_a = Cabana::slice<Forces>(system->xvf);
@@ -84,9 +85,12 @@ void ForceEwald<t_neighbor>::compute(System* system) {
  
   // compute domain size and make it available in the kernels
   Kokkos::View<double *, MemorySpace> domain_size( "domain size", 3 );
-  domain_size( 0 ) = (system->domain_hi_x + system->domain_x) - (system->domain_lo_x - system->domain_x);
-  domain_size( 1 ) = (system->domain_hi_y + system->domain_y) - (system->domain_lo_y - system->domain_y);
-  domain_size( 2 ) = (system->domain_hi_z + system->domain_z) - (system->domain_lo_z - system->domain_z);
+  domain_size( 0 ) = system->domain_x;//TODO: Seems very nnecessary. Remove
+  domain_size( 1 ) = system->domain_y;
+  domain_size( 2 ) = system->domain_z;
+  //domain_size( 0 ) = (system->domain_hi_x + system->domain_x) - (system->domain_lo_x - system->domain_x);
+  //domain_size( 1 ) = (system->domain_hi_y + system->domain_y) - (system->domain_lo_y - system->domain_y);
+  //domain_size( 2 ) = (system->domain_hi_z + system->domain_z) - (system->domain_lo_z - system->domain_z);
  
   //get the solver parameters
   double alpha = _alpha;
@@ -123,7 +127,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         f( idx, 1 ) = 0.0;
         f( idx, 2 ) = 0.0;
     }; 
-  Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_local ), init_parameters );
+  Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_max ), init_parameters );
   Kokkos::fence();
 
   // In order to compute the k-space contribution in parallel
@@ -155,7 +159,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   double lz = domain_size(2);
 
   //Compute partial sums
-  Kokkos::parallel_for( N_local, KOKKOS_LAMBDA( const int idx ) {
+  Kokkos::parallel_for( N_max, KOKKOS_LAMBDA( const int idx ) {
         for ( int kz = -k_int; kz <= k_int; ++kz )
         {
             // compute wave vector component
@@ -259,7 +263,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
             }
         }
     };
-    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_local ), kspace_potential );
+    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_max ), kspace_potential );
     Kokkos::fence();
 
     //MPI_Allreduce( MPI_IN_PLACE, &Uk, 1, MPI_DOUBLE, MPI_SUM, comm );
@@ -279,10 +283,294 @@ void ForceEwald<t_neighbor>::compute(System* system) {
     // of Cabana.
     // TODO: Enable re-use of CabanaMD neighborlist from short-range forces
 
+    
+    // lower end of system
+    double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
+                          system->sub_domain_lo_y - system->sub_domain_y,
+                          system->sub_domain_lo_z - system->sub_domain_z};
+    // upper end of system
+    double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
+                          system->sub_domain_hi_y + system->sub_domain_y,
+                          system->sub_domain_hi_z + system->sub_domain_z};
+
+    //double grid_min[3] = {-r_max + domain_length( 0 ),
+    //                      -r_max + domain_length( 2 ),
+    //                      -r_max + domain_length( 4 )};
+
+    using ListAlgorithm = Cabana::HalfNeighborTag;
+    using ListType =
+        Cabana::VerletList<DeviceType, ListAlgorithm, Cabana::VerletLayoutCSR>;
+
+    // store the number of local particles
+    //int n_local = n_max;
+    // offset due to the previously received particles
+    int offset = 0;
+
+    // communicate particles along the edges of the system
+
+    // six halo regions required for transport in all directions
+    std::vector<int> n_export = {0, 0, 0, 0, 0, 0};
+    std::vector<Cabana::Halo<DeviceType> *> halos( 6 );
+
+    // do three-step communication, x -> y -> z
+    for ( int dim = 0; dim < 3; ++dim )
+    {
+        // check if the cut-off is not larger then two times the system size
+        assert( r_max <= 2.0 * domain_size( dim ) );
+
+        // find out how many particles are close to the -dim border
+        Kokkos::parallel_reduce( N_max,
+                                 KOKKOS_LAMBDA( const int idx, int &low ) {
+                                     low += ( x( idx, dim ) <=
+                                              domain_length( 2 * dim ) + r_max )
+                                                ? 1
+                                                : 0;
+                                 },
+                                 n_export.at( 2 * dim ) );
+        Kokkos::fence();
+
+        // find out how many particles are close to the +dim border
+        Kokkos::parallel_reduce(
+            N_max,
+            KOKKOS_LAMBDA( const int idx, int &up ) {
+                up += ( x( idx, dim ) >= domain_length( 2 * dim + 1 ) - r_max )
+                          ? 1
+                          : 0;
+            },
+            n_export.at( 2 * dim + 1 ) );
+        Kokkos::fence();
+        // list with the ranks and target processes for the halo
+        Kokkos::View<int *, DeviceType> export_ranks_low(
+            "export_ranks_low", n_export.at( 2 * dim ) );
+        Kokkos::View<int *, DeviceType> export_ranks_up(
+            "export_ranks_up", n_export.at( 2 * dim + 1 ) );
+
+        Kokkos::View<int *, DeviceType> export_ids_low(
+            "export_ids_low", n_export.at( 2 * dim ) );
+        Kokkos::View<int *, DeviceType> export_ids_up(
+            "export_ids_up", n_export.at( 2 * dim + 1 ) );
+
+        // fill the export arrays for the halo construction
+        int idx_up = 0, idx_low = 0;
+        for ( int idx = 0; idx < N_max; ++idx )
+        {
+            if ( x( idx, dim ) <= domain_length( 2 * dim ) + r_max )
+            {
+                export_ranks_low( idx_low ) = neighbor_low.at( dim );
+                export_ids_low( idx_low ) = idx;
+                ++idx_low;
+            }
+            if ( x( idx, dim ) >= domain_length( 2 * dim + 1 ) - r_max )
+            {
+                export_ranks_up( idx_up ) = neighbor_up.at( dim );
+                export_ids_up( idx_up ) = idx;
+                ++idx_up;
+            }
+        }
+
+        // create neighbor list
+        std::vector<int> neighbors = {neighbor_low.at( dim ), rank,
+                                      neighbor_up.at( dim )};
+        std::sort( neighbors.begin(), neighbors.end() );
+        auto unique_end = std::unique( neighbors.begin(), neighbors.end() );
+        neighbors.resize( std::distance( neighbors.begin(), unique_end ) );
+        halos.at( 2 * dim ) = new Cabana::Halo<DeviceType>(
+            comm, N_max, export_ids_low, export_ranks_low, neighbors );
+        N_max += halos.at( 2 * dim )->numGhost();
+
+        // resize particle list to contain all particles
+        system->xvf.resize( N_max );//TODO: This seems wrong? Perhaps I am just confused
+
+        // update slices
+        x = Cabana::slice<Positions>(system->xvf);
+        f = Cabana::slice<Forces>(system->xvf);
+        //f_a = Cabana::slice<Forces>(system->xvf);
+        id = Cabana::slice<IDs>(system->xvf);
+        //type = Cabana::slice<Types>(system->xvf);
+        q = Cabana::slice<Charges>(system->xvf);
+        p = Cabana::slice<Potentials>(system->xvf);
+        //r = Cabana::slice<Position>( particles );
+        //q = Cabana::slice<Charge>( particles );
+        //p = Cabana::slice<Potential>( particles );
+        //f = Cabana::slice<Force>( particles );
+        //i = Cabana::slice<Index>( particles );
+
+        // gather data for halo regions
+        Cabana::gather( *( halos.at( 2 * dim ) ), r );
+        Cabana::gather( *( halos.at( 2 * dim ) ), q );
+        Cabana::gather( *( halos.at( 2 * dim ) ), p );
+        Cabana::gather( *( halos.at( 2 * dim ) ), f );
+        Cabana::gather( *( halos.at( 2 * dim ) ), i );
+
+        // do periodic corrections and reset partial forces
+        // and potentials of ghost particles
+        // (they are accumulated during the scatter step)
+        for ( int idx = n_local + offset;
+              (std::size_t)idx <
+              n_local + offset + halos.at( 2 * dim )->numGhost();
+              ++idx )
+        {
+            p( idx ) = 0.0;
+            f( idx, 0 ) = 0.0;
+            f( idx, 1 ) = 0.0;
+            f( idx, 2 ) = 0.0;
+            if ( loc_dims.at( dim ) == cart_dims.at( dim ) - 1 )
+            {
+                x( idx, dim ) += domain_size( dim );
+            }
+        }
+
+        offset += halos.at( 2 * dim )->numGhost();
+
+        // do transfer of particles in upward direction
+        halos.at( 2 * dim + 1 ) = new Cabana::Halo<DeviceType>(
+            comm, N_max, export_ids_up, export_ranks_up, neighbors );
+        N_max += halos.at( 2 * dim + 1 )->numGhost();
+
+        // resize particle list to contain all particles
+        system->xvf.resize( N_max );
+
+        // update slices
+        x = Cabana::slice<Positions>(system->xvf);
+        f = Cabana::slice<Forces>(system->xvf);
+        //f_a = Cabana::slice<Forces>(system->xvf);
+        id = Cabana::slice<IDs>(system->xvf);
+        //type = Cabana::slice<Types>(system->xvf);
+        q = Cabana::slice<Charges>(system->xvf);
+        p = Cabana::slice<Potentials>(system->xvf);
+
+        // gather data for halo regions
+
+        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), r );
+        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), q );
+        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), p );
+        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), f );
+        Cabana::gather( *( halos.at( 2 * dim + 1 ) ), i );
+
+        // do periodic corrections and reset partial forces
+        // and potentials of ghost particles
+        // (they are accumulated during the scatter step)
+        for ( int idx = N_local + offset;
+              (std::size_t)idx <
+              n_local + offset + halos.at( 2 * dim + 1 )->numGhost();
+              ++idx )
+        {
+            p( idx ) = 0.0;
+            f( idx, 0 ) = 0.0;
+            f( idx, 1 ) = 0.0;
+            f( idx, 2 ) = 0.0;
+            if ( loc_dims.at( dim ) == 0 )
+            {
+                x( idx, dim ) -= domain_size( dim );
+            }
+        }
+
+        offset += halos.at( 2 * dim + 1 )->numGhost();
+    }
+
+    // create VerletList to iterate over
+
+    double min_coords[3];
+    double max_coords[3];
+
+    for ( int dim = 0; dim < 3; ++dim )
+    {
+        max_coords[dim] = -2.0 * r_max;
+        min_coords[dim] = domain_size( dim ) + 2.0 * r_max;
+    }
+
+    for ( int idx = 0; idx < n_max; ++idx )
+    {
+        for ( int dim = 0; dim < 3; ++dim )
+        {
+            if ( r( idx, dim ) < min_coords[dim] )
+                min_coords[dim] = r( idx, dim );
+            if ( r( idx, dim ) > max_coords[dim] )
+                max_coords[dim] = r( idx, dim );
+        }
+    }
+
+    // compute cell size in a way that not too many cells are used
+    double cell_size;
+    cell_size =
+        std::max( std::min( ( grid_max[0] - grid_min[0] ) / 20.0,
+                            std::min( ( grid_max[1] - grid_min[1] ) / 20.0,
+                                      ( grid_max[2] - grid_min[2] ) / 20.0 ) ),
+                  1.0 );
+
+    ListType verlet_list( r, 0, N_local, r_max, cell_size, grid_min, grid_max );
+
+    Kokkos::parallel_for( N_local, KOKKOS_LAMBDA( const int idx ) {
+        int num_n =
+            Cabana::NeighborList<ListType>::numNeighbor( verlet_list, idx );
+
+        double rx = x( idx, 0 );
+        double ry = x( idx, 1 );
+        double rz = x( idx, 2 );
+
+        for ( int ij = 0; ij < num_n; ++ij )
+        {
+            int j = Cabana::NeighborList<ListType>::getNeighbor( verlet_list,
+                                                                 idx, ij );
+            double dx = x( j, 0 ) - rx;
+            double dy = x( j, 1 ) - ry;
+            double dz = x( j, 2 ) - rz;
+            double d = sqrt( dx * dx + dy * dy + dz * dz );
+
+            // potential computation
+            double contrib = 0.5 * q( idx ) * q( j ) * erfc( alpha * d ) / d;
+            Kokkos::atomic_add( &p( idx ), contrib );
+            Kokkos::atomic_add( &p( j ), contrib );
+
+            // force computation
+           double f_fact = q( idx ) * q( j ) *
+                            ( 2.0 * sqrt( alpha / PI ) * exp( -alpha * d * d ) +
+                              erfc( sqrt( alpha ) * d ) ) /
+                            ( d * d );
+            Kokkos::atomic_add( &f( idx, 0 ), f_fact * dx );
+            Kokkos::atomic_add( &f( idx, 1 ), f_fact * dy );
+            Kokkos::atomic_add( &f( idx, 2 ), f_fact * dz );
+            Kokkos::atomic_add( &f( j, 0 ), -f_fact * dx );
+            Kokkos::atomic_add( &f( j, 1 ), -f_fact * dy );
+            Kokkos::atomic_add( &f( j, 2 ), -f_fact * dz );
+        }
+    } );
+    Kokkos::fence();
 
 
-    //TODO: progress is up to line 338 in ewald.cpp where real-space
-    //      contributions are calculated
+    // send the force and potential contributions of the
+    // ghost particles back to the origin processes
+    for ( int n_halo = 5; n_halo >= 0; --n_halo )
+    {
+        Cabana::scatter( *( halos.at( n_halo ) ), p );
+        Cabana::scatter( *( halos.at( n_halo ) ), f );
+
+        n_max -= halos.at( n_halo )->numGhost();
+        particles.resize( N_max );
+        // update slices
+        x = Cabana::slice<Positions>(system->xvf);
+        f = Cabana::slice<Forces>(system->xvf);
+        //f_a = Cabana::slice<Forces>(system->xvf);
+        id = Cabana::slice<IDs>(system->xvf);
+        //type = Cabana::slice<Types>(system->xvf);
+        q = Cabana::slice<Charges>(system->xvf);
+        p = Cabana::slice<Potentials>(system->xvf);
+    }
+
+    // check if the particle array was reduced to the correct size again
+    assert( N_max == N_local );
+    //TODO: Fix translations between N_max,N_local here and in Rene's code
+
+
+    // computation of self-energy contribution
+    auto calc_Uself = KOKKOS_LAMBDA( int idx )
+    {
+        p( idx ) += -alpha / PI_SQRT * q( idx ) * q( idx );
+    }
+    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_max ), calc_Uself );
+    Kokkos::fence();
+
+    //Not including dipole correction (usually unnecessary)
 
 }
 
