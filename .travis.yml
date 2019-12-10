@@ -54,15 +54,13 @@ env:
     - COVERAGE=OFF
 
 script:
-  - mkdir build && pushd build
-  - PATH="$HOME/bin:/usr/lib/ccache:$PATH" 
+  - mkdir build && pushd build &&
     cmake -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/Cabana"
-          -DCMAKE_INSTALL_PREFIX=$HOME/CabanaMD
-          -D KOKKOS_DIR=$HOME/kokkos \
-          -D CABANA_DIR=$HOME/Cabana \
-          -D CabanaMD_ENABLE_Serial=OFF \
-          -D CabanaMD_ENABLE_OpenMP=ON \
-          -D CabanaMD_ENABLE_Cuda=OFF .. &&
+          -DKOKKOS_DIR=$HOME/kokkos
+          -DCABANA_DIR=$HOME/Cabana
+          -DCabanaMD_ENABLE_Serial=OFF
+          -DCabanaMD_ENABLE_OpenMP=ON
+          -DCabanaMD_ENABLE_Cuda=OFF .. &&
     make -j4 VERBOSE=1 && 
   - popd
 
