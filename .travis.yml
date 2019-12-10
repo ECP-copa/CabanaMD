@@ -61,8 +61,8 @@ script:
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_OpenMP=ON
           -DCabanaMD_ENABLE_Cuda=OFF .. &&
-    make -j4 VERBOSE=1 && 
-  - popd
+    make -j4 VERBOSE=1 &&
+    popd
 
 after_success:
   - ccache -s
