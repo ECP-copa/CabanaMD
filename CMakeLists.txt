@@ -88,5 +88,5 @@ link_directories(${CABANA_DIR}/lib64)
 link_directories(${CABANA_DIR}/lib)
 
 add_executable(CabanaMD ${SOURCES})
-target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX)
+target_link_libraries(CabanaMD cabanacore kokkos MPI::MPI_CXX dl hwloc)
 install(TARGETS CabanaMD DESTINATION bin)
