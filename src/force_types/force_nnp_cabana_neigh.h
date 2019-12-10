@@ -43,11 +43,11 @@
                                     "for the neural network potential." );
         else {
           if (serial_neigh)
-            force = new ForceNNP<t_verletlist_full_2D, t_neighborop_serial, t_angleop_serial>(system,half_neigh);
+            force = new ForceNNP<t_verletlist_full_2D, t_neighborop_serial, t_neighborop_serial>(system,half_neigh);
           if (team_neigh)
-            force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team, t_angleop_serial>(system,half_neigh);
+            force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team, t_neighborop_team>(system,half_neigh);
           if (vector_angle)
-            force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team, t_angleop_vector>(system,half_neigh);
+            force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team, t_neighborop_vector>(system,half_neigh);
         }
       }
       else if (input->neighbor_type == NEIGH_CSR) {
@@ -56,11 +56,11 @@
                                     "for the neural network potential." );
         else {
           if (serial_neigh)
-            force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_serial, t_angleop_serial>(system,half_neigh);
+            force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_serial, t_neighborop_serial>(system,half_neigh);
           if (team_neigh)
-            force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team, t_angleop_serial>(system,half_neigh);
+            force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team, t_neighborop_team>(system,half_neigh);
           if (vector_angle)
-            force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team, t_angleop_vector>(system,half_neigh);
+            force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team, t_neighborop_vector>(system,half_neigh);
         }
       }
       #undef FORCETYPE_ALLOCATION_MACRO

@@ -97,7 +97,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
         }
     };
     Cabana::neighbor_parallel_for(policy, calc_radial_symm_op, neigh_list,
-                                  neigh_op_tag,
+                                  Cabana::FirstNeighborsTag(), neigh_op_tag,
                                   "Mode::calculateRadialSymmetryFunctionGroups");
     Kokkos::fence();
 
@@ -193,7 +193,7 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
         }
     };
     Cabana::neighbor_parallel_for(policy, calc_angular_symm_op, neigh_list,
-                                  neigh_op_tag, angle_op_tag,
+                                  Cabana::SecondNeighborsTag(), angle_op_tag,
                                   "Mode::calculateAngularSymmetryFunctionGroups");
     Kokkos::fence();
 
@@ -376,7 +376,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
         }
     };
     Cabana::neighbor_parallel_for(policy, calc_radial_force_op, neigh_list,
-                                  neigh_op_tag,
+                                  Cabana::FirstNeighborsTag(), neigh_op_tag,
                                   "Mode::calculateRadialForces");
     Kokkos::fence();
 
@@ -513,7 +513,7 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
         }
     };
     Cabana::neighbor_parallel_for(policy, calc_angular_force_op, neigh_list,
-                                  neigh_op_tag, angle_op_tag,
+                                  Cabana::SecondNeighborsTag(), angle_op_tag,
                                   "Mode::calculateAngularForces");
     Kokkos::fence();
 

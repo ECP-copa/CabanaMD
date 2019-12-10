@@ -158,10 +158,9 @@ using t_verletlist_half_2D = Cabana::VerletList<DeviceType,Cabana::HalfNeighborT
 using t_verletlist_full_CSR = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayoutCSR>;
 using t_verletlist_half_CSR = Cabana::VerletList<DeviceType,Cabana::HalfNeighborTag,Cabana::VerletLayoutCSR>;
 
-using t_neighborop_serial = Cabana::SerialNeighborOpTag;
-using t_neighborop_team = Cabana::TeamNeighborOpTag;
-using t_angleop_serial = Cabana::SerialAngularNeighborOpTag;
-using t_angleop_vector = Cabana::VectorAngularNeighborOpTag;
+using t_neighborop_serial = Cabana::SerialOpTag;
+using t_neighborop_team = Cabana::TeamOpTag;
+using t_neighborop_vector = Cabana::TeamVectorOpTag;
 
 #endif
 
