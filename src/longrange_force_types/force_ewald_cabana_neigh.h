@@ -31,13 +31,15 @@
         if (half_neigh)
           lrforce = new ForceEwald<t_verletlist_half_2D>(system,half_neigh);
         else
-          lrforce = new ForceEwald<t_verletlist_full_2D>(system,half_neigh);
+          throw std::runtime_error( "Half neighbor list not implemented "
+                                    "for the Ewald longrange solver." );
       }
       else if (input->neighbor_type == NEIGH_CSR) {
 	if (half_neigh)
           lrforce = new ForceEwald<t_verletlist_half_CSR>(system,half_neigh);
         else
-          lrforce = new ForceEwald<t_verletlist_full_CSR>(system,half_neigh);
+          throw std::runtime_error( "Half neighbor list not implemented "
+                                    "for the Ewald longrange solver." );
       }
       #undef FORCETYPE_ALLOCATION_MACRO
     }
