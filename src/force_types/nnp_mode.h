@@ -40,6 +40,7 @@
 #include <Cabana_Parallel.hpp>
 #include <Cabana_Slice.hpp>
 #include <types.h>
+#include <types_nnp.h>
 
 #define MAX_SF 30
 

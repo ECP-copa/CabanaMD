@@ -34,6 +34,7 @@
 #include <string>  // string
 #include <vector>  // vector
 #include <types.h>
+#include <types_nnp.h>
 #include <system.h>
 
 using namespace std;
