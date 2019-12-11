@@ -21,10 +21,35 @@ template<class t_neighbor>
 ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(system,half_neigh_) {
     half_neigh = half_neigh_;
     assert( half_neigh == true );
-    //TODO: assert MPI_Comm as Cartesian elsewhere?
+
+    std::vector<int> dims( 3 );
+    std::vector<int> periods( 3 );
+
+    dims.at( 0 ) = dims.at( 1 ) = dims.at( 2 ) = 0;
+    periods.at( 0 ) = periods.at( 1 ) = periods.at( 2 ) = 1;
+
+    int n_ranks;
+    MPI_Comm_size( MPI_COMM_WORLD, &n_ranks );
+
+    MPI_Dims_create( n_ranks, 3, dims.data() );
+
+    MPI_Comm cart_comm;
+    MPI_Cart_create( MPI_COMM_WORLD, 3, dims.data(), periods.data(), 0,
+                         &cart_comm );
+
+    int rank;
+    MPI_Comm_rank( cart_comm, &rank );
+
+    std::vector<int> loc_coords( 3 );
+    std::vector<int> cart_dims( 3 );
+    std::vector<int> cart_periods( 3 );
+    MPI_Cart_get( cart_comm, 3, cart_dims.data(), cart_periods.data(),
+                  loc_coords.data() );
+
+
     //MPI_Topo_test( comm, &comm_type );
     //assert( comm_type == MPI_CART );
-    //this->comm = comm;
+    this->comm = comm;
     
 }
 
@@ -38,9 +63,9 @@ void ForceEwald<t_neighbor>::init_coeff(char** args) {
 }
 //TODO: overload initialization to include tuning when not given params
 
-//TODO: just grab neighborlist already created by Force
-//template<class t_neighbor>
-//void ForceEwald<t_neighbor>::create_neigh_list(System* system) {
+//TODO: Use create_neigh_list just like shortrange forces
+template<class t_neighbor>
+void ForceEwald<t_neighbor>::create_neigh_list(System* system) {
 //  N_local = system->N_local;
 //
 //  double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
@@ -54,7 +79,7 @@ void ForceEwald<t_neighbor>::init_coeff(char** args) {
 //
 //  t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
 //  neigh_list = list;
-//}
+}
 
 template<class t_neighbor>
 void ForceEwald<t_neighbor>::compute(System* system) {
@@ -169,7 +194,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   double lz = domain_size(2);
 
   //Compute partial sums
-  Kokkos::parallel_for( N_max, KOKKOS_LAMBDA( const int idx ) {
+  auto partial_sums = KOKKOS_LAMBDA( const int idx )
+  {
         for ( int kz = -k_int; kz <= k_int; ++kz )
         {
             // compute wave vector component
@@ -198,7 +224,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
                 }
             }
         }
-    } );
+    };
+    Kokkos::parallel_for( N_max, partial_sums );
     Kokkos::fence();
 
     //reduce the partial results
@@ -389,7 +416,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         N_max += halos.at( 2 * dim )->numGhost();
 
         // resize particle list to contain all particles
-        system->xvf.resize( N_max );//TODO: This seems wrong? Perhaps I am just confused
+        system->xvf.resize( N_max );
 
         // update slices
         x = Cabana::slice<Positions>(system->xvf);
@@ -399,11 +426,6 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         //type = Cabana::slice<Types>(system->xvf);
         q = Cabana::slice<Charges>(system->xvf);
         p = Cabana::slice<Potentials>(system->xvf);
-        //r = Cabana::slice<Position>( particles );
-        //q = Cabana::slice<Charge>( particles );
-        //p = Cabana::slice<Potential>( particles );
-        //f = Cabana::slice<Force>( particles );
-        //i = Cabana::slice<Index>( particles );
 
         // gather data for halo regions
         Cabana::gather( *( halos.at( 2 * dim ) ), x );
@@ -510,7 +532,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
     ListType verlet_list( x, 0, N_local, r_max, cell_size, grid_min, grid_max );
 
-    Kokkos::parallel_for( N_local, KOKKOS_LAMBDA( const int idx ) {
+    auto force_contribs = KOKKOS_LAMBDA( const int idx ) 
+    { 
         int num_n =
             Cabana::NeighborList<ListType>::numNeighbor( verlet_list, idx );
 
@@ -544,7 +567,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
             Kokkos::atomic_add( &f( j, 1 ), -f_fact * dy );
             Kokkos::atomic_add( &f( j, 2 ), -f_fact * dz );
         }
-    } );
+    };
+    Kokkos::parallel_for( N_local, force_contribs );
     Kokkos::fence();
 
 

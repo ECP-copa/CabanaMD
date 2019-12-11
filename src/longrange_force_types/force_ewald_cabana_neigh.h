@@ -10,7 +10,6 @@
  ****************************************************************************/
 
 
-//TODO: I don't really understand this first part
 #ifdef MODULES_OPTION_CHECK
   if( (strcmp(argv[i], "--force-iteration") == 0) ) {
     if( (strcmp(argv[i+1], "NEIGH_FULL") == 0) )
@@ -89,11 +88,10 @@ public:
   t_neighbor neigh_list;
 
   ForceEwald(System* system, bool half_neigh);
-  ForceEwald(System* system, bool half_neigh, Comm comm);
 
   void init_coeff(char** args);
 
-  //void create_neigh_list(System* system);
+  void create_neigh_list(System* system);
 
   void compute(System* system);
   T_F_FLOAT compute_energy(System* system);
