@@ -14,8 +14,6 @@
 #include <string>
 #include <iostream>
 
-#define MAX_SF 30 //TODO: hardcoded 
-
 template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
   ntypes = system->ntypes;

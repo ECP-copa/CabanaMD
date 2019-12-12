@@ -68,10 +68,6 @@ public:
   // Per Type Property
   t_mass mass;
 
-  //NNP conversion factors (TODO: remove hardcoding)
-  double cflength = 1.889726;
-  double cfenergy = 0.036749;
-  double cfforce = cflength/cfenergy;
   // Simulation domain
   T_X_FLOAT domain_x, domain_y, domain_z;
   T_X_FLOAT domain_lo_x, domain_lo_y, domain_lo_z;

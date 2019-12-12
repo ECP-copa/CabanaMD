@@ -55,7 +55,11 @@
 #include<Cabana_VerletList.hpp>
 #include<CabanaCore_config.hpp>
 
-#define MAX_SF 30 //TODO: hardcoded
+//TODO: hardcoded
+#define MAX_SF 30
+constexpr double CFLENGTH = 1.889726;
+constexpr double CFENERGY= 0.036749;
+constexpr double CFFORCE = CFLENGTH/CFENERGY;
 
 enum NNPNames { G = 0, dEdG = 1, energy = 2};
 enum ScalingType { ST_NONE, ST_SCALE, ST_CENTER, ST_SCALECENTER, ST_SCALESIGMA };

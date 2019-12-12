@@ -42,8 +42,6 @@
 #include <types.h>
 #include <types_nnp.h>
 
-#define MAX_SF 30
-
 namespace nnpCbn
 {
 

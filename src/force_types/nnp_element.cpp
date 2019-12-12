@@ -32,7 +32,6 @@
 #include <algorithm> // std::sort, std::min, std::max
 #include <limits>    // std::numeric_limits
 #include <stdexcept> // std::runtime_error
-#define MAX_SF 30
 
 using namespace std;
 using namespace nnpCbn;

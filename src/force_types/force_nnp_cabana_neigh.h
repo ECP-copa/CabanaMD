@@ -151,8 +151,6 @@ public:
   T_INT maxew;
   long numExtrapolationWarningsTotal;
   long numExtrapolationWarningsSummary;
-  T_FLOAT cflength;
-  T_FLOAT cfenergy;
   T_FLOAT maxCutoffRadius;
   char* directory;
   

@@ -33,7 +33,6 @@
 #include <limits>    // std::numeric_limits
 #include <stdexcept> // std::runtime_error
 #include <string>
-//#define MAX_SF 30
 
 #define NNP_VERSION "2.0.0"
 #define NNP_GIT_REV "7b73a36a9acfdcc80e44265bac92b055f41a1d07"
@@ -76,9 +75,9 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
                 double rij, r2ij; 
                 T_F_FLOAT dxij, dyij, dzij;
                 nej = type(j);
-                dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
-                dyij = (x(i,1) - x(j,1)) * s->cflength * convLength;
-                dzij = (x(i,2) - x(j,2)) * s->cflength * convLength;
+                dxij = (x(i,0) - x(j,0)) * CFLENGTH * convLength;
+                dyij = (x(i,1) - x(j,1)) * CFLENGTH * convLength;
+                dzij = (x(i,2) - x(j,2)) * CFLENGTH * convLength;
                 r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                 rij = sqrt(r2ij); 
                 if (e1 == nej && rij < rc)
@@ -124,9 +123,9 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
                 T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
                 double eta, rs, lambda, zeta;
                 nej = type(j);
-                dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
-                dyij = (x(i,1) - x(j,1)) * s->cflength * convLength;
-                dzij = (x(i,2) - x(j,2)) * s->cflength * convLength;
+                dxij = (x(i,0) - x(j,0)) * CFLENGTH * convLength;
+                dyij = (x(i,1) - x(j,1)) * CFLENGTH * convLength;
+                dzij = (x(i,2) - x(j,2)) * CFLENGTH * convLength;
                 r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                 rij = sqrt(r2ij);
                 if ((e1 == nej || e2 == nej) && rij < rc)
@@ -138,9 +137,9 @@ void Mode::calculateSymmetryFunctionGroups(System *s, AoSoA_NNP nnp_data, t_neig
 
                     if ((e1 == nej && e2 == nek) || (e2 == nej && e1 == nek))
                     {
-                        dxik = (x(i,0) - x(k,0)) * s->cflength * convLength;
-                        dyik = (x(i,1) - x(k,1)) * s->cflength * convLength;
-                        dzik = (x(i,2) - x(k,2)) * s->cflength * convLength;
+                        dxik = (x(i,0) - x(k,0)) * CFLENGTH * convLength;
+                        dyik = (x(i,1) - x(k,1)) * CFLENGTH * convLength;
+                        dzik = (x(i,2) - x(k,2)) * CFLENGTH * convLength;
                         r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
                         rik = sqrt(r2ik);
                         if (rik < rc) 
@@ -343,9 +342,9 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
                 double eta, rs;
                 int memberindex, globalIndex;
                 size_t nej = type(j);
-                dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
-                dyij = (x(i,1) - x(j,1)) * s->cflength * convLength;
-                dzij = (x(i,2) - x(j,2)) * s->cflength * convLength;
+                dxij = (x(i,0) - x(j,0)) * CFLENGTH * convLength;
+                dyij = (x(i,1) - x(j,1)) * CFLENGTH * convLength;
+                dzij = (x(i,2) - x(j,2)) * CFLENGTH * convLength;
                 r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                 rij = sqrt(r2ij); 
                 if (e1 == nej && rij < rc)
@@ -363,13 +362,13 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
                         // Force calculation.
                         double const p1 = d_SFscaling(attype,memberindex,6) * 
                             (pdfcij - 2.0 * eta * (rij - rs) * pfcij) * pexp / rij;
-                        f_a(i,0) -= (dEdG(i,globalIndex) * (p1*dxij) * s->cfforce * convForce);
-                        f_a(i,1) -= (dEdG(i,globalIndex) * (p1*dyij) * s->cfforce * convForce);
-                        f_a(i,2) -= (dEdG(i,globalIndex) * (p1*dzij) * s->cfforce * convForce);
+                        f_a(i,0) -= (dEdG(i,globalIndex) * (p1*dxij) * CFFORCE * convForce);
+                        f_a(i,1) -= (dEdG(i,globalIndex) * (p1*dyij) * CFFORCE * convForce);
+                        f_a(i,2) -= (dEdG(i,globalIndex) * (p1*dzij) * CFFORCE * convForce);
 
-                        f_a(j,0) += (dEdG(i,globalIndex) * (p1*dxij) * s->cfforce * convForce);
-                        f_a(j,1) += (dEdG(i,globalIndex) * (p1*dyij) * s->cfforce * convForce);
-                        f_a(j,2) += (dEdG(i,globalIndex) * (p1*dzij) * s->cfforce * convForce);
+                        f_a(j,0) += (dEdG(i,globalIndex) * (p1*dxij) * CFFORCE * convForce);
+                        f_a(j,1) += (dEdG(i,globalIndex) * (p1*dyij) * CFFORCE * convForce);
+                        f_a(j,2) += (dEdG(i,globalIndex) * (p1*dzij) * CFFORCE * convForce);
                     }
                 }
             }
@@ -402,9 +401,9 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
                 double eta, rs, lambda, zeta;
                 int memberindex, globalIndex;
                 nej = type(j);
-                dxij = (x(i,0) - x(j,0)) * s->cflength * convLength;
-                dyij = (x(i,1) - x(j,1)) * s->cflength * convLength;
-                dzij = (x(i,2) - x(j,2)) * s->cflength * convLength;
+                dxij = (x(i,0) - x(j,0)) * CFLENGTH * convLength;
+                dyij = (x(i,1) - x(j,1)) * CFLENGTH * convLength;
+                dzij = (x(i,2) - x(j,2)) * CFLENGTH * convLength;
                 r2ij = dxij*dxij + dyij*dyij + dzij*dzij;
                 rij = sqrt(r2ij);
                 if ((e1 == nej || e2 == nej) && rij < rc)
@@ -415,9 +414,9 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
                     nek = type(k);
                     if ((e1 == nej && e2 == nek) || (e2 == nej && e1 == nek))
                     {
-                        dxik = (x(i,0) - x(k,0)) * s->cflength * convLength;
-                        dyik = (x(i,1) - x(k,1)) * s->cflength * convLength;
-                        dzik = (x(i,2) - x(k,2)) * s->cflength * convLength;
+                        dxik = (x(i,0) - x(k,0)) * CFLENGTH * convLength;
+                        dyik = (x(i,1) - x(k,1)) * CFLENGTH * convLength;
+                        dzik = (x(i,2) - x(k,2)) * CFLENGTH * convLength;
                         r2ik = dxik*dxik + dyik*dyik + dzik*dzik;
                         rik = sqrt(r2ik);
                         if (rik < rc)
@@ -493,17 +492,17 @@ void Mode::calculateForces(System *s, AoSoA_NNP nnp_data, t_neighbor neigh_list)
                                         p3 = fg * (pfczl * (rinvijik + p2etapl)
                                                    - pr3 * plambda);
                                     }
-                                    f_a(i,0) -= (dEdG(i,globalIndex) * (p1*dxij + p2*dxik) * s->cfforce * convForce);
-                                    f_a(i,1) -= (dEdG(i,globalIndex) * (p1*dyij + p2*dyik) * s->cfforce * convForce);
-                                    f_a(i,2) -= (dEdG(i,globalIndex) * (p1*dzij + p2*dzik) * s->cfforce * convForce);
+                                    f_a(i,0) -= (dEdG(i,globalIndex) * (p1*dxij + p2*dxik) * CFFORCE * convForce);
+                                    f_a(i,1) -= (dEdG(i,globalIndex) * (p1*dyij + p2*dyik) * CFFORCE * convForce);
+                                    f_a(i,2) -= (dEdG(i,globalIndex) * (p1*dzij + p2*dzik) * CFFORCE * convForce);
 
-                                    f_a(j,0) += (dEdG(i,globalIndex) * (p1*dxij + p3*dxjk) * s->cfforce * convForce);
-                                    f_a(j,1) += (dEdG(i,globalIndex) * (p1*dyij + p3*dyjk) * s->cfforce * convForce);
-                                    f_a(j,2) += (dEdG(i,globalIndex) * (p1*dzij + p3*dzjk) * s->cfforce * convForce);
+                                    f_a(j,0) += (dEdG(i,globalIndex) * (p1*dxij + p3*dxjk) * CFFORCE * convForce);
+                                    f_a(j,1) += (dEdG(i,globalIndex) * (p1*dyij + p3*dyjk) * CFFORCE * convForce);
+                                    f_a(j,2) += (dEdG(i,globalIndex) * (p1*dzij + p3*dzjk) * CFFORCE * convForce);
 
-                                    f_a(k,0) += (dEdG(i,globalIndex) * (p2*dxik - p3*dxjk) * s->cfforce * convForce);
-                                    f_a(k,1) += (dEdG(i,globalIndex) * (p2*dyik - p3*dyjk) * s->cfforce * convForce);
-                                    f_a(k,2) += (dEdG(i,globalIndex) * (p2*dzik - p3*dzjk) * s->cfforce * convForce);
+                                    f_a(k,0) += (dEdG(i,globalIndex) * (p2*dxik - p3*dxjk) * CFFORCE * convForce);
+                                    f_a(k,1) += (dEdG(i,globalIndex) * (p2*dyik - p3*dyjk) * CFFORCE * convForce);
+                                    f_a(k,2) += (dEdG(i,globalIndex) * (p2*dzik - p3*dzjk) * CFFORCE * convForce);
                                 } // l
                             } // rjk <= rc
                         } // rik <= rc
