@@ -80,7 +80,7 @@ private:
   
   //Kokkos::View<double *, MemorySpace> domain_width;
 
-  //MPI_Comm comm;
+  MPI_Comm comm;
 
 public:
 

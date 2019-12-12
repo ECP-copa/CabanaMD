@@ -21,7 +21,7 @@ template<class t_neighbor>
 ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(system,half_neigh_) {
     half_neigh = half_neigh_;
     assert( half_neigh == true );
-/*
+
     std::vector<int> dims( 3 );
     std::vector<int> periods( 3 );
 
@@ -50,7 +50,7 @@ ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(syste
     //MPI_Topo_test( comm, &comm_type );
     //assert( comm_type == MPI_CART );
     this->comm = comm;
-*/
+
     
 }
 
@@ -230,7 +230,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
     Kokkos::fence();
 
     //reduce the partial results
-
+/*
     double *U_trigon_array = new double[2 * n_kvec];
     for ( int idx = 0; idx < 2 * n_kvec; ++idx )
         U_trigon_array[idx] = U_trigonometric( idx );
@@ -242,6 +242,13 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         U_trigonometric( idx ) = U_trigon_array[idx];
 
     delete[] U_trigon_array;
+*/
+
+    MPI_Allreduce( MPI_IN_PLACE, U_trigonometric.data(), 2 * n_kvec, MPI_DOUBLE,
+                   MPI_SUM, comm );
+
+
+
 
     // In orig Ewald this was reduction to Uk
     // Now, it's a parallel_for to update each p(idx)
