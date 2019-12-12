@@ -68,6 +68,7 @@ if( CabanaMD_ENABLE_LongRange )
   endif()
 
   if(NOT CabanaMD_ENABLE_Cuda)
+    set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
     find_package(FFTW3)
   endif()
 
