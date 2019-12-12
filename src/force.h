@@ -56,7 +56,6 @@ class Force {
 public:
   bool half_neigh, comm_newton;
   Force(System* system, bool half_neigh_);
-  Force(System* system, bool half_neigh_, MPI_Comm comm);
 
   virtual void init_coeff(T_X_FLOAT neigh_cut, char** args);
   virtual void create_neigh_list(System* system);
