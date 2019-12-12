@@ -56,7 +56,7 @@ ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(syste
 
 //initialize Ewald params if given from input deck
 template<class t_neighbor>
-void ForceEwald<t_neighbor>::init_coeff(char** args) {
+void ForceEwald<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut_,char** args) {
 
   double alpha = atof(args[3]);
   double rmax = atof(args[4]);
@@ -197,6 +197,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
   //Compute partial sums
   auto partial_sums = KOKKOS_LAMBDA( const int idx )
   {
+    double qi = q( idx );
+
         for ( int kz = -k_int; kz <= k_int; ++kz )
         {
             // compute wave vector component
@@ -220,8 +222,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
                     // vector
                     double kr = _kz * x( idx, 0 ) + _ky * x( idx, 1 ) + _kz * x( idx, 2 );
                     //add contributions
-                    Kokkos::atomic_add( &U_trigonometric( 2 * kidx ), q( idx ) * cos( kr ) );
-                    Kokkos::atomic_add( &U_trigonometric( 2 * kidx + 1 ), q( idx ) * sin( kr ) );
+                    Kokkos::atomic_add( &U_trigonometric( 2 * kidx ), qi * cos( kr ) );
+                    Kokkos::atomic_add( &U_trigonometric( 2 * kidx + 1 ), qi * sin( kr ) );
                 }
             }
         }
@@ -257,6 +259,8 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         double coeff = 4.0 * PI / ( lx * ly * lz );
         double k[3];
         
+        double qi = q( idx );
+
         for ( int kz = -k_int; kz <= k_int; ++kz )
         {
             // compute wave vector component
@@ -301,7 +305,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
                         for ( int dim = 0; dim < 3; ++dim )
                             f( idx, dim ) +=
-                                k_coeff * 2.0 * q( idx ) * k[dim] *
+                              k_coeff * 2.0 * qi * k[dim] *
                                 ( U_trigonometric( 2 * kidx + 1 ) * cos( kr ) -
                                   U_trigonometric( 2 * kidx ) * sin( kr ) );
                 }
@@ -341,6 +345,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
         double rx = x( idx, 0 );
         double ry = x( idx, 1 );
         double rz = x( idx, 2 );
+        double qi = q( idx );
 
         for ( int ij = 0; ij < num_n; ++ij )
         {
@@ -350,14 +355,15 @@ void ForceEwald<t_neighbor>::compute(System* system) {
             double dy = x( j, 1 ) - ry;
             double dz = x( j, 2 ) - rz;
             double d = sqrt( dx * dx + dy * dy + dz * dz );
+            double qj = q( j );
 
             // potential computation
-            double contrib = 0.5 * q( idx ) * q( j ) * erfc( alpha * d ) / d;
+            double contrib = 0.5 * qi * qj * erfc( alpha * d ) / d;
             Kokkos::atomic_add( &p( idx ), contrib );
             Kokkos::atomic_add( &p( j ), contrib );
 
             // force computation
-           double f_fact = q( idx ) * q( j ) *
+            double f_fact = qi * qj *
                             ( 2.0 * sqrt( alpha / PI ) * exp( -alpha * d * d ) +
                               erfc( sqrt( alpha ) * d ) ) /
                             ( d * d );

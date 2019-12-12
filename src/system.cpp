@@ -59,6 +59,7 @@ System::System() {
   atom_style = "atomic"; 
 
   mass = t_mass();
+  charge = t_mass();
   domain_x = domain_y = domain_z = 0.0;
   sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
   domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
@@ -76,6 +77,7 @@ System::System() {
 void System::init() {
   AoSoA xvf ( "All", N_max );
   mass = t_mass("System::mass",ntypes);
+  charge = t_mass("System::charge",ntypes);
 }
 
 void System::destroy() {
@@ -85,6 +87,7 @@ void System::destroy() {
   ntypes = 1;
   AoSoA xvf( "All", 0 );
   mass = t_mass();
+  charge = t_mass();
 }
 
 void System::resize(T_INT N_new) {

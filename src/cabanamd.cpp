@@ -88,7 +88,7 @@ void CabanaMD::init(int argc, char* argv[]) {
   // Fill some binning
   binning = new Binning(system);
 
-  // Create Force Type
+  // Create short range Force class
   if(false) {}
 #define FORCE_MODULES_INSTANTIATION
 #include<modules_force.h>
@@ -98,7 +98,17 @@ void CabanaMD::init(int argc, char* argv[]) {
     force->init_coeff(neigh_cutoff,
                       input->input_data.words[input->force_coeff_lines(line)]);
   }
-  //TODO: make sure longrange force can also be grabbed from input deck
+
+  // Create long range Force class
+  if(input->longrange) {
+    if(false) {}
+#define LONGRANGE_FORCE_MODULES_INSTANTIATION
+#include<modules_force.h>
+#undef LONGRANGE_FORCE_MODULES_INSTANTIATION
+    else comm->error("Invalid LongRangeForceType");
+    lrforce->init_coeff(neigh_cutoff,
+                        input->input_data.words[input->lrforce_coeff_lines(0)]);
+  }
 
   // Create Communication Submodule
   comm = new Comm(system, neigh_cutoff);

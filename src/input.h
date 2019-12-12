@@ -188,8 +188,10 @@ class Input {
   bool longrange;
 
   T_F_FLOAT force_cutoff;
+  T_F_FLOAT lrforce_cutoff;
   int force_line;
   Kokkos::View<int*,Kokkos::HostSpace> force_coeff_lines;
+  Kokkos::View<int*,Kokkos::HostSpace> lrforce_coeff_lines;
 
   T_F_FLOAT neighbor_skin; 
   int neighbor_type;

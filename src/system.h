@@ -69,6 +69,7 @@ public:
   AoSoA xvf;
   // Per Type Property
   t_mass mass;
+  t_mass charge;
 
   // Simulation domain
   T_X_FLOAT domain_x, domain_y, domain_z;

@@ -24,7 +24,7 @@
       neighbor_type = NEIGH_CSR;
   }
 #endif
-#ifdef FORCE_MODULES_INSTANTIATION
+#ifdef LONGRANGE_FORCE_MODULES_INSTANTIATION
     else if (input->lrforce_type == FORCE_EWALD) {
       bool half_neigh = input->lrforce_iteration_type == FORCE_ITER_NEIGH_HALF;
       if (input->neighbor_type == NEIGH_2D) {
@@ -47,10 +47,13 @@
 
 
 #if !defined(MODULES_OPTION_CHECK) && \
-    !defined(FORCE_MODULES_INSTANTIATION)
+    !defined(LONGRANGE_FORCE_MODULES_INSTANTIATION)
 
 #ifndef FORCE_EWALD_CABANA_NEIGH_H
 #define FORCE_EWALD_CABANA_NEIGH_H
+
+#include <assert.h>
+
 #include <Cabana_Core.hpp>
 #include<force.h>
 #include<types.h>
@@ -91,7 +94,8 @@ public:
 
   ForceEwald(System* system, bool half_neigh);
 
-  void init_coeff(char** args);
+  void init_coeff(T_X_FLOAT neigh_cut, char** args);
+  void init_coeff(T_X_FLOAT neigh_cut, T_X_FLOAT neigh_k_cut, char** args);
 
   void create_neigh_list(System* system);
 

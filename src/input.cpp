@@ -148,6 +148,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
 
   nsteps = 0;
   force_coeff_lines = Kokkos::View<int*,Kokkos::HostSpace>("Input::force_coeff_lines",0);
+  lrforce_coeff_lines = Kokkos::View<int*,Kokkos::HostSpace>("Input::LRforce_coeff_lines",0);
   input_file_type = -1;
   data_file_type = -1;
 
@@ -401,6 +402,20 @@ void Input::check_lammps_command(int line) {
     T_V_FLOAT mass = atof(input_data.words[line][2]);
     Kokkos::deep_copy(mass_one,mass);
   }
+  if(strcmp(input_data.words[line][0],"set")==0) {
+    known = true;
+    if(strcmp(input_data.words[line][1],"type")==0 and
+       strcmp(input_data.words[line][3],"charge")==0) {
+      int type = atoi(input_data.words[line][2])-1;
+      Kokkos::View<T_V_FLOAT> charge_one(system->charge,type);
+      T_V_FLOAT charge = atof(input_data.words[line][4]);
+      Kokkos::deep_copy(charge_one,charge);
+    }
+    else {
+      if(system->do_print)
+        printf("LAMMPS-Command: 'set' command only allows for setting charges by type CabanaMD\n");
+    }
+  }
   if(strcmp(input_data.words[line][0],"read_data")==0) {
     known = true;
     read_data_flag = true;
@@ -408,11 +423,15 @@ void Input::check_lammps_command(int line) {
   }  
 
   if(strcmp(input_data.words[line][0],"pair_style")==0) {
-    if(strcmp(input_data.words[line][1],"lj/cut")==0) {
+    if(strcmp(input_data.words[line][1],"lj/cut")==0 or
+       strcmp(input_data.words[line][1],"lj/cut/coul/long")==0) {
       known = true;
       force_type = FORCE_LJ;
       force_cutoff = atof(input_data.words[line][2]);
       force_line = line;
+      if(strcmp(input_data.words[line][1],"lj/cut/coul/long")==0) {
+        lrforce_cutoff = atof(input_data.words[line][3]);
+      }
     }
     if(strcmp(input_data.words[line][1],"snap")==0) {
       known = false;
@@ -421,7 +440,7 @@ void Input::check_lammps_command(int line) {
       force_line = line;
     }
     if(system->do_print && !known)
-      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' style in CabanaMD\n");
+      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' or 'lj/cut/coul/long' styles in CabanaMD\n");
   }
   if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
     known = true;
@@ -429,6 +448,18 @@ void Input::check_lammps_command(int line) {
     Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
     force_coeff_lines( n_coeff_lines) = line;
     n_coeff_lines++;
+  }
+  if(strcmp(input_data.words[line][0],"kspace_style")==0) {
+    if(strcmp(input_data.words[line][1],"ewald")!=0) {
+      lrforce_type = FORCE_EWALD;
+      Kokkos::resize(lrforce_coeff_lines,1);
+      lrforce_coeff_lines(0) = line;
+    }
+    if(strcmp(input_data.words[line][1],"spme")!=0) {
+      lrforce_type = FORCE_SPME;
+      Kokkos::resize(lrforce_coeff_lines,1);
+      lrforce_coeff_lines(0) = line;
+    }
   }
   if(strcmp(input_data.words[line][0],"velocity")==0) {
     known = true;
@@ -502,6 +533,8 @@ void Input::create_lattice(Comm* comm) {
 
   t_mass::HostMirror h_mass = Kokkos::create_mirror_view(s.mass);
   Kokkos::deep_copy(h_mass,s.mass);
+  t_mass::HostMirror h_charge = Kokkos::create_mirror_view(s.charge);
+  Kokkos::deep_copy(h_charge,s.charge);
 
   // Create Simple Cubic Lattice
   if(lattice_style == LATTICE_SC) {
@@ -570,6 +603,7 @@ void Input::create_lattice(Comm* comm) {
             x(n,2) = ztmp;
             type(n) = rand()%s.ntypes;
             id(n) = n+1;
+            q(n) = s.charge(type(n));
             n++;
           }
         }
@@ -671,6 +705,7 @@ void Input::create_lattice(Comm* comm) {
               x(n,2) = ztmp;
               type(n) = rand()%s.ntypes;
               id(n) = n+1;
+              q(n) = s.charge(type(n));
               n++;
             }
           }
@@ -699,7 +734,6 @@ void Input::create_lattice(Comm* comm) {
     auto x = Cabana::slice<Positions>(s.xvf);
     auto v = Cabana::slice<Velocities>(s.xvf);
     auto type = Cabana::slice<Types>(s.xvf);
-    auto q = Cabana::slice<Charges>(s.xvf);
 
     T_FLOAT total_mass = 0.0;
     T_FLOAT total_momentum_x = 0.0;
@@ -719,8 +753,6 @@ void Input::create_lattice(Comm* comm) {
       v(i,0) = vx/sqrt(mass_i);
       v(i,1) = vy/sqrt(mass_i);
       v(i,2) = vz/sqrt(mass_i);
-
-      q(i) = 0.0;
 
       total_mass += mass_i;
       total_momentum_x += mass_i * v(i,0);
