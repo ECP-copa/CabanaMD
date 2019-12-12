@@ -62,6 +62,10 @@ endif()
 option(CabanaMD_ENABLE_LongRange "Build CabanaMD with longrange forces (Ewald)" OFF)
 if( CabanaMD_ENABLE_LongRange )
   add_definitions(-DCabanaMD_ENABLE_LongRange=ON)
+
+  if(NOT DEFINED CAJITA_DIR)
+    set(CAJITA_DIR ~/install/cajita/)
+  endif()
 endif()
 
 ##---------------------------------------------------------------------------##
@@ -96,8 +100,14 @@ link_directories(${KOKKOS_DIR}/lib)
 include_directories(${CABANA_DIR}/include)
 link_directories(${CABANA_DIR}/lib64)
 link_directories(${CABANA_DIR}/lib)
+include_directories(${CAJITA_DIR}/include)
+link_directories(${CAJITA_DIR}/lib)
 
 add_executable(CabanaMD ${SOURCES})
-target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX)
+if( CabanaMD_ENABLE_LongRange )
+  target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX Cajita)
+else()
+  target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX)
+endif()
 
 install(TARGETS CabanaMD DESTINATION bin)
