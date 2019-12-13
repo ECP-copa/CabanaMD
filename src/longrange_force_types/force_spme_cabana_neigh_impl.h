@@ -39,18 +39,20 @@ constexpr double PI_DIV_SQ(1.0/PI_SQ);//0.101321183642338
 
 
 template<class t_neighbor>
-ForceSPME<t_neighbor>::ForceSPME(double accuracy, System* system, bool half_neigh_):Force(system,half_neigh_) {
+ForceSPME<t_neighbor>::ForceSPME(System* system, bool half_neigh_):Force(system,half_neigh_) {
     half_neigh = half_neigh_;
     assert( half_neigh == true );
+
+    double accuracy = 1e-6;//Temporary accuracy hard-coded
 
     _k_max = 0.0;
     _r_max = 0.0;
     ForceSPME::tune( accuracy, system );
 
-    ForceSPME::create_mesh( system );
+    //ForceSPME::create_mesh( system );
 
 }
-
+/*
 template<class t_neighbor>
 ForceSPME<t_neighbor>::ForceSPME(double alpha, double r_max, bool half_neigh_):Force(system,half_neigh_) {
     half_neigh = half_neigh_;
@@ -59,8 +61,9 @@ ForceSPME<t_neighbor>::ForceSPME(double alpha, double r_max, bool half_neigh_):F
     _r_max = r_max;
     _alpha = alpha;
 
-    ForceSPME::create_mesh( system );
+    //ForceSPME::create_mesh( system );
 }
+*/
 
 // Tune to a given accuracy
 template<class t_neighbor>
@@ -172,7 +175,7 @@ double ForceSPME<t_neighbor>::oneDeuler( int k, int meshwidth )
     return ( numreal * numreal + numimag * numimag ) /
            ( denomreal * denomreal + denomimag * denomimag );
 }
-
+/*
 
 // Create uniform mesh for SPME method
 template<class t_neighbor>
@@ -202,6 +205,8 @@ void ForceSPME<t_neighbor>::create_mesh( System* system )
 
 
 }
+
+*/
 
 // Compute the energy and forces
 //TODO: replace this mesh with a Cajita mesh

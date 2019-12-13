@@ -89,10 +89,10 @@ public:
   T_X_FLOAT neigh_cut;
 
   t_neighbor neigh_list;
-  Cajita::GlobalMesh<Cajita::UniformMesh<double>> global_mesh;
+  //Cajita::GlobalMesh<Cajita::UniformMesh<double>> global_mesh;
 
-  ForceSPME( double accuracy, System* system, bool half_neigh);
-  ForceSPME( double alpha, double r_max, bool half_neigh);
+  ForceSPME( System* system, bool half_neigh);
+  //ForceSPME( double alpha, double r_max, bool half_neigh);
 
   void init_coeff(char** args);
   double oneDspline(double x);
