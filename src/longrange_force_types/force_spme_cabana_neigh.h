@@ -56,8 +56,7 @@
 #include<types.h>
 #include<system.h>
 #include <comm_mpi.h>
-#include <Cajita_Types.hpp>
-#include <Cajita_GlobalMesh.hpp>
+#include <Cajita.hpp>
 
 template<class t_neighbor>
 class ForceSPME: public Force {
@@ -73,7 +72,7 @@ private:
 
   double _alpha;
   double _r_max;
-  //double _k_max;
+  double _k_max;
 
   //dielectric constant
   //double _eps_r = 1.0; //Assume 1 for now (vacuum)
@@ -90,16 +89,20 @@ public:
   T_X_FLOAT neigh_cut;
 
   t_neighbor neigh_list;
-  Cajita::GlobalMesh<UniformMesh<Scalar>> global_mesh;
+  Cajita::GlobalMesh<Cajita::UniformMesh<double>> global_mesh;
 
   ForceSPME( double accuracy, System* system, bool half_neigh);
   ForceSPME( double alpha, double r_max, bool half_neigh);
 
   void init_coeff(char** args);
-
+  double oneDspline(double x);
+  double oneDsplinederiv(double x);
+  double oneDeuler(int k, int meshwidth);
   void create_neigh_list(System* system);
 
-  void compute(System* system);
+  double compute(System* system, Cajita::GlobalMesh<Cajita::UniformMesh<double>> global_mesh);
+  void tune(double accuracy, System* system);
+  void create_mesh(System* system);
   T_F_FLOAT compute_energy(System* system);
 
   const char* name();

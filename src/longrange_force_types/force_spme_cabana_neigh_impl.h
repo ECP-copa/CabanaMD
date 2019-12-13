@@ -9,12 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include<force_ewald_cabana_neigh.h>
-#include <Cajita_Types.hpp>
-#include <Cajita_GlobalMesh.hpp>
-#include <Cajita_GlobalGrid.hpp>
-#include <Cajita_UniformDimPartitioner.hpp>
-#include <Cajita_Array.hpp>
+#include<force_spme_cabana_neigh.h>
+#include <Cajita.hpp>
 
 #ifdef CabanaMD_ENABLE_Cuda
 #include <cufft.h>
@@ -22,6 +18,8 @@
 #else
 #include <fftw3.h>
 #endif
+
+#include <mpi.h>
 
 /* Smooth particle mesh Ewald (SPME) solver
  * - This method, from Essman et al. (1995) computes long-range Coulombic forces
@@ -45,10 +43,11 @@ ForceSPME<t_neighbor>::ForceSPME(double accuracy, System* system, bool half_neig
     half_neigh = half_neigh_;
     assert( half_neigh == true );
 
+    _k_max = 0.0;
     _r_max = 0.0;
-    tune( accuracy, system );
+    ForceSPME::tune( accuracy, system );
 
-    create_mesh( system );
+    ForceSPME::create_mesh( system );
 
 }
 
@@ -60,12 +59,12 @@ ForceSPME<t_neighbor>::ForceSPME(double alpha, double r_max, bool half_neigh_):F
     _r_max = r_max;
     _alpha = alpha;
 
-    create_mesh( system );
+    ForceSPME::create_mesh( system );
 }
 
 // Tune to a given accuracy
 template<class t_neighbor>
-ForceSPME<t_neighbor>::tune( double accuracy, System* system ) {
+void ForceSPME<t_neighbor>::tune( double accuracy, System* system ) {
     if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )
     {
         throw std::runtime_error( "SPME needs symmetric system size for now." );
@@ -79,11 +78,11 @@ ForceSPME<t_neighbor>::tune( double accuracy, System* system ) {
     constexpr double EXECUTION_TIME_RATIO_K_R = 2.0;
     double p = -log( accuracy );
     _alpha = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) *
-             pow( N, 1.0 / 6.0 ) / lx;
+             pow( N, 1.0 / 6.0 ) / system->domain_x;
     _k_max = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) *
-             pow( N, 1.0 / 6.0 ) / lx * 2.0 * PI;
+             pow( N, 1.0 / 6.0 ) / system->domain_x * 2.0 * PI;
     _r_max = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) /
-             pow( N, 1.0 / 6.0 ) * lx;
+             pow( N, 1.0 / 6.0 ) * system->domain_x;
     _alpha = sqrt( p ) / _r_max;
     _k_max = 2.0 * sqrt( p ) * _alpha;
 }
@@ -97,7 +96,7 @@ ForceSPME<t_neighbor>::tune( double accuracy, System* system ) {
 //TODO: replace use of this with Cajita functions
 template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-double ForceSPME::oneDspline( double x )
+double ForceSPME<t_neighbor>::oneDspline( double x )
 {
     if ( x >= 0.0 and x < 1.0 )
     {
@@ -120,7 +119,7 @@ double ForceSPME::oneDspline( double x )
 //TODO: replace use of this with Cajita functions
 template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-double ForceSPME::oneDsplinederiv( double origx )
+double ForceSPME<t_neighbor>::oneDsplinederiv( double origx )
 {
     double x = 2.0 - std::abs( origx );
     double forcedir = 1.0;
@@ -153,7 +152,7 @@ double ForceSPME::oneDsplinederiv( double origx )
 //   dimension and k is the scaled fractional coordinate
 template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-double ForceSPME::oneDeuler( int k, int meshwidth )
+double ForceSPME<t_neighbor>::oneDeuler( int k, int meshwidth )
 {
     double denomreal = 0.0;
     double denomimag = 0.0;
@@ -161,9 +160,9 @@ double ForceSPME::oneDeuler( int k, int meshwidth )
     // sin and cos
     for ( int l = 0; l < 3; l++ )
     {
-        denomreal += TPME::oneDspline( fmin( 4.0 - ( l + 1.0 ), l + 1.0 ) ) *
+        denomreal += ForceSPME::oneDspline( fmin( 4.0 - ( l + 1.0 ), l + 1.0 ) ) *
                      cos( 2.0 * PI * double( k ) * l / double( meshwidth ) );
-        denomimag += TPME::oneDspline( fmin( 4.0 - ( l + 1.0 ), l + 1.0 ) ) *
+        denomimag += ForceSPME::oneDspline( fmin( 4.0 - ( l + 1.0 ), l + 1.0 ) ) *
                      sin( 2.0 * PI * double( k ) * l / double( meshwidth ) );
     }
     // Compute the numerator, again splitting the complex exponential
@@ -177,7 +176,7 @@ double ForceSPME::oneDeuler( int k, int meshwidth )
 
 // Create uniform mesh for SPME method
 template<class t_neighbor>
-void ForceSPME::create_mesh( System system )
+void ForceSPME<t_neighbor>::create_mesh( System* system )
 {
 
     // Create the global mesh.
@@ -186,17 +185,19 @@ void ForceSPME::create_mesh( System system )
     std::array<bool,3> is_dim_periodic = {true,true,true};
     std::array<double,3> global_low_corner = {system->domain_lo_x, system->domain_lo_y, system->domain_lo_z };
     std::array<double,3> global_high_corner = { system->domain_hi_x, system->domain_hi_y, system->domain_hi_z };
-    auto global_mesh = Cajita::createUniformGlobalMesh(
+    auto uniform_global_mesh = Cajita::createUniformGlobalMesh(
+        global_low_corner, global_high_corner, num_cell );
+    //global_mesh = uniform_global_mesh;
+    global_mesh = Cajita::createUniformGlobalMesh(
         global_low_corner, global_high_corner, num_cell );
 
-//TODO: Partition mesh into grid when SPME has an MPI implementation
-/*    // Partition mesh into local grids.
-    UniformDimPartitioner partitioner;
+    // Partition mesh into local grids.
+    Cajita::UniformDimPartitioner partitioner;
     auto global_grid = Cajita::createGlobalGrid( MPI_COMM_WORLD,
-                                         global_mesh,
+                                         uniform_global_mesh,
                                          is_dim_periodic,
                                          partitioner );
-*/
+
 
 
 
@@ -205,7 +206,7 @@ void ForceSPME::create_mesh( System system )
 // Compute the energy and forces
 //TODO: replace this mesh with a Cajita mesh
 template<class t_neighbor>
-double ForceSPME::compute( System &system, ParticleList &mesh )
+double ForceSPME<t_neighbor>::compute( System* system, Cajita::GlobalMesh<Cajita::UniformMesh<double>> global_mesh )
 {
     // For now, force symmetry
     if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )
@@ -217,15 +218,15 @@ double ForceSPME::compute( System &system, ParticleList &mesh )
     double Ur = 0.0, Uk = 0.0, Uself = 0.0;
 
     // Particle slices
-    auto x = Cabana::slice<Position>( system->xvf );
-    auto q = Cabana::slice<Charge>( system->xvf );
-    auto p = Cabana::slice<Potential>( system->xvf );
-    auto f = Cabana::slice<Force>( system->xvf );
+    auto x = Cabana::slice<Positions>( system->xvf );
+    auto q = Cabana::slice<Charges>( system->xvf );
+    auto p = Cabana::slice<Potentials>( system->xvf );
+    auto f = Cabana::slice<Forces>( system->xvf );
 
     // Mesh slices
     // TODO: replace with Cajita mesh
-    auto meshr = Cabana::slice<Position>( mesh );
-    auto meshq = Cabana::slice<Charge>( mesh );
+    auto meshr = Cabana::slice<Positions>( mesh );
+    auto meshq = Cabana::slice<Charges>( mesh );
 
     // Number of particles
     int n_max = system->N;
@@ -356,9 +357,9 @@ double ForceSPME::compute( System &system, ParticleList &mesh )
             {
                 // add charge to mesh point according to spline
                 meshq( idx ) += q( pidx ) *
-                                TPME::oneDspline( 2.0 - ( xdist / spacing ) ) *
-                                TPME::oneDspline( 2.0 - ( ydist / spacing ) ) *
-                                TPME::oneDspline( 2.0 - ( zdist / spacing ) );
+                                ForceSPME::oneDspline( 2.0 - ( xdist / spacing ) ) *
+                                ForceSPME::oneDspline( 2.0 - ( ydist / spacing ) ) *
+                                ForceSPME::oneDspline( 2.0 - ( zdist / spacing ) );
             }
         }
     };
@@ -411,16 +412,16 @@ double ForceSPME::compute( System &system, ParticleList &mesh )
                                   mz * mz );
 // Calculate BC.
 #ifdef CabanaMD_ENABLE_Cuda
-                    BC[idx].x = TPME::oneDeuler( kx, meshwidth ) *
-                                TPME::oneDeuler( ky, meshwidth ) *
-                                TPME::oneDeuler( kz, meshwidth ) *
+                    BC[idx].x = ForceSPME::oneDeuler( kx, meshwidth ) *
+                                ForceSPME::oneDeuler( ky, meshwidth ) *
+                                ForceSPME::oneDeuler( kz, meshwidth ) *
                                 exp( -PI * PI * m2 / ( alpha * alpha ) ) /
                                 ( PI * lx * ly * lz * m2 );
                     BC[idx].y = 0.0; // imag part
 #else
-                    BC[idx][0] = TPME::oneDeuler( kx, meshwidth ) *
-                                 TPME::oneDeuler( ky, meshwidth ) *
-                                 TPME::oneDeuler( kz, meshwidth ) *
+                    BC[idx][0] = ForceSPME::oneDeuler( kx, meshwidth ) *
+                                 ForceSPME::oneDeuler( ky, meshwidth ) *
+                                 ForceSPME::oneDeuler( kz, meshwidth ) *
                                  exp( -PI * PI * m2 / ( alpha * alpha ) ) /
                                  ( PI * lx * ly * lz * m2 );
                     BC[idx][1] = 0.0; // imag part
@@ -606,29 +607,29 @@ double ForceSPME::compute( System &system, ParticleList &mesh )
            {
                 // Calculate forces on particle from mesh point
                 f( pidx, 0 ) +=
-                    q( pidx ) * TPME::oneDsplinederiv( xdist / spacing ) *
-                    TPME::oneDspline( 2.0 - ( std::abs( ydist ) / spacing ) ) *
-                    TPME::oneDspline( 2.0 - ( std::abs( zdist ) / spacing ) ) *
+                    q( pidx ) * ForceSPME::oneDsplinederiv( xdist / spacing ) *
+                    ForceSPME::oneDspline( 2.0 - ( std::abs( ydist ) / spacing ) ) *
+                    ForceSPME::oneDspline( 2.0 - ( std::abs( zdist ) / spacing ) ) *
                     Qktest[idx][0];
                 f( pidx, 1 ) +=
                     q( pidx ) *
-                    TPME::oneDspline( 2.0 - ( std::abs( xdist ) / spacing ) ) *
-                    TPME::oneDsplinederiv( ydist / spacing ) *
-                    TPME::oneDspline( 2.0 - ( std::abs( zdist ) / spacing ) ) *
+                    ForceSPME::oneDspline( 2.0 - ( std::abs( xdist ) / spacing ) ) *
+                    ForceSPME::oneDsplinederiv( ydist / spacing ) *
+                    ForceSPME::oneDspline( 2.0 - ( std::abs( zdist ) / spacing ) ) *
                     Qktest[idx][0];
                 f( pidx, 2 ) +=
                     q( pidx ) *
-                    TPME::oneDspline( 2.0 - ( std::abs( xdist ) / spacing ) ) *
-                    TPME::oneDspline( 2.0 - ( std::abs( ydist ) / spacing ) ) *
-                    TPME::oneDsplinederiv( zdist / spacing ) * Qktest[idx][0];
+                    ForceSPME::oneDspline( 2.0 - ( std::abs( xdist ) / spacing ) ) *
+                    ForceSPME::oneDspline( 2.0 - ( std::abs( ydist ) / spacing ) ) *
+                    ForceSPME::oneDsplinederiv( zdist / spacing ) * Qktest[idx][0];
                 if ( pidx == 0 )
                 {
                     std::cout
                         << q( pidx ) *
-                               TPME::oneDspline(
+                               ForceSPME::oneDspline(
                                    2.0 - ( std::abs( xdist ) / spacing ) ) *
-                               TPME::oneDsplinederiv( ydist / spacing ) *
-                               TPME::oneDspline(
+                               ForceSPME::oneDsplinederiv( ydist / spacing ) *
+                               ForceSPME::oneDspline(
                                    2.0 - ( std::abs( zdist ) / spacing ) ) *
                                Qktest[idx][0]
                         << std::endl;
