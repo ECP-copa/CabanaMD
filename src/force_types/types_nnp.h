@@ -50,10 +50,7 @@
 #ifndef TYPES_NNP_H
 #define TYPES_NNP_H
 #include<Kokkos_Core.hpp>
-#include<Cabana_AoSoA.hpp>
-#include<Cabana_Parallel.hpp>
-#include<Cabana_VerletList.hpp>
-#include<CabanaCore_config.hpp>
+#include<Cabana_Core.hpp>
 
 //TODO: hardcoded
 #define MAX_SF 30

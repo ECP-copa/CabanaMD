@@ -35,10 +35,8 @@
 #include <cstddef> // std::size_t
 #include <string>  // std::string
 #include <vector>  // std::vector
+#include <Cabana_Core.hpp>
 #include <system.h>
-#include <Cabana_NeighborList.hpp>
-#include <Cabana_Parallel.hpp>
-#include <Cabana_Slice.hpp>
 #include <types.h>
 #include <types_nnp.h>
 

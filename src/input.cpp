@@ -130,11 +130,7 @@ void ItemizedFile::add_line(const char* const line) {
 
 Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(ItemizedFile()) {
 
-  //#ifdef CabanaMD_ENABLE_MPI
-  //comm_type = COMM_MPI;
-  //#else
-  comm_type = COMM_SERIAL;
-  //#endif
+  comm_type = COMM_MPI;
   integrator_type = INTEGRATOR_NVE;
   neighbor_type = NEIGH_2D;
   force_type = FORCE_LJ;

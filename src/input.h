@@ -47,12 +47,14 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <Cabana_Slice.hpp>
+#include <Kokkos_Core.hpp>
+#include <Cabana_Core.hpp>
 
-#include <vector>
 #include <types.h>
 #include <system.h>
-#include <comm_serial.h>
+#include <comm_mpi.h>
+
+#include <vector>
 
 class ItemizedFile {
 public:

@@ -73,8 +73,7 @@
 
 #ifndef FORCE_NNP_CABANA_NEIGH_H
 #define FORCE_NNP_CABANA_NEIGH_H
-#include <Cabana_NeighborList.hpp>
-#include <Cabana_Slice.hpp>
+#include <Cabana_Core.hpp>
 
 #include <force.h>
 #include <types.h>

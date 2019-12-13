@@ -49,6 +49,8 @@ if( CabanaMD_ENABLE_Cuda )
   endif(CUDA_FOUND)
 endif()
 
+find_package(MPI REQUIRED)
+
 if(NOT DEFINED CABANA_DIR)
   set(CABANA_DIR ~/install/cabana/)
 endif()
@@ -100,9 +102,11 @@ include_directories(${N2P2_DIR}/include)
 link_directories(${N2P2_DIR}/lib)
 
 add_executable(CabanaMD ${SOURCES})
+
 if(CabanaMD_ENABLE_NNP)
-  target_link_libraries(CabanaMD cabanacore kokkos nnp dl)
+  target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX nnp)
 else()
-  target_link_libraries(CabanaMD cabanacore kokkos dl)
+  target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX)
 endif()
+
 install(TARGETS CabanaMD DESTINATION bin)

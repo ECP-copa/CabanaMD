@@ -21,6 +21,7 @@ CabanaMD has the following dependencies:
 |Dependency | Version | Required | Details|
 |---------- | ------- |--------  |------- |
 |CMake      | 3.9+    | Yes      | Build system
+|MPI        | GPU Aware if CUDA Enabled | Yes | Message Passing Interface
 |Kokkos     | 2.7.0   | Yes      | Provides portable on-node parallelism
 |Cabana     | 0.3-dev | Yes      | Performance portable particle algorithms
 |libnnp     | 1.0.0   | No       | Neural network potential utilities
@@ -28,7 +29,8 @@ CabanaMD has the following dependencies:
 Build Kokkos, followed by Cabana:
 https://github.com/ECP-copa/Cabana/wiki/Build-Instructions
 
-Build instructions are available for both CPU and GPU
+Build instructions are available for both CPU and GPU. Note that Cabana with
+MPI is required (`-D Cabana_ENABLE_MPI=ON`)
 
 ## CPU Build
 After building Kokkos and Cabana for CPU:

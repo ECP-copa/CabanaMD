@@ -49,11 +49,8 @@
 
 #ifndef TYPES_H
 #define TYPES_H
-#include<Kokkos_Core.hpp>
-#include<Cabana_AoSoA.hpp>
-#include<Cabana_Parallel.hpp>
-#include<Cabana_VerletList.hpp>
-#include<CabanaCore_config.hpp>
+#include <Kokkos_Core.hpp>
+#include <Cabana_Core.hpp>
 
 #define VECLEN 16
 
@@ -67,7 +64,7 @@ enum {INTEGRATOR_NVE};
 // Binning Type
 enum {BINNING_LINKEDCELL};
 // Comm Type
-enum {COMM_SERIAL};
+enum {COMM_MPI};
 // Force Type
 enum {FORCE_LJ,FORCE_SNAP,FORCE_NNP};
 // Force Iteration Type

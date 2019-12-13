@@ -52,15 +52,11 @@
 // CabanaMD can be used as a library
 // This main file is simply a driver
 
-#ifdef CabanaMD_ENABLE_MPI
 #include "mpi.h"
-#endif
 
 int main(int argc, char* argv[]) {
 
-   #ifdef CabanaMD_ENABLE_MPI
    MPI_Init(&argc,&argv);
-   #endif
 
    Kokkos::ScopeGuard scope_guard(argc, argv);
 
@@ -75,8 +71,6 @@ int main(int argc, char* argv[]) {
 
    cabanamd.shutdown();
 
-   #ifdef CabanaMD_ENABLE_MPI
    MPI_Finalize();
-   #endif
 }
 
