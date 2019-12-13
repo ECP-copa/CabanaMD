@@ -35,7 +35,7 @@ before_script:
   - pushd Cabana && mkdir build && pushd build &&
     cmake -DCMAKE_PREFIX_PATH=$HOME/kokkos
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
-          -DCabana_ENABLE_Serial=ON -DDCabana_ENABLE_OpenMP=ON
+          -DCabana_ENABLE_Serial=ON -DCabana_ENABLE_OpenMP=ON
           -DCabana_ENABLE_MPI=ON
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
           -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
