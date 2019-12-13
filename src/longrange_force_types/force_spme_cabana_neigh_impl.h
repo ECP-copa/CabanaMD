@@ -175,7 +175,7 @@ double ForceSPME<t_neighbor>::oneDeuler( int k, int meshwidth )
     return ( numreal * numreal + numimag * numimag ) /
            ( denomreal * denomreal + denomimag * denomimag );
 }
-/*
+
 
 // Create uniform mesh for SPME method
 template<class t_neighbor>
@@ -190,9 +190,9 @@ void ForceSPME<t_neighbor>::create_mesh( System* system )
     std::array<double,3> global_high_corner = { system->domain_hi_x, system->domain_hi_y, system->domain_hi_z };
     auto uniform_global_mesh = Cajita::createUniformGlobalMesh(
         global_low_corner, global_high_corner, num_cell );
-    //global_mesh = uniform_global_mesh;
-    global_mesh = Cajita::createUniformGlobalMesh(
-        global_low_corner, global_high_corner, num_cell );
+    global_mesh = uniform_global_mesh;
+    //auto global_mesh = Cajita::createUniformGlobalMesh(
+    //    global_low_corner, global_high_corner, num_cell );
 
     // Partition mesh into local grids.
     Cajita::UniformDimPartitioner partitioner;
@@ -206,12 +206,12 @@ void ForceSPME<t_neighbor>::create_mesh( System* system )
 
 }
 
-*/
+
 
 // Compute the energy and forces
 //TODO: replace this mesh with a Cajita mesh
 template<class t_neighbor>
-double ForceSPME<t_neighbor>::compute( System* system, Cajita::GlobalMesh<Cajita::UniformMesh<double>> global_mesh )
+double ForceSPME<t_neighbor>::compute( System* system, std::shared_ptr<Cajita::GlobalMesh<Cajita::UniformMesh<double>>> global_mesh )
 {
     // For now, force symmetry
     if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )

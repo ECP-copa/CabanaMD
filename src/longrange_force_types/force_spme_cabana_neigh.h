@@ -89,7 +89,7 @@ public:
   T_X_FLOAT neigh_cut;
 
   t_neighbor neigh_list;
-  //Cajita::GlobalMesh<Cajita::UniformMesh<double>> global_mesh;
+  std::shared_ptr<Cajita::GlobalMesh<Cajita::UniformMesh<double>>> global_mesh;
 
   ForceSPME( System* system, bool half_neigh);
   //ForceSPME( double alpha, double r_max, bool half_neigh);
@@ -100,7 +100,7 @@ public:
   double oneDeuler(int k, int meshwidth);
   void create_neigh_list(System* system);
 
-  double compute(System* system, Cajita::GlobalMesh<Cajita::UniformMesh<double>> global_mesh);
+  double compute(System* system, std::shared_ptr<Cajita::GlobalMesh<Cajita::UniformMesh<double>>> global_mesh);
   void tune(double accuracy, System* system);
   void create_mesh(System* system);
   T_F_FLOAT compute_energy(System* system);
