@@ -175,7 +175,6 @@ void Element::sortSymmetryFunctions(t_SF SF, h_t_mass h_numSFperElem, int attype
       SFvector[i] = i;
 
     //naive insertion sort
-    
     int i,j,tmp;
     for (i = 1; i < size; ++i)
     {
@@ -190,23 +189,14 @@ void Element::sortSymmetryFunctions(t_SF SF, h_t_mass h_numSFperElem, int attype
       }
     }
 
-    std::cout << "final index: ";
     int tmpindex;
     for (int i = 0; i < size; ++i)
     {
       SF(attype,i,13) = SFvector[i];
       tmpindex = SF(attype,i,13);
       SF(attype,tmpindex,14) = i;
-      std::cout << SF(attype,i,13)+1 << " "; 
     } 
-    std::cout << std::endl;
     
-    std::cout << "final index: ";
-    for (int i = 0; i < size; ++i)
-    {
-      std::cout << SF(attype,i,14)+1 << " "; 
-    } 
-    std::cout << std::endl;
     delete [] SFvector;
     return;
 }

@@ -91,10 +91,7 @@ T_V_FLOAT ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute_ener
   Kokkos::fence();
   system_energy += s->N*atomicEnergyOffset(0); //TODO: replace hardcoded
   system_energy /= mode->convEnergy;
-  //std::cout << "Mean energy: " << mode->meanEnergy << std::endl;
-  //std::cout << "conv energy: " << mode->convEnergy << std::endl;
-  //std::cout << "Mean energy: " << mode->meanEnergy << std::endl;
-  //std::cout << "cfenergy: " << s->cfenergy << std::endl;
+
   system_energy += s->N*mode->meanEnergy;
   system_energy *= 27.211384021355236; //hartree to eV conversion (TODO: look into this)
   step++;

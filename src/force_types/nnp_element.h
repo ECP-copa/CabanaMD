@@ -213,7 +213,6 @@ inline string Element::getSymbol() const
 
 inline size_t Element::numSymmetryFunctions(int attype, int (&countertotal)[2]) const
 {
-    std::cout << "countertotal: " << countertotal[0] << " " << countertotal[1] << " " << attype << " " << countertotal[attype] << std::endl;
     return countertotal[attype];
 }
 

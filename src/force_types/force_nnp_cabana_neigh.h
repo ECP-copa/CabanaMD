@@ -129,19 +129,6 @@ public:
 
   void compute(System* system);
   T_F_FLOAT compute_energy(System* system);
-
-  /*
-  KOKKOS_INLINE_FUNCTION
-  void operator() (TagFullNeigh, const T_INT& i) const;
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (TagHalfNeigh, const T_INT& i) const;
-  KOKKOS_INLINE_FUNCTION
-  void operator() (TagFullNeighPE, const T_INT& i, T_V_FLOAT& PE) const;
-
-  KOKKOS_INLINE_FUNCTION
-  void operator() (TagHalfNeighPE, const T_INT& i, T_V_FLOAT& PE) const;
-  */
   
   const char* name();
   
@@ -153,7 +140,6 @@ public:
   long numExtrapolationWarningsSummary;
   T_FLOAT maxCutoffRadius;
   char* directory;
-  
 
 };
 
