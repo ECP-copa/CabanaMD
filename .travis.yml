@@ -42,7 +42,7 @@ before_script:
     make -k -j2 VERBOSE=1 && make install && popd &&
     popd
   - if [[ ${NNP} ]]; then
-      git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git
+      git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
       make libnnp-shared &&
       popd && popd
