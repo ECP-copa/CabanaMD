@@ -10,6 +10,11 @@
  ****************************************************************************/
 
 #include<force_ewald_cabana_neigh.h>
+#include <Cajita_Types.hpp>
+#include <Cajita_GlobalMesh.hpp>
+#include <Cajita_GlobalGrid.hpp>
+#include <Cajita_UniformDimPartitioner.hpp>
+#include <Cajita_Array.hpp>
 
 #ifdef CabanaMD_ENABLE_Cuda
 #include <cufft.h>
@@ -43,6 +48,8 @@ ForceSPME<t_neighbor>::ForceSPME(double accuracy, System* system, bool half_neig
     _r_max = 0.0;
     tune( accuracy, system );
 
+    create_mesh( system );
+
 }
 
 template<class t_neighbor>
@@ -52,6 +59,8 @@ ForceSPME<t_neighbor>::ForceSPME(double alpha, double r_max, bool half_neigh_):F
 
     _r_max = r_max;
     _alpha = alpha;
+
+    create_mesh( system );
 }
 
 // Tune to a given accuracy
@@ -86,8 +95,9 @@ ForceSPME<t_neighbor>::tune( double accuracy, System* system ) {
 //   zero All cubic B-splines are smooth functions that go to zero and are
 //   defined piecewise
 //TODO: replace use of this with Cajita functions
+template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-double TPME::oneDspline( double x )
+double ForceSPME::oneDspline( double x )
 {
     if ( x >= 0.0 and x < 1.0 )
     {
@@ -108,8 +118,9 @@ double TPME::oneDspline( double x )
 
 // Compute derivative of 1D cubic cardinal B-spline
 //TODO: replace use of this with Cajita functions
+template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-double TPME::oneDsplinederiv( double origx )
+double ForceSPME::oneDsplinederiv( double origx )
 {
     double x = 2.0 - std::abs( origx );
     double forcedir = 1.0;
@@ -140,8 +151,9 @@ double TPME::oneDsplinederiv( double origx )
 //   exp(2*PI*i*k*l/meshwidth)) when using a non-shifted cubic B-spline in the
 //   charge spread, where meshwidth is the number of mesh points in that
 //   dimension and k is the scaled fractional coordinate
+template<class t_neighbor>
 KOKKOS_INLINE_FUNCTION
-double TPME::oneDeuler( int k, int meshwidth )
+double ForceSPME::oneDeuler( int k, int meshwidth )
 {
     double denomreal = 0.0;
     double denomimag = 0.0;
@@ -162,9 +174,38 @@ double TPME::oneDeuler( int k, int meshwidth )
            ( denomreal * denomreal + denomimag * denomimag );
 }
 
+
+// Create uniform mesh for SPME method
+template<class t_neighbor>
+void ForceSPME::create_mesh( System system )
+{
+
+    // Create the global mesh.
+    std::array<int,3> num_cell = { system->N, system->N, system->N};
+    //TODO: have a good guess of number of cells, or input from file?
+    std::array<bool,3> is_dim_periodic = {true,true,true};
+    std::array<double,3> global_low_corner = {system->domain_lo_x, system->domain_lo_y, system->domain_lo_z };
+    std::array<double,3> global_high_corner = { system->domain_hi_x, system->domain_hi_y, system->domain_hi_z };
+    auto global_mesh = Cajita::createUniformGlobalMesh(
+        global_low_corner, global_high_corner, num_cell );
+
+//TODO: Partition mesh into grid when SPME has an MPI implementation
+/*    // Partition mesh into local grids.
+    UniformDimPartitioner partitioner;
+    auto global_grid = Cajita::createGlobalGrid( MPI_COMM_WORLD,
+                                         global_mesh,
+                                         is_dim_periodic,
+                                         partitioner );
+*/
+
+
+
+}
+
 // Compute the energy and forces
 //TODO: replace this mesh with a Cajita mesh
-double TPME::compute( System &system, ParticleList &mesh )
+template<class t_neighbor>
+double ForceSPME::compute( System &system, ParticleList &mesh )
 {
     // For now, force symmetry
     if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )
@@ -230,14 +271,14 @@ double TPME::compute( System &system, ParticleList &mesh )
                                       px <= per_shells; ++px )
                                 {
                                     double dx =
-                                        r( i, 0 ) -
-                                        ( r( j, 0 ) + (double)px * lx );
+                                        x( i, 0 ) -
+                                        ( x( j, 0 ) + (double)px * lx );
                                     double dy =
-                                        r( i, 1 ) -
-                                        ( r( j, 1 ) + (double)py * ly );
+                                        x( i, 1 ) -
+                                        ( x( j, 1 ) + (double)py * ly );
                                     double dz =
-                                        r( i, 2 ) -
-                                        ( r( j, 2 ) + (double)pz * lz );
+                                        x( i, 2 ) -
+                                        ( x( j, 2 ) + (double)pz * lz );
                                     double d =
                                         sqrt( dx * dx + dy * dy + dz * dz );
                                     double contrib =
@@ -290,25 +331,25 @@ double TPME::compute( System &system, ParticleList &mesh )
         {
             // x-distance between mesh point and particle
             xdist = fmin(
-                fmin( std::abs( meshr( idx, 0 ) - r( pidx, 0 ) ),
-                      std::abs( meshr( idx, 0 ) - ( r( pidx, 0 ) + 1.0 ) ) ),
+                fmin( std::abs( meshr( idx, 0 ) - x( pidx, 0 ) ),
+                      std::abs( meshr( idx, 0 ) - ( x( pidx, 0 ) + 1.0 ) ) ),
                 std::abs(
                     meshr( idx, 0 ) -
-                    ( r( pidx, 0 ) - 1.0 ) ) ); // account for periodic bndry
+                    ( x( pidx, 0 ) - 1.0 ) ) ); // account for periodic bndry
             // y-distance between mesh point and particle
             ydist = fmin(
-                fmin( std::abs( meshr( idx, 1 ) - r( pidx, 1 ) ),
-                      std::abs( meshr( idx, 1 ) - ( r( pidx, 1 ) + 1.0 ) ) ),
+                fmin( std::abs( meshr( idx, 1 ) - x( pidx, 1 ) ),
+                      std::abs( meshr( idx, 1 ) - ( x( pidx, 1 ) + 1.0 ) ) ),
                 std::abs(
                     meshr( idx, 1 ) -
-                    ( r( pidx, 1 ) - 1.0 ) ) ); // account for periodic bndry
+                    ( x( pidx, 1 ) - 1.0 ) ) ); // account for periodic bndry
             // z-distance between mesh point and particle
             zdist = fmin(
-                fmin( std::abs( meshr( idx, 2 ) - r( pidx, 2 ) ),
-                      std::abs( meshr( idx, 2 ) - ( r( pidx, 2 ) + 1.0 ) ) ),
+                fmin( std::abs( meshr( idx, 2 ) - x( pidx, 2 ) ),
+                      std::abs( meshr( idx, 2 ) - ( x( pidx, 2 ) + 1.0 ) ) ),
                 std::abs(
                     meshr( idx, 2 ) -
-                    ( r( pidx, 2 ) - 1.0 ) ) ); // account for periodic bndry
+                    ( x( pidx, 2 ) - 1.0 ) ) ); // account for periodic bndry
 
             if ( xdist <= 2.0 * spacing and ydist <= 2.0 * spacing and
                  zdist <= 2.0 * spacing ) 
@@ -514,47 +555,47 @@ double TPME::compute( System &system, ParticleList &mesh )
         for ( size_t idx = 0; idx < meshsize; ++idx )
         {
             // x-distance between mesh point and particle
-            closestpart = r( pidx, 0 );
+            closestpart = x( pidx, 0 );
             xdist = closestpart - meshr( idx, 0 );
             if ( std::abs( xdist ) >
-                 std::abs( meshr( idx, 0 ) - ( r( pidx, 0 ) + 1.0 ) ) )
+                 std::abs( meshr( idx, 0 ) - ( x( pidx, 0 ) + 1.0 ) ) )
             {
-                closestpart = r( pidx, 0 ) + 1.0;
+                closestpart = x( pidx, 0 ) + 1.0;
             }
             if ( std::abs( xdist ) >
-                 std::abs( meshr( idx, 0 ) - ( r( pidx, 0 ) - 1.0 ) ) )
+                 std::abs( meshr( idx, 0 ) - ( x( pidx, 0 ) - 1.0 ) ) )
             {
-                closestpart = r( pidx, 0 ) - 1.0;
+                closestpart = x( pidx, 0 ) - 1.0;
             }
             xdist = closestpart - meshr( idx, 0 );
 
             // y-distance between mesh point and particle
-            closestpart = r( pidx, 1 );
+            closestpart = x( pidx, 1 );
             ydist = closestpart - meshr( idx, 1 );
             if ( std::abs( ydist ) >
-                 std::abs( meshr( idx, 1 ) - ( r( pidx, 1 ) + 1.0 ) ) )
+                 std::abs( meshr( idx, 1 ) - ( x( pidx, 1 ) + 1.0 ) ) )
             {
-                closestpart = r( pidx, 1 ) + 1.0;
+                closestpart = x( pidx, 1 ) + 1.0;
             }
             if ( std::abs( ydist ) >
-                 std::abs( meshr( idx, 1 ) - ( r( pidx, 1 ) - 1.0 ) ) )
+                 std::abs( meshr( idx, 1 ) - ( x( pidx, 1 ) - 1.0 ) ) )
             {
-                closestpart = r( pidx, 1 ) - 1.0;
+                closestpart = x( pidx, 1 ) - 1.0;
             }
             ydist = closestpart - meshr( idx, 1 );
 
             // z-distance between mesh point and particle
-            closestpart = r( pidx, 2 );
+            closestpart = x( pidx, 2 );
             zdist = closestpart - meshr( idx, 2 );
             if ( std::abs( zdist ) >
-                 std::abs( meshr( idx, 2 ) - ( r( pidx, 2 ) + 1.0 ) ) )
+                 std::abs( meshr( idx, 2 ) - ( x( pidx, 2 ) + 1.0 ) ) )
             {
-                closestpart = r( pidx, 2 ) + 1.0;
+                closestpart = x( pidx, 2 ) + 1.0;
             }
             if ( std::abs( zdist ) >
-                 std::abs( meshr( idx, 2 ) - ( r( pidx, 2 ) - 1.0 ) ) )
+                 std::abs( meshr( idx, 2 ) - ( x( pidx, 2 ) - 1.0 ) ) )
             {
-                closestpart = r( pidx, 2 ) - 1.0;
+                closestpart = x( pidx, 2 ) - 1.0;
             }
             zdist = closestpart - meshr( idx, 2 );
 

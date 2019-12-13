@@ -56,6 +56,8 @@
 #include<types.h>
 #include<system.h>
 #include <comm_mpi.h>
+#include <Cajita_Types.hpp>
+#include <Cajita_GlobalMesh.hpp>
 
 template<class t_neighbor>
 class ForceSPME: public Force {
@@ -88,6 +90,7 @@ public:
   T_X_FLOAT neigh_cut;
 
   t_neighbor neigh_list;
+  Cajita::GlobalMesh<UniformMesh<Scalar>> global_mesh;
 
   ForceSPME( double accuracy, System* system, bool half_neigh);
   ForceSPME( double alpha, double r_max, bool half_neigh);
