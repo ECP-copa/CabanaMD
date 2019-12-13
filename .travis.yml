@@ -1,0 +1,82 @@
+language: cpp
+
+# against hwloc error (travis-ci/travis-ci#10019)
+sudo: required
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - ccache
+      - libhwloc-dev
+      - libopenmpi-dev
+      - openmpi-bin
+      - g++-6
+
+before_script:
+  - sudo ln -s /usr/bin/ccache /usr/lib/ccache/clang++
+  - ccache -z
+  - KOKKOS_OPTS=( --with-hwloc=/usr --gcc-toolchain=/usr --with-serial --with-openmp)
+    # LD_LIBRARY_PATH workaround for libomp: https://github.com/travis-ci/travis-ci/issues/8613
+  - if [[ ${CC} = clang ]]; then export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH; fi
+  - if [[ ${CC} = gcc ]]; then export CXX=g++-6; export CC=gcc-6; export FC=gfortran-6; fi
+  - git clone --depth=1 https://github.com/kokkos/kokkos.git &&
+    pushd kokkos &&
+    mkdir build &&
+    pushd build &&
+    ../generate_makefile.bash --prefix=$HOME/kokkos ${KOKKOS_OPTS[@]} &&
+    make -j2 &&
+    make install &&
+    popd &&
+    popd
+  - pwd
+  - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
+  - pushd Cabana && mkdir build && pushd build &&
+    cmake -DCMAKE_PREFIX_PATH=$HOME/kokkos
+          -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
+          -DCabana_ENABLE_Serial=ON -DCabana_ENABLE_OpenMP=ON
+          -DCabana_ENABLE_MPI=ON
+          -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
+          -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
+    make -k -j2 VERBOSE=1 && make install && popd &&
+    popd
+  - ls $HOME/Cabana
+  - if [[ ${COVERAGE} ]]; then
+       pip install --user coverxygen &&
+       mkdir -p $HOME/.local/bin && wget -O $HOME/.local/bin/codecov https://codecov.io/bash && chmod +x $HOME/.local/bin/codecov;
+     fi
+
+env:
+  global:
+    - CCACHE_CPP2=yes
+  matrix:
+    - COVERAGE=OFF
+
+script:
+  - mkdir build && pushd build &&
+    cmake -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/Cabana"
+          -DKOKKOS_DIR=$HOME/kokkos
+          -DCABANA_DIR=$HOME/Cabana
+          -DCabanaMD_ENABLE_Serial=OFF
+          -DCabanaMD_ENABLE_OpenMP=ON
+          -DCabanaMD_ENABLE_Cuda=OFF .. &&
+    make -j4 VERBOSE=1 &&
+    popd
+
+after_success:
+  - ccache -s
+  - if [[ ${COVERAGE} ]]; then pwd && pushd build && pwd &&
+    codecov -x gcov-6; fi
+
+branches:
+  only:
+  - master
+
+cache:
+  directories:
+    - $HOME/.ccache
+
+compiler:
+  - gcc
+  - clang
