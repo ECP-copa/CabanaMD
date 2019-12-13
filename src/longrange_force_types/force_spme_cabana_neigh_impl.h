@@ -261,7 +261,7 @@ double ForceSPME<t_neighbor>::compute( System* system, Cajita::GlobalMesh<Cajita
             if ( i < n_max )
             {
                 double Ur_inner = 0.0;
-                int per_shells = std::ceil( r_max / lx );
+                int per_shells = std::ceil( r_max / system->domain_x );
                 Kokkos::parallel_reduce(
                     Kokkos::ThreadVectorRange( member, n_max ),
                     [&]( int &j, double &Ur_j ) {
@@ -273,13 +273,13 @@ double ForceSPME<t_neighbor>::compute( System* system, Cajita::GlobalMesh<Cajita
                                 {
                                     double dx =
                                         x( i, 0 ) -
-                                        ( x( j, 0 ) + (double)px * lx );
+                                        ( x( j, 0 ) + (double)px * system->domain_x );
                                     double dy =
                                         x( i, 1 ) -
-                                        ( x( j, 1 ) + (double)py * ly );
+                                        ( x( j, 1 ) + (double)py * system->domain_y );
                                     double dz =
                                         x( i, 2 ) -
-                                        ( x( j, 2 ) + (double)pz * lz );
+                                        ( x( j, 2 ) + (double)pz * system->domain_z );
                                     double d =
                                         sqrt( dx * dx + dy * dy + dz * dz );
                                     double contrib =
@@ -328,7 +328,7 @@ double ForceSPME<t_neighbor>::compute( System* system, Cajita::GlobalMesh<Cajita
     auto spread_q = KOKKOS_LAMBDA( const int idx )
     {
         double xdist, ydist, zdist;
-        for ( size_t pidx = 0; pidx < particles.size(); ++pidx )
+        for ( size_t pidx = 0; pidx < system->xvf.size(); ++pidx )
         {
             // x-distance between mesh point and particle
             xdist = fmin(
@@ -416,14 +416,14 @@ double ForceSPME<t_neighbor>::compute( System* system, Cajita::GlobalMesh<Cajita
                                 ForceSPME::oneDeuler( ky, meshwidth ) *
                                 ForceSPME::oneDeuler( kz, meshwidth ) *
                                 exp( -PI * PI * m2 / ( alpha * alpha ) ) /
-                                ( PI * lx * ly * lz * m2 );
+                                ( PI * system->domain_x * system->domain_y * system->domain_z * m2 );
                     BC[idx].y = 0.0; // imag part
 #else
                     BC[idx][0] = ForceSPME::oneDeuler( kx, meshwidth ) *
                                  ForceSPME::oneDeuler( ky, meshwidth ) *
                                  ForceSPME::oneDeuler( kz, meshwidth ) *
                                  exp( -PI * PI * m2 / ( alpha * alpha ) ) /
-                                 ( PI * lx * ly * lz * m2 );
+                                 ( PI * system->domain_x * system->domain_y * system->domain_z * m2 );
                     BC[idx][1] = 0.0; // imag part
 #endif
                 }
@@ -534,7 +534,7 @@ double ForceSPME<t_neighbor>::compute( System* system, Cajita::GlobalMesh<Cajita
                              },
                              Uself );
     Kokkos::fence();
-    total_energy = Ur + Uk + Uself + Udip;
+    total_energy = Ur + Uk + Uself;
 
     // Now, compute forces on each particle
     //

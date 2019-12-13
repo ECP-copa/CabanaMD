@@ -75,7 +75,7 @@ private:
   double _k_max;
 
   //dielectric constant
-  //double _eps_r = 1.0; //Assume 1 for now (vacuum)
+  double _eps_r = 1.0; //Assume 1 for now (vacuum)
 
   //double *EwaldUk_coeffs;
   
