@@ -19,7 +19,8 @@ before_script:
   - ccache -z
   - KOKKOS_OPTS=( --with-hwloc=/usr --gcc-toolchain=/usr --with-serial --with-openmp)
   - for i in ${BACKENDS}; do KOKKOS_OPTS+=( --with-${i,,[A-Z]} ); done
-  - for i in ${BACKENDS}; do CMAKE_OPTS+=( -DCabana_ENABLE_${i}=ON -DCabanaMD_ENABLE_${i}=ON ); done
+  - for i in ${BACKENDS}; do CABANA_OPTS+=( -DCabana_ENABLE_${i}=ON ); done
+  - for i in ${BACKENDS}; do CABANAMD_OPTS+=( -DCabanaMD_ENABLE_${i}=ON ); done
     # LD_LIBRARY_PATH workaround for libomp: https://github.com/travis-ci/travis-ci/issues/8613
   - if [[ ${CC} = clang ]]; then export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH; fi
   - if [[ ${CC} = gcc ]]; then export CXX=g++-6; export CC=gcc-6; export FC=gfortran-6; fi
@@ -35,7 +36,7 @@ before_script:
     cmake -DCMAKE_PREFIX_PATH=$HOME/kokkos
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
           -DCabana_ENABLE_Serial=OFF
-          ${CMAKE_OPTS[@]}
+          ${CABANA_OPTS[@]}
           -DCabana_ENABLE_MPI=ON
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
           -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
@@ -67,7 +68,7 @@ script:
           -DKOKKOS_DIR=$HOME/kokkos
           -DCABANA_DIR=$HOME/Cabana
           -DCabanaMD_ENABLE_Serial=OFF
-          ${CMAKE_OPTS[@]}
+          ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
     popd
