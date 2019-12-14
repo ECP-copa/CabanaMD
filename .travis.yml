@@ -17,7 +17,7 @@ addons:
 before_script:
   - sudo ln -s /usr/bin/ccache /usr/lib/ccache/clang++
   - ccache -z
-  - KOKKOS_OPTS=( --with-hwloc=/usr --gcc-toolchain=/usr --with-serial --with-openmp)
+  - KOKKOS_OPTS=( --with-hwloc=/usr --gcc-toolchain=/usr)
   - for i in ${BACKENDS}; do KOKKOS_OPTS+=( --with-${i,,[A-Z]} ); done
   - for i in ${BACKENDS}; do CABANA_OPTS+=( -DCabana_ENABLE_${i}=ON ); done
   - for i in ${BACKENDS}; do CABANAMD_OPTS+=( -DCabanaMD_ENABLE_${i}=ON ); done
@@ -68,6 +68,7 @@ script:
           -DKOKKOS_DIR=$HOME/kokkos
           -DCABANA_DIR=$HOME/Cabana
           -DCabanaMD_ENABLE_Serial=OFF
+          -DCabanaMD_ENABLE_NNP=${NNP}
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
