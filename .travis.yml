@@ -45,7 +45,7 @@ before_script:
       git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
       make libnnp-shared &&
-      popd && popd
+      popd && popd;
     fi
   - if [[ ${COVERAGE} ]]; then
        pip install --user coverxygen &&
