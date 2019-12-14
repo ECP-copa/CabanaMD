@@ -64,11 +64,12 @@ env:
 
 script:
   - mkdir build && pushd build &&
-    cmake -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/Cabana"
+    cmake -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/Cabana;$HOME/n2p2"
           -DKOKKOS_DIR=$HOME/kokkos
           -DCABANA_DIR=$HOME/Cabana
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
+          -D N2P2_DIR=$HOME/n2p2
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
