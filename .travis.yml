@@ -46,7 +46,7 @@ before_script:
   - if [[ ${NNP} ]]; then
       git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
-      make libnnp && make install &&
+      make libnnp &&
       popd && popd;
     fi
   - if [[ ${COVERAGE} ]]; then
@@ -59,10 +59,10 @@ env:
   global:
     - CCACHE_CPP2=yes
   matrix:
-    - BACKENDS="OpenMP" COVERAGE=OFF NNP=OFF
-    - BACKENDS="Serial" COVERAGE=OFF NNP=OFF
-    - BACKENDS="OpenMP" COVERAGE=OFF NNP=ON
-    - BACKENDS="Serial" COVERAGE=OFF NNP=ON
+    - BACKENDS="OpenMP"
+    - BACKENDS="Serial"
+    - BACKENDS="OpenMP" NNP=ON
+    - BACKENDS="Serial" NNP=ON
 
 script:
   - mkdir build && pushd build &&
@@ -70,7 +70,7 @@ script:
           -DCABANA_DIR=$HOME/Cabana
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
-          -DN2P2_DIR=$HOME/n2p2
+          -DN2P2_DIR=$HOME/build/n2p2
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
