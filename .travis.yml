@@ -27,15 +27,15 @@ before_script:
   - pushd $HOME/build
   - git clone --depth=1 https://github.com/kokkos/kokkos.git &&
     pushd kokkos && mkdir build && pushd build &&
-    ../generate_makefile.bash --prefix=$HOME/kokkos ${KOKKOS_OPTS[@]} &&
+    ../generate_makefile.bash --prefix=$HOME/build/kokkos ${KOKKOS_OPTS[@]} &&
     make -j2 &&
     make install &&
     popd && popd
   - pwd
   - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
   - pushd Cabana && mkdir build && pushd build &&
-    cmake -DCMAKE_PREFIX_PATH=$HOME/kokkos
-          -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
+    cmake -DCMAKE_PREFIX_PATH=$HOME/build/kokkos
+          -DCMAKE_INSTALL_PREFIX=$HOME/build/Cabana
           -DCabana_ENABLE_Serial=OFF
           ${CABANA_OPTS[@]}
           -DCabana_ENABLE_MPI=ON
@@ -66,12 +66,11 @@ env:
 
 script:
   - mkdir build && pushd build &&
-    cmake -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/Cabana;$HOME/n2p2"
-          -DKOKKOS_DIR=$HOME/kokkos
-          -DCABANA_DIR=$HOME/Cabana
+    cmake -DKOKKOS_DIR=$HOME/build/kokkos
+          -DCABANA_DIR=$HOME/build/Cabana
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
-          -DN2P2_DIR=$HOME/n2p2
+          -DN2P2_DIR=$HOME/build/n2p2
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
