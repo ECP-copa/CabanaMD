@@ -24,6 +24,7 @@ before_script:
     # LD_LIBRARY_PATH workaround for libomp: https://github.com/travis-ci/travis-ci/issues/8613
   - if [[ ${CC} = clang ]]; then export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH; fi
   - if [[ ${CC} = gcc ]]; then export CXX=g++-6; export CC=gcc-6; export FC=gfortran-6; fi
+  - pushd $HOME/build
   - git clone --depth=1 https://github.com/kokkos/kokkos.git &&
     pushd kokkos && mkdir build && pushd build &&
     ../generate_makefile.bash --prefix=$HOME/kokkos ${KOKKOS_OPTS[@]} &&
@@ -40,18 +41,19 @@ before_script:
           -DCabana_ENABLE_MPI=ON
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
           -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
-    make -k -j2 VERBOSE=1 && make install && popd &&
-    popd
+    make -k -j2 VERBOSE=1 && make install &&
+    popd && popd
   - if [[ ${NNP} ]]; then
       git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
-      make libnnp-shared &&
+      make libnnp &&
       popd && popd;
     fi
   - if [[ ${COVERAGE} ]]; then
        pip install --user coverxygen &&
        mkdir -p $HOME/.local/bin && wget -O $HOME/.local/bin/codecov https://codecov.io/bash && chmod +x $HOME/.local/bin/codecov;
      fi
+  - popd
 
 env:
   global:
@@ -69,7 +71,7 @@ script:
           -DCABANA_DIR=$HOME/Cabana
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
-          -D N2P2_DIR=$HOME/n2p2
+          -DN2P2_DIR=$HOME/n2p2
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
