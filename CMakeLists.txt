@@ -79,6 +79,14 @@ if( CabanaMD_ENABLE_LongRange )
   endif()
 endif()
 
+option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
+if( CabanaMD_ENABLE_NNP )
+  add_definitions(-DCabanaMD_ENABLE_NNP=ON)
+endif()
+if(NOT DEFINED N2P2_DIR)
+  set(N2P2_DIR ~/install/n2p2/)
+endif()
+
 ##---------------------------------------------------------------------------##
 ## Print the revision number to stdout
 ##---------------------------------------------------------------------------##
@@ -100,11 +108,20 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 if( CabanaMD_ENABLE_LongRange )
   include_directories(src src/force_types src/longrange_force_types)
-  file(GLOB SOURCES src/*.cpp src/force_types/*.cpp src/longrange_force_types/*.cpp)
+  file(GLOB SOURCES_LR src/longrange_force_types/*.cpp)
 else()
   include_directories(src src/force_types)
-  file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
 endif()
+
+if( CabanaMD_ENABLE_NNP )
+  file(GLOB SOURCES_SR src/force_types/*.cpp)
+else()
+  file(GLOB SOURCES src/*.cpp src/force_types/force_lj*.cpp)
+endif()
+
+file(GLOB SOURCES src/*.cpp)
+list(APPEND SOURCES ${SOURCES_SR} ${SOURCES_LR})
+
 
 include_directories(SYSTEM ${KOKKOS_DIR}/include)
 link_directories(${KOKKOS_DIR}/lib)
@@ -113,16 +130,23 @@ link_directories(${CABANA_DIR}/lib64)
 link_directories(${CABANA_DIR}/lib)
 include_directories(${CAJITA_DIR}/include)
 link_directories(${CAJITA_DIR}/lib)
+include_directories(${N2P2_DIR}/include)
+link_directories(${N2P2_DIR}/lib)
 
 add_executable(CabanaMD ${SOURCES})
+
 if( CabanaMD_ENABLE_LongRange )
   if(FFTW3_FOUND)
-    target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX Cajita FFTW3::FFTW3)
+    target_link_libraries(CabanaMD Cajita FFTW3::FFTW3)
   elseif( CabanaMD_ENABLE_Cuda )
-    target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX Cajita ${CUDA_CUFFT_LIBRARIES})
+    target_link_libraries(CabanaMD Cajita ${CUDA_CUFFT_LIBRARIES})
   endif()
-else()
-  target_link_libraries(CabanaMD cabanacore kokkos dl MPI::MPI_CXX)
 endif()
+
+if(CabanaMD_ENABLE_NNP)
+  target_link_libraries(CabanaMD nnp)
+endif()
+
+target_link_libraries(CabanaMD cabanacore kokkos dl hwloc MPI::MPI_CXX)
 
 install(TARGETS CabanaMD DESTINATION bin)

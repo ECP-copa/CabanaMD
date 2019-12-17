@@ -17,50 +17,62 @@ addons:
 before_script:
   - sudo ln -s /usr/bin/ccache /usr/lib/ccache/clang++
   - ccache -z
-  - KOKKOS_OPTS=( --with-hwloc=/usr --gcc-toolchain=/usr --with-serial --with-openmp)
+  - KOKKOS_OPTS=( --with-hwloc=/usr --gcc-toolchain=/usr)
+  - for i in ${BACKENDS}; do KOKKOS_OPTS+=( --with-${i,,[A-Z]} ); done
+  - for i in ${BACKENDS}; do CABANA_OPTS+=( -DCabana_ENABLE_${i}=ON ); done
+  - for i in ${BACKENDS}; do CABANAMD_OPTS+=( -DCabanaMD_ENABLE_${i}=ON ); done
     # LD_LIBRARY_PATH workaround for libomp: https://github.com/travis-ci/travis-ci/issues/8613
   - if [[ ${CC} = clang ]]; then export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH; fi
   - if [[ ${CC} = gcc ]]; then export CXX=g++-6; export CC=gcc-6; export FC=gfortran-6; fi
+  - pushd $HOME/build
   - git clone --depth=1 https://github.com/kokkos/kokkos.git &&
-    pushd kokkos &&
-    mkdir build &&
-    pushd build &&
+    pushd kokkos && mkdir build && pushd build &&
     ../generate_makefile.bash --prefix=$HOME/kokkos ${KOKKOS_OPTS[@]} &&
     make -j2 &&
     make install &&
-    popd &&
-    popd
+    popd && popd
   - pwd
   - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
   - pushd Cabana && mkdir build && pushd build &&
     cmake -DCMAKE_PREFIX_PATH=$HOME/kokkos
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
-          -DCabana_ENABLE_Serial=ON -DCabana_ENABLE_OpenMP=ON
+          -DCabana_ENABLE_Serial=OFF
+          ${CABANA_OPTS[@]}
           -DCabana_ENABLE_MPI=ON
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
           -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
-    make -k -j2 VERBOSE=1 && make install && popd &&
-    popd
-  - ls $HOME/Cabana
+    make -k -j2 VERBOSE=1 && make install &&
+    popd && popd
+  - if [[ ${NNP} ]]; then
+      git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
+      pushd n2p2 && pushd src &&
+      make libnnp &&
+      popd && popd;
+    fi
   - if [[ ${COVERAGE} ]]; then
        pip install --user coverxygen &&
        mkdir -p $HOME/.local/bin && wget -O $HOME/.local/bin/codecov https://codecov.io/bash && chmod +x $HOME/.local/bin/codecov;
      fi
+  - popd
 
 env:
   global:
     - CCACHE_CPP2=yes
   matrix:
-    - COVERAGE=OFF
+    - BACKENDS="OpenMP"
+    - BACKENDS="Serial"
+    - BACKENDS="OpenMP" NNP=ON
+    - BACKENDS="Serial" NNP=ON
 
 script:
   - mkdir build && pushd build &&
-    cmake -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/Cabana"
-          -DKOKKOS_DIR=$HOME/kokkos
+    cmake -DKOKKOS_DIR=$HOME/kokkos
           -DCABANA_DIR=$HOME/Cabana
           -DCabanaMD_ENABLE_Serial=OFF
-          -DCabanaMD_ENABLE_OpenMP=ON
-          -DCabanaMD_ENABLE_Cuda=OFF .. &&
+          -DCabanaMD_ENABLE_NNP=${NNP}
+          -DN2P2_DIR=$HOME/build/n2p2
+          ${CABANAMD_OPTS[@]}
+          .. &&
     make -j4 VERBOSE=1 &&
     popd
 

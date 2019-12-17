@@ -149,8 +149,9 @@ void CabanaMD::init(int argc, char* argv[]) {
   if(input->longrange)
     lrforce->compute(system);
 
-  if(input->comm_newton) {
-    // Reverse Communicate Force Update on Halo
+  // Reverse Communicate Force Update on Halo
+  //   update force for nnp pair style even if full
+  if(input->comm_newton or input->force_type == FORCE_NNP) {
     comm->update_force();
   }
 
@@ -187,7 +188,7 @@ void CabanaMD::init(int argc, char* argv[]) {
 
 void CabanaMD::run(int nsteps) {
   T_F_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
-
+  
   Temperature temp(comm);
   PotE pote(comm);
   KinE kine(comm);
@@ -209,7 +210,7 @@ void CabanaMD::run(int nsteps) {
     integrate_timer.reset();
     integrator->initial_integrate();
     integrate_time += integrate_timer.seconds();
-
+    
     if(step%input->comm_exchange_rate==0 && step >0) {
       // Exchange particles
       comm_timer.reset();
@@ -256,7 +257,8 @@ void CabanaMD::run(int nsteps) {
     // This is where Bonds, Angles, etc. should go eventually
     
     // Reverse Communicate Force Update on Halo
-    if(input->comm_newton) {
+    //   update force for nnp pair style even if full
+    if(input->comm_newton or input->force_type == FORCE_NNP) {
       comm_timer.reset();
       comm->update_force();
       comm_time += comm_timer.seconds();
@@ -266,7 +268,7 @@ void CabanaMD::run(int nsteps) {
     integrate_timer.reset();
     integrator->final_integrate();
     integrate_time += integrate_timer.seconds();
-
+    
     other_timer.reset();
     // On output steps print output
     if(step%input->thermo_rate==0) {

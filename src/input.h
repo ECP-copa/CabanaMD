@@ -186,6 +186,7 @@ class Input {
   int force_iteration_type;
   int lrforce_iteration_type;
   bool longrange;
+  int force_neigh_parallel_type;
 
   T_F_FLOAT force_cutoff;
   T_F_FLOAT lrforce_cutoff;

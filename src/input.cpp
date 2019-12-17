@@ -144,6 +144,8 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   longrange = true;
   #endif
 
+  force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
+
   // set defaults (matches ExaMiniMD LJ example)
 
   nsteps = 0;
@@ -180,6 +182,7 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   thermo_rate = 10;
 
   neighbor_skin = 0.3;
+  neighbor_skin = 0.0; //for metal and real units
   comm_exchange_rate = 20;
   comm_newton = 0;
 
@@ -195,8 +198,10 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("CabanaMD 0.1 \n\n");
         printf("Options:\n");
         printf("  -il [file] / --input-lammps [FILE]: Provide LAMMPS input file\n");
-        printf("  --force-iteration [TYPE]:   Specify which iteration style to use\n");
-        printf("                              for force calculations (NEIGH_FULL, NEIGH_HALF)\n");
+        printf("  --force-iteration [TYPE]:   Specify iteration style for force calculations\n");
+        printf("                              (NEIGH_FULL, NEIGH_HALF)\n");
+        printf("  --neigh-parallel [TYPE]:    Specify neighbor parallelism and, if applicable, angular neighbor parallelism\n");
+        printf("                              (SERIAL, TEAM, TEAM_VECTOR)\n");
         printf("  --neigh-type [TYPE]:        Specify Neighbor Routines implementation \n");
         printf("                              (NEIGH_2D, NEIGH_CSR)\n");
         printf("  --comm-type [TYPE]:         Specify Communication Routines implementation \n");
@@ -209,7 +214,6 @@ void Input::read_command_line_args(int argc, char* argv[]) {
         printf("                              (PATH = location of directory)\n");
       }
     }
-
     // Read Lammps input deck
     else if( (strcmp(argv[i], "-il") == 0) || (strcmp(argv[i], "--input-lammps") == 0) ) {
       input_file = argv[++i];
@@ -227,6 +231,12 @@ void Input::read_command_line_args(int argc, char* argv[]) {
      #include<modules_force.h>
       ++i;
     }
+
+    else if( (strcmp(argv[i], "--neigh-parallel") == 0) ) {
+      #include<modules_force.h>
+      ++i;
+    }
+
     // Dump Binary
     else if( (strcmp(argv[i], "--dumpbinary") == 0) ) {
       dumpbinary_rate = atoi(argv[i+1]);
@@ -439,15 +449,26 @@ void Input::check_lammps_command(int line) {
       force_cutoff = 4.73442;// atof(input_data.words[line][2]);
       force_line = line;
     }
+    if(strcmp(input_data.words[line][1],"nnp")==0) {
+      known = true;
+      force_type = FORCE_NNP;
+      force_line = line; //TODO: process this line to read in the right directories
+      Kokkos::resize(force_coeff_lines,1);
+      force_coeff_lines(0) = line;
+    }
     if(system->do_print && !known)
-      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' or 'lj/cut/coul/long' styles in CabanaMD\n");
+      printf("LAMMPS-Command: 'pair_style' command only supports 'lj/cut' or 'lj/cut/coul/long' or 'nnp' styles in CabanaMD\n");
   }
   if(strcmp(input_data.words[line][0],"pair_coeff")==0) {
     known = true;
-    int n_coeff_lines = force_coeff_lines.extent(0);
-    Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
-    force_coeff_lines( n_coeff_lines) = line;
-    n_coeff_lines++;
+    if (force_type == FORCE_NNP)
+      force_cutoff = atof(input_data.words[line][3]);
+    else {
+      int n_coeff_lines = force_coeff_lines.extent(0);
+      Kokkos::resize(force_coeff_lines,n_coeff_lines+1);
+      force_coeff_lines( n_coeff_lines) = line;
+      n_coeff_lines++;
+    }
   }
   if(strcmp(input_data.words[line][0],"kspace_style")==0) {
     if(strcmp(input_data.words[line][1],"ewald")!=0) {

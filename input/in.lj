@@ -1,4 +1,4 @@
-# 3d Lennard-Jones melt
+# Example using Lennard-Jones potential
 
 units		lj
 atom_style	atomic
