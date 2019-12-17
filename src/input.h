@@ -183,6 +183,7 @@ class Input {
 
   int force_type;
   int force_iteration_type;
+  int force_neigh_parallel_type;
 
   T_F_FLOAT force_cutoff;
   int force_line;
