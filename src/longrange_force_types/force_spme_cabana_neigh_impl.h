@@ -196,12 +196,22 @@ void ForceSPME<t_neighbor>::create_mesh( System* system )
 
     // Partition mesh into local grids.
     Cajita::UniformDimPartitioner partitioner;
+    //TODO: Make sure this Cajita partition mirrors the CabanaMD partition
     auto global_grid = Cajita::createGlobalGrid( MPI_COMM_WORLD,
                                          uniform_global_mesh,
                                          is_dim_periodic,
                                          partitioner );
 
+    // Create a local grid.
+    int halo_width = 1;
+    auto local_grid = Cajita::createLocalGrid( global_grid, halo_width );
+    auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
 
+    auto x = Cabana::slice<Positions>( system->xvf );
+
+    // Create a point set with cubic spline interpolation to the nodes.
+    auto point_set = Cajita::createPointSet(
+        x, system->N_local + system->N_ghost, system->N_max, *local_grid, Cajita::Node(), Cajita::Spline<3>() );
 
 
 }
@@ -230,8 +240,8 @@ double ForceSPME<t_neighbor>::compute( System* system, std::shared_ptr<Cajita::G
 
     // Mesh slices
     // TODO: replace with Cajita mesh
-    auto meshr = Cabana::slice<Positions>( mesh );
-    auto meshq = Cabana::slice<Charges>( mesh );
+    auto meshr = Cabana::slice<Positions>( mesh );//TODO: this should be point_set
+    auto meshq = Cabana::slice<Charges>( mesh );//TODO: the values of point_set. How to assign?
 
     // Number of particles
     int n_max = system->N;
