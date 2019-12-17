@@ -157,9 +157,11 @@ double ForceSPME<t_neighbor>::oneDeuler( int k, int meshwidth )
 
 // Create uniform mesh for SPME method
 template<class t_neighbor>
-void ForceSPME<t_neighbor>::create_mesh( System* system )
+void ForceSPME<t_neighbor>::create_mesh( System* system, Comm* comm)
 {
 
+    // Set cell size. calculate domain_x/cell_size
+    //cell_width = ???//TODO:
     // Create the global mesh.
     std::array<int,3> num_cell = { system->N, system->N, system->N};
     //TODO: have a good guess of number of cells, or input from file?
@@ -168,30 +170,29 @@ void ForceSPME<t_neighbor>::create_mesh( System* system )
     std::array<double,3> global_high_corner = { system->domain_hi_x, system->domain_hi_y, system->domain_hi_z };
     auto uniform_global_mesh = Cajita::createUniformGlobalMesh(
         global_low_corner, global_high_corner, num_cell );
-    global_mesh = uniform_global_mesh;
-    //auto global_mesh = Cajita::createUniformGlobalMesh(
-    //    global_low_corner, global_high_corner, num_cell );
-
+    
     // Partition mesh into local grids.
-    Cajita::UniformDimPartitioner partitioner;
-    //TODO: Make sure this Cajita partition mirrors the CabanaMD partition
+    auto partitioner = Cajita::ManualPartitioner(comm->proc_grid);// partitioner;
     auto global_grid = Cajita::createGlobalGrid( MPI_COMM_WORLD,
                                          uniform_global_mesh,
                                          is_dim_periodic,
                                          partitioner );
-
+    
     // Create a local grid.
     int halo_width = 1;
-    auto local_grid = Cajita::createLocalGrid( global_grid, halo_width );
-    auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
+    auto the_local_grid = Cajita::createLocalGrid( global_grid, halo_width );
+    auto the_local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
+
+    local_grid = the_local_grid;
+    local_mesh = the_local_mesh;
 
     auto x = Cabana::slice<Positions>( system->xvf );
 
     // Create a point set with cubic spline interpolation to the nodes.
-    auto point_set = Cajita::createPointSet(
+    auto the_point_set = Cajita::createPointSet(
         x, system->N_local + system->N_ghost, system->N_max, *local_grid, Cajita::Node(), Cajita::Spline<3>() );
 
-
+    point_set = the_point_set;
 }
 
 
@@ -199,7 +200,7 @@ void ForceSPME<t_neighbor>::create_mesh( System* system )
 // Compute the energy and forces
 //TODO: replace this mesh with a Cajita mesh
 template<class t_neighbor>
-double ForceSPME<t_neighbor>::compute( System* system, std::shared_ptr<Cajita::GlobalMesh<Cajita::UniformMesh<double>>> global_mesh )
+double ForceSPME<t_neighbor>::compute( System* system )
 {
     // For now, force symmetry
     if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )
@@ -218,14 +219,23 @@ double ForceSPME<t_neighbor>::compute( System* system, std::shared_ptr<Cajita::G
 
     // Mesh slices
     // TODO: replace with Cajita mesh
-    auto meshr = Cabana::slice<Positions>( mesh );//TODO: this should be point_set
-    auto meshq = Cabana::slice<Charges>( mesh );//TODO: the values of point_set. How to assign?
+    //auto meshr = Cabana::slice<Positions>( mesh );//TODO: this should be point_set
+    //auto meshq = Cabana::slice<Charges>( mesh );//TODO: the values of point_set. How to assign?
+
+    // Create a scalar field for charge on the grid.
+    auto scalar_layout = Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
+    auto meshq =
+        Cajita::createArray<double,DeviceType>( "meshq", scalar_layout );
+    auto q_halo = Cajita::createHalo( *meshq, Cajita::FullHaloPattern() );
+
+
+
 
     // Number of particles
-    int n_max = system->N;
+    int n_max = system->N_local + system->N_ghost;//include N_ghost here?
 
     // Number of mesh points
-    size_t meshsize = mesh.size();//TODO: replace with Cajita
+    //size_t meshsize = mesh.size();//TODO: replace with Cajita
 
     double total_energy = 0.0;
 
@@ -313,8 +323,17 @@ double ForceSPME<t_neighbor>::compute( System* system, std::shared_ptr<Cajita::G
     // computation reciprocal-space contribution
 
     // First, spread the charges onto the mesh
+    Cajita::ArrayOp::assign( *meshq, 0.0, Cajita::Ghost() );
+    auto scalar_p2g = Cajita::createScalarValueP2G( q, 1.0 );
+    p2g( scalar_p2g, point_set, *q_halo, *meshq );
 
 
+
+
+
+
+
+/*
 //TODO: Cajita mesh
     // how far apart the mesh points are (assumed uniform cubic)
     double spacing = meshr( 1, 0 ) - meshr( 0, 0 ); 
@@ -359,9 +378,12 @@ double ForceSPME<t_neighbor>::compute( System* system, std::shared_ptr<Cajita::G
     Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, meshsize ),
                           spread_q );
     Kokkos::fence();
+*/
 //TODO: Again replace with Cajita
-    int meshwidth =
-        std::round( std::pow( meshsize, 1.0 / 3.0 ) ); // Assuming cubic mesh
+//    int meshwidth =
+//        std::round( std::pow( meshsize, 1.0 / 3.0 ) ); // Assuming cubic mesh
+
+
 
 // Calculating the values of the BC array involves first shifting the fractional
 // coords then compute the B and C arrays as described in the paper This can be
