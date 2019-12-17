@@ -11,10 +11,16 @@
 
 #include<force_ewald_cabana_neigh.h>
 
+/* Ewald solver */
+
 template<class t_neighbor>
 ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(system,half_neigh_) {
     half_neigh = half_neigh_;
     assert( half_neigh == true );
+
+    _alpha = 0.0;
+    _k_max = 0.0;
+    _r_max = 0.0;
 
     std::vector<int> dims( 3 );
     std::vector<int> periods( 3 );
@@ -39,26 +45,37 @@ ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(syste
     std::vector<int> cart_periods( 3 );
     MPI_Cart_get( cart_comm, 3, cart_dims.data(), cart_periods.data(),
                   loc_coords.data() );
-
-
-    //MPI_Topo_test( comm, &comm_type );
-    //assert( comm_type == MPI_CART );
-    this->comm = comm;
-
-    
 }
 
-//initialize Ewald params if given from input deck
+//TODO: allow user to specify parameters
 template<class t_neighbor>
-void ForceEwald<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut_,char** args) {
+void ForceEwald<t_neighbor>::init_coeff(System* system, char** args) {
 
-  double alpha = atof(args[3]);
-  double rmax = atof(args[4]);
-  double kmax = atof(args[5]);
+  double accuracy = atof(args[2]);
+  tune(system, accuracy);
 }
-//TODO: overload initialization to include tuning when not given params
 
-//TODO: Use create_neigh_list just like shortrange forces
+template<class t_neighbor>
+void ForceEwald<t_neighbor>::tune( System* system, double accuracy ) {
+  if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )
+    throw std::runtime_error( "Ewald needs symmetric system size for now." );
+
+  const int N = system->N_local;
+
+  // Fincham 1994, Optimisation of the Ewald Sum for Large Systems
+  // only valid for cubic systems (needs adjustement for non-cubic systems)
+  constexpr double EXECUTION_TIME_RATIO_K_R = 2.0; // TODO: Change?
+  double p = -log( accuracy );
+  _alpha = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) *
+    pow( N, 1.0 / 6.0 ) / system->domain_x;
+  _k_max = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) *
+    pow( N, 1.0 / 6.0 ) / system->domain_x * 2.0 * PI;
+  _r_max = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) /
+    pow( N, 1.0 / 6.0 ) * system->domain_x;
+  _alpha = sqrt( p ) / _r_max;
+  _k_max = 2.0 * sqrt( p ) * _alpha;
+}
+
 template<class t_neighbor>
 void ForceEwald<t_neighbor>::create_neigh_list(System* system) {
   N_local = system->N_local;
@@ -241,7 +258,7 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 */
 
     MPI_Allreduce( MPI_IN_PLACE, U_trigonometric.data(), 2 * n_kvec, MPI_DOUBLE,
-                   MPI_SUM, comm );
+                   MPI_SUM, cart_comm );
 
 
 

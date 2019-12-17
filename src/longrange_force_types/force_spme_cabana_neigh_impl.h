@@ -25,11 +25,6 @@
  * - This method, from Essman et al. (1995) computes long-range Coulombic forces
  *   with O(nlogN) scaling by using 3D FFT and interpolation to a mesh for the
  *   reciprocal space part of the Ewald sum.
- * - Here the method is used to compute electrostatic energies from an example
- *   arrangement of charged particles. Currently, we assume periodic boundary
- * conditions and a cubic mesh and arrangement of particles in 3 dimensions.
- * - Future versions will allow for assymetric meshes and non-uniform particle
- *   distributions, as well as 1 or 2 dimensions.
  */
 
 template<class t_neighbor>
@@ -37,38 +32,27 @@ ForceSPME<t_neighbor>::ForceSPME(System* system, bool half_neigh_):Force(system,
     half_neigh = half_neigh_;
     assert( half_neigh == true );
 
-    double accuracy = 1e-6;//Temporary accuracy hard-coded
-
+    _alpha = 0.0;
     _k_max = 0.0;
     _r_max = 0.0;
-    ForceSPME::tune( accuracy, system );
-
-    //ForceSPME::create_mesh( system );
-
 }
-/*
+
+//TODO: allow user to specify parameters
 template<class t_neighbor>
-ForceSPME<t_neighbor>::ForceSPME(double alpha, double r_max, bool half_neigh_):Force(system,half_neigh_) {
-    half_neigh = half_neigh_;
-    assert( half_neigh == true );
+void ForceSPME<t_neighbor>::init_coeff(System* system, char** args) {
 
-    _r_max = r_max;
-    _alpha = alpha;
-
-    //ForceSPME::create_mesh( system );
+  double accuracy = atof(args[2]);
+  tune(system, accuracy);
+  create_mesh(system);
 }
-*/
 
 // Tune to a given accuracy
 template<class t_neighbor>
-void ForceSPME<t_neighbor>::tune( double accuracy, System* system ) {
+void ForceSPME<t_neighbor>::tune( System* system, double accuracy ) {
     if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )
-    {
         throw std::runtime_error( "SPME needs symmetric system size for now." );
-    }
-    //auto q = Cabana::slice<Charge>( particles );
 
-    const int N = system->N;
+    const int N = system->N_local;
 
     // Fincham 1994, Optimisation of the Ewald Sum for Large Systems
     // only valid for cubic systems (needs adjustement for non-cubic systems)

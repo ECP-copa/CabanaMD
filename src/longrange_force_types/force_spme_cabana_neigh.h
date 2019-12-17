@@ -101,7 +101,7 @@ public:
   void create_neigh_list(System* system);
 
   double compute(System* system, std::shared_ptr<Cajita::GlobalMesh<Cajita::UniformMesh<double>>> global_mesh);
-  void tune(double accuracy, System* system);
+  void tune(System* system, T_F_FLOAT accuracy);
   void create_mesh(System* system);
   T_F_FLOAT compute_energy(System* system);
 
