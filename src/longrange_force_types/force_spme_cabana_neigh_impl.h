@@ -32,12 +32,6 @@
  *   distributions, as well as 1 or 2 dimensions.
  */
 
-constexpr double PI(3.141592653589793238462643);
-constexpr double PI_SQRT(1.772453850905516);
-constexpr double PI_SQ(PI*PI);// 9.869604401089359
-constexpr double PI_DIV_SQ(1.0/PI_SQ);//0.101321183642338
-
-
 template<class t_neighbor>
 ForceSPME<t_neighbor>::ForceSPME(System* system, bool half_neigh_):Force(system,half_neigh_) {
     half_neigh = half_neigh_;

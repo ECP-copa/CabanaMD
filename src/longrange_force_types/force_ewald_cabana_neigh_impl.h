@@ -11,12 +11,6 @@
 
 #include<force_ewald_cabana_neigh.h>
 
-constexpr double PI(3.141592653589793238462643);
-constexpr double PI_SQRT(1.772453850905516);
-constexpr double PI_SQ(PI*PI);// 9.869604401089359
-constexpr double PI_DIV_SQ(1.0/PI_SQ);//0.101321183642338
-
-
 template<class t_neighbor>
 ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(system,half_neigh_) {
     half_neigh = half_neigh_;
