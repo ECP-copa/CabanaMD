@@ -3,6 +3,15 @@ language: cpp
 # against hwloc error (travis-ci/travis-ci#10019)
 sudo: required
 
+stages:
+  - canary
+  - test
+
+jobs:
+    include:
+        - stage: canary
+          env: BACKENDS="OpenMP"
+
 addons:
   apt:
     sources:
@@ -51,7 +60,8 @@ before_script:
           -DCajita_ENABLE_TESTING=OFF
           -DCajita_ENABLE_COVERAGE_BUILD=OFF .. &&
     make -k -j2 VERBOSE=1 && make install &&
-    popd && popd
+    popd && popd;
+    fi
   - if [[ ${NNP} ]]; then
       git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
