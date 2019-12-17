@@ -72,6 +72,8 @@ private:
   typename AoSoA::member_slice_type<Charges> q;
   typename AoSoA::member_slice_type<Potentials> p;
 
+  Kokkos::View<T_F_FLOAT*,DeviceType> U_trigonometric;
+
   double _alpha;
   double _r_max;
   double _k_max;
@@ -79,11 +81,7 @@ private:
   //dielectric constant
   double _eps_r = 1.0; //Assume 1 for now (vacuum)
 
-  double *EwaldUk_coeffs;
-  
-  //Kokkos::View<double *, MemorySpace> domain_width;
-
-  MPI_Comm comm;
+  MPI_Comm cart_comm;
 
 public:
 
@@ -95,7 +93,8 @@ public:
   ForceEwald(System* system, bool half_neigh);
 
   void init_coeff(T_X_FLOAT neigh_cut, char** args);
-  void init_coeff(T_X_FLOAT neigh_cut, T_X_FLOAT neigh_k_cut, char** args);
+  void init_coeff(System* system, char** args);
+  void tune(System* system, T_F_FLOAT accuracy);
 
   void create_neigh_list(System* system);
 

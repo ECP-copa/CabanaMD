@@ -11,9 +11,7 @@
 
 #include<force_ewald_cabana_neigh_impl.h>
 
-
 template class ForceEwald<t_verletlist_half_2D>;
 template class ForceEwald<t_verletlist_full_2D>;
-//TODO: Don't allow full verletlist, since algorithm assumes half
 template class ForceEwald<t_verletlist_half_CSR>;
 template class ForceEwald<t_verletlist_full_CSR>;
