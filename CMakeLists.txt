@@ -116,7 +116,7 @@ endif()
 if( CabanaMD_ENABLE_NNP )
   file(GLOB SOURCES_SR src/force_types/*.cpp)
 else()
-  file(GLOB SOURCES src/*.cpp src/force_types/force_lj*.cpp)
+  file(GLOB SOURCES_SR src/force_types/force_lj*.cpp)
 endif()
 
 file(GLOB SOURCES src/*.cpp)
