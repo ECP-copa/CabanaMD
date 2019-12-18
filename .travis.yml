@@ -22,6 +22,7 @@ addons:
       - libopenmpi-dev
       - openmpi-bin
       - g++-6
+      - libfftw3-dev
 
 before_script:
   - sudo ln -s /usr/bin/ccache /usr/lib/ccache/clang++
@@ -56,9 +57,17 @@ before_script:
     git clone --depth=1 https://github.com/ECP-copa/Cajita.git &&
     pushd Cajita && mkdir build && pushd build &&
     cmake -DCMAKE_PREFIX_PATH=$HOME/kokkos
+          -DCMAKE_INSTALL_PREFIX=$HOME/Cajita
           -DCajita_ENABLE_TESTING=OFF
           -DCajita_ENABLE_COVERAGE_BUILD=OFF .. &&
     make -k -j2 VERBOSE=1 && make install &&
+    popd && popd &&
+    git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
+    pushd heffte && mkdir build && pushd build &&
+    cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"
+          -DFFTW_USE_STATIC_LIBS=ON
+          -DBUILD_GPU=OFF -DBUILD_SHARED=OFF .. &&
+    make -j2 VERBOSE=1 && make install &&
     popd && popd;
     fi
   - if [[ ${NNP} ]]; then
