@@ -92,6 +92,8 @@ public:
   std::shared_ptr<Cajita::LocalMesh<DeviceType, Cajita::UniformMesh<double>>> local_mesh;
   std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> local_grid;
   Cajita::PointSet<double, Cajita::Node, 3, DeviceType> point_set;
+  std::shared_ptr<Cajita::Array<double, Cajita::Node, Cajita::UniformMesh<double>>> meshq; 
+  std::shared_ptr<Cajita::Halo<double, DeviceType>> q_halo;
 
   ForceSPME( System* system, bool half_neigh);
 

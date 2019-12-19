@@ -193,10 +193,19 @@ void ForceSPME<t_neighbor>::create_mesh( System* system, Comm* comm)
         x, system->N_local + system->N_ghost, system->N_max, *local_grid, Cajita::Node(), Cajita::Spline<3>() );
 
     point_set = the_point_set;
+
+    // Create a scalar field for charge on the grid.
+    auto scalar_layout = Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
+    auto _meshq =
+        Cajita::createArray<double,DeviceType>( "meshq", scalar_layout );
+    auto _q_halo = Cajita::createHalo( *meshq, Cajita::FullHaloPattern() );
+
+    meshq = _meshq;
+    q_halo = _q_halo;
     
     //    int meshwidth =
     //        std::round( std::pow( meshsize, 1.0 / 3.0 ) ); // Assuming cubic mesh
-    int meshwidth_x = uniform_global_mesh-> highCorner( 0 ) - uniform_global_mesh->lowCorner( 0 ); 
+    int meshwidth_x = uniform_global_mesh-> highCorner( 0 ) - uniform_global_mesh->lowCorner( 0 );//TODO:really want number of mesh points 
     int meshwidth_y = uniform_global_mesh-> highCorner( 1 ) - uniform_global_mesh->lowCorner( 1 ); 
     int meshwidth_z = uniform_global_mesh-> highCorner( 2 ) - uniform_global_mesh->lowCorner( 2 ); 
     int meshsize = meshwidth_x * meshwidth_y * meshwidth_z;//TODO: each di
@@ -310,12 +319,6 @@ double ForceSPME<t_neighbor>::compute( System* system )
     //auto meshr = Cabana::slice<Positions>( mesh );//TODO: this should be point_set
     //auto meshq = Cabana::slice<Charges>( mesh );//TODO: the values of point_set. How to assign?
 
-    // Create a scalar field for charge on the grid.
-    auto scalar_layout = Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
-    auto meshq =
-        Cajita::createArray<double,DeviceType>( "meshq", scalar_layout );
-    auto q_halo = Cajita::createHalo( *meshq, Cajita::FullHaloPattern() );
-
 
 
 
@@ -421,7 +424,7 @@ double ForceSPME<t_neighbor>::compute( System* system )
 // The plan here is to perform an inverse FFT on the mesh charge, then multiply
 //  the norm of that result (in reciprocal space) by the BC array
 
-    int meshwidth = local_mesh-> highCorner( Cajita::Own(), 1 ) - local_mesh->lowCorner( Cajita::Own(), 1 ); 
+    int meshwidth = local_mesh-> highCorner( Cajita::Own(), 1 ) - local_mesh->lowCorner( Cajita::Own(), 1 );//TODO: meshwidth change 
     int meshsize = meshwidth * meshwidth * meshwidth;//TODO: each dim
 // Set up the real-space charge and reciprocal-space charge
 #ifdef CabanaMD_ENABLE_Cuda
