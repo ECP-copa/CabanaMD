@@ -656,3 +656,5 @@ double ForceSPME<t_neighbor>::compute( System* system )
 
 }
 
+template<class t_neighbor>
+const char* ForceEwald<t_neighbor>::name() {return "LongRangeForce:SPMECabanaVerletHalf";}

@@ -381,5 +381,4 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy(System* system) {
 }
 
 template<class t_neighbor>
-const char* ForceEwald<t_neighbor>::name() {return "Ewald";}
-
+const char* ForceEwald<t_neighbor>::name() {return "LongRangeForce:EwaldCabanaVerletHalf";}
