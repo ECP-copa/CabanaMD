@@ -92,7 +92,6 @@ public:
 
   ForceEwald(System* system, bool half_neigh);
 
-  void init_coeff(T_X_FLOAT neigh_cut, char** args);
   void init_coeff(System* system, char** args);
   void tune(System* system, T_F_FLOAT accuracy);
 

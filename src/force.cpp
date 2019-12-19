@@ -52,7 +52,6 @@
 Force::Force(System*, bool half_neigh_):half_neigh(half_neigh_) {}
 
 void Force::init_coeff(T_X_FLOAT, char**) {}
-void Force::init_coeff(System*, char**) {}
 void Force::create_neigh_list(System*) {}
 void Force::compute(System*) {}
 const char* Force::name() { return "ForceNone"; }

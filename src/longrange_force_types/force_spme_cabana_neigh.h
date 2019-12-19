@@ -94,17 +94,17 @@ public:
   Cajita::PointSet<double, Cajita::Node, 3, DeviceType> point_set;
 
   ForceSPME( System* system, bool half_neigh);
-  //ForceSPME( double alpha, double r_max, bool half_neigh);
 
-  void init_coeff(char** args);
+  void init_coeff(System* system, Comm* comm, char** args);
+  void tune(System* system, T_F_FLOAT accuracy);
+  void create_mesh(System* system, Comm* comm);
+
   double oneDspline(double x);
   double oneDsplinederiv(double x);
   double oneDeuler(int k, int meshwidth);
   void create_neigh_list(System* system);
 
   double compute(System* system);
-  void tune(System* system, T_F_FLOAT accuracy);
-  void create_mesh(System* system, Comm* comm);
   T_F_FLOAT compute_energy(System* system);
 
   const char* name();

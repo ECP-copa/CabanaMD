@@ -12,13 +12,6 @@
 #include<force_spme_cabana_neigh.h>
 #include <Cajita.hpp>
 
-#ifdef CabanaMD_ENABLE_Cuda
-#include <cufft.h>
-#include <cufftw.h>
-#else
-#include <fftw3.h>
-#endif
-
 #include <mpi.h>
 
 /* Smooth particle mesh Ewald (SPME) solver
@@ -39,11 +32,11 @@ ForceSPME<t_neighbor>::ForceSPME(System* system, bool half_neigh_):Force(system,
 
 //TODO: allow user to specify parameters
 template<class t_neighbor>
-void ForceSPME<t_neighbor>::init_coeff(System* system, char** args) {
+void ForceSPME<t_neighbor>::init_coeff(System* system, Comm* comm, char** args) {
 
   double accuracy = atof(args[2]);
   tune(system, accuracy);
-  create_mesh(system);
+  create_mesh(system, comm);
 }
 
 // Tune to a given accuracy
