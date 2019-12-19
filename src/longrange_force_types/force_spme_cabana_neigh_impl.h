@@ -11,6 +11,13 @@
 
 #include<force_spme_cabana_neigh.h>
 #include <Cajita.hpp>
+#ifdef Cabana_ENABLE_Cuda
+#include <cufft.h>
+#include <cufftw.h>
+#else
+#include <fftw3.h>
+#endif
+
 
 #include <mpi.h>
 
@@ -186,7 +193,95 @@ void ForceSPME<t_neighbor>::create_mesh( System* system, Comm* comm)
         x, system->N_local + system->N_ghost, system->N_max, *local_grid, Cajita::Node(), Cajita::Spline<3>() );
 
     point_set = the_point_set;
+    
+    //    int meshwidth =
+    //        std::round( std::pow( meshsize, 1.0 / 3.0 ) ); // Assuming cubic mesh
+    int meshwidth_x = uniform_global_mesh-> highCorner( 0 ) - uniform_global_mesh->lowCorner( 0 ); 
+    int meshwidth_y = uniform_global_mesh-> highCorner( 1 ) - uniform_global_mesh->lowCorner( 1 ); 
+    int meshwidth_z = uniform_global_mesh-> highCorner( 2 ) - uniform_global_mesh->lowCorner( 2 ); 
+    int meshsize = meshwidth_x * meshwidth_y * meshwidth_z;//TODO: each di
+    double alpha = _alpha;
+
+
+    // Calculating the values of the BC array involves first shifting the fractional
+    // coords then compute the B and C arrays as described in the paper This can be
+    // done once at the start of a run if the mesh stays constant
+
+    #ifdef CabanaMD_ENABLE_Cuda
+        cufftDoubleComplex *BC;
+        cudaMallocManaged( (void **)&BC, sizeof( cufftDoubleComplex ) * meshsize );
+    #else
+        fftw_complex *BC;
+        BC = (fftw_complex *)fftw_malloc( sizeof( fftw_complex ) * meshsize );
+    #endif
+
+        auto BC_functor = KOKKOS_LAMBDA( const int kx )
+        {
+            int ky, kz, mx, my, mz, idx;
+            for ( ky = 0; ky < meshwidth_y; ky++ )
+            {
+                for ( kz = 0; kz < meshwidth_z; kz++ )
+                {
+                    idx = kx + ( ky * meshwidth_y ) + ( kz * meshwidth_z * meshwidth_z );
+                    if ( kx + ky + kz > 0 )
+                    {
+                        // Shift the C array
+                        mx = kx;
+                        my = ky;
+                        mz = kz;
+                        if ( mx > meshwidth_x / 2.0 )
+                        {
+                            mx = kx - meshwidth_x;
+                        }
+                        if ( my > meshwidth_y / 2.0 )
+                        {
+                            my = ky - meshwidth_y;
+                        }
+                        if ( mz > meshwidth_z / 2.0 )
+                        {
+                            mz = kz - meshwidth_z;
+                        }
+                        double m2 = ( mx * mx + my * my +
+                                      mz * mz );
+    // Calculate BC.
+    #ifdef CabanaMD_ENABLE_Cuda
+                        BC[idx].x = ForceSPME::oneDeuler( kx, meshwidth_x ) *
+                                    ForceSPME::oneDeuler( ky, meshwidth_y ) *
+                                    ForceSPME::oneDeuler( kz, meshwidth_z ) *
+                                    exp( -PI * PI * m2 / ( alpha * alpha ) ) /
+                                    ( PI * system->domain_x * system->domain_y * system->domain_z * m2 );
+                        BC[idx].y = 0.0; // imag part
+    #else
+                        BC[idx][0] = ForceSPME::oneDeuler( kx, meshwidth_x ) *
+                                     ForceSPME::oneDeuler( ky, meshwidth_y ) *
+                                     ForceSPME::oneDeuler( kz, meshwidth_z ) *
+                                     exp( -PI * PI * m2 / ( alpha * alpha ) ) /
+                                     ( PI * system->domain_x * system->domain_y * system->domain_z * m2 );
+                        BC[idx][1] = 0.0; // imag part
+    #endif
+                    }
+                    else
+                    {
+    #ifdef CabanaMD_ENABLE_Cuda
+                        BC[idx].x = 0.0;
+                        BC[idx].y = 0.0; // set origin element to zero
+    #else
+                        BC[idx][0] = 0.0;
+                        BC[idx][1] = 0.0; // set origin element to zero
+    #endif
+                    }
+                }
+            }
+        };
+        Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, meshwidth_x ),
+                              BC_functor );
+        Kokkos::fence();
+
+    //TODO: Copy this BC complex array into a Cajita mesh array on nodes
+    //...better would be to assign these values straight to a Cajita mesh array on nodes 
+
 }
+
 
 
 
@@ -225,7 +320,7 @@ double ForceSPME<t_neighbor>::compute( System* system )
 
 
     // Number of particles
-    int n_max = system->N_local + system->N_ghost;//include N_ghost here?
+    int n_max = system->N_local;//include N_ghost here?
 
     // Number of mesh points
     //size_t meshsize = mesh.size();//TODO: replace with Cajita
@@ -322,141 +417,12 @@ double ForceSPME<t_neighbor>::compute( System* system )
 
 
 
-
-
-
-
-/*
-//TODO: Cajita mesh
-    // how far apart the mesh points are (assumed uniform cubic)
-    double spacing = meshr( 1, 0 ) - meshr( 0, 0 ); 
-    auto spread_q = KOKKOS_LAMBDA( const int idx )
-    {
-        double xdist, ydist, zdist;
-        for ( size_t pidx = 0; pidx < system->xvf.size(); ++pidx )
-        {
-            // x-distance between mesh point and particle
-            xdist = fmin(
-                fmin( std::abs( meshr( idx, 0 ) - x( pidx, 0 ) ),
-                      std::abs( meshr( idx, 0 ) - ( x( pidx, 0 ) + 1.0 ) ) ),
-                std::abs(
-                    meshr( idx, 0 ) -
-                    ( x( pidx, 0 ) - 1.0 ) ) ); // account for periodic bndry
-            // y-distance between mesh point and particle
-            ydist = fmin(
-                fmin( std::abs( meshr( idx, 1 ) - x( pidx, 1 ) ),
-                      std::abs( meshr( idx, 1 ) - ( x( pidx, 1 ) + 1.0 ) ) ),
-                std::abs(
-                    meshr( idx, 1 ) -
-                    ( x( pidx, 1 ) - 1.0 ) ) ); // account for periodic bndry
-            // z-distance between mesh point and particle
-            zdist = fmin(
-                fmin( std::abs( meshr( idx, 2 ) - x( pidx, 2 ) ),
-                      std::abs( meshr( idx, 2 ) - ( x( pidx, 2 ) + 1.0 ) ) ),
-                std::abs(
-                    meshr( idx, 2 ) -
-                    ( x( pidx, 2 ) - 1.0 ) ) ); // account for periodic bndry
-
-            if ( xdist <= 2.0 * spacing and ydist <= 2.0 * spacing and
-                 zdist <= 2.0 * spacing ) 
-            {
-                // add charge to mesh point according to spline
-                meshq( idx ) += q( pidx ) *
-                                ForceSPME::oneDspline( 2.0 - ( xdist / spacing ) ) *
-                                ForceSPME::oneDspline( 2.0 - ( ydist / spacing ) ) *
-                                ForceSPME::oneDspline( 2.0 - ( zdist / spacing ) );
-            }
-        }
-    };
-    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, meshsize ),
-                          spread_q );
-    Kokkos::fence();
-*/
-//TODO: Again replace with Cajita
-//    int meshwidth =
-//        std::round( std::pow( meshsize, 1.0 / 3.0 ) ); // Assuming cubic mesh
-
-
-
-// Calculating the values of the BC array involves first shifting the fractional
-// coords then compute the B and C arrays as described in the paper This can be
-// done once at the start of a run if the mesh stays constant
-
-#ifdef CabanaMD_ENABLE_Cuda
-    cufftDoubleComplex *BC;
-    cudaMallocManaged( (void **)&BC, sizeof( cufftDoubleComplex ) * meshsize );
-#else
-    fftw_complex *BC;
-    BC = (fftw_complex *)fftw_malloc( sizeof( fftw_complex ) * meshsize );
-#endif
-
-    auto BC_functor = KOKKOS_LAMBDA( const int kx )
-    {
-        int ky, kz, mx, my, mz, idx;
-        for ( ky = 0; ky < meshwidth; ky++ )
-        {
-            for ( kz = 0; kz < meshwidth; kz++ )
-            {
-                idx = kx + ( ky * meshwidth ) + ( kz * meshwidth * meshwidth );
-                if ( kx + ky + kz > 0 )
-                {
-                    // Shift the C array
-                    mx = kx;
-                    my = ky;
-                    mz = kz;
-                    if ( mx > meshwidth / 2.0 )
-                    {
-                        mx = kx - meshwidth;
-                    }
-                    if ( my > meshwidth / 2.0 )
-                    {
-                        my = ky - meshwidth;
-                    }
-                    if ( mz > meshwidth / 2.0 )
-                    {
-                        mz = kz - meshwidth;
-                    }
-                    double m2 = ( mx * mx + my * my +
-                                  mz * mz );
-// Calculate BC.
-#ifdef CabanaMD_ENABLE_Cuda
-                    BC[idx].x = ForceSPME::oneDeuler( kx, meshwidth ) *
-                                ForceSPME::oneDeuler( ky, meshwidth ) *
-                                ForceSPME::oneDeuler( kz, meshwidth ) *
-                                exp( -PI * PI * m2 / ( alpha * alpha ) ) /
-                                ( PI * system->domain_x * system->domain_y * system->domain_z * m2 );
-                    BC[idx].y = 0.0; // imag part
-#else
-                    BC[idx][0] = ForceSPME::oneDeuler( kx, meshwidth ) *
-                                 ForceSPME::oneDeuler( ky, meshwidth ) *
-                                 ForceSPME::oneDeuler( kz, meshwidth ) *
-                                 exp( -PI * PI * m2 / ( alpha * alpha ) ) /
-                                 ( PI * system->domain_x * system->domain_y * system->domain_z * m2 );
-                    BC[idx][1] = 0.0; // imag part
-#endif
-                }
-                else
-                {
-#ifdef CabanaMD_ENABLE_Cuda
-                    BC[idx].x = 0.0;
-                    BC[idx].y = 0.0; // set origin element to zero
-#else
-                    BC[idx][0] = 0.0;
-                    BC[idx][1] = 0.0; // set origin element to zero
-#endif
-                }
-            }
-        }
-    };
-    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, meshwidth ),
-                          BC_functor );
-    Kokkos::fence();
-
-
 // Next, solve Poisson's equation taking some FFTs of charges on mesh grid
 // The plan here is to perform an inverse FFT on the mesh charge, then multiply
 //  the norm of that result (in reciprocal space) by the BC array
 
+    int meshwidth = local_mesh-> highCorner( Cajita::Own(), 1 ) - local_mesh->lowCorner( Cajita::Own(), 1 ); 
+    int meshsize = meshwidth * meshwidth * meshwidth;//TODO: each dim
 // Set up the real-space charge and reciprocal-space charge
 #ifdef CabanaMD_ENABLE_Cuda
     cufftDoubleComplex *Qr, *Qktest;

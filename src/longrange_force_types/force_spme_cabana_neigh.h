@@ -103,6 +103,7 @@ public:
   double oneDsplinederiv(double x);
   double oneDeuler(int k, int meshwidth);
   void create_neigh_list(System* system);
+  void BC_mesh(System* system);
 
   double compute(System* system);
   T_F_FLOAT compute_energy(System* system);
