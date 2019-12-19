@@ -408,18 +408,18 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"mass")==0) {
     known = true;
     int type = atoi(input_data.words[line][1])-1;
-    Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
+    Kokkos::resize(system->mass, type+1);
     T_V_FLOAT mass = atof(input_data.words[line][2]);
-    Kokkos::deep_copy(mass_one,mass);
+    system->mass(type) = mass;
   }
   if(strcmp(input_data.words[line][0],"set")==0) {
     known = true;
     if(strcmp(input_data.words[line][1],"type")==0 and
        strcmp(input_data.words[line][3],"charge")==0) {
       int type = atoi(input_data.words[line][2])-1;
-      Kokkos::View<T_V_FLOAT> charge_one(system->charge,type);
+      Kokkos::resize(system->charge, type+1);
       T_V_FLOAT charge = atof(input_data.words[line][4]);
-      Kokkos::deep_copy(charge_one,charge);
+      system->charge(type) = charge;
     }
     else {
       if(system->do_print)
@@ -471,16 +471,20 @@ void Input::check_lammps_command(int line) {
     }
   }
   if(strcmp(input_data.words[line][0],"kspace_style")==0) {
-    if(strcmp(input_data.words[line][1],"ewald")!=0) {
+    if(strcmp(input_data.words[line][1],"ewald")==0) {
+      known = true;
       lrforce_type = FORCE_EWALD;
       Kokkos::resize(lrforce_coeff_lines,1);
       lrforce_coeff_lines(0) = line;
     }
-    if(strcmp(input_data.words[line][1],"spme")!=0) {
+    if(strcmp(input_data.words[line][1],"spme")==0) {
+      known = true;
       lrforce_type = FORCE_SPME;
       Kokkos::resize(lrforce_coeff_lines,1);
       lrforce_coeff_lines(0) = line;
     }
+    if(system->do_print && !known)
+      printf("LAMMPS-Command: 'kspace_style' command only supports 'ewald' or 'spme' in CabanaMD\n");
   }
   if(strcmp(input_data.words[line][0],"velocity")==0) {
     known = true;
