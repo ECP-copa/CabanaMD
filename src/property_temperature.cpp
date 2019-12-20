@@ -63,7 +63,7 @@ T_V_FLOAT Temperature::compute(System* system) {
   mass = t_mass();
 
   // Multiply by scaling factor (units based) to get to temperature
-  T_INT dof = 3 * system->N - 3;
+  T_INT dof = 3 * system->N_global - 3;
   T_V_FLOAT factor = system->mvv2e / (1.0 * dof * system->boltz);
 
   comm->reduce_float(&T,1);

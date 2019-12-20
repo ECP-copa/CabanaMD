@@ -19,8 +19,8 @@ set             type 2 charge -1
 
 velocity        all create 300 87287 loop geom
 
-kspace_style    ewald 1.0e-4
-pair_style      lj/cut/coul/long 8.0 10.0
+kspace_style    ewald 1.0e-6
+pair_style      lj/cut/coul/long 8.0
 pair_coeff      1 1 0.00150286 2.52  8.0
 pair_coeff      2 2 0.01658406 3.85  8.0
 pair_coeff      1 2 0.00499235 3.185 8.0

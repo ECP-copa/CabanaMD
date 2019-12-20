@@ -51,6 +51,7 @@
 #define FORCE_H
 #include<types.h>
 #include<system.h>
+#include<comm_mpi.h>
 
 class Force {
 public:
@@ -58,6 +59,7 @@ public:
   Force(System* system, bool half_neigh_);
 
   virtual void init_coeff(T_X_FLOAT neigh_cut, char** args);
+  virtual void init_coeff(System* system, Comm* comm, char** args);
   virtual void create_neigh_list(System* system);
 
   virtual void compute(System* system);

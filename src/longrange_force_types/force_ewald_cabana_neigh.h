@@ -78,6 +78,8 @@ private:
   double _r_max;
   double _k_max;
 
+  double lx, ly, lz;
+
   //dielectric constant
   double _eps_r = 1.0; //Assume 1 for now (vacuum)
 
@@ -86,13 +88,12 @@ private:
 public:
 
   bool half_neigh;
-  T_X_FLOAT neigh_cut;
 
   t_neighbor neigh_list;
 
   ForceEwald(System* system, bool half_neigh);
 
-  void init_coeff(System* system, char** args);
+  void init_coeff(System* system, Comm* comm, char** args);
   void tune(System* system, T_F_FLOAT accuracy);
 
   void create_neigh_list(System* system);

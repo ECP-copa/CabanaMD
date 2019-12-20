@@ -359,6 +359,7 @@ void Input::check_lammps_command(int line) {
       known = true;
       lattice_style = LATTICE_SC;
       lattice_constant = atof(input_data.words[line][2]);
+      system->lattice_constant = lattice_constant;
     } else if(strcmp(input_data.words[line][1],"fcc")==0) {
       known = true;
       lattice_style = LATTICE_FCC;
@@ -366,6 +367,7 @@ void Input::check_lammps_command(int line) {
         lattice_constant = std::pow((4.0 / atof(input_data.words[line][2])), (1.0 / 3.0));
       else
         lattice_constant = atof(input_data.words[line][2]);
+      system->lattice_constant = lattice_constant;
     } else {
       if(system->do_print)
         printf("LAMMPS-Command: 'lattice' command only supports 'sc' and 'fcc' in CabanaMD\n");
@@ -601,7 +603,7 @@ void Input::create_lattice(Comm* comm) {
       }
     }
     system->N_local = n;
-    system->N = n;
+    system->N_global = n;
     system->resize(n);
     s = *system;
     auto x = Cabana::slice<Positions>(s.xvf);
@@ -634,7 +636,7 @@ void Input::create_lattice(Comm* comm) {
         }
       }
     }
-    comm->reduce_int(&system->N,1);
+    comm->reduce_int(&system->N_global,1);
 
     // Make ids unique over all processes
     T_INT N_local_offset = n;
@@ -643,7 +645,7 @@ void Input::create_lattice(Comm* comm) {
       id(i) += N_local_offset - n;
 
     if(system->do_print)
-      printf("Atoms: %i %i\n",system->N,system->N_local);
+      printf("Atoms: %i %i\n",system->N_global,system->N_local);
   }
 
   // Create Face Centered Cubic (FCC) Lattice
@@ -701,7 +703,7 @@ void Input::create_lattice(Comm* comm) {
     }
 
     system->N_local = n;
-    system->N = n;
+    system->N_global = n;
     system->resize(n);
     s = *system;
     auto x = Cabana::slice<Positions>(s.xvf);
@@ -744,10 +746,10 @@ void Input::create_lattice(Comm* comm) {
     for(T_INT i = 0; i<n; i++)
       id(i) += N_local_offset - n;
 
-    comm->reduce_int(&system->N,1);
+    comm->reduce_int(&system->N_global,1);
 
     if(system->do_print)
-      printf("Atoms: %i %i\n",system->N,system->N_local);
+      printf("Atoms: %i %i\n",system->N_global,system->N_local);
   }
   // Initialize velocity using the equivalent of the LAMMPS
   // velocity geom option, i.e. uniform random kinetic energies.

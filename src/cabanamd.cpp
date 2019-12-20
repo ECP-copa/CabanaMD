@@ -99,24 +99,31 @@ void CabanaMD::init(int argc, char* argv[]) {
                       input->input_data.words[input->force_coeff_lines(line)]);
   }
 
-  // Create long range Force class
-  if(input->longrange) {
-    if(false) {}
-#define LONGRANGE_FORCE_MODULES_INSTANTIATION
-#include<modules_force.h>
-#undef LONGRANGE_FORCE_MODULES_INSTANTIATION
-    else comm->error("Invalid LongRangeForceType");
-    lrforce->init_coeff(neigh_cutoff,
-                        input->input_data.words[input->lrforce_coeff_lines(0)]);
-  }
-
   // Create Communication Submodule
   comm = new Comm(system, neigh_cutoff);
 
   // Do some additional settings
   force->comm_newton = input->comm_newton;
 
-  // system->print_particles();
+  // Ok lets go ahead and create the particles if that didn't happen yet
+  if(system->N_global == 0 && input->read_data_flag==true)
+    read_lammps_data_file(input->lammps_data_file, system, comm);
+  else if(system->N_global == 0)
+    input->create_lattice(comm);
+
+  // Create long range Force class
+  // Delay because tuning (within init) uses atom count, domain size
+  if(input->longrange) {
+    if(false) {}
+#define LONGRANGE_FORCE_MODULES_INSTANTIATION
+#include<modules_force.h>
+#undef LONGRANGE_FORCE_MODULES_INSTANTIATION
+    else comm->error("Invalid LongRangeForceType");
+    lrforce->init_coeff(system, comm,
+                        input->input_data.words[input->lrforce_coeff_lines(0)]);
+  }
+
+  // Output settings
   if(system->do_print) {
     if(input->longrange)
       printf("Using: %s %s %s %s %s\n",force->name(),lrforce->name(),comm->name(),binning->name(),integrator->name());
@@ -124,11 +131,7 @@ void CabanaMD::init(int argc, char* argv[]) {
       printf("Using: %s %s %s %s\n",force->name(),comm->name(),binning->name(),integrator->name());
   }
 
-  // Ok lets go ahead and create the particles if that didn't happen yet
-  if(system->N == 0 && input->read_data_flag==true)
-    read_lammps_data_file(input->lammps_data_file, system, comm);
-  else if(system->N == 0)
-    input->create_lattice(comm);
+  // Run step 0
 
   // Create the Halo
   comm->exchange(); 
@@ -162,9 +165,9 @@ void CabanaMD::init(int argc, char* argv[]) {
     PotE pote(comm);
     KinE kine(comm);
     T_FLOAT T = temp.compute(system);
-    T_FLOAT PE = pote.compute(system,force)/system->N;
+    T_FLOAT PE = pote.compute(system,force)/system->N_global;
     //TODO: add longrange contribution to PE
-    T_FLOAT KE = kine.compute(system)/system->N;
+    T_FLOAT KE = kine.compute(system)/system->N_global;
     if(system->do_print) {
       if (!system->print_lammps) {
         printf("\n");
@@ -273,12 +276,12 @@ void CabanaMD::run(int nsteps) {
     // On output steps print output
     if(step%input->thermo_rate==0) {
       T_FLOAT T = temp.compute(system);
-      T_FLOAT PE = pote.compute(system,force)/system->N;
-      T_FLOAT KE = kine.compute(system)/system->N;
+      T_FLOAT PE = pote.compute(system,force)/system->N_global;
+      T_FLOAT KE = kine.compute(system)/system->N_global;
       if(system->do_print) {
         if (!system->print_lammps) {
           double time = timer.seconds();
-          printf("%i %lf %lf %lf %lf %e\n",step, T, PE, PE+KE, timer.seconds(),1.0*system->N*input->thermo_rate/(time-last_time));
+          printf("%i %lf %lf %lf %lf %e\n",step, T, PE, PE+KE, timer.seconds(),1.0*system->N_global*input->thermo_rate/(time-last_time));
           last_time = time;
         } else {
           double time = timer.seconds();
@@ -303,13 +306,13 @@ void CabanaMD::run(int nsteps) {
     if (!system->print_lammps) {
       printf("\n");
       printf("#Procs Particles | Time T_Force T_Neigh T_Comm T_Int T_Other | Steps/s Atomsteps/s Atomsteps/(proc*s)\n");
-      printf("%i %i | %lf %lf %lf %lf %lf %lf | %lf %e %e PERFORMANCE\n",comm->num_processes(),system->N,time,
+      printf("%i %i | %lf %lf %lf %lf %lf %lf | %lf %e %e PERFORMANCE\n",comm->num_processes(),system->N_global,time,
         force_time,neigh_time,comm_time,integrate_time,other_time,
-        1.0*nsteps/time,1.0*system->N*nsteps/time,1.0*system->N*nsteps/time/comm->num_processes());
-      printf("%i %i | %lf %lf %lf %lf %lf %lf | FRACTION\n",comm->num_processes(),system->N,1.0,
+        1.0*nsteps/time,1.0*system->N_global*nsteps/time,1.0*system->N_global*nsteps/time/comm->num_processes());
+      printf("%i %i | %lf %lf %lf %lf %lf %lf | FRACTION\n",comm->num_processes(),system->N_global,1.0,
         force_time/time,neigh_time/time,comm_time/time,integrate_time/time,other_time/time);
     } else {
-      printf("Loop time of %f on %i procs for %i steps with %i atoms\n",time,comm->num_processes(),nsteps,system->N);
+      printf("Loop time of %f on %i procs for %i steps with %i atoms\n",time,comm->num_processes(),nsteps,system->N_global);
     }
   }
 }

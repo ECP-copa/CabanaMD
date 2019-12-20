@@ -61,7 +61,7 @@ before_script:
           -DCajita_ENABLE_TESTING=OFF
           -DCajita_ENABLE_COVERAGE_BUILD=OFF .. &&
     make -k -j2 VERBOSE=1 && make install &&
-    popd && popd &&
+    popd && popd;
     git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
     pushd heffte && mkdir build && pushd build &&
     cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"

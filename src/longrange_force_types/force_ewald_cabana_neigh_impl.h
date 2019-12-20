@@ -33,7 +33,6 @@ ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(syste
 
     MPI_Dims_create( n_ranks, 3, dims.data() );
 
-    MPI_Comm cart_comm;
     MPI_Cart_create( MPI_COMM_WORLD, 3, dims.data(), periods.data(), 0,
                          &cart_comm );
 
@@ -45,11 +44,17 @@ ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(syste
     std::vector<int> cart_periods( 3 );
     MPI_Cart_get( cart_comm, 3, cart_dims.data(), cart_periods.data(),
                   loc_coords.data() );
+
+    std::vector<int> neighbor_low( 3 );
+    std::vector<int> neighbor_up( 3 );
+    for ( int dim = 0; dim < 3; ++dim )
+      MPI_Cart_shift( cart_comm, dim, 1, &neighbor_low.at( dim ),
+                      &neighbor_up.at( dim ) );
 }
 
 //TODO: allow user to specify parameters
 template<class t_neighbor>
-void ForceEwald<t_neighbor>::init_coeff(System* system, char** args) {
+void ForceEwald<t_neighbor>::init_coeff(System* system, Comm*, char** args) {
 
   double accuracy = atof(args[2]);
   tune(system, accuracy);
@@ -60,18 +65,28 @@ void ForceEwald<t_neighbor>::tune( System* system, double accuracy ) {
   if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )
     throw std::runtime_error( "Ewald needs symmetric system size for now." );
 
-  const int N = system->N_local;
+  const int N = system->N_global;
+  lx = system->domain_x / system->lattice_constant;
+  ly = system->domain_y / system->lattice_constant;
+  lz = system->domain_z / system->lattice_constant;
 
   // Fincham 1994, Optimisation of the Ewald Sum for Large Systems
   // only valid for cubic systems (needs adjustement for non-cubic systems)
   constexpr double EXECUTION_TIME_RATIO_K_R = 2.0; // TODO: Change?
   double p = -log( accuracy );
-  _alpha = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) *
-    pow( N, 1.0 / 6.0 ) / system->domain_x;
-  _k_max = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) *
-    pow( N, 1.0 / 6.0 ) / system->domain_x * 2.0 * PI;
-  _r_max = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) /
-    pow( N, 1.0 / 6.0 ) * system->domain_x;
+  double tune_factor =
+    pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI );
+
+  _r_max = tune_factor / pow( N, 1.0 / 6.0 ) * lx;
+  // make the maximum cut_off dependent on the domain size
+  double comp_size = ( 5.0 > 0.75 * system->domain_x ) ? 0.75 * system->domain_x : 5.0;
+  comp_size = 4.0;
+  if ( _r_max > comp_size )
+    tune_factor = pow( N, 1.0 / 6.0 ) * 0.91 * comp_size / lx;
+
+  _r_max = tune_factor / pow( N, 1.0 / 6.0 ) * lx;
+  _alpha = tune_factor * pow( N, 1.0 / 6.0 ) / lx;
+  _k_max = tune_factor * pow( N, 1.0 / 6.0 ) / lx * 2.0 * PI;
   _alpha = sqrt( p ) / _r_max;
   _k_max = 2.0 * sqrt( p ) * _alpha;
 }
@@ -89,7 +104,7 @@ void ForceEwald<t_neighbor>::create_neigh_list(System* system) {
 
   auto x = Cabana::slice<Positions>(system->xvf);
 
-  t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
+  t_neighbor list( x, 0, N_local, _r_max, 1.0, grid_min, grid_max );
   neigh_list = list;
 }
 
@@ -100,13 +115,10 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
   x = Cabana::slice<Positions>(system->xvf);
   f = Cabana::slice<Forces>(system->xvf);
-  id = Cabana::slice<IDs>(system->xvf);
   q = Cabana::slice<Charges>(system->xvf);
 
   //get the solver parameters
   double alpha = _alpha;
-  double r_max = _r_max;
-  double eps_r = _eps_r;
   double k_max = _k_max;
 
   // In order to compute the k-space contribution in parallel
@@ -121,13 +133,9 @@ void ForceEwald<t_neighbor>::compute(System* system) {
  
   // determine number of required sine / cosine values  
   int k_int = std::ceil( k_max ) + 1;
-  int n_kvec = ( 2 * k_int + 1 ) * ( 2 * k_int ) * ( 2 * k_int + 1 );
+  int n_kvec = ( 2 * k_int + 1 ) * ( 2 * k_int + 1 ) * ( 2 * k_int + 1 );
 
   U_trigonometric = Kokkos::View<T_F_FLOAT*,DeviceType>("ForceEwald::U_trig", 2 * n_kvec);
-
-  double lx = system->domain_x;
-  double ly = system->domain_y;
-  double lz = system->domain_z;
 
   //Compute partial sums
   auto kspace_partial_sums = KOKKOS_LAMBDA( const int idx )
@@ -149,13 +157,13 @@ void ForceEwald<t_neighbor>::compute(System* system) {
                        continue;
                     // compute index in contribution array
                     int kidx =
-                        ( kz + k_int ) * ( 2 * k_int + 1 ) * ( 2 * k_int + 1 ) * ( 2 * k_int + 1 ) +
+                        ( kz + k_int ) * ( 2 * k_int + 1 ) * ( 2 * k_int + 1 ) +
                         ( ky + k_int ) * ( 2 * k_int + 1 ) + ( kx + k_int );
                     // compute wave vector component
                     double _kx = 2.0 * PI / lx * (double)kx;
                     // compute dot product with local particle and wave
                     // vector
-                    double kr = _kz * x( idx, 0 ) + _ky * x( idx, 1 ) + _kz * x( idx, 2 );
+                    double kr = _kx * x( idx, 0 ) + _ky * x( idx, 1 ) + _kz * x( idx, 2 );
                     //add contributions
                     Kokkos::atomic_add( &U_trigonometric( 2 * kidx ), qi * cos( kr ) );
                     Kokkos::atomic_add( &U_trigonometric( 2 * kidx + 1 ), qi * sin( kr ) );
@@ -172,7 +180,6 @@ void ForceEwald<t_neighbor>::compute(System* system) {
 
     auto kspace_force = KOKKOS_LAMBDA( const int idx )
     {
-        double coeff = 4.0 * PI / ( lx * ly * lz );
         double k[3];
         
         double qi = q( idx );
@@ -190,30 +197,30 @@ void ForceEwald<t_neighbor>::compute(System* system) {
                     // no values required for the central box
                     if ( kx == 0 && ky == 0 && kz == 0 )
                         continue;
-                        // compute index in contribution array
-                        int kidx = ( kz + k_int ) * ( 2 * k_int + 1 ) *
-                                       ( 2 * k_int + 1 ) +
-                                   ( ky + k_int ) * ( 2 * k_int + 1 ) +
-                                   ( kx + k_int );
-                        // compute wave vector component
-                        k[0] = 2.0 * PI / lx * (double)kx;
-                        // compute dot product of wave vector with itself
-                        double kk = k[0] * k[0] + k[1] * k[1] + k[2] * k[2];
+                    // compute index in contribution array
+                    int kidx = ( kz + k_int ) * ( 2 * k_int + 1 ) *
+                      ( 2 * k_int + 1 ) +
+                      ( ky + k_int ) * ( 2 * k_int + 1 ) +
+                      ( kx + k_int );
+                    // compute wave vector component
+                    k[0] = 2.0 * PI / lx * (double)kx;
+                    // compute dot product of wave vector with itself
+                    double kk = k[0] * k[0] + k[1] * k[1] + k[2] * k[2];
 
-                        // compute dot product with local particle and wave
-                        // vector
-                        double kr = k[0] * x( idx, 0 ) + k[1] * x( idx, 1 ) +
-                                    k[2] * x( idx, 2 );
+                    // compute dot product with local particle and wave
+                    // vector
+                    double kr = k[0] * x( idx, 0 ) + k[1] * x( idx, 1 ) +
+                      k[2] * x( idx, 2 );
 
-                        // coefficient dependent on wave vector
-                        double k_coeff =
-                            exp( -kk / ( 4 * alpha * alpha ) ) / kk;
+                    // coefficient dependent on wave vector
+                    double k_coeff =
+                      exp( -kk / ( 4 * alpha * alpha ) ) / kk;
 
-                        for ( int dim = 0; dim < 3; ++dim )
-                            f( idx, dim ) +=
-                              k_coeff * 2.0 * qi * k[dim] *
-                                ( U_trigonometric( 2 * kidx + 1 ) * cos( kr ) -
-                                  U_trigonometric( 2 * kidx ) * sin( kr ) );
+                    for ( int dim = 0; dim < 3; ++dim )
+                      f( idx, dim ) +=
+                        k_coeff * 2.0 * qi * k[dim] *
+                        ( U_trigonometric( 2 * kidx + 1 ) * cos( kr ) -
+                          U_trigonometric( 2 * kidx ) * sin( kr ) );
                 }
             }
         }
@@ -270,8 +277,6 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy(System* system) {
 
   //get the solver parameters
   double alpha = _alpha;
-  double r_max = _r_max;
-  double eps_r = _eps_r;
   double k_max = _k_max;
 
   x = Cabana::slice<Positions>(system->xvf);
@@ -279,11 +284,6 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy(System* system) {
   p = Cabana::slice<Potentials>(system->xvf);
 
   int k_int = std::ceil( k_max ) + 1;
-  int n_kvec = ( 2 * k_int + 1 ) * ( 2 * k_int ) * ( 2 * k_int + 1 );
-
-  double lx = system->domain_x;
-  double ly = system->domain_y;
-  double lz = system->domain_z;
 
   auto kspace_potential = KOKKOS_LAMBDA( const int idx )
   {
@@ -312,11 +312,6 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy(System* system) {
           k[0] = 2.0 * PI / lx * (double)kx;
           // compute dot product of wave vector with itself
           double kk = k[0] * k[0] + k[1] * k[1] + k[2] * k[2];
-
-          // compute dot product with local particle and wave
-          // vector
-          double kr = k[0] * x( idx, 0 ) + k[1] * x( idx, 1 ) +
-            k[2] * x( idx, 2 );
 
           // coefficient dependent on wave vector
           double k_coeff =

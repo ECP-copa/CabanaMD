@@ -51,7 +51,7 @@
 #include<mpi.h>
 
 System::System() {
-  N = 0;
+  N_global = 0;
   N_max = 0;
   N_local = 0;
   N_ghost = 0;
@@ -66,6 +66,7 @@ System::System() {
   domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
   sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
   sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
+  lattice_constant = 0.0;
   mvv2e = boltz = dt = 0.0;
 
   int proc_rank;
@@ -81,6 +82,7 @@ void System::init() {
 }
 
 void System::destroy() {
+  N_global = 0;
   N_max = 0;
   N_local = 0;
   N_ghost = 0;

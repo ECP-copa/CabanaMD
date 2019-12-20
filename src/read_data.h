@@ -107,7 +107,7 @@ void read_lammps_header(ifstream &file, System* s)
     // search line for header keyword and set corresponding variable
     if(line.find("atoms") != string::npos) {
       sscanf(temp, "%i", &natoms);
-      s->N = natoms;
+      s->N_global = natoms;
     }
     else if(line.find("atom types") != string::npos) {
       sscanf(temp, "%i", &ntypes);
@@ -155,7 +155,7 @@ void read_lammps_atoms(ifstream &file, System* s)
   T_INT id_tmp, type_tmp;
   T_FLOAT x_tmp, y_tmp, z_tmp, q_tmp; 
   T_INT counter = 0;
-  for (int n=0; n < s->N; n++) {
+  for (int n=0; n < s->N_global; n++) {
     const char* temp = line.data();
     if (s->atom_style == "atomic") {
       sscanf(temp, "%i %i %lg %lg %lg", &id_tmp, &type_tmp, &x_tmp, &y_tmp, &z_tmp);
@@ -188,7 +188,7 @@ void read_lammps_atoms(ifstream &file, System* s)
     }
   }
   s->N_local = counter;
-  s->N = counter;
+  s->N_global = counter;
 }
 
 
@@ -206,7 +206,7 @@ void read_lammps_velocities(ifstream &file, System* s)
   
   T_INT id_tmp;
   T_FLOAT vx_tmp, vy_tmp, vz_tmp; 
-  for (int n=0; n < s->N; n++) {
+  for (int n=0; n < s->N_global; n++) {
     const char* temp = line.data();
     sscanf(temp, "%i %lg %lg %lg", &id_tmp, &vx_tmp, &vy_tmp, &vz_tmp);
     v(n,0) = vx_tmp; v(n,1) = vy_tmp; v(n,2) = vz_tmp;
@@ -223,7 +223,8 @@ void read_lammps_data_file(const char* filename, System* s, Comm* comm) {
   //read header information
   read_lammps_header(file, s);
   
-  s->resize(s->N);
+  //TODO: this is not great
+  s->resize(s->N_global);
   
   //perform domain decomposition and get access to subdomains
   comm->create_domain_decomposition();
@@ -259,7 +260,7 @@ void read_lammps_data_file(const char* filename, System* s, Comm* comm) {
   int natoms;
   MPI_Allreduce(s->N_local, &natoms, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-  if(natoms != s->N) {
+  if(natoms != s->N_global) {
     if(me == 0 && system->do_print)
         printf("ERROR: Created incorrect # of atoms\n");
   }
