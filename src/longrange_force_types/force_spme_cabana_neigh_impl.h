@@ -39,11 +39,11 @@ ForceSPME<t_neighbor>::ForceSPME(System* system, bool half_neigh_):Force(system,
 
 //TODO: allow user to specify parameters
 template<class t_neighbor>
-void ForceSPME<t_neighbor>::init_coeff(System* system, Comm* comm, char** args) {
+void ForceSPME<t_neighbor>::init_coeff(System* system, char** args) {
 
   double accuracy = atof(args[2]);
   tune(system, accuracy);
-  create_mesh(system, comm);
+  create_mesh(system);
 }
 
 // Tune to a given accuracy
@@ -157,22 +157,29 @@ double ForceSPME<t_neighbor>::oneDeuler( int k, int meshwidth )
 
 // Create uniform mesh for SPME method
 template<class t_neighbor>
-void ForceSPME<t_neighbor>::create_mesh( System* system, Comm* comm)
+void ForceSPME<t_neighbor>::create_mesh( System* system)
 {
 
     // Set cell size. calculate domain_x/cell_size
     //cell_width = ???//TODO:
     // Create the global mesh.
-    std::array<int,3> num_cell = { system->N, system->N, system->N};
+    std::array<int,3> num_cell = { system->N_max, system->N_max, system->N_max};
     //TODO: have a good guess of number of cells, or input from file?
     std::array<bool,3> is_dim_periodic = {true,true,true};
     std::array<double,3> global_low_corner = {system->domain_lo_x, system->domain_lo_y, system->domain_lo_z };
     std::array<double,3> global_high_corner = { system->domain_hi_x, system->domain_hi_y, system->domain_hi_z };
     auto uniform_global_mesh = Cajita::createUniformGlobalMesh(
         global_low_corner, global_high_corner, num_cell );
+   
+    //Compute what proc_grid must be
+    const int proc_grid_x = system->domain_x / system->sub_domain_x;
+    const int proc_grid_y = system->domain_y / system->sub_domain_y;
+    const int proc_grid_z = system->domain_z / system->sub_domain_z;
     
+    const std::array<int, 3> proc_grid = {proc_grid_x, proc_grid_y, proc_grid_z};
+ 
     // Partition mesh into local grids.
-    auto partitioner = Cajita::ManualPartitioner(comm->proc_grid);// partitioner;
+    auto partitioner = Cajita::ManualPartitioner(proc_grid);// partitioner;
     auto global_grid = Cajita::createGlobalGrid( MPI_COMM_WORLD,
                                          uniform_global_mesh,
                                          is_dim_periodic,
@@ -180,35 +187,32 @@ void ForceSPME<t_neighbor>::create_mesh( System* system, Comm* comm)
     
     // Create a local grid.
     int halo_width = 1;
-    auto the_local_grid = Cajita::createLocalGrid( global_grid, halo_width );
-    auto the_local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
-
-    local_grid = the_local_grid;
-    local_mesh = the_local_mesh;
+    auto local_grid = Cajita::createLocalGrid( global_grid, halo_width );
+    auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
 
     auto x = Cabana::slice<Positions>( system->xvf );
 
-    // Create a point set with cubic spline interpolation to the nodes.
+/*    // Create a point set with cubic spline interpolation to the nodes.
     auto the_point_set = Cajita::createPointSet(
         x, system->N_local + system->N_ghost, system->N_max, *local_grid, Cajita::Node(), Cajita::Spline<3>() );
 
     point_set = the_point_set;
+*/
+//    auto node_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(), Cajita::Local() );
 
     // Create a scalar field for charge on the grid.
-    auto scalar_layout = Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
-    auto _meshq =
-        Cajita::createArray<double,DeviceType>( "meshq", scalar_layout );
-    auto _q_halo = Cajita::createHalo( *meshq, Cajita::FullHaloPattern() );
+    auto vector_layout = Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
+    auto meshq =
+        Cajita::createArray<Kokkos::complex<double>, DeviceType>( "meshq", vector_layout );
+    auto q_halo = Cajita::createHalo( *meshq, Cajita::FullHaloPattern() );
 
-    meshq = _meshq;
-    q_halo = _q_halo;
+
+    auto owned_space = local_grid->indexSpace(Cajita::Own(),Cajita::Node(),Cajita::Local());
     
-    //    int meshwidth =
-    //        std::round( std::pow( meshsize, 1.0 / 3.0 ) ); // Assuming cubic mesh
-    int meshwidth_x = uniform_global_mesh-> highCorner( 0 ) - uniform_global_mesh->lowCorner( 0 );//TODO:really want number of mesh points 
-    int meshwidth_y = uniform_global_mesh-> highCorner( 1 ) - uniform_global_mesh->lowCorner( 1 ); 
-    int meshwidth_z = uniform_global_mesh-> highCorner( 2 ) - uniform_global_mesh->lowCorner( 2 ); 
-    int meshsize = meshwidth_x * meshwidth_y * meshwidth_z;//TODO: each di
+    int meshwidth_x = global_grid->globalNumEntity( Cajita::Node(), 0); 
+    int meshwidth_y = global_grid->globalNumEntity( Cajita::Node(), 1); 
+    int meshwidth_z = global_grid->globalNumEntity( Cajita::Node(), 2); 
+    int meshsize = meshwidth_x * meshwidth_y * meshwidth_z;
     double alpha = _alpha;
 
 
@@ -216,14 +220,61 @@ void ForceSPME<t_neighbor>::create_mesh( System* system, Comm* comm)
     // coords then compute the B and C arrays as described in the paper This can be
     // done once at the start of a run if the mesh stays constant
 
-    #ifdef CabanaMD_ENABLE_Cuda
+ /*   #ifdef CabanaMD_ENABLE_Cuda
         cufftDoubleComplex *BC;
         cudaMallocManaged( (void **)&BC, sizeof( cufftDoubleComplex ) * meshsize );
     #else
         fftw_complex *BC;
         BC = (fftw_complex *)fftw_malloc( sizeof( fftw_complex ) * meshsize );
     #endif
+*/
+ 
+    //TODO: Copy this BC complex array into a Cajita mesh array on nodes
+    //...better would be to assign these values straight to a Cajita mesh array on nodes
+    BC_array = Cajita::createArray<Kokkos::complex<double>, DeviceType>( "BC_array", vector_layout );
+    auto BC_view = BC_array->view();
 
+    auto BC_functor = KOKKOS_LAMBDA( const int kx , const int ky, const int kz)
+    {
+        int mx, my, mz;
+        if ( kx + ky + kz > 0 )
+        {
+            // Shift the C array
+            mx = kx;
+            my = ky;
+            mz = kz;
+            if ( mx > meshwidth_x / 2.0 )
+            {
+                mx = kx - meshwidth_x;
+            }
+            if ( my > meshwidth_y / 2.0 )
+            {
+                my = ky - meshwidth_y;
+            }
+            if ( mz > meshwidth_z / 2.0 )
+            {
+                mz = kz - meshwidth_z;
+            }
+            double m2 = ( mx * mx + my * my + mz * mz );
+    // Calculate BC.
+            BC_view(kx,ky,kz,0).real( ForceSPME::oneDeuler( kx, meshwidth_x ) *
+                         ForceSPME::oneDeuler( ky, meshwidth_y ) *
+                         ForceSPME::oneDeuler( kz, meshwidth_z ) *
+                          exp( -PI * PI * m2 / ( alpha * alpha ) ) /
+                             ( PI * system->domain_x * system->domain_y * system->domain_z * m2 ) );
+            BC_view(kx,ky,kz,0).imag( 0.0 ); // imag part
+        }
+        else
+        {
+            BC_view(kx,ky,kz,0).real( 0.0 );
+            BC_view(kx,ky,kz,0).imag( 0.0 ); // set origin element to zero
+        }
+    };
+    Kokkos::parallel_for( Cajita::createExecutionPolicy(owned_space,ExecutionSpace()), BC_functor );
+    Kokkos::fence();
+
+
+/*
         auto BC_functor = KOKKOS_LAMBDA( const int kx )
         {
             int ky, kz, mx, my, mz, idx;
@@ -285,9 +336,7 @@ void ForceSPME<t_neighbor>::create_mesh( System* system, Comm* comm)
         Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, meshwidth_x ),
                               BC_functor );
         Kokkos::fence();
-
-    //TODO: Copy this BC complex array into a Cajita mesh array on nodes
-    //...better would be to assign these values straight to a Cajita mesh array on nodes 
+*/
 
 }
 
@@ -297,7 +346,7 @@ void ForceSPME<t_neighbor>::create_mesh( System* system, Comm* comm)
 // Compute the energy and forces
 //TODO: replace this mesh with a Cajita mesh
 template<class t_neighbor>
-double ForceSPME<t_neighbor>::compute( System* system )
+void ForceSPME<t_neighbor>::compute( System* system )
 {
     // For now, force symmetry
     if ( system->domain_x != system->domain_y or system->domain_x != system->domain_z )
@@ -313,13 +362,6 @@ double ForceSPME<t_neighbor>::compute( System* system )
     auto q = Cabana::slice<Charges>( system->xvf );
     auto p = Cabana::slice<Potentials>( system->xvf );
     auto f = Cabana::slice<Forces>( system->xvf );
-
-    // Mesh slices
-    // TODO: replace with Cajita mesh
-    //auto meshr = Cabana::slice<Positions>( mesh );//TODO: this should be point_set
-    //auto meshq = Cabana::slice<Charges>( mesh );//TODO: the values of point_set. How to assign?
-
-
 
 
     // Number of particles
@@ -412,65 +454,54 @@ double ForceSPME<t_neighbor>::compute( System* system )
         Ur );
 
     // computation reciprocal-space contribution
+    auto owned_space = local_grid->indexSpace(Cajita::Own(),Cajita::Node(),Cajita::Local());
+    const int num_meshpoints = owned_space.size();
+    const int num_points = x.size();
+    Kokkos::View<Kokkos::complex<double>*> Qr("complexQ", num_points);
+
+    //auto Qr = Cajita::createArray<Kokkos::complex<double>,DeviceType>( "Qcomplex", vector_layout );
+    //auto Qr_view = Qr->view();
+
+    auto copy_charge = KOKKOS_LAMBDA( const int idx )
+    {
+        Qr(idx).real( q(idx) );
+        Qr(idx).imag( 0.0 ); 
+    };
+    Kokkos::parallel_for(Kokkos::RangePolicy<ExecutionSpace>(0, num_points), copy_charge );
+    Kokkos::fence();
 
     // First, spread the charges onto the mesh
     Cajita::ArrayOp::assign( *meshq, 0.0, Cajita::Ghost() );
-    auto scalar_p2g = Cajita::createScalarValueP2G( q, 1.0 );
-    p2g( scalar_p2g, point_set, *q_halo, *meshq );
+    auto vector_p2g = Cajita::createVectorValueP2G( Qr, 1.0 );
+    Cajita::p2g( vector_p2g, x, x.size(), Cajita::Spline<3>(), *q_halo, *meshq );
 
 
 
 // Next, solve Poisson's equation taking some FFTs of charges on mesh grid
 // The plan here is to perform an inverse FFT on the mesh charge, then multiply
 //  the norm of that result (in reciprocal space) by the BC array
+    auto vector_layout = Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
 
-    int meshwidth = local_mesh-> highCorner( Cajita::Own(), 1 ) - local_mesh->lowCorner( Cajita::Own(), 1 );//TODO: meshwidth change 
-    int meshsize = meshwidth * meshwidth * meshwidth;//TODO: each dim
+    auto fft = Cajita::createFastFourierTransform<double,DeviceType>(
+        *vector_layout, Cajita::FastFourierTransformParams{}.setCollectiveType( 2 ).setExchangeType( 0 ).setPackType( 2 ).setScalingType( 1 ) );   
+
+    fft->reverse( *meshq );
+
 // Set up the real-space charge and reciprocal-space charge
-#ifdef CabanaMD_ENABLE_Cuda
-    cufftDoubleComplex *Qr, *Qktest;
-    cufftHandle plantest;
-    cudaMallocManaged( (void **)&Qr, sizeof( fftw_complex ) * meshsize );
-    cudaMallocManaged( (void **)&Qktest, sizeof( fftw_complex ) * meshsize );
+    //fftw_complex *Qr, *Qktest;
+    //fftw_plan plantest, planforward;
+    //Qr = (fftw_complex *)fftw_malloc( sizeof( fftw_complex ) * meshsize );
+    //Qktest = (fftw_complex *)fftw_malloc( sizeof( fftw_complex ) * meshsize );
     // Copy charges into real input array
-    auto copy_charge = KOKKOS_LAMBDA( const int idx )
-    {
-        Qr[idx].x = meshq( idx );
-        Qr[idx].y = 0.0;
-    };
-    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, meshsize ),
-                          copy_charge );
-#else
-    fftw_complex *Qr, *Qktest;
-    fftw_plan plantest, planforward;
-    Qr = (fftw_complex *)fftw_malloc( sizeof( fftw_complex ) * meshsize );
-    Qktest = (fftw_complex *)fftw_malloc( sizeof( fftw_complex ) * meshsize );
-    // Copy charges into real input array
-    auto copy_charge = KOKKOS_LAMBDA( const int idx )
+    /*auto copy_charge = KOKKOS_LAMBDA( const int idx )
     {
         Qr[idx][0] = meshq( idx );
         Qr[idx][1] = 0.0;
     };
     Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, meshsize ),
                           copy_charge );
-#endif
     Kokkos::fence();
 
-// Plan out that IFFT on the real-space charge mesh
-#ifdef CabanaMD_ENABLE_Cuda
-    cufftPlan3d( &plantest, meshwidth, meshwidth, meshwidth, CUFFT_Z2Z );
-    cufftExecZ2Z( plantest, Qr, Qktest, CUFFT_INVERSE ); // IFFT on Q
-    // Update the energy
-    Kokkos::parallel_reduce(
-        meshsize,
-        KOKKOS_LAMBDA( const int idx, double &Uk_part ) {
-            Uk_part += BC[idx].x * ( ( Qktest[idx].x * Qktest[idx].x ) +
-                                     ( Qktest[idx].y * Qktest[idx].y ) );
-        },
-        Uk );
-    Kokkos::fence();
-    cufftDestroy( plantest );
-#else
     plantest = fftw_plan_dft_3d( meshwidth, meshwidth, meshwidth, Qr, Qktest,
                                  FFTW_BACKWARD, FFTW_ESTIMATE );
     fftw_execute( plantest ); // IFFT on Q
@@ -485,20 +516,30 @@ double ForceSPME<t_neighbor>::compute( System* system )
     Kokkos::fence();
     fftw_destroy_plan( plantest );
     // update Q for later force calcs
-    auto update_q = KOKKOS_LAMBDA( const int idx )
+    */
+
+    auto meshq_view = meshq->view();
+    auto BC_view = BC_array->view();
+
+
+    auto mult_BC_meshq = KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
-        Qktest[idx][0] *= BC[idx][0];
-        Qktest[idx][1] *= BC[idx][0];
+        meshq_view(i,j,k,0) *= BC_view(i,j,k,0).real();
     };
 
-    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_max ),
-                          update_q );
+    Kokkos::parallel_for( Cajita::createExecutionPolicy(owned_space,ExecutionSpace()),
+                          mult_BC_meshq );//TODO: Check indexing
+
+
+
+    fft->forward( *meshq );
+/*
+
     // FFT forward on altered Q array
     planforward = fftw_plan_dft_3d( meshwidth, meshwidth, meshwidth, Qktest,
                                     Qktest, FFTW_FORWARD, FFTW_ESTIMATE );
     fftw_execute( planforward );
     fftw_destroy_plan( planforward );
-#endif
 
     Uk *= 0.5;
 
@@ -512,7 +553,7 @@ double ForceSPME<t_neighbor>::compute( System* system )
                              Uself );
     Kokkos::fence();
     total_energy = Ur + Uk + Uself;
-
+*/
     // Now, compute forces on each particle
     //
     // For each particle
@@ -527,6 +568,31 @@ double ForceSPME<t_neighbor>::compute( System* system )
     // Fx += q*(deriv_Bx)*By*Bz*Qktest[meshpoint]
     // Fy += q*(deriv_By)*Bx*Bz*Qktest[meshpoint]
     // Fz += q*(deriv_Bz)*Bx*By*Qktest[meshpoint]
+
+
+    //Don't want to zero out forces. We want to add to them
+    //Kokkos::deep_copy( f, 0.0 );
+    auto scalar_gradient_g2p = Cajita::createScalarGradientG2P( f, 1.0 );
+    Cajita::g2p( *meshq, *q_halo, x, system->N_local + system->N_ghost, Cajita::Spline<3>(), scalar_gradient_g2p );
+    //Kokkos::deep_copy( f_host, f );
+
+    //Now, multiply each value by particle's charge to get force
+    auto mult_q = KOKKOS_LAMBDA( const int idx )
+    {
+        f( idx, 0 ) *= q( idx );
+        f( idx, 1 ) *= q( idx );
+        f( idx, 2 ) *= q( idx );
+    };
+    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_max ),
+                          mult_q );
+    Kokkos::fence();
+
+
+
+
+
+
+/*
     auto gather_f = KOKKOS_LAMBDA( const int pidx )
     {
         double xdist, ydist, zdist, closestpart;
@@ -616,14 +682,15 @@ double ForceSPME<t_neighbor>::compute( System* system )
     };
     Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, n_max ),
                           gather_f );
+*/
 
 #ifndef CabanaMD_ENABLE_Cuda
     fftw_cleanup();
 #endif
-    return total_energy;
+    //return total_energy;
 //TODO: return nothing, just update forces. calc_energy will return this
 
 }
 
 template<class t_neighbor>
-const char* ForceEwald<t_neighbor>::name() {return "LongRangeForce:SPMECabanaVerletHalf";}
+const char* ForceSPME<t_neighbor>::name() {return "LongRangeForce:SPMECabanaVerletHalf";}
