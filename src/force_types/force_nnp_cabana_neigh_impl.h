@@ -89,13 +89,9 @@ T_V_FLOAT ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute_ener
 
   Kokkos::fence();
 
-  int proc_rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &proc_rank);
-  if(proc_rank == 0) // only add offset once
-    system_energy += s->N*atomicEnergyOffset(0); //TODO: replace hardcoded
-
+  system_energy += s->N_local*atomicEnergyOffset(0); //TODO: replace hardcoded
   system_energy /= mode->convEnergy;
-  system_energy += s->N*mode->meanEnergy;
+  system_energy += s->N_global*mode->meanEnergy;
   system_energy *= 27.211384021355236; //hartree to eV conversion (TODO: look into this)
   step++;
   return system_energy;

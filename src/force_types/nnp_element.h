@@ -233,7 +233,7 @@ inline void Element::setScalingType(ScalingType scalingType, string statisticsLi
     // Older versions may not supply sigma.
     if (s.size() > 5)
         Gsigma = atof(s.at(5).c_str());
-        SFscaling(attype,k,3) = Gsigma;
+    SFscaling(attype,k,3) = Gsigma;
     
     SFscaling(attype,k,4) = Smin;
     SFscaling(attype,k,5) = Smax;

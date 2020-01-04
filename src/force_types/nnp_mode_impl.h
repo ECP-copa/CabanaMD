@@ -236,10 +236,10 @@ void Mode::calculateAtomicNeuralNetworks(System* s, AoSoA_NNP nnp_data, t_mass n
     auto dEdG = Cabana::slice<NNPNames::dEdG>(nnp_data);
     auto energy = Cabana::slice<NNPNames::energy>(nnp_data);
 
-    NN = d_t_NN("Mode::NN",s->N,numLayers,maxNeurons);
-    dfdx = d_t_NN("Mode::dfdx",s->N,numLayers,maxNeurons);
-    inner = d_t_NN("Mode::inner",s->N,numHiddenLayers,maxNeurons);
-    outer = d_t_NN("Mode::outer",s->N,numHiddenLayers,maxNeurons);
+    NN = d_t_NN("Mode::NN",s->N_local,numLayers,maxNeurons);
+    dfdx = d_t_NN("Mode::dfdx",s->N_local,numLayers,maxNeurons);
+    inner = d_t_NN("Mode::inner",s->N_local,numHiddenLayers,maxNeurons);
+    outer = d_t_NN("Mode::outer",s->N_local,numHiddenLayers,maxNeurons);
     
     auto calc_nn_op = KOKKOS_LAMBDA (const int atomindex)
     {
