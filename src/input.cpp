@@ -140,9 +140,6 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   lrforce_iteration_type = force_iteration_type;
 
   longrange = false;
-  #ifdef CabanaMD_ENABLE_LongRange
-  longrange = true;
-  #endif
 
   force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
 
@@ -403,6 +400,7 @@ void Input::check_lammps_command(int line) {
     known = true;
     system->ntypes = atoi(input_data.words[line][1]);
     system->mass = t_mass("System::mass",system->ntypes);
+    system->charge = t_mass("System::charge",system->ntypes);
   }
   if(strcmp(input_data.words[line][0],"create_atoms")==0) {
     known = true;
@@ -410,18 +408,18 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"mass")==0) {
     known = true;
     int type = atoi(input_data.words[line][1])-1;
-    Kokkos::resize(system->mass, type+1);
+    Kokkos::View<T_V_FLOAT> mass_one(system->mass,type);
     T_V_FLOAT mass = atof(input_data.words[line][2]);
-    system->mass(type) = mass;
+    Kokkos::deep_copy(mass_one,mass);
   }
   if(strcmp(input_data.words[line][0],"set")==0) {
     known = true;
     if(strcmp(input_data.words[line][1],"type")==0 and
        strcmp(input_data.words[line][3],"charge")==0) {
       int type = atoi(input_data.words[line][2])-1;
-      Kokkos::resize(system->charge, type+1);
+      Kokkos::View<T_V_FLOAT> charge_one(system->charge,type);
       T_V_FLOAT charge = atof(input_data.words[line][4]);
-      system->charge(type) = charge;
+      Kokkos::deep_copy(charge_one,charge);
     }
     else {
       if(system->do_print)
@@ -475,12 +473,14 @@ void Input::check_lammps_command(int line) {
   if(strcmp(input_data.words[line][0],"kspace_style")==0) {
     if(strcmp(input_data.words[line][1],"ewald")==0) {
       known = true;
+      longrange = true;
       lrforce_type = FORCE_EWALD;
       Kokkos::resize(lrforce_coeff_lines,1);
       lrforce_coeff_lines(0) = line;
     }
     if(strcmp(input_data.words[line][1],"spme")==0) {
       known = true;
+      longrange = true;
       lrforce_type = FORCE_SPME;
       Kokkos::resize(lrforce_coeff_lines,1);
       lrforce_coeff_lines(0) = line;
@@ -630,7 +630,7 @@ void Input::create_lattice(Comm* comm) {
             x(n,2) = ztmp;
             type(n) = rand()%s.ntypes;
             id(n) = n+1;
-            q(n) = s.charge(type(n));
+            q(n) = h_charge(type(n));
             n++;
           }
         }
@@ -732,7 +732,7 @@ void Input::create_lattice(Comm* comm) {
               x(n,2) = ztmp;
               type(n) = rand()%s.ntypes;
               id(n) = n+1;
-              q(n) = s.charge(type(n));
+              q(n) = h_charge(type(n));
               n++;
             }
           }
