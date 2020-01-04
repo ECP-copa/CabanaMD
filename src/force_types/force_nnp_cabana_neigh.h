@@ -130,7 +130,8 @@ public:
   T_F_FLOAT compute_energy(System* system);
   
   const char* name();
-  
+
+  bool do_print;
   bool showew;
   bool resetew;
   T_INT showewsum;

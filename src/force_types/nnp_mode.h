@@ -94,7 +94,7 @@ namespace nnpCbn
 class Mode
 {
 public:
-    Mode();
+    Mode(bool do_print);
     /** Write welcome message with version information.
      */
     void                     initialize();
@@ -408,6 +408,8 @@ public:
     CutoffFunction::CutoffType    cutoffType;
     std::vector<Element>          elements;
     std::vector<string>           elementStrings;
+
+    bool do_print;
 };
 
 //////////////////////////////////

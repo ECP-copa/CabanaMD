@@ -15,13 +15,12 @@
 #include <iostream>
 
 template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh) {
+ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::ForceNNP(System* system, bool half_neigh_):Force(system,half_neigh_) {
   ntypes = system->ntypes;
   N_local = 0;
   step = 0;
   half_neigh = half_neigh_;
-  //resize nnp_data to have size as big as number of atoms in system
-  AoSoA_NNP nnp_data ("ForceNNP::nnp_data", system->N);
+  do_print = system->do_print;
 }
 
 
@@ -48,7 +47,7 @@ const char* ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::name() {re
 template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
   neigh_cut = neigh_cutoff;
-  mode = new(nnpCbn::Mode);
+  mode = new nnpCbn::Mode(do_print);
   mode->initialize();
   std::string settingsfile = std::string(args[3]) + "/input.nn"; //arg[3] gives directory path
   mode->loadSettingsFile(settingsfile);
