@@ -148,9 +148,13 @@ void CabanaMD::init(int argc, char* argv[]) {
   // Compute initial forces
   auto f = Cabana::slice<Forces>(system->xvf);
   Cabana::deep_copy(f, 0.0);
+  auto p = Cabana::slice<Potentials>(system->xvf);
+  Cabana::deep_copy(p, 0.0);
   force->compute(system);
-  if(input->longrange)
+  if(input->longrange) {
+    lrforce->create_neigh_list(system);
     lrforce->compute(system);
+  }
 
   // Reverse Communicate Force Update on Halo
   //   update force for nnp pair style even if full
@@ -233,6 +237,8 @@ void CabanaMD::run(int nsteps) {
       // Compute Neighbor List 
       neigh_timer.reset();
       force->create_neigh_list(system);
+      if(input->longrange)
+        lrforce->create_neigh_list(system);
       neigh_time += neigh_timer.seconds();
     } else {
       // Exchange Halo
@@ -245,6 +251,8 @@ void CabanaMD::run(int nsteps) {
     force_timer.reset();
     auto f = Cabana::slice<Forces>(system->xvf);
     Cabana::deep_copy(f, 0.0);
+    auto p = Cabana::slice<Potentials>(system->xvf);
+    Cabana::deep_copy(p, 0.0);
 
     // Compute Short Range Force
     force->compute(system);
