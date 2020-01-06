@@ -54,7 +54,7 @@ ForceEwald<t_neighbor>::ForceEwald(System* system, bool half_neigh_):Force(syste
 
 //TODO: allow user to specify parameters
 template<class t_neighbor>
-void ForceEwald<t_neighbor>::init_coeff(System* system, Comm*, char** args) {
+void ForceEwald<t_neighbor>::init_coeff(System* system, T_X_FLOAT, char** args) {
 
   double accuracy = atof(args[2]);
   tune(system, accuracy);

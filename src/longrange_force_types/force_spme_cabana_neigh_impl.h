@@ -39,7 +39,7 @@ ForceSPME<t_neighbor>::ForceSPME(System* system, bool half_neigh_):Force(system,
 
 //TODO: allow user to specify parameters
 template<class t_neighbor>
-void ForceSPME<t_neighbor>::init_coeff(System* system, char** args) {
+void ForceSPME<t_neighbor>::init_coeff(System* system, T_X_FLOAT, char** args) {
 
   double accuracy = atof(args[2]);
   tune(system, accuracy);

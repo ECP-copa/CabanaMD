@@ -31,14 +31,14 @@
         if (half_neigh)
           lrforce = new ForceEwald<t_verletlist_half_2D>(system,half_neigh);
         else
-          throw std::runtime_error( "Half neighbor list not implemented "
+          throw std::runtime_error( "Full neighbor list not implemented "
                                     "for the Ewald longrange solver." );
       }
       else if (input->neighbor_type == NEIGH_CSR) {
 	if (half_neigh)
           lrforce = new ForceEwald<t_verletlist_half_CSR>(system,half_neigh);
         else
-          throw std::runtime_error( "Half neighbor list not implemented "
+          throw std::runtime_error( "Full neighbor list not implemented "
                                     "for the Ewald longrange solver." );
       }
       #undef FORCETYPE_ALLOCATION_MACRO
@@ -93,7 +93,7 @@ public:
 
   ForceEwald(System* system, bool half_neigh);
 
-  void init_coeff(System* system, Comm* comm, char** args);
+  void init_coeff(System* system, T_X_FLOAT cut, char** args);
   void tune(System* system, T_F_FLOAT accuracy);
 
   void create_neigh_list(System* system);

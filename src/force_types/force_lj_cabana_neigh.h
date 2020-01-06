@@ -137,7 +137,7 @@ public:
 
   ForceLJ(System* system, bool half_neigh_);
 
-  void init_coeff(T_X_FLOAT neigh_cut, char** args);
+  void init_coeff(System* system, T_X_FLOAT neigh_cut, char** args);
 
   void create_neigh_list(System* system);
 

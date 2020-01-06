@@ -45,7 +45,7 @@ template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 const char* ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::name() {return half_neigh?"Force:NNPCabanaVerletHalf":"Force:NNPCabanaVerletFull";}
 
 template<class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::init_coeff(T_X_FLOAT neigh_cutoff, char** args) {
+void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::init_coeff(System*, T_X_FLOAT neigh_cutoff, char** args) {
   neigh_cut = neigh_cutoff;
   mode = new nnpCbn::Mode(do_print);
   mode->initialize();

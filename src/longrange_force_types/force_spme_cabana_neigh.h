@@ -86,7 +86,6 @@ private:
 public:
 
   bool half_neigh;
-  T_X_FLOAT neigh_cut;
 
   t_neighbor neigh_list;
   std::shared_ptr<Cajita::LocalMesh<DeviceType, Cajita::UniformMesh<double>>> local_mesh;
@@ -97,7 +96,7 @@ public:
 
   ForceSPME( System* system, bool half_neigh);
 
-  void init_coeff(System* system, char** args);
+  void init_coeff(System* system, T_X_FLOAT cut, char** args);
   void tune(System* system, T_F_FLOAT accuracy);
   void create_mesh(System* system);
 

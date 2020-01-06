@@ -95,7 +95,7 @@ void CabanaMD::init(int argc, char* argv[]) {
 #undef FORCE_MODULES_INSTANTIATION
   else comm->error("Invalid ForceType");
   for(std::size_t line = 0; line < input->force_coeff_lines.extent(0); line++) {
-    force->init_coeff(neigh_cutoff,
+    force->init_coeff(system, neigh_cutoff,
                       input->input_data.words[input->force_coeff_lines(line)]);
   }
 
@@ -119,7 +119,7 @@ void CabanaMD::init(int argc, char* argv[]) {
 #include<modules_force.h>
 #undef LONGRANGE_FORCE_MODULES_INSTANTIATION
     else comm->error("Invalid LongRangeForceType");
-    lrforce->init_coeff(system, comm,
+    lrforce->init_coeff(system, neigh_cutoff,
                         input->input_data.words[input->lrforce_coeff_lines(0)]);
   }
 

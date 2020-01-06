@@ -122,7 +122,7 @@ public:
   h_t_mass h_numSFperElem, atomicEnergyOffset;
 
   ForceNNP(System* system, bool half_neigh_);
-  void init_coeff(T_X_FLOAT neigh_cutoff, char** args);
+  void init_coeff(System* system, T_X_FLOAT neigh_cutoff, char** args);
 
   void create_neigh_list(System* system);
 

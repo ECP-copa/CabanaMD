@@ -58,8 +58,7 @@ public:
   bool half_neigh, comm_newton;
   Force(System* system, bool half_neigh_);
 
-  virtual void init_coeff(T_X_FLOAT neigh_cut, char** args);
-  virtual void init_coeff(System* system, Comm* comm, char** args);
+  virtual void init_coeff(System* system, T_X_FLOAT neigh_cut, char** args);
   virtual void create_neigh_list(System* system);
 
   virtual void compute(System* system);

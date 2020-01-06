@@ -63,7 +63,7 @@ ForceLJ<t_neighbor>::ForceLJ(System* system, bool half_neigh_):Force(system,half
 }
 
 template<class t_neighbor>
-void ForceLJ<t_neighbor>::init_coeff(T_X_FLOAT neigh_cut_, char** args) {
+void ForceLJ<t_neighbor>::init_coeff(System*, T_X_FLOAT neigh_cut_, char** args) {
   neigh_cut = neigh_cut_;
   step = 0;
 
