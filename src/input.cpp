@@ -171,6 +171,10 @@ Input::Input(System* p):system(p),input_data(ItemizedFile()),data_file_data(Item
   units_style = UNITS_LJ;
   lattice_style = LATTICE_FCC;
   lattice_constant = 0.8442;
+  num_lattice = -1;
+  curr_lattice = 0;
+  done_lattice = 1;
+  type_lattice = 0;
 
   temperature_target = 1.4;
   temperature_seed = 87287;
@@ -286,7 +290,7 @@ void Input::read_lammps_file(const char* filename) {
     line[0] = 0;
     file.getline(line,511);
   }
-  if(system->do_print) {
+  if(system->do_print and num_lattice == -1) {
     printf("\n");
     printf("#InputFile:\n");
     printf("#=========================================================\n");
@@ -296,8 +300,18 @@ void Input::read_lammps_file(const char* filename) {
     printf("#=========================================================\n");
     printf("\n");
   }
-  for(int l = 0; l<input_data.nlines; l++)
+  curr_lattice = 0;
+  for(int l = 0; l<input_data.nlines; l++) {
     check_lammps_command(l);
+    if(curr_lattice == done_lattice and done_lattice < num_lattice) {
+      done_lattice += 1;
+      return;
+    }
+  }
+  // Re-read input file to build multiple lattices
+  if(num_lattice == -1) {
+    num_lattice = curr_lattice;
+  }
 }
 
 void Input::check_lammps_command(int line) {
@@ -374,6 +388,11 @@ void Input::check_lammps_command(int line) {
        lattice_offset_y = atof(input_data.words[line][5]);
        lattice_offset_z = atof(input_data.words[line][6]);
     }
+    else {
+      lattice_offset_x = 0.0;
+      lattice_offset_y = 0.0;
+      lattice_offset_z = 0.0;
+    }
   }
   if(strcmp(input_data.words[line][0],"region")==0) {
     if(strcmp(input_data.words[line][2],"block")==0) {
@@ -404,6 +423,8 @@ void Input::check_lammps_command(int line) {
   }
   if(strcmp(input_data.words[line][0],"create_atoms")==0) {
     known = true;
+    type_lattice = atoi(input_data.words[line][1])-1;
+    curr_lattice += 1;
   }
   if(strcmp(input_data.words[line][0],"mass")==0) {
     known = true;
@@ -558,30 +579,31 @@ void Input::create_lattice(Comm* comm) {
 
   System s = *system;
 
-  t_mass::HostMirror h_mass = Kokkos::create_mirror_view(s.mass);
-  Kokkos::deep_copy(h_mass,s.mass);
   t_mass::HostMirror h_charge = Kokkos::create_mirror_view(s.charge);
   Kokkos::deep_copy(h_charge,s.charge);
 
   // Create Simple Cubic Lattice
   if(lattice_style == LATTICE_SC) {
-    system->domain_x = lattice_constant * lattice_nx; 
-    system->domain_y = lattice_constant * lattice_ny; 
-    system->domain_z = lattice_constant * lattice_nz; 
-    system->domain_hi_x = system->domain_x;
-    system->domain_hi_y = system->domain_y;
-    system->domain_hi_z = system->domain_z;
+    // If creating the first lattice
+    if(curr_lattice == 1) {
+      system->domain_x = lattice_constant * lattice_nx;
+      system->domain_y = lattice_constant * lattice_ny;
+      system->domain_z = lattice_constant * lattice_nz;
+      system->domain_hi_x = system->domain_x;
+      system->domain_hi_y = system->domain_y;
+      system->domain_hi_z = system->domain_z;
 
-    comm->create_domain_decomposition();
+      comm->create_domain_decomposition();
+    }
     s = *system;
 
-    T_INT ix_start = s.sub_domain_lo_x/s.domain_x * lattice_nx - 0.5;
-    T_INT iy_start = s.sub_domain_lo_y/s.domain_y * lattice_ny - 0.5;
-    T_INT iz_start = s.sub_domain_lo_z/s.domain_z * lattice_nz - 0.5;
+    T_INT ix_start = s.sub_domain_lo_x/s.domain_x * lattice_nx - 1.5;
+    T_INT iy_start = s.sub_domain_lo_y/s.domain_y * lattice_ny - 1.5;
+    T_INT iz_start = s.sub_domain_lo_z/s.domain_z * lattice_nz - 1.5;
 
-    T_INT ix_end = s.sub_domain_hi_x/s.domain_x * lattice_nx + 0.5;
-    T_INT iy_end = s.sub_domain_hi_y/s.domain_y * lattice_ny + 0.5;
-    T_INT iz_end = s.sub_domain_hi_z/s.domain_z * lattice_nz + 0.5;
+    T_INT ix_end = s.sub_domain_hi_x/s.domain_x * lattice_nx + 1.5;
+    T_INT iy_end = s.sub_domain_hi_y/s.domain_y * lattice_ny + 1.5;
+    T_INT iz_end = s.sub_domain_hi_z/s.domain_z * lattice_nz + 1.5;
 
     T_INT n = 0;
 
@@ -602,17 +624,15 @@ void Input::create_lattice(Comm* comm) {
         }
       }
     }
-    system->N_local = n;
-    system->N_global = n;
-    system->resize(n);
+    system->resize(system->N_local + n);
+
     s = *system;
     auto x = Cabana::slice<Positions>(s.xvf);
-    auto v = Cabana::slice<Velocities>(s.xvf);
     auto id = Cabana::slice<IDs>(s.xvf);
     auto type = Cabana::slice<Types>(s.xvf);
     auto q = Cabana::slice<Charges>(s.xvf);
 
-    n = 0;
+    n = system->N_local;
     for(T_INT iz=iz_start; iz<=iz_end; iz++) {
       T_FLOAT ztmp = lattice_constant * (iz+lattice_offset_z);
       for(T_INT iy=iy_start; iy<=iy_end; iy++) {
@@ -628,7 +648,7 @@ void Input::create_lattice(Comm* comm) {
             x(n,0) = xtmp;
             x(n,1) = ytmp;
             x(n,2) = ztmp;
-            type(n) = rand()%s.ntypes;
+            type(n) = type_lattice;
             id(n) = n+1;
             q(n) = h_charge(type(n));
             n++;
@@ -636,6 +656,8 @@ void Input::create_lattice(Comm* comm) {
         }
       }
     }
+    system->N_local = n;
+    system->N_global = n;
     comm->reduce_int(&system->N_global,1);
 
     // Make ids unique over all processes
@@ -650,14 +672,17 @@ void Input::create_lattice(Comm* comm) {
 
   // Create Face Centered Cubic (FCC) Lattice
   if(lattice_style == LATTICE_FCC) {
-    system->domain_x = lattice_constant * lattice_nx;
-    system->domain_y = lattice_constant * lattice_ny;
-    system->domain_z = lattice_constant * lattice_nz;
-    system->domain_hi_x = system->domain_x;
-    system->domain_hi_y = system->domain_y;
-    system->domain_hi_z = system->domain_z;
+    // If creating the first lattice
+    if(curr_lattice == 1) {
+      system->domain_x = lattice_constant * lattice_nx;
+      system->domain_y = lattice_constant * lattice_ny;
+      system->domain_z = lattice_constant * lattice_nz;
+      system->domain_hi_x = system->domain_x;
+      system->domain_hi_y = system->domain_y;
+      system->domain_hi_z = system->domain_z;
 
-    comm->create_domain_decomposition();
+      comm->create_domain_decomposition();
+    }
     s = *system;
 
     double basis[4][3];
@@ -672,13 +697,13 @@ void Input::create_lattice(Comm* comm) {
       basis[i][2] += lattice_offset_z;
     }
 
-    T_INT ix_start = s.sub_domain_lo_x/s.domain_x * lattice_nx - 0.5;
-    T_INT iy_start = s.sub_domain_lo_y/s.domain_y * lattice_ny - 0.5;
-    T_INT iz_start = s.sub_domain_lo_z/s.domain_z * lattice_nz - 0.5;
+    T_INT ix_start = s.sub_domain_lo_x/s.domain_x * lattice_nx - 1.5;
+    T_INT iy_start = s.sub_domain_lo_y/s.domain_y * lattice_ny - 1.5;
+    T_INT iz_start = s.sub_domain_lo_z/s.domain_z * lattice_nz - 1.5;
 
-    T_INT ix_end = s.sub_domain_hi_x/s.domain_x * lattice_nx + 0.5;
-    T_INT iy_end = s.sub_domain_hi_y/s.domain_y * lattice_ny + 0.5;
-    T_INT iz_end = s.sub_domain_hi_z/s.domain_z * lattice_nz + 0.5;
+    T_INT ix_end = s.sub_domain_hi_x/s.domain_x * lattice_nx + 1.5;
+    T_INT iy_end = s.sub_domain_hi_y/s.domain_y * lattice_ny + 1.5;
+    T_INT iz_end = s.sub_domain_hi_z/s.domain_z * lattice_nz + 1.5;
 
     T_INT n = 0;
 
@@ -701,19 +726,15 @@ void Input::create_lattice(Comm* comm) {
         }
       }
     }
+    system->resize(system->N_local + n);
 
-    system->N_local = n;
-    system->N_global = n;
-    system->resize(n);
     s = *system;
     auto x = Cabana::slice<Positions>(s.xvf);
-    auto v = Cabana::slice<Velocities>(s.xvf);
     auto id = Cabana::slice<IDs>(s.xvf);
     auto type = Cabana::slice<Types>(s.xvf);
     auto q = Cabana::slice<Charges>(s.xvf);
 
-    n = 0;
-
+    n = system->N_local;
     for(T_INT iz=iz_start; iz<=iz_end; iz++) {
       for(T_INT iy=iy_start; iy<=iy_end; iy++) {
         for(T_INT ix=ix_start; ix<=ix_end; ix++) {
@@ -730,7 +751,7 @@ void Input::create_lattice(Comm* comm) {
               x(n,0) = xtmp;
               x(n,1) = ytmp;
               x(n,2) = ztmp;
-              type(n) = rand()%s.ntypes;
+              type(n) = type_lattice;
               id(n) = n+1;
               q(n) = h_charge(type(n));
               n++;
@@ -746,18 +767,25 @@ void Input::create_lattice(Comm* comm) {
     for(T_INT i = 0; i<n; i++)
       id(i) += N_local_offset - n;
 
+    system->N_local = n;
+    system->N_global = n;
     comm->reduce_int(&system->N_global,1);
 
     if(system->do_print)
       printf("Atoms: %i %i\n",system->N_global,system->N_local);
   }
+}
+
+void Input::create_velocities(Comm* comm) {
   // Initialize velocity using the equivalent of the LAMMPS
   // velocity geom option, i.e. uniform random kinetic energies.
   // zero out momentum of the whole system afterwards, to eliminate
   // drift (bad for energy statistics)
   
-  {  // Scope s
     System s = *system;
+    t_mass::HostMirror h_mass = Kokkos::create_mirror_view(s.mass);
+    Kokkos::deep_copy(h_mass,s.mass);
+
     auto x = Cabana::slice<Positions>(s.xvf);
     auto v = Cabana::slice<Velocities>(s.xvf);
     auto type = Cabana::slice<Types>(s.xvf);
@@ -813,5 +841,4 @@ void Input::create_lattice(Comm* comm) {
       v(i,2) *= T_init_scale;
     }
 
-  }
 }

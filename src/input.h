@@ -151,7 +151,11 @@ class LAMMPS_RandomVelocityGeom {
 
 class Input {
  private:
-  bool timestepflag; // input timestep?  
+  bool timestepflag; // input timestep?
+
+  int curr_lattice, done_lattice;
+  int type_lattice;
+
  public:
   System* system;
   
@@ -160,6 +164,8 @@ class Input {
   double lattice_constant, lattice_offset_x, lattice_offset_y, lattice_offset_z;
   int lattice_nx, lattice_ny, lattice_nz;
   int box[6];
+
+  int num_lattice;
 
   char* input_file;
   int input_file_type;
@@ -211,4 +217,5 @@ public:
   void read_data_file(const char* filename);
   void check_lammps_command(int line);
   void create_lattice(Comm* comm);
+  void create_velocities(Comm* comm);
 };

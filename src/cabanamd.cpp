@@ -88,6 +88,9 @@ void CabanaMD::init(int argc, char* argv[]) {
   // Fill some binning
   binning = new Binning(system);
 
+  // Create Communication Submodule
+  comm = new Comm(system, neigh_cutoff);
+
   // Create short range Force class
   if(false) {}
 #define FORCE_MODULES_INSTANTIATION
@@ -99,17 +102,20 @@ void CabanaMD::init(int argc, char* argv[]) {
                       input->input_data.words[input->force_coeff_lines(line)]);
   }
 
-  // Create Communication Submodule
-  comm = new Comm(system, neigh_cutoff);
-
   // Do some additional settings
   force->comm_newton = input->comm_newton;
 
   // Ok lets go ahead and create the particles if that didn't happen yet
-  if(system->N_global == 0 && input->read_data_flag==true)
+  if(system->N_global == 0 && input->read_data_flag==true) {
     read_lammps_data_file(input->lammps_data_file, system, comm);
-  else if(system->N_global == 0)
-    input->create_lattice(comm);
+  }
+  else if(system->N_global == 0) {
+    for(int i = 0; i < input->num_lattice; i++) {
+      input->read_file();
+      input->create_lattice(comm);
+    }
+    input->create_velocities(comm);
+  }
 
   // Create long range Force class
   // Delay because tuning (within init) uses atom count, domain size
