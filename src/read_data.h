@@ -34,9 +34,6 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
    USA.  See also: http://www.gnu.org/licenses/lgpl.txt .
 
-   For questions, contact Paul S. Crozier (pscrozi@sandia.gov) or
-   Christian Trott (crtrott@sandia.gov).
-
    Please read the accompanying LICENSE_MINIMD file.
 ---------------------------------------------------------------------- */
 
