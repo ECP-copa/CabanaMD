@@ -247,11 +247,6 @@ void ForceEwald<t_neighbor>::compute(System* system) {
             double d = sqrt( dx * dx + dy * dy + dz * dz );
             double qj = q( j );
 
-            // potential computation
-            double contrib = 0.5 * qi * qj * erfc( alpha * d ) / d;
-            Kokkos::atomic_add( &p( idx ), contrib );
-            Kokkos::atomic_add( &p( j ), contrib );
-
             // force computation
             double f_fact = qi * qj *
                             ( 2.0 * sqrt( alpha / PI ) * exp( -alpha * d * d ) +
