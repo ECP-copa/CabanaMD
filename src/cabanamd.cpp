@@ -56,13 +56,11 @@
 
 CabanaMD::CabanaMD()
 {
-    // First we need to create the System data structures
-    // They are used by input
+    // Create the System class: atom properties (AoSoA) and simulation box
     system = new System();
     system->init();
 
-    // Create the Input System, no modules for that,
-    // so we can init it in constructor
+    // Create the Input class: Command line and LAMMPS input file
     input = new Input( system );
 }
 
@@ -72,23 +70,24 @@ void CabanaMD::init( int argc, char *argv[] )
     if ( system->do_print )
         Kokkos::DefaultExecutionSpace::print_configuration( std::cout );
 
-    // Lets parse the command line arguments
+    // Parse command line arguments
     input->read_command_line_args( argc, argv );
     if ( system->do_print )
         printf( "Read command line arguments\n" );
+
     // Read input file
     input->read_file();
     if ( system->do_print )
         printf( "Read input file\n" );
     T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
 
-    // Now we know which integrator type to use
+    // Create Integrator class: NVE ensemble
     integrator = new Integrator( system );
 
-    // Fill some binning
+    // Create Binning class: linked cell bin sort
     binning = new Binning( system );
 
-    // Create Force Type
+    // Create Force class: potential options in force_types/ folder
     if ( false )
     {
     }
@@ -105,10 +104,9 @@ void CabanaMD::init( int argc, char *argv[] )
             input->input_data.words[input->force_coeff_lines( line )] );
     }
 
-    // Create Communication Submodule
+    // Create Communication class: MPI
     comm = new Comm( system, neigh_cutoff );
 
-    // Do some additional settings
     force->comm_newton = input->comm_newton;
 
     // system->print_particles();
@@ -118,23 +116,23 @@ void CabanaMD::init( int argc, char *argv[] )
                 binning->name(), integrator->name() );
     }
 
-    // Ok lets go ahead and create the particles if that didn't happen yet
+    // Create atoms - from LAMMPS data file or create FCC/SC lattice
     if ( system->N == 0 && input->read_data_flag == true )
         read_lammps_data_file( input->lammps_data_file, system, comm );
     else if ( system->N == 0 )
         input->create_lattice( comm );
 
-    // Create the Halo
+    // Exchange atoms across MPI ranks
     comm->exchange();
 
-    // Sort particles
+    // Sort atoms
     binning->create_binning( neigh_cutoff, neigh_cutoff, neigh_cutoff, 1, true,
                              false, true );
 
-    // Set up particles
+    // Add ghost atoms from other MPI ranks (gather)
     comm->exchange_halo();
 
-    // Compute NeighList
+    // Compute atom neighbors
     force->create_neigh_list( system );
 
     // Compute initial forces
@@ -142,8 +140,8 @@ void CabanaMD::init( int argc, char *argv[] )
     Cabana::deep_copy( f, 0.0 );
     force->compute( system );
 
-    // Reverse Communicate Force Update on Halo
-    //   update force for nnp pair style even if full
+    // Scatter ghost atom forces back to original MPI rank
+    //   (update force for pair_style nnp even if full neighbor list)
     if ( input->comm_newton or input->force_type == FORCE_NNP )
     {
         comm->update_force();
@@ -202,59 +200,58 @@ void CabanaMD::run( int nsteps )
     Kokkos::Timer timer, force_timer, comm_timer, neigh_timer, integrate_timer,
         other_timer;
 
-    // Timestep Loop
+    // Main timestep loop
     for ( int step = 1; step <= nsteps; step++ )
     {
-
-        // Do first part of the verlet time step integration
+        // Integrate atom positions - velocity Verlet first half
         integrate_timer.reset();
         integrator->initial_integrate();
         integrate_time += integrate_timer.seconds();
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
         {
-            // Exchange particles
+            // Exchange atoms across MPI ranks
             comm_timer.reset();
             comm->exchange();
             comm_time += comm_timer.seconds();
 
-            // Sort particles
+            // Sort atoms
             other_timer.reset();
             binning->create_binning( neigh_cutoff, neigh_cutoff, neigh_cutoff,
                                      1, true, false, true );
             other_time += other_timer.seconds();
 
-            // Exchange Halo
+            // Update ghost atoms (gather)
             comm_timer.reset();
             comm->exchange_halo();
             comm_time += comm_timer.seconds();
 
-            // Compute Neighbor List
+            // Compute atom neighbors
             neigh_timer.reset();
             force->create_neigh_list( system );
             neigh_time += neigh_timer.seconds();
         }
         else
         {
-            // Exchange Halo
+            // Update ghost atom positions (scatter)
             comm_timer.reset();
             comm->update_halo();
             comm_time += comm_timer.seconds();
         }
 
-        // Zero out forces
+        // Reset forces
         force_timer.reset();
         auto f = Cabana::slice<Forces>( system->xvf );
         Cabana::deep_copy( f, 0.0 );
 
-        // Compute Short Range Force
+        // Compute short range force
         force->compute( system );
         force_time += force_timer.seconds();
 
-        // This is where Bonds, Angles and KSpace should go eventually
+        // This is where Bonds, Angles, and KSpace should go eventually
 
-        // Reverse Communicate Force Update on Halo
-        //   update force for nnp pair style even if full
+        // Scatter ghost atom forces back to original MPI rank
+        //   (update force for pair_style nnp even if full neighbor list)
         if ( input->comm_newton or input->force_type == FORCE_NNP )
         {
             comm_timer.reset();
@@ -262,13 +259,14 @@ void CabanaMD::run( int nsteps )
             comm_time += comm_timer.seconds();
         }
 
-        // Do second part of the verlet time step integration
+        // Integrate atom positions - velocity Verlet second half
         integrate_timer.reset();
         integrator->final_integrate();
         integrate_time += integrate_timer.seconds();
 
         other_timer.reset();
-        // On output steps print output
+
+        // Print output
         if ( step % input->thermo_rate == 0 )
         {
             T_FLOAT T = temp.compute( system );
@@ -306,6 +304,7 @@ void CabanaMD::run( int nsteps )
 
     double time = timer.seconds();
 
+    // Final output and timings
     if ( system->do_print )
     {
         if ( !system->print_lammps )
