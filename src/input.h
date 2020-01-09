@@ -24,9 +24,9 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -47,163 +47,175 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <Kokkos_Core.hpp>
-#include <Cabana_Core.hpp>
-
-#include <types.h>
-#include <system.h>
 #include <comm_mpi.h>
+#include <system.h>
+#include <types.h>
+
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <vector>
 
-class ItemizedFile {
-public:
-  char*** words;
-  int max_nlines;
-  int nlines;
-  int words_per_line;
-  int max_word_size;
-  ItemizedFile();
-  void allocate_words(int num_lines);
-  void free_words();
-  void print_line(int line);
-  int words_in_line(int line);
-  void print();
-  void add_line(const char* const line);
+class ItemizedFile
+{
+  public:
+    char ***words;
+    int max_nlines;
+    int nlines;
+    int words_per_line;
+    int max_word_size;
+    ItemizedFile();
+    void allocate_words( int num_lines );
+    void free_words();
+    void print_line( int line );
+    int words_in_line( int line );
+    void print();
+    void add_line( const char *const line );
 };
 
 // Class replicating LAMMPS Random velocity initialization with GEOM option
 #define IA 16807
 #define IM 2147483647
-#define AM (1.0/IM)
+#define AM ( 1.0 / IM )
 #define IQ 127773
 #define IR 2836
 
-class LAMMPS_RandomVelocityGeom {
- private:
-  int seed;
- public:
+class LAMMPS_RandomVelocityGeom
+{
+  private:
+    int seed;
 
-  KOKKOS_INLINE_FUNCTION
-  LAMMPS_RandomVelocityGeom (): seed(0) {};
+  public:
+    KOKKOS_INLINE_FUNCTION
+    LAMMPS_RandomVelocityGeom()
+        : seed( 0 ){};
 
-  KOKKOS_INLINE_FUNCTION
-  double uniform() {
-    int k = seed/IQ;
-    seed = IA*(seed-k*IQ) - IR*k;
-    if (seed < 0) seed += IM;
-    double ans = AM*seed;
-    return ans;
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  double gaussian() {
-    double v1,v2,rsq;
-    do {
-      v1 = 2.0*uniform()-1.0;
-      v2 = 2.0*uniform()-1.0;
-      rsq = v1*v1 + v2*v2;
-    } while ((rsq >= 1.0) || (rsq == 0.0));
-
-    const double fac = sqrt(-2.0*log(rsq)/rsq);
-    return v2*fac;
-  }
-
-  KOKKOS_INLINE_FUNCTION
-  void reset(int ibase, double *coord)
-  {
-    int i;
-
-    char *str = (char *) &ibase;
-    int n = sizeof(int);
-
-    unsigned int hash = 0;
-    for (i = 0; i < n; i++) {
-      hash += str[i];
-      hash += (hash << 10);
-      hash ^= (hash >> 6);
+    KOKKOS_INLINE_FUNCTION
+    double uniform()
+    {
+        int k = seed / IQ;
+        seed = IA * ( seed - k * IQ ) - IR * k;
+        if ( seed < 0 )
+            seed += IM;
+        double ans = AM * seed;
+        return ans;
     }
 
-    str = (char *) coord;
-    n = 3 * sizeof(double);
-    for (i = 0; i < n; i++) {
-      hash += str[i];
-      hash += (hash << 10);
-      hash ^= (hash >> 6);
+    KOKKOS_INLINE_FUNCTION
+    double gaussian()
+    {
+        double v1, v2, rsq;
+        do
+        {
+            v1 = 2.0 * uniform() - 1.0;
+            v2 = 2.0 * uniform() - 1.0;
+            rsq = v1 * v1 + v2 * v2;
+        } while ( ( rsq >= 1.0 ) || ( rsq == 0.0 ) );
+
+        const double fac = sqrt( -2.0 * log( rsq ) / rsq );
+        return v2 * fac;
     }
 
-    hash += (hash << 3);
-    hash ^= (hash >> 11);
-    hash += (hash << 15);
+    KOKKOS_INLINE_FUNCTION
+    void reset( int ibase, double *coord )
+    {
+        int i;
 
-    // keep 31 bits of unsigned int as new seed
-    // do not allow seed = 0, since will cause hang in gaussian()
+        char *str = (char *)&ibase;
+        int n = sizeof( int );
 
-    seed = hash & 0x7ffffff;
-    if (!seed) seed = 1;
+        unsigned int hash = 0;
+        for ( i = 0; i < n; i++ )
+        {
+            hash += str[i];
+            hash += ( hash << 10 );
+            hash ^= ( hash >> 6 );
+        }
 
-    // warm up the RNG
+        str = (char *)coord;
+        n = 3 * sizeof( double );
+        for ( i = 0; i < n; i++ )
+        {
+            hash += str[i];
+            hash += ( hash << 10 );
+            hash ^= ( hash >> 6 );
+        }
 
-    for (i = 0; i < 5; i++) uniform();
-  }
+        hash += ( hash << 3 );
+        hash ^= ( hash >> 11 );
+        hash += ( hash << 15 );
+
+        // keep 31 bits of unsigned int as new seed
+        // do not allow seed = 0, since will cause hang in gaussian()
+
+        seed = hash & 0x7ffffff;
+        if ( !seed )
+            seed = 1;
+
+        // warm up the RNG
+
+        for ( i = 0; i < 5; i++ )
+            uniform();
+    }
 };
 
+class Input
+{
+  private:
+    bool timestepflag; // input timestep?
+  public:
+    System *system;
 
-class Input {
- private:
-  bool timestepflag; // input timestep?  
- public:
-  System* system;
-  
-  int units_style;
-  int lattice_style;
-  double lattice_constant, lattice_offset_x, lattice_offset_y, lattice_offset_z;
-  int lattice_nx, lattice_ny, lattice_nz;
-  int box[6];
+    int units_style;
+    int lattice_style;
+    double lattice_constant, lattice_offset_x, lattice_offset_y,
+        lattice_offset_z;
+    int lattice_nx, lattice_ny, lattice_nz;
+    int box[6];
 
-  char* input_file;
-  int input_file_type;
-  ItemizedFile input_data;
+    char *input_file;
+    int input_file_type;
+    ItemizedFile input_data;
 
-  char* data_file;
-  int data_file_type;
-  ItemizedFile data_file_data;
-  
-  double temperature_target;
-  int temperature_seed;
+    char *data_file;
+    int data_file_type;
+    ItemizedFile data_file_data;
 
-  int integrator_type;
-  int nsteps;
+    double temperature_target;
+    int temperature_seed;
 
-  int binning_type;
+    int integrator_type;
+    int nsteps;
 
-  int comm_type;
-  int comm_exchange_rate;
-  int comm_newton;
+    int binning_type;
 
-  int force_type;
-  int force_iteration_type;
-  int force_neigh_parallel_type;
+    int comm_type;
+    int comm_exchange_rate;
+    int comm_newton;
 
-  T_F_FLOAT force_cutoff;
-  int force_line;
-  Kokkos::View<int*,Kokkos::HostSpace> force_coeff_lines;
+    int force_type;
+    int force_iteration_type;
+    int force_neigh_parallel_type;
 
-  T_F_FLOAT neighbor_skin; 
-  int neighbor_type;
-  
-  int thermo_rate, dumpbinary_rate, correctness_rate;
-  bool dumpbinaryflag, correctnessflag;
-  char *dumpbinary_path, *reference_path, *correctness_file;
-  char* lammps_data_file;
-  bool read_data_flag = false;
- 
-public:
-  Input(System* s);
-  void read_command_line_args(int argc, char* argv[]);
-  void read_file(const char* filename = NULL);
-  void read_lammps_file(const char* filename);
-  void read_data_file(const char* filename);
-  void check_lammps_command(int line);
-  void create_lattice(Comm* comm);
+    T_F_FLOAT force_cutoff;
+    int force_line;
+    Kokkos::View<int *, Kokkos::HostSpace> force_coeff_lines;
+
+    T_F_FLOAT neighbor_skin;
+    int neighbor_type;
+
+    int thermo_rate, dumpbinary_rate, correctness_rate;
+    bool dumpbinaryflag, correctnessflag;
+    char *dumpbinary_path, *reference_path, *correctness_file;
+    char *lammps_data_file;
+    bool read_data_flag = false;
+
+  public:
+    Input( System *s );
+    void read_command_line_args( int argc, char *argv[] );
+    void read_file( const char *filename = NULL );
+    void read_lammps_file( const char *filename );
+    void read_data_file( const char *filename );
+    void check_lammps_command( int line );
+    void create_lattice( Comm *comm );
 };

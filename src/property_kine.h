@@ -24,9 +24,9 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -47,27 +47,32 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <Kokkos_Core.hpp>
-#include <Cabana_Core.hpp>
-
-#include <types.h>
-#include <system.h>
 #include <comm_mpi.h>
+#include <system.h>
+#include <types.h>
 
-class KinE {
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
+class KinE
+{
   private:
     typename AoSoA::member_slice_type<Velocities> v;
     typename AoSoA::member_slice_type<Types> type;
     t_mass mass;
 
-    Comm* comm;
-  public:
-    KinE(Comm* comm_);
+    Comm *comm;
 
-    T_V_FLOAT compute(System*);
-    
+  public:
+    KinE( Comm *comm_ );
+
+    T_V_FLOAT compute( System * );
+
     KOKKOS_INLINE_FUNCTION
-    void operator() (const T_INT& i, T_V_FLOAT& KE) const {
-      KE += (v(i,0)*v(i,0) + v(i,1)*v(i,1) + v(i,2)*v(i,2)) * mass(type(i));
+    void operator()( const T_INT &i, T_V_FLOAT &KE ) const
+    {
+        KE += ( v( i, 0 ) * v( i, 0 ) + v( i, 1 ) * v( i, 1 ) +
+                v( i, 2 ) * v( i, 2 ) ) *
+              mass( type( i ) );
     }
 };

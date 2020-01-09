@@ -33,7 +33,7 @@ namespace nnpCbn
 
 class CutoffFunction
 {
-public:
+  public:
     /** List of available cutoff function types.
      *
      * Most cutoff types allow the definition of an inner cutoff
@@ -83,9 +83,9 @@ public:
     /** Constructor, initializes to ´CT_HARD´.
      */
     CutoffFunction();
-    CutoffFunction(double _rc); 
+    CutoffFunction( double _rc );
 
-private:
+  private:
     static double const PI;
     static double const PI_2;
     static double const E;
@@ -94,17 +94,17 @@ private:
     /// Cutoff function type.
     CutoffType cutoffType;
     /// Outer cutoff radius @f$r_c@f$.
-    double     rc;
+    double rc;
     /// Inverse cutoff radius @f$\frac{1}{r_c}@f$.
-    double     rcinv;
+    double rcinv;
     /// Inner cutoff for cutoff function types which allow shifting.
-    double     rci;
+    double rci;
     /// Cutoff function parameter for `CT_POLYn` and `CT_EXP` @f$\alpha@f$.
-    double     alpha;
+    double alpha;
     /// Inverse width of cutoff function @f$\frac{1}{r_c - r_{ci}}@f$.
-    double     iw;
+    double iw;
 };
 
-}
+} // namespace nnpCbn
 
 #endif
