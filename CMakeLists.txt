@@ -11,6 +11,8 @@ endif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
 option(CMAKE_VERBOSE_MAKEFILE "Generate verbose Makefiles" OFF)
 include(GNUInstallDirs)
 
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 ##---------------------------------------------------------------------------##
 # Set up main options
 ##---------------------------------------------------------------------------##
@@ -110,3 +112,11 @@ else()
 endif()
 
 install(TARGETS CabanaMD DESTINATION bin)
+
+find_package(CLANG_FORMAT)
+if(CLANG_FORMAT_FOUND)
+  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h)
+  add_custom_target(format
+    COMMAND ${CLANG_FORMAT_EXECUTABLE} -i -style=file ${FORMAT_SOURCES}
+    DEPENDS ${FORMAT_SOURCES})
+endif()

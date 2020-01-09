@@ -74,6 +74,7 @@ script:
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
+    make format && git diff --exit-code &&
     popd
 
 after_success:
