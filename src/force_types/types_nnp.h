@@ -49,6 +49,8 @@
 #ifndef TYPES_NNP_H
 #define TYPES_NNP_H
 
+#include <types.h>
+
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
