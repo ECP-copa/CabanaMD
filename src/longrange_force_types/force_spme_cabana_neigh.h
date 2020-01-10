@@ -91,8 +91,11 @@ public:
   std::shared_ptr<Cajita::LocalMesh<DeviceType, Cajita::UniformMesh<double>>> local_mesh;
   std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> local_grid;
   //Cajita::PointSet<double, Cajita::Node, 3, DeviceType> point_set;
-  std::shared_ptr<Cajita::Array<Kokkos::complex<double>, Cajita::Node, Cajita::UniformMesh<double>>> meshq; 
-  std::shared_ptr<Cajita::Halo<Kokkos::complex<double>, DeviceType>> q_halo;
+  //std::shared_ptr<Cajita::Array<Kokkos::complex<double>, Cajita::Node, Cajita::UniformMesh<double>>> meshq; 
+  //std::shared_ptr<Cajita::Halo<Kokkos::complex<double>, DeviceType>> q_halo;
+  std::shared_ptr<Cajita::Array<double, Cajita::Node, Cajita::UniformMesh<double>>> meshq; 
+  std::shared_ptr<Cajita::Halo<double, DeviceType>> q_halo;
+  std::shared_ptr<Cajita::Array<Kokkos::complex<double>, Cajita::Node, Cajita::UniformMesh<double>>> BC_array; 
 
   ForceSPME( System* system, bool half_neigh);
 
@@ -104,8 +107,6 @@ public:
   double oneDsplinederiv(double x);
   double oneDeuler(int k, int meshwidth);
   void create_neigh_list(System* system);
-  //void BC_mesh(System* system);
-  std::shared_ptr<Cajita::Array<Kokkos::complex<double>, Cajita::Node, Cajita::UniformMesh<double>>> BC_array; 
 
   void compute(System* system);
   T_F_FLOAT compute_energy(System* system);
