@@ -24,9 +24,9 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -44,27 +44,31 @@
 //  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 //
-//  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
 #ifndef FORCE_H
 #define FORCE_H
-#include<types.h>
-#include<system.h>
 
-class Force {
-public:
-  bool half_neigh, comm_newton;
-  Force(System* system, bool half_neigh_);
+#include <system.h>
+#include <types.h>
 
-  virtual void init_coeff(T_X_FLOAT neigh_cut, char** args);
-  virtual void create_neigh_list(System* system);
+class Force
+{
+  public:
+    bool half_neigh, comm_newton;
+    Force( System *system, bool half_neigh_ );
 
-  virtual void compute(System* system);
-  virtual T_F_FLOAT compute_energy(System*){return 0.0;} // Only needed for thermo output
+    virtual void init_coeff( T_X_FLOAT neigh_cut, char **args );
+    virtual void create_neigh_list( System *system );
 
-  virtual const char* name();
+    virtual void compute( System *system );
+    virtual T_F_FLOAT compute_energy( System * )
+    {
+        return 0.0;
+    } // Only needed for thermo output
+
+    virtual const char *name();
 };
 
-#include<modules_force.h>
+#include <modules_force.h>
 #endif

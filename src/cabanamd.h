@@ -24,9 +24,9 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -44,40 +44,39 @@
 //  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 //
-//  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <Kokkos_Core.hpp>
-#include <Cabana_Core.hpp>
-
+#include <binning_cabana.h>
+#include <comm_mpi.h>
+#include <force.h>
+#include <input.h>
+#include <integrator_nve.h>
+#include <system.h>
 #include <types.h>
-#include<system.h>
-#include<integrator_nve.h>
-#include<force.h>
-#include<comm_mpi.h>
-#include<input.h>
-#include<binning_cabana.h>
 
-class CabanaMD {
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
+class CabanaMD
+{
   public:
-    System* system;
-    Integrator* integrator;
-    Force* force;
-    Comm* comm;
-    Input* input;
-    Binning* binning;
+    System *system;
+    Integrator *integrator;
+    Force *force;
+    Comm *comm;
+    Input *input;
+    Binning *binning;
 
     CabanaMD();
 
-    void init(int argc,char* argv[]);
-       
-    void run(int nsteps);
+    void init( int argc, char *argv[] );
 
-    void dump_binary(int);
-    void check_correctness(int);
+    void run( int nsteps );
+
+    void dump_binary( int );
+    void check_correctness( int );
 
     void print_performance();
 
     void shutdown();
 };
-

@@ -24,9 +24,9 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -44,30 +44,31 @@
 //  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 //
-//  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
 #ifndef INTEGRATOR_NVE_H
 #define INTEGRATOR_NVE_H
-#include <Kokkos_Core.hpp>
-#include <Cabana_Core.hpp>
 
-#include <types.h>
 #include <system.h>
+#include <types.h>
 
-class Integrator {
-  T_V_FLOAT dtv, dtf;
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
 
-public:
-  System* system;
+class Integrator
+{
+    T_V_FLOAT dtv, dtf;
 
-  Integrator(System* s);
-  ~Integrator();
-  T_V_FLOAT timestep_size;
+  public:
+    System *system;
 
-  void initial_integrate();
-  void final_integrate();
+    Integrator( System *s );
+    ~Integrator();
+    T_V_FLOAT timestep_size;
 
-  const char* name();
+    void initial_integrate();
+    void final_integrate();
+
+    const char *name();
 };
 #endif
