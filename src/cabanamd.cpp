@@ -175,8 +175,9 @@ void CabanaMD::init(int argc, char* argv[]) {
     PotE pote(comm);
     KinE kine(comm);
     T_FLOAT T = temp.compute(system);
-    T_FLOAT PE = pote.compute(system,force)/system->N_global;
-    //TODO: add longrange contribution to PE
+    T_FLOAT SR_PE = pote.compute(system,force)/system->N_global;
+    T_FLOAT LR_PE = pote.compute(system,lrforce)/system->N_global;
+    T_FLOAT PE = SR_PE + LR_PE;
     T_FLOAT KE = kine.compute(system)/system->N_global;
     if(system->do_print) {
       if (!system->print_lammps) {
@@ -290,7 +291,9 @@ void CabanaMD::run(int nsteps) {
     // On output steps print output
     if(step%input->thermo_rate==0) {
       T_FLOAT T = temp.compute(system);
-      T_FLOAT PE = pote.compute(system,force)/system->N_global;
+      T_FLOAT SR_PE = pote.compute(system,force)/system->N_global;
+      T_FLOAT LR_PE = pote.compute(system,lrforce)/system->N_global;
+      T_FLOAT PE = SR_PE + LR_PE;
       T_FLOAT KE = kine.compute(system)/system->N_global;
       if(system->do_print) {
         if (!system->print_lammps) {
