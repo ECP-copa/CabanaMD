@@ -65,6 +65,7 @@ before_script:
     git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
     pushd heffte && mkdir build && pushd build &&
     cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"
+          -DCMAKE_CXX_FLAGS="-std=c++11"
           -DFFTW_USE_STATIC_LIBS=ON
           -DBUILD_GPU=OFF -DBUILD_SHARED=OFF .. &&
     make -j2 VERBOSE=1 && make install &&
