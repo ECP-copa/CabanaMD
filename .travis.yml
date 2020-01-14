@@ -100,9 +100,12 @@ script:
   - mkdir build && pushd build &&
     cmake -DKOKKOS_DIR=$HOME/kokkos
           -DCABANA_DIR=$HOME/Cabana
+          -DCAJITA_DIR=$HOME/Cajita
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
+          -DCabanaMD_ENABLE_LongRange=${LongRange}
           -DN2P2_DIR=$HOME/build/n2p2
+          -DHEFFTE_DIR=$HOME/heffte
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
