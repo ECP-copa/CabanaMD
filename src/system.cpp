@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -47,86 +48,91 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include<system.h>
-#include<mpi.h>
+#include <mpi.h>
+#include <system.h>
 
-System::System() {
-  N_global = 0;
-  N_max = 0;
-  N_local = 0;
-  N_ghost = 0;
-  ntypes = 1;
-  atom_style = "atomic"; 
+System::System()
+{
+    N_global = 0;
+    N_max = 0;
+    N_local = 0;
+    N_ghost = 0;
+    ntypes = 1;
+    atom_style = "atomic";
 
-  mass = t_mass();
-  charge = t_mass();
-  domain_x = domain_y = domain_z = 0.0;
-  sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
-  domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
-  domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
-  sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
-  sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
-  lattice_constant = 0.0;
-  mvv2e = boltz = dt = 0.0;
+    mass = t_mass();
+    charge = t_mass();
+    domain_x = domain_y = domain_z = 0.0;
+    sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
+    domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
+    domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
+    sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
+    sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
+    lattice_constant = 0.0;
+    mvv2e = boltz = dt = 0.0;
 
-  int proc_rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &proc_rank);
-  do_print = proc_rank == 0;
-  print_lammps = false;
+    int proc_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+    do_print = proc_rank == 0;
+    print_lammps = false;
 }
 
-void System::init() {
-  AoSoA xvf ( "All", N_max );
-  mass = t_mass("System::mass",ntypes);
-  charge = t_mass("System::charge",ntypes);
+void System::init()
+{
+    AoSoA xvf( "All", N_max );
+    mass = t_mass( "System::mass", ntypes );
+    charge = t_mass( "System::charge", ntypes );
 }
 
-void System::destroy() {
-  N_global = 0;
-  N_max = 0;
-  N_local = 0;
-  N_ghost = 0;
-  ntypes = 1;
-  AoSoA xvf( "All", 0 );
-  mass = t_mass();
-  charge = t_mass();
+void System::destroy()
+{
+    N_global = 0;
+    N_max = 0;
+    N_local = 0;
+    N_ghost = 0;
+    ntypes = 1;
+    AoSoA xvf( "All", 0 );
+    mass = t_mass();
+    charge = t_mass();
 }
 
-void System::resize(T_INT N_new) {
-  if(N_new > N_max) {
-    N_max = N_new; // Number of global Particles
-  }
-  // Grow/shrink, slice.size() needs to be accurate
-  xvf.resize( N_new );
+void System::resize( T_INT N_new )
+{
+    if ( N_new > N_max )
+    {
+        N_max = N_new; // Number of global Particles
+    }
+    // Grow/shrink, slice.size() needs to be accurate
+    xvf.resize( N_new );
 }
 
-void System::print_particles() {
+void System::print_particles()
+{
 
-  auto x = Cabana::slice<Positions>(xvf);
-  auto v = Cabana::slice<Velocities>(xvf);
-  auto f = Cabana::slice<Forces>(xvf);
-  auto type = Cabana::slice<Types>(xvf);
-  auto q = Cabana::slice<Charges>(xvf);
+    auto x = Cabana::slice<Positions>( xvf );
+    auto v = Cabana::slice<Velocities>( xvf );
+    auto f = Cabana::slice<Forces>( xvf );
+    auto type = Cabana::slice<Types>( xvf );
+    auto q = Cabana::slice<Charges>( xvf );
 
-  printf("Print all particles: \n");
-  printf("  Owned: %d\n",N_local);
-  for(T_INT i=0;i<N_local;i++) {
-    printf("    %d %lf %lf %lf | %lf %lf %lf | %lf %lf %lf | %d %e\n",i,
-        double(x(i,0)),double(x(i,1)),double(x(i,2)),
-        double(v(i,0)),double(v(i,1)),double(v(i,2)),
-        double(f(i,0)),double(f(i,1)),double(f(i,2)),
-        type(i),q(i)
-        );
-  }
+    printf( "Print all particles: \n" );
+    printf( "  Owned: %d\n", N_local );
+    for ( T_INT i = 0; i < N_local; i++ )
+    {
+        printf( "    %d %lf %lf %lf | %lf %lf %lf | %lf %lf %lf | %d %e\n", i,
+                double( x( i, 0 ) ), double( x( i, 1 ) ), double( x( i, 2 ) ),
+                double( v( i, 0 ) ), double( v( i, 1 ) ), double( v( i, 2 ) ),
+                double( f( i, 0 ) ), double( f( i, 1 ) ), double( f( i, 2 ) ),
+                type( i ), q( i ) );
+    }
 
-  printf("  Ghost: %d\n",N_ghost);
-  for(T_INT i=N_local;i<N_local+N_ghost;i++) {
-    printf("    %d %lf %lf %lf | %lf %lf %lf | %lf %lf %lf | %d %e\n",i,
-        double(x(i,0)),double(x(i,1)),double(x(i,2)),
-        double(v(i,0)),double(v(i,1)),double(v(i,2)),
-        double(f(i,0)),double(f(i,1)),double(f(i,2)),
-        type(i),q(i)
-        );
-  }
-
+    printf( "  Ghost: %d\n", N_ghost );
+    for ( T_INT i = N_local; i < N_local + N_ghost; i++ )
+    {
+        printf( "    %d %lf %lf %lf | %lf %lf %lf | %lf %lf %lf | %d %e\n", i,
+                double( x( i, 0 ) ), double( x( i, 1 ) ), double( x( i, 2 ) ),
+                double( v( i, 0 ) ), double( v( i, 1 ) ), double( v( i, 2 ) ),
+                double( f( i, 0 ) ), double( f( i, 1 ) ), double( f( i, 2 ) ),
+                type( i ), q( i ) );
+    }
 }

@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -47,12 +48,14 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include<force.h>
+#include <force.h>
 
-Force::Force(System*, bool half_neigh_):half_neigh(half_neigh_) {}
+Force::Force( System *, bool half_neigh_ )
+    : half_neigh( half_neigh_ )
+{
+}
 
-void Force::init_coeff(System*, T_X_FLOAT, char**) {}
-void Force::create_neigh_list(System*) {}
-void Force::compute(System*) {}
-const char* Force::name() { return "ForceNone"; }
-
+void Force::init_coeff( System *, T_X_FLOAT, char ** ) {}
+void Force::create_neigh_list( System * ) {}
+void Force::compute( System * ) {}
+const char *Force::name() { return "ForceNone"; }

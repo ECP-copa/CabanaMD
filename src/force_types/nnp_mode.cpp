@@ -42,22 +42,22 @@
 using namespace std;
 using namespace nnpCbn;
 
-Mode::Mode(bool do_print_)
-             : normalize                 (false),
-               checkExtrapolationWarnings(false),
-               numElements               (0    ),
-               maxCutoffRadius           (0.0  ),
-               cutoffAlpha               (0.0  ),
-               meanEnergy                (0.0  ),
-               convEnergy                (1.0  ),
-               convLength                (1.0  )
+Mode::Mode( bool do_print_ )
+    : normalize( false )
+    , checkExtrapolationWarnings( false )
+    , numElements( 0 )
+    , maxCutoffRadius( 0.0 )
+    , cutoffAlpha( 0.0 )
+    , meanEnergy( 0.0 )
+    , convEnergy( 1.0 )
+    , convLength( 1.0 )
 {
     do_print = do_print_;
 }
 
 void Mode::initialize()
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*****************************************"
@@ -75,9 +75,9 @@ void Mode::initialize()
     return;
 }
 
-void Mode::loadSettingsFile(string const& fileName)
+void Mode::loadSettingsFile( string const &fileName )
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: SETTINGS FILE ****************"
@@ -85,9 +85,9 @@ void Mode::loadSettingsFile(string const& fileName)
         log << "\n";
     }
 
-    settings.loadFile(fileName);
+    settings.loadFile( fileName );
 
-    if(do_print)
+    if ( do_print )
     {
         log << settings.info();
 
@@ -99,59 +99,63 @@ void Mode::loadSettingsFile(string const& fileName)
 
 void Mode::setupNormalization()
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: NORMALIZATION ****************"
                "**************************************\n";
         log << "\n";
     }
-    if (settings.keywordExists("mean_energy") &&
-        settings.keywordExists("conv_energy") &&
-        settings.keywordExists("conv_length"))
+    if ( settings.keywordExists( "mean_energy" ) &&
+         settings.keywordExists( "conv_energy" ) &&
+         settings.keywordExists( "conv_length" ) )
     {
         normalize = true;
-        meanEnergy = atof(settings["mean_energy"].c_str());
-        convEnergy = atof(settings["conv_energy"].c_str());
-        convLength = atof(settings["conv_length"].c_str());
+        meanEnergy = atof( settings["mean_energy"].c_str() );
+        convEnergy = atof( settings["conv_energy"].c_str() );
+        convLength = atof( settings["conv_length"].c_str() );
 
-        if(do_print)
+        if ( do_print )
         {
             log << "Data set normalization is used.\n";
-            log << nnp::strpr("Mean energy per atom     : %24.16E\n", meanEnergy);
-            log << nnp::strpr("Conversion factor energy : %24.16E\n", convEnergy);
-            log << nnp::strpr("Conversion factor length : %24.16E\n", convLength);
+            log << nnp::strpr( "Mean energy per atom     : %24.16E\n",
+                               meanEnergy );
+            log << nnp::strpr( "Conversion factor energy : %24.16E\n",
+                               convEnergy );
+            log << nnp::strpr( "Conversion factor length : %24.16E\n",
+                               convLength );
         }
-        if (settings.keywordExists("atom_energy"))
+        if ( settings.keywordExists( "atom_energy" ) )
         {
-            if(do_print)
+            if ( do_print )
             {
                 log << "\n";
                 log << "Atomic energy offsets are used in addition to"
-                    " data set normalization.\n";
-                log << "Offsets will be subtracted from reference energies BEFORE"
-                    " normalization is applied.\n";
+                       " data set normalization.\n";
+                log << "Offsets will be subtracted from reference energies "
+                       "BEFORE"
+                       " normalization is applied.\n";
             }
         }
     }
-    else if ((!settings.keywordExists("mean_energy")) &&
-             (!settings.keywordExists("conv_energy")) &&
-             (!settings.keywordExists("conv_length")))
+    else if ( ( !settings.keywordExists( "mean_energy" ) ) &&
+              ( !settings.keywordExists( "conv_energy" ) ) &&
+              ( !settings.keywordExists( "conv_length" ) ) )
     {
         normalize = false;
-        if(do_print)
+        if ( do_print )
             log << "Data set normalization is not used.\n";
     }
     else
     {
-        if(do_print)
-            throw runtime_error("ERROR: Incorrect usage of normalization"
-                                " keywords.\n"
-                                "       Use all or none of \"mean_energy\", "
-                                "\"conv_energy\" and \"conv_length\".\n");
+        if ( do_print )
+            throw runtime_error( "ERROR: Incorrect usage of normalization"
+                                 " keywords.\n"
+                                 "       Use all or none of \"mean_energy\", "
+                                 "\"conv_energy\" and \"conv_length\".\n" );
     }
 
-    if(do_print)
+    if ( do_print )
         log << "*****************************************"
                "**************************************\n";
 
@@ -160,94 +164,100 @@ void Mode::setupNormalization()
 
 void Mode::setupElementMap()
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: ELEMENT MAP ******************"
-            "**************************************\n";
+               "**************************************\n";
         log << "\n";
     }
 
-    elementStrings = nnp::split(nnp::reduce(settings["elements"]));
+    elementStrings = nnp::split( nnp::reduce( settings["elements"] ) );
 
-    if(do_print)
+    if ( do_print )
     {
-        log << nnp::strpr("Number of element strings found: %d\n", elementStrings.size());
+        log << nnp::strpr( "Number of element strings found: %d\n",
+                           elementStrings.size() );
 
-        for (size_t i = 0; i < elementStrings.size(); ++i)
+        for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
-            log << nnp::strpr("Element %2zu: %2s\n", i, elementStrings[i].c_str());
+            log << nnp::strpr( "Element %2zu: %2s\n", i,
+                               elementStrings[i].c_str() );
         }
     }
 
-    //resize to match number of element types
+    // resize to match number of element types
     numElements = elementStrings.size();
-    
-    //setup device and host views
-    //deep copy back when needed for calculations
-    //setup SF info storage
-    SF = t_SF("ForceNNP::SF", numElements, MAX_SF);
-    SFscaling = t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
-    SFGmemberlist = t_SFGmemberlist("ForceNNP::SFGmemberlist", numElements);
 
-    d_SF = d_t_SF("ForceNNP::SF", numElements, MAX_SF);
-    d_SFscaling = d_t_SFscaling("ForceNNP::SFscaling", numElements, MAX_SF);
-    d_SFGmemberlist = d_t_SFGmemberlist("ForceNNP::SFGmemberlist", numElements);
+    // setup device and host views
+    // deep copy back when needed for calculations
+    // setup SF info storage
+    SF = t_SF( "ForceNNP::SF", numElements, MAX_SF );
+    SFscaling = t_SFscaling( "ForceNNP::SFscaling", numElements, MAX_SF );
+    SFGmemberlist = t_SFGmemberlist( "ForceNNP::SFGmemberlist", numElements );
 
-    if(do_print)
+    d_SF = d_t_SF( "ForceNNP::SF", numElements, MAX_SF );
+    d_SFscaling = d_t_SFscaling( "ForceNNP::SFscaling", numElements, MAX_SF );
+    d_SFGmemberlist =
+        d_t_SFGmemberlist( "ForceNNP::SFGmemberlist", numElements );
+
+    if ( do_print )
         log << "*****************************************"
                "**************************************\n";
 
     return;
 }
 
-h_t_mass Mode::setupElements(h_t_mass atomicEnergyOffset)
+h_t_mass Mode::setupElements( h_t_mass atomicEnergyOffset )
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: ELEMENTS *********************"
-            "**************************************\n";
+               "**************************************\n";
         log << "\n";
     }
 
-    numElements = (size_t)atoi(settings["number_of_elements"].c_str());
-    atomicEnergyOffset = h_t_mass("ForceNNP::atomicEnergyOffset", numElements);
-    if (numElements != elementStrings.size())
+    numElements = (size_t)atoi( settings["number_of_elements"].c_str() );
+    atomicEnergyOffset =
+        h_t_mass( "ForceNNP::atomicEnergyOffset", numElements );
+    if ( numElements != elementStrings.size() )
     {
-        throw runtime_error("ERROR: Inconsistent number of elements.\n");
+        throw runtime_error( "ERROR: Inconsistent number of elements.\n" );
     }
-    if(do_print)
-        log << nnp::strpr("Number of elements is consistent: %zu\n", numElements);
+    if ( do_print )
+        log << nnp::strpr( "Number of elements is consistent: %zu\n",
+                           numElements );
 
-    for (size_t i = 0; i < numElements; ++i)
+    for ( size_t i = 0; i < numElements; ++i )
     {
-        elements.push_back(Element(i));
+        elements.push_back( Element( i ) );
     }
 
-    if (settings.keywordExists("atom_energy"))
+    if ( settings.keywordExists( "atom_energy" ) )
     {
-        nnp::Settings::KeyRange r = settings.getValues("atom_energy");
-        for (nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second; ++it)
+        nnp::Settings::KeyRange r = settings.getValues( "atom_energy" );
+        for ( nnp::Settings::KeyMap::const_iterator it = r.first;
+              it != r.second; ++it )
         {
-            vector<string> args    = nnp::split(nnp::reduce(it->second.first));
-            const char* estring = args.at(0).c_str();
-            //np.where element symbol == symbol encountered during parsing 
-            for (size_t i = 0; i < elementStrings.size(); ++i)
+            vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
+            const char *estring = args.at( 0 ).c_str();
+            // np.where element symbol == symbol encountered during parsing
+            for ( size_t i = 0; i < elementStrings.size(); ++i )
             {
-                if (strcmp(elementStrings[i].c_str(), estring) == 0)
-                    atomicEnergyOffset(i) = atof(args.at(1).c_str());
+                if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
+                    atomicEnergyOffset( i ) = atof( args.at( 1 ).c_str() );
             }
         }
     }
 
-    if(do_print)
+    if ( do_print )
     {
         log << "Atomic energy offsets per element:\n";
-        for (size_t i = 0; i < elementStrings.size(); ++i)
+        for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
-            log << nnp::strpr("Element %2zu: %16.8E\n",
-                              i, atomicEnergyOffset(i));
+            log << nnp::strpr( "Element %2zu: %16.8E\n", i,
+                               atomicEnergyOffset( i ) );
         }
 
         log << "Energy offsets are automatically subtracted from reference "
@@ -260,97 +270,98 @@ h_t_mass Mode::setupElements(h_t_mass atomicEnergyOffset)
 
 void Mode::setupCutoff()
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: CUTOFF FUNCTIONS *************"
                "**************************************\n";
         log << "\n";
     }
-    vector<string> args = nnp::split(settings["cutoff_type"]);
+    vector<string> args = nnp::split( settings["cutoff_type"] );
 
-    cutoffType = (CutoffFunction::CutoffType) atoi(args.at(0).c_str());
-    if (args.size() > 1)
+    cutoffType = (CutoffFunction::CutoffType)atoi( args.at( 0 ).c_str() );
+    if ( args.size() > 1 )
     {
-        cutoffAlpha = atof(args.at(1).c_str());
-        if (0.0 < cutoffAlpha && cutoffAlpha >= 1.0)
+        cutoffAlpha = atof( args.at( 1 ).c_str() );
+        if ( 0.0 < cutoffAlpha && cutoffAlpha >= 1.0 )
         {
-            throw invalid_argument("ERROR: 0 <= alpha < 1.0 is required.\n");
+            throw invalid_argument( "ERROR: 0 <= alpha < 1.0 is required.\n" );
         }
     }
 
-    if(do_print)
+    if ( do_print )
     {
-        log << nnp::strpr("Parameter alpha for inner cutoff: %f\n", cutoffAlpha);
+        log << nnp::strpr( "Parameter alpha for inner cutoff: %f\n",
+                           cutoffAlpha );
         log << "Inner cutoff = Symmetry function cutoff * alpha\n";
 
         log << "Equal cutoff function type for all symmetry functions:\n";
 
-        if (cutoffType == CutoffFunction::CT_COS)
+        if ( cutoffType == CutoffFunction::CT_COS )
         {
-            log << nnp::strpr("CutoffFunction::CT_COS (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_COS (%d)\n", cutoffType );
             log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
             log << "f(x) = 1/2 * (cos(pi*x) + 1)\n";
         }
-        else if (cutoffType == CutoffFunction::CT_TANHU)
+        else if ( cutoffType == CutoffFunction::CT_TANHU )
         {
-            log << nnp::strpr("CutoffFunction::CT_TANHU (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_TANHU (%d)\n", cutoffType );
             log << "f(r) = tanh^3(1 - r/rc)\n";
-            if (cutoffAlpha > 0.0)
+            if ( cutoffAlpha > 0.0 )
             {
                 log << "WARNING: Inner cutoff parameter not used in combination"
-                    " with this cutoff function.\n";
+                       " with this cutoff function.\n";
             }
         }
-        else if (cutoffType == CutoffFunction::CT_TANH)
+        else if ( cutoffType == CutoffFunction::CT_TANH )
         {
-            log << nnp::strpr("CutoffFunction::CT_TANH (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_TANH (%d)\n", cutoffType );
             log << "f(r) = c * tanh^3(1 - r/rc), f(0) = 1\n";
-            if (cutoffAlpha > 0.0)
+            if ( cutoffAlpha > 0.0 )
             {
                 log << "WARNING: Inner cutoff parameter not used in combination"
-                    " with this cutoff function.\n";
+                       " with this cutoff function.\n";
             }
         }
-        else if (cutoffType == CutoffFunction::CT_POLY1)
+        else if ( cutoffType == CutoffFunction::CT_POLY1 )
         {
-            log << nnp::strpr("CutoffFunction::CT_POLY1 (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_POLY1 (%d)\n", cutoffType );
             log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
             log << "f(x) = (2x - 3)x^2 + 1\n";
         }
-        else if (cutoffType == CutoffFunction::CT_POLY2)
+        else if ( cutoffType == CutoffFunction::CT_POLY2 )
         {
-            log << nnp::strpr("CutoffFunction::CT_POLY2 (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_POLY2 (%d)\n", cutoffType );
             log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
             log << "f(x) = ((15 - 6x)x - 10)x^3 + 1\n";
         }
-        else if (cutoffType == CutoffFunction::CT_POLY3)
+        else if ( cutoffType == CutoffFunction::CT_POLY3 )
         {
-            log << nnp::strpr("CutoffFunction::CT_POLY3 (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_POLY3 (%d)\n", cutoffType );
             log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
             log << "f(x) = (x(x(20x - 70) + 84) - 35)x^4 + 1\n";
         }
-        else if (cutoffType == CutoffFunction::CT_POLY4)
+        else if ( cutoffType == CutoffFunction::CT_POLY4 )
         {
-            log << nnp::strpr("CutoffFunction::CT_POLY4 (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_POLY4 (%d)\n", cutoffType );
             log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
             log << "f(x) = (x(x((315 - 70x)x - 540) + 420) - 126)x^5 + 1\n";
         }
-        else if (cutoffType == CutoffFunction::CT_EXP)
+        else if ( cutoffType == CutoffFunction::CT_EXP )
         {
-            log << nnp::strpr("CutoffFunction::CT_EXP (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_EXP (%d)\n", cutoffType );
             log << "x := (r - rc * alpha) / (rc - rc * alpha)\n";
             log << "f(x) = exp(-1 / 1 - x^2)\n";
         }
-        else if (cutoffType == CutoffFunction::CT_HARD)
+        else if ( cutoffType == CutoffFunction::CT_HARD )
         {
-            log << nnp::strpr("CutoffFunction::CT_HARD (%d)\n", cutoffType);
+            log << nnp::strpr( "CutoffFunction::CT_HARD (%d)\n", cutoffType );
             log << "f(r) = 1\n";
             log << "WARNING: Hard cutoff used!\n";
         }
         else
         {
-            throw invalid_argument("ERROR: Unknown cutoff type.\n");
+            throw invalid_argument( "ERROR: Unknown cutoff type.\n" );
         }
         log << "*****************************************"
                "**************************************\n";
@@ -358,36 +369,39 @@ void Mode::setupCutoff()
     return;
 }
 
-h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSFperElem)
+h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
 {
-    h_numSFperElem = h_t_mass("ForceNNP::numSymmetryFunctionsPerElement", numElements);
+    h_numSFperElem =
+        h_t_mass( "ForceNNP::numSymmetryFunctionsPerElement", numElements );
 
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: SYMMETRY FUNCTIONS ***********"
                "**************************************\n";
         log << "\n";
     }
-    nnp::Settings::KeyRange r = settings.getValues("symfunction_short");
-    for (nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second; ++it)
+    nnp::Settings::KeyRange r = settings.getValues( "symfunction_short" );
+    for ( nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second;
+          ++it )
     {
-        vector<string> args    = nnp::split(nnp::reduce(it->second.first));
+        vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
         int type = 0;
-        const char* estring = args.at(0).c_str();
-        //np.where element symbol == symbol encountered during parsing 
-        for (size_t i = 0; i < elementStrings.size(); ++i)
+        const char *estring = args.at( 0 ).c_str();
+        // np.where element symbol == symbol encountered during parsing
+        for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
-          if (strcmp(elementStrings[i].c_str(), estring) == 0)
-             type = i; 
+            if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
+                type = i;
         }
-        elements.at(type).addSymmetryFunction(it->second.first, elementStrings,
-                                              type, SF, convLength, countertotal);
-        //set numSFperElem to number of symmetry functions from reading
-        h_numSFperElem(type) = countertotal[type];
+        elements.at( type ).addSymmetryFunction( it->second.first,
+                                                 elementStrings, type, SF,
+                                                 convLength, countertotal );
+        // set numSFperElem to number of symmetry functions from reading
+        h_numSFperElem( type ) = countertotal[type];
     }
 
-    if(do_print)
+    if ( do_print )
     {
         log << "Abbreviations:\n";
         log << "--------------\n";
@@ -407,111 +421,120 @@ h_t_mass Mode::setupSymmetryFunctions(h_t_mass h_numSFperElem)
         log << "\n";
     }
     maxCutoffRadius = 0.0;
-    
-    for (vector<Element>::iterator it = elements.begin();
-         it != elements.end(); ++it)
+
+    for ( vector<Element>::iterator it = elements.begin(); it != elements.end();
+          ++it )
     {
         int attype = it->getIndex();
-        it->sortSymmetryFunctions(SF, h_numSFperElem, attype);
-        maxCutoffRadius = max(it->getMaxCutoffRadius(SF,attype,countertotal), maxCutoffRadius);
-        it->setCutoffFunction(cutoffType, cutoffAlpha, SF, attype, countertotal);
-        if(do_print)
+        it->sortSymmetryFunctions( SF, h_numSFperElem, attype );
+        maxCutoffRadius =
+            max( it->getMaxCutoffRadius( SF, attype, countertotal ),
+                 maxCutoffRadius );
+        it->setCutoffFunction( cutoffType, cutoffAlpha, SF, attype,
+                               countertotal );
+        if ( do_print )
         {
-            log << nnp::strpr("Short range atomic symmetry functions element %2s :\n",
-                              it->getSymbol().c_str());
+            log << nnp::strpr(
+                "Short range atomic symmetry functions element %2s :\n",
+                it->getSymbol().c_str() );
             log << "-----------------------------------------"
-                "--------------------------------------\n";
+                   "--------------------------------------\n";
             log << " ind ec ty e1 e2       eta        rs la "
-                "zeta        rc ct   ca    ln\n";
+                   "zeta        rc ct   ca    ln\n";
             log << "-----------------------------------------"
-                "--------------------------------------\n";
-            log << it->infoSymmetryFunctionParameters(SF, attype, countertotal);
+                   "--------------------------------------\n";
+            log << it->infoSymmetryFunctionParameters( SF, attype,
+                                                       countertotal );
             log << "-----------------------------------------"
-                "--------------------------------------\n";
+                   "--------------------------------------\n";
         }
     }
-    minNeighbors.resize(numElements, 0);
-    minCutoffRadius.resize(numElements, maxCutoffRadius);
-    for (size_t i = 0; i < numElements; ++i)
+    minNeighbors.resize( numElements, 0 );
+    minCutoffRadius.resize( numElements, maxCutoffRadius );
+    for ( size_t i = 0; i < numElements; ++i )
     {
-        int attype = elements.at(i).getIndex();
-        int nSF = h_numSFperElem(attype);
-        minNeighbors.at(i) = elements.at(i).getMinNeighbors(attype, SF, nSF);
-        minCutoffRadius.at(i) = elements.at(i).getMinCutoffRadius(SF,attype,countertotal);
+        int attype = elements.at( i ).getIndex();
+        int nSF = h_numSFperElem( attype );
+        minNeighbors.at( i ) =
+            elements.at( i ).getMinNeighbors( attype, SF, nSF );
+        minCutoffRadius.at( i ) =
+            elements.at( i ).getMinCutoffRadius( SF, attype, countertotal );
 
-        if(do_print)
-            log << nnp::strpr("Minimum cutoff radius for element %2s: %f\n",
-                              elements.at(i).getSymbol().c_str(),
-                              minCutoffRadius.at(i) / convLength);
+        if ( do_print )
+            log << nnp::strpr( "Minimum cutoff radius for element %2s: %f\n",
+                               elements.at( i ).getSymbol().c_str(),
+                               minCutoffRadius.at( i ) / convLength );
     }
 
-    if(do_print)
+    if ( do_print )
     {
-        log << nnp::strpr("Maximum cutoff radius (global)      : %f\n",
-                          maxCutoffRadius / convLength);
+        log << nnp::strpr( "Maximum cutoff radius (global)      : %f\n",
+                           maxCutoffRadius / convLength );
 
         log << "*****************************************"
-            "**************************************\n";
+               "**************************************\n";
     }
     return h_numSFperElem;
 }
 
-void Mode::setupSymmetryFunctionScaling(string const& fileName)
+void Mode::setupSymmetryFunctionScaling( string const &fileName )
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: SYMMETRY FUNCTION SCALING ****"
-            "**************************************\n";
+               "**************************************\n";
         log << "\n";
 
         log << "Equal scaling type for all symmetry functions:\n";
     }
-    if (   ( settings.keywordExists("scale_symmetry_functions" ))
-           && (!settings.keywordExists("center_symmetry_functions")))
+    if ( ( settings.keywordExists( "scale_symmetry_functions" ) ) &&
+         ( !settings.keywordExists( "center_symmetry_functions" ) ) )
     {
         scalingType = ST_SCALE;
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Scaling type::ST_SCALE (%d)\n", scalingType);
+            log << nnp::strpr( "Scaling type::ST_SCALE (%d)\n", scalingType );
             log << "Gs = Smin + (Smax - Smin) * (G - Gmin) / (Gmax - Gmin)\n";
         }
     }
-    else if (   (!settings.keywordExists("scale_symmetry_functions" ))
-             && ( settings.keywordExists("center_symmetry_functions")))
+    else if ( ( !settings.keywordExists( "scale_symmetry_functions" ) ) &&
+              ( settings.keywordExists( "center_symmetry_functions" ) ) )
     {
         scalingType = ST_CENTER;
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Scaling type::ST_CENTER (%d)\n", scalingType);
+            log << nnp::strpr( "Scaling type::ST_CENTER (%d)\n", scalingType );
             log << "Gs = G - Gmean\n";
         }
     }
-    else if (   ( settings.keywordExists("scale_symmetry_functions" ))
-             && ( settings.keywordExists("center_symmetry_functions")))
+    else if ( ( settings.keywordExists( "scale_symmetry_functions" ) ) &&
+              ( settings.keywordExists( "center_symmetry_functions" ) ) )
     {
         scalingType = ST_SCALECENTER;
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Scaling type::ST_SCALECENTER (%d)\n", scalingType);
+            log << nnp::strpr( "Scaling type::ST_SCALECENTER (%d)\n",
+                               scalingType );
             log << "Gs = Smin + (Smax - Smin) * (G - Gmean) / (Gmax - Gmin)\n";
         }
     }
-    else if (settings.keywordExists("scale_symmetry_functions_sigma"))
+    else if ( settings.keywordExists( "scale_symmetry_functions_sigma" ) )
     {
         scalingType = ST_SCALESIGMA;
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Scaling type::ST_SCALESIGMA (%d)\n", scalingType);
+            log << nnp::strpr( "Scaling type::ST_SCALESIGMA (%d)\n",
+                               scalingType );
             log << "Gs = Smin + (Smax - Smin) * (G - Gmean) / Gsigma\n";
         }
     }
     else
     {
         scalingType = ST_NONE;
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Scaling type::ST_NONE (%d)\n", scalingType);
+            log << nnp::strpr( "Scaling type::ST_NONE (%d)\n", scalingType );
             log << "Gs = G\n";
             log << "WARNING: No symmetry function scaling!\n";
         }
@@ -519,17 +542,16 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
 
     double Smin = 0.0;
     double Smax = 0.0;
-    if (scalingType == ST_SCALE ||
-        scalingType == ST_SCALECENTER ||
-        scalingType == ST_SCALESIGMA)
+    if ( scalingType == ST_SCALE || scalingType == ST_SCALECENTER ||
+         scalingType == ST_SCALESIGMA )
     {
-        if (settings.keywordExists("scale_min_short"))
+        if ( settings.keywordExists( "scale_min_short" ) )
         {
-            Smin = atof(settings["scale_min_short"].c_str());
+            Smin = atof( settings["scale_min_short"].c_str() );
         }
         else
         {
-            if(do_print)
+            if ( do_print )
             {
                 log << "WARNING: Keyword \"scale_min_short\" not found.\n";
                 log << "         Default value for Smin = 0.0.\n";
@@ -537,13 +559,13 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
             Smin = 0.0;
         }
 
-        if (settings.keywordExists("scale_max_short"))
+        if ( settings.keywordExists( "scale_max_short" ) )
         {
-            Smax = atof(settings["scale_max_short"].c_str());
+            Smax = atof( settings["scale_max_short"].c_str() );
         }
         else
         {
-            if(do_print)
+            if ( do_print )
             {
                 log << "WARNING: Keyword \"scale_max_short\" not found.\n";
                 log << "         Default value for Smax = 1.0.\n";
@@ -551,37 +573,39 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
             Smax = 1.0;
         }
 
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Smin = %f\n", Smin);
-            log << nnp::strpr("Smax = %f\n", Smax);
+            log << nnp::strpr( "Smin = %f\n", Smin );
+            log << nnp::strpr( "Smax = %f\n", Smax );
         }
     }
 
-    if(do_print)
+    if ( do_print )
     {
-        log << nnp::strpr("Symmetry function scaling statistics from file: %s\n",
-                          fileName.c_str());
+        log << nnp::strpr(
+            "Symmetry function scaling statistics from file: %s\n",
+            fileName.c_str() );
         log << "-----------------------------------------"
-            "--------------------------------------\n";
+               "--------------------------------------\n";
     }
 
     ifstream file;
-    file.open(fileName.c_str());
-    if (!file.is_open())
+    file.open( fileName.c_str() );
+    if ( !file.is_open() )
     {
-        throw runtime_error("ERROR: Could not open file: \"" + fileName
-                            + "\".\n");
+        throw runtime_error( "ERROR: Could not open file: \"" + fileName +
+                             "\".\n" );
     }
     string line;
     vector<string> lines;
-    while (getline(file, line))
+    while ( getline( file, line ) )
     {
-        if (line.at(0) != '#') lines.push_back(line);
+        if ( line.at( 0 ) != '#' )
+            lines.push_back( line );
     }
     file.close();
 
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "Abbreviations:\n";
@@ -597,46 +621,53 @@ void Mode::setupSymmetryFunctionScaling(string const& fileName)
         log << "t ....... Scaling type.\n";
         log << "\n";
     }
-    for (vector<Element>::iterator it = elements.begin();
-         it != elements.end(); ++it)
+    for ( vector<Element>::iterator it = elements.begin(); it != elements.end();
+          ++it )
     {
         int attype = it->getIndex();
-        it->setScaling(scalingType, lines, Smin, Smax, SF, SFscaling, attype, countertotal);
+        it->setScaling( scalingType, lines, Smin, Smax, SF, SFscaling, attype,
+                        countertotal );
 
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Scaling data for symmetry functions element %2s :\n",
-                              it->getSymbol().c_str());
+            log << nnp::strpr(
+                "Scaling data for symmetry functions element %2s :\n",
+                it->getSymbol().c_str() );
             log << "-----------------------------------------"
-                "--------------------------------------\n";
-            log << " ind       min       max      mean     sigma        sf  Smin  Smax t\n";
+                   "--------------------------------------\n";
+            log << " ind       min       max      mean     sigma        sf  "
+                   "Smin  "
+                   "Smax t\n";
             log << "-----------------------------------------"
-                "--------------------------------------\n";
-            log << it->infoSymmetryFunctionScaling(scalingType, SF, SFscaling, attype, countertotal);
+                   "--------------------------------------\n";
+            log << it->infoSymmetryFunctionScaling( scalingType, SF, SFscaling,
+                                                    attype, countertotal );
             log << "-----------------------------------------"
-                "--------------------------------------\n";
+                   "--------------------------------------\n";
         }
-        lines.erase(lines.begin(), lines.begin() + it->numSymmetryFunctions(attype, countertotal));
+        lines.erase( lines.begin(),
+                     lines.begin() +
+                         it->numSymmetryFunctions( attype, countertotal ) );
     }
 
-    if(do_print)
+    if ( do_print )
         log << "*****************************************"
-            "**************************************\n";
+               "**************************************\n";
 
-    Kokkos::deep_copy(d_SF, SF);
-    Kokkos::deep_copy(d_SFscaling, SFscaling);
-    Kokkos::deep_copy(d_SFGmemberlist, SFGmemberlist);
+    Kokkos::deep_copy( d_SF, SF );
+    Kokkos::deep_copy( d_SFscaling, SFscaling );
+    Kokkos::deep_copy( d_SFGmemberlist, SFGmemberlist );
 
     return;
 }
 
 void Mode::setupSymmetryFunctionGroups()
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: SYMMETRY FUNCTION GROUPS *****"
-            "**************************************\n";
+               "**************************************\n";
         log << "\n";
 
         log << "Abbreviations:\n";
@@ -660,66 +691,74 @@ void Mode::setupSymmetryFunctionGroups()
         log << "\n";
     }
 
-    for (vector<Element>::iterator it = elements.begin();
-         it != elements.end(); ++it)
+    for ( vector<Element>::iterator it = elements.begin(); it != elements.end();
+          ++it )
     {
         int attype = it->getIndex();
-        it->setupSymmetryFunctionGroups(SF, SFGmemberlist, attype, countertotal, countergtotal);
+        it->setupSymmetryFunctionGroups( SF, SFGmemberlist, attype,
+                                         countertotal, countergtotal );
 
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Short range atomic symmetry function groups "
-                              "element %2s :\n", it->getSymbol().c_str());
+            log << nnp::strpr( "Short range atomic symmetry function groups "
+                               "element %2s :\n",
+                               it->getSymbol().c_str() );
             log << "-----------------------------------------"
-                "--------------------------------------\n";
+                   "--------------------------------------\n";
             log << " ind ec ty e1 e2       eta        rs la "
-                "zeta        rc ct   ca    ln   mi  sfi e\n";
+                   "zeta        rc ct   ca    ln   mi  sfi e\n";
             log << "-----------------------------------------"
-                "--------------------------------------\n";
-            log << it->infoSymmetryFunctionGroups(SF, SFGmemberlist, attype, countergtotal);
+                   "--------------------------------------\n";
+            log << it->infoSymmetryFunctionGroups( SF, SFGmemberlist, attype,
+                                                   countergtotal );
             log << "-----------------------------------------"
-                "--------------------------------------\n";
+                   "--------------------------------------\n";
         }
     }
 
-    if(do_print)
+    if ( do_print )
         log << "*****************************************"
-            "**************************************\n";
+               "**************************************\n";
 
     return;
 }
 
-void Mode::setupSymmetryFunctionStatistics(bool collectStatistics,
-                                           bool collectExtrapolationWarnings,
-                                           bool writeExtrapolationWarnings,
-                                           bool stopOnExtrapolationWarnings)
+void Mode::setupSymmetryFunctionStatistics( bool collectStatistics,
+                                            bool collectExtrapolationWarnings,
+                                            bool writeExtrapolationWarnings,
+                                            bool stopOnExtrapolationWarnings )
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: SYMMETRY FUNCTION STATISTICS *"
-            "**************************************\n";
+               "**************************************\n";
         log << "\n";
 
         log << "Equal symmetry function statistics for all elements.\n";
-        log << nnp::strpr("Collect min/max/mean/sigma                        : %d\n",
-                          (int)collectStatistics);
-        log << nnp::strpr("Collect extrapolation warnings                    : %d\n",
-                          (int)collectExtrapolationWarnings);
-        log << nnp::strpr("Write extrapolation warnings immediately to stderr: %d\n",
-                          (int)writeExtrapolationWarnings);
-        log << nnp::strpr("Halt on any extrapolation warning                 : %d\n",
-                          (int)stopOnExtrapolationWarnings);
+        log << nnp::strpr(
+            "Collect min/max/mean/sigma                        : %d\n",
+            (int)collectStatistics );
+        log << nnp::strpr(
+            "Collect extrapolation warnings                    : %d\n",
+            (int)collectExtrapolationWarnings );
+        log << nnp::strpr(
+            "Write extrapolation warnings immediately to stderr: %d\n",
+            (int)writeExtrapolationWarnings );
+        log << nnp::strpr(
+            "Halt on any extrapolation warning                 : %d\n",
+            (int)stopOnExtrapolationWarnings );
     }
 
-    for (vector<Element>::iterator it = elements.begin();
-         it != elements.end(); ++it)
+    for ( vector<Element>::iterator it = elements.begin(); it != elements.end();
+          ++it )
     {
-        //it->statistics.collectStatistics = collectStatistics;
-        //it->statistics.collectExtrapolationWarnings =
+        // it->statistics.collectStatistics = collectStatistics;
+        // it->statistics.collectExtrapolationWarnings =
         //                                          collectExtrapolationWarnings;
-        //it->statistics.writeExtrapolationWarnings = writeExtrapolationWarnings;
-        //it->statistics.stopOnExtrapolationWarnings =
+        // it->statistics.writeExtrapolationWarnings =
+        // writeExtrapolationWarnings;
+        // it->statistics.stopOnExtrapolationWarnings =
         //                                           stopOnExtrapolationWarnings;
     }
 
@@ -728,167 +767,177 @@ void Mode::setupSymmetryFunctionStatistics(bool collectStatistics,
                               || writeExtrapolationWarnings
                               || stopOnExtrapolationWarnings;*/
 
-    if(do_print)
+    if ( do_print )
         log << "*****************************************"
-            "**************************************\n";
+               "**************************************\n";
     return;
 }
 
 void Mode::setupNeuralNetwork()
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: NEURAL NETWORKS **************"
-            "**************************************\n";
+               "**************************************\n";
         log << "\n";
     }
 
-    numLayers = 2 + atoi(settings["global_hidden_layers_short"].c_str());
+    numLayers = 2 + atoi( settings["global_hidden_layers_short"].c_str() );
     numHiddenLayers = numLayers - 2;
-    
-    vector<string> numNeuronsPerHiddenLayer =
-        nnp::split(nnp::reduce(settings["global_nodes_short"]));
-    vector<string> activationFunctions =
-        nnp::split(nnp::reduce(settings["global_activation_short"]));
 
-    for (int i = 0; i < numLayers; i++)
+    vector<string> numNeuronsPerHiddenLayer =
+        nnp::split( nnp::reduce( settings["global_nodes_short"] ) );
+    vector<string> activationFunctions =
+        nnp::split( nnp::reduce( settings["global_activation_short"] ) );
+
+    for ( int i = 0; i < numLayers; i++ )
     {
-        if (i == 0)
+        if ( i == 0 )
             AF[i] = 0;
-        else if (i == numLayers - 1)
+        else if ( i == numLayers - 1 )
         {
             numNeuronsPerLayer[i] = 1;
             AF[i] = 0;
-        } 
+        }
         else
         {
-            numNeuronsPerLayer[i] = atoi(numNeuronsPerHiddenLayer.at(i-1).c_str());
-            AF[i] = 1; //TODO: hardcoded atoi(activationFunctions.at(i-1));
+            numNeuronsPerLayer[i] =
+                atoi( numNeuronsPerHiddenLayer.at( i - 1 ).c_str() );
+            AF[i] = 1; // TODO: hardcoded atoi(activationFunctions.at(i-1));
         }
     }
 
-    //TODO: add normalization of neurons
-    bool normalizeNeurons = settings.keywordExists("normalize_nodes");
+    // TODO: add normalization of neurons
+    bool normalizeNeurons = settings.keywordExists( "normalize_nodes" );
 
-    if(do_print)
+    if ( do_print )
     {
-        log << nnp::strpr("Normalize neurons (all elements): %d\n",
-                          (int)normalizeNeurons);
+        log << nnp::strpr( "Normalize neurons (all elements): %d\n",
+                           (int)normalizeNeurons );
         log << "-----------------------------------------"
-            "--------------------------------------\n";
+               "--------------------------------------\n";
     }
 
-    for (vector<Element>::iterator it = elements.begin();
-         it != elements.end(); ++it)
+    for ( vector<Element>::iterator it = elements.begin(); it != elements.end();
+          ++it )
     {
         int attype = it->getIndex();
-        numNeuronsPerLayer[0] = it->numSymmetryFunctions(attype, countertotal);
+        numNeuronsPerLayer[0] =
+            it->numSymmetryFunctions( attype, countertotal );
 
-        if(do_print)
-            log << nnp::strpr("Atomic short range NN for "
-                              "element %2s :\n", it->getSymbol().c_str());
+        if ( do_print )
+            log << nnp::strpr( "Atomic short range NN for "
+                               "element %2s :\n",
+                               it->getSymbol().c_str() );
 
         int numWeights = 0, numBiases = 0, numConnections = 0;
-        for (int j = 1; j < numLayers; ++j)
-        { 
-            numWeights += numNeuronsPerLayer[j-1]*numNeuronsPerLayer[j]; 
+        for ( int j = 1; j < numLayers; ++j )
+        {
+            numWeights += numNeuronsPerLayer[j - 1] * numNeuronsPerLayer[j];
             numBiases += numNeuronsPerLayer[j];
         }
         numConnections = numWeights + numBiases;
 
-        if(do_print)
+        if ( do_print )
         {
-            log << nnp::strpr("Number of weights    : %6zu\n", numWeights);
-            log << nnp::strpr("Number of biases     : %6zu\n", numBiases);
-            log << nnp::strpr("Number of connections: %6zu\n", numConnections);
-            log << nnp::strpr("Architecture    %6zu    %6zu    %6zu    %6zu\n", numNeuronsPerLayer[0], numNeuronsPerLayer[1],
-                              numNeuronsPerLayer[2], numNeuronsPerLayer[3]);
+            log << nnp::strpr( "Number of weights    : %6zu\n", numWeights );
+            log << nnp::strpr( "Number of biases     : %6zu\n", numBiases );
+            log << nnp::strpr( "Number of connections: %6zu\n",
+                               numConnections );
+            log << nnp::strpr( "Architecture    %6zu    %6zu    %6zu    %6zu\n",
+                               numNeuronsPerLayer[0], numNeuronsPerLayer[1],
+                               numNeuronsPerLayer[2], numNeuronsPerLayer[3] );
             log << "-----------------------------------------"
-                "--------------------------------------\n";
+                   "--------------------------------------\n";
         }
     }
 
-    //initialize Views
+    // initialize Views
     maxNeurons = 0;
-    for (int j = 0; j < numLayers; ++j)
-        maxNeurons = max(maxNeurons, numNeuronsPerLayer[j]);
+    for ( int j = 0; j < numLayers; ++j )
+        maxNeurons = max( maxNeurons, numNeuronsPerLayer[j] );
 
-    h_bias = t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
-    h_weights = t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
-    
-    bias = d_t_bias("ForceNNP::biases", numElements, numLayers, maxNeurons); 
-    weights = d_t_weights("ForceNNP::weights", numElements, numLayers, maxNeurons, maxNeurons); 
+    h_bias = t_bias( "ForceNNP::biases", numElements, numLayers, maxNeurons );
+    h_weights = t_weights( "ForceNNP::weights", numElements, numLayers,
+                           maxNeurons, maxNeurons );
 
-    if(do_print)
+    bias = d_t_bias( "ForceNNP::biases", numElements, numLayers, maxNeurons );
+    weights = d_t_weights( "ForceNNP::weights", numElements, numLayers,
+                           maxNeurons, maxNeurons );
+
+    if ( do_print )
         log << "*****************************************"
-            "**************************************\n";
+               "**************************************\n";
 
     return;
 }
 
-void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
+void Mode::setupNeuralNetworkWeights( string const &fileNameFormat )
 {
-    if(do_print)
+    if ( do_print )
     {
         log << "\n";
         log << "*** SETUP: NEURAL NETWORK WEIGHTS *******"
-            "**************************************\n";
+               "**************************************\n";
         log << "\n";
 
-        log << nnp::strpr("Weight file name format: %s\n", fileNameFormat.c_str());
+        log << nnp::strpr( "Weight file name format: %s\n",
+                           fileNameFormat.c_str() );
     }
 
     int count = 0;
     int AN = 0;
-    for (vector<Element>::iterator it = elements.begin();
-         it != elements.end(); ++it)
+    for ( vector<Element>::iterator it = elements.begin(); it != elements.end();
+          ++it )
     {
-        const char* estring = elementStrings[count].c_str();
-        //np.where element symbol == symbol encountered in knownElements 
-        for (size_t i = 0; i < knownElements.size(); ++i)
+        const char *estring = elementStrings[count].c_str();
+        // np.where element symbol == symbol encountered in knownElements
+        for ( size_t i = 0; i < knownElements.size(); ++i )
         {
-          if (strcmp(knownElements[i].c_str(), estring) == 0)
-          {
-            AN = i+1;
-            break;
-          } 
+            if ( strcmp( knownElements[i].c_str(), estring ) == 0 )
+            {
+                AN = i + 1;
+                break;
+            }
         }
-        
-        string fileName = nnp::strpr(fileNameFormat.c_str(), AN);
 
-        if(do_print)
-            log << nnp::strpr("Weight file for element %2s: %s\n",
-                              elementStrings[count].c_str(),
-                              fileName.c_str());
+        string fileName = nnp::strpr( fileNameFormat.c_str(), AN );
+
+        if ( do_print )
+            log << nnp::strpr( "Weight file for element %2s: %s\n",
+                               elementStrings[count].c_str(),
+                               fileName.c_str() );
 
         ifstream file;
-        file.open(fileName.c_str());
-        if (!file.is_open())
+        file.open( fileName.c_str() );
+        if ( !file.is_open() )
         {
-            throw runtime_error("ERROR: Could not open file: \"" + fileName
-                                + "\".\n");
+            throw runtime_error( "ERROR: Could not open file: \"" + fileName +
+                                 "\".\n" );
         }
         string line;
         int attype = it->getIndex();
         int layer, start, end;
-        while (getline(file, line))
+        while ( getline( file, line ) )
         {
-            if (line.at(0) != '#')
+            if ( line.at( 0 ) != '#' )
             {
-                vector<string> splitLine = nnp::split(nnp::reduce(line));
-                if (strcmp(splitLine.at(1).c_str(), "a") == 0)
+                vector<string> splitLine = nnp::split( nnp::reduce( line ) );
+                if ( strcmp( splitLine.at( 1 ).c_str(), "a" ) == 0 )
                 {
-                    layer = atoi(splitLine.at(3).c_str());
-                    start = atoi(splitLine.at(4).c_str()) - 1;
-                    end = atoi(splitLine.at(6).c_str()) - 1;
-                    h_weights(attype,layer,end,start) = atof(splitLine.at(0).c_str());
+                    layer = atoi( splitLine.at( 3 ).c_str() );
+                    start = atoi( splitLine.at( 4 ).c_str() ) - 1;
+                    end = atoi( splitLine.at( 6 ).c_str() ) - 1;
+                    h_weights( attype, layer, end, start ) =
+                        atof( splitLine.at( 0 ).c_str() );
                 }
-                else if (strcmp(splitLine.at(1).c_str(), "b") == 0)
+                else if ( strcmp( splitLine.at( 1 ).c_str(), "b" ) == 0 )
                 {
-                    layer = atoi(splitLine.at(3).c_str()) - 1;
-                    start = atoi(splitLine.at(4).c_str()) - 1;
-                    h_bias(attype,layer,start) = atof(splitLine.at(0).c_str());
+                    layer = atoi( splitLine.at( 3 ).c_str() ) - 1;
+                    start = atoi( splitLine.at( 4 ).c_str() ) - 1;
+                    h_bias( attype, layer, start ) =
+                        atof( splitLine.at( 0 ).c_str() );
                 }
             }
         }
@@ -896,13 +945,12 @@ void Mode::setupNeuralNetworkWeights(string const& fileNameFormat)
         count += 1;
     }
 
-    if(do_print)
+    if ( do_print )
         log << "*****************************************"
-            "**************************************\n";
+               "**************************************\n";
 
-    Kokkos::deep_copy(bias, h_bias);
-    Kokkos::deep_copy(weights, h_weights);
+    Kokkos::deep_copy( bias, h_bias );
+    Kokkos::deep_copy( weights, h_weights );
 
     return;
 }
-

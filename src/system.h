@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -49,64 +50,67 @@
 
 #ifndef SYSTEM_H
 #define SYSTEM_H
-#include <Kokkos_Core.hpp>
 #include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
 
-#include<types.h>
 #include <string>
+#include <types.h>
 
-class System {
-public:
-  T_INT N_global;       // Number of Global Particles
-  T_INT N_max;   // Number of Particles I could have in available storage
-  T_INT N_local; // Number of owned Particles
-  T_INT N_ghost; // Number of non-owned Particles
+class System
+{
+  public:
+    T_INT N_global; // Number of Global Particles
+    T_INT N_max;    // Number of Particles I could have in available storage
+    T_INT N_local;  // Number of owned Particles
+    T_INT N_ghost;  // Number of non-owned Particles
 
-  int ntypes;
-  std::string atom_style; 
+    int ntypes;
+    std::string atom_style;
 
-  // Per Particle Property
-  AoSoA xvf;
-  // Per Type Property
-  t_mass mass;
-  t_mass charge;
+    // Per Particle Property
+    AoSoA xvf;
+    // Per Type Property
+    t_mass mass;
+    t_mass charge;
 
-  // Simulation domain
-  T_X_FLOAT domain_x, domain_y, domain_z;
-  T_X_FLOAT domain_lo_x, domain_lo_y, domain_lo_z;
-  T_X_FLOAT domain_hi_x, domain_hi_y, domain_hi_z;
-  T_X_FLOAT lattice_constant;
+    // Simulation domain
+    T_X_FLOAT domain_x, domain_y, domain_z;
+    T_X_FLOAT domain_lo_x, domain_lo_y, domain_lo_z;
+    T_X_FLOAT domain_hi_x, domain_hi_y, domain_hi_z;
+    T_X_FLOAT lattice_constant;
 
-  // Simulation sub domain (for example of a single MPI rank)
-  T_X_FLOAT sub_domain_x, sub_domain_y, sub_domain_z;
-  T_X_FLOAT sub_domain_lo_x, sub_domain_lo_y, sub_domain_lo_z;
-  T_X_FLOAT sub_domain_hi_x, sub_domain_hi_y, sub_domain_hi_z;
+    // Simulation sub domain (for example of a single MPI rank)
+    T_X_FLOAT sub_domain_x, sub_domain_y, sub_domain_z;
+    T_X_FLOAT sub_domain_lo_x, sub_domain_lo_y, sub_domain_lo_z;
+    T_X_FLOAT sub_domain_hi_x, sub_domain_hi_y, sub_domain_hi_z;
 
-  // Units
-  T_FLOAT boltz,mvv2e,dt;
+    // Units
+    T_FLOAT boltz, mvv2e, dt;
 
-  // Should this process print messages
-  bool do_print;
-  // Should print LAMMPS style messages
-  bool print_lammps;
+    // Should this process print messages
+    bool do_print;
+    // Should print LAMMPS style messages
+    bool print_lammps;
 
-  System();
-  ~System() {};
-  void init();
-  void destroy();
+    System();
+    ~System(){};
+    void init();
+    void destroy();
 
-  void resize(T_INT new_N);
+    void resize( T_INT new_N );
 
-  KOKKOS_INLINE_FUNCTION
-  t_particle get_particle(const T_INT& i) const {
-    return xvf.getTuple(i);
-  }
+    KOKKOS_INLINE_FUNCTION
+    t_particle get_particle( const T_INT &i ) const
+    {
+        return xvf.getTuple( i );
+    }
 
-  KOKKOS_INLINE_FUNCTION
-  void set_particle(const T_INT& i, const t_particle& p) const {
-    xvf.setTuple(i, p);
-  }
+    KOKKOS_INLINE_FUNCTION
+    void set_particle( const T_INT &i, const t_particle &p ) const
+    {
+        xvf.setTuple( i, p );
+    }
 
-  void print_particles();
+    void print_particles();
 };
 #endif

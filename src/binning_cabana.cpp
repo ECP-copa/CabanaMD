@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -47,49 +48,60 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include<binning_cabana.h>
+#include <binning_cabana.h>
 
-Binning::Binning(System* s):system(s) {}
-
-void Binning::create_binning(T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in, int halo_depth, bool do_local, bool do_ghost, bool sort) {
-  if(do_local||do_ghost) {
-    nhalo = halo_depth;
-    int begin = do_local?0:system->N_local;
-    int end = do_ghost?system->N_local+system->N_ghost:system->N_local;
-
-    nbinx = T_INT(system->sub_domain_x/dx_in);
-    nbiny = T_INT(system->sub_domain_y/dy_in);
-    nbinz = T_INT(system->sub_domain_z/dz_in);
-
-    if(nbinx == 0) nbinx = 1;
-    if(nbiny == 0) nbiny = 1;
-    if(nbinz == 0) nbinz = 1;
-
-    T_X_FLOAT dx = system->sub_domain_x/nbinx;
-    T_X_FLOAT dy = system->sub_domain_y/nbiny;
-    T_X_FLOAT dz = system->sub_domain_z/nbinz;
-
-    T_X_FLOAT eps = dx/1000;
-    minx = -dx * halo_depth - eps + system->sub_domain_lo_x;
-    maxx =  dx * halo_depth + eps + system->sub_domain_hi_x;
-    miny = -dy * halo_depth - eps + system->sub_domain_lo_y;
-    maxy =  dy * halo_depth + eps + system->sub_domain_hi_y;
-    minz = -dz * halo_depth - eps + system->sub_domain_lo_z;
-    maxz =  dz * halo_depth + eps + system->sub_domain_hi_z;
-
-    T_X_FLOAT delta[3] = {dx,dy,dz};
-    T_X_FLOAT min[3] = {minx,miny,minz};
-    T_X_FLOAT max[3] = {maxx,maxy,maxz};
-
-    x = Cabana::slice<Positions>(system->xvf);
-
-    t_linkedcell cell_list(x, begin, end, delta, min, max );
-
-    if(sort) {
-      Cabana::permute( cell_list, system->xvf );
-    }
-  }
+Binning::Binning( System *s )
+    : system( s )
+{
 }
 
-const char* Binning::name() { return "Binning:CabanaLinkedCell"; }
+void Binning::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in,
+                              int halo_depth, bool do_local, bool do_ghost,
+                              bool sort )
+{
+    if ( do_local || do_ghost )
+    {
+        nhalo = halo_depth;
+        int begin = do_local ? 0 : system->N_local;
+        int end =
+            do_ghost ? system->N_local + system->N_ghost : system->N_local;
 
+        nbinx = T_INT( system->sub_domain_x / dx_in );
+        nbiny = T_INT( system->sub_domain_y / dy_in );
+        nbinz = T_INT( system->sub_domain_z / dz_in );
+
+        if ( nbinx == 0 )
+            nbinx = 1;
+        if ( nbiny == 0 )
+            nbiny = 1;
+        if ( nbinz == 0 )
+            nbinz = 1;
+
+        T_X_FLOAT dx = system->sub_domain_x / nbinx;
+        T_X_FLOAT dy = system->sub_domain_y / nbiny;
+        T_X_FLOAT dz = system->sub_domain_z / nbinz;
+
+        T_X_FLOAT eps = dx / 1000;
+        minx = -dx * halo_depth - eps + system->sub_domain_lo_x;
+        maxx = dx * halo_depth + eps + system->sub_domain_hi_x;
+        miny = -dy * halo_depth - eps + system->sub_domain_lo_y;
+        maxy = dy * halo_depth + eps + system->sub_domain_hi_y;
+        minz = -dz * halo_depth - eps + system->sub_domain_lo_z;
+        maxz = dz * halo_depth + eps + system->sub_domain_hi_z;
+
+        T_X_FLOAT delta[3] = {dx, dy, dz};
+        T_X_FLOAT min[3] = {minx, miny, minz};
+        T_X_FLOAT max[3] = {maxx, maxy, maxz};
+
+        x = Cabana::slice<Positions>( system->xvf );
+
+        t_linkedcell cell_list( x, begin, end, delta, min, max );
+
+        if ( sort )
+        {
+            Cabana::permute( cell_list, system->xvf );
+        }
+    }
+}
+
+const char *Binning::name() { return "Binning:CabanaLinkedCell"; }

@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -49,25 +50,26 @@
 
 #ifndef INTEGRATOR_NVE_H
 #define INTEGRATOR_NVE_H
-#include <Kokkos_Core.hpp>
 #include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
 
-#include <types.h>
 #include <system.h>
+#include <types.h>
 
-class Integrator {
-  T_V_FLOAT dtv, dtf;
+class Integrator
+{
+    T_V_FLOAT dtv, dtf;
 
-public:
-  System* system;
+  public:
+    System *system;
 
-  Integrator(System* s);
-  ~Integrator();
-  T_V_FLOAT timestep_size;
+    Integrator( System *s );
+    ~Integrator();
+    T_V_FLOAT timestep_size;
 
-  void initial_integrate();
-  void final_integrate();
+    void initial_integrate();
+    void final_integrate();
 
-  const char* name();
+    const char *name();
 };
 #endif

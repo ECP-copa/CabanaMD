@@ -9,7 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include<force_ewald_cabana_neigh_impl.h>
+#include <force_ewald_cabana_neigh_impl.h>
 
 template class ForceEwald<t_verletlist_half_2D>;
 template class ForceEwald<t_verletlist_full_2D>;

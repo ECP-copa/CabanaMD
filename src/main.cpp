@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -47,30 +48,30 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include<cabanamd.h>
+#include <cabanamd.h>
 
 // CabanaMD can be used as a library
 // This main file is simply a driver
 
 #include "mpi.h"
 
-int main(int argc, char* argv[]) {
+int main( int argc, char *argv[] )
+{
 
-   MPI_Init(&argc,&argv);
+    MPI_Init( &argc, &argv );
 
-   Kokkos::ScopeGuard scope_guard(argc, argv);
+    Kokkos::ScopeGuard scope_guard( argc, argv );
 
-   CabanaMD cabanamd;
-   cabanamd.init(argc,argv);
+    CabanaMD cabanamd;
+    cabanamd.init( argc, argv );
 
-   cabanamd.run(cabanamd.input->nsteps);
+    cabanamd.run( cabanamd.input->nsteps );
 
-   //   cabanamd.check_correctness();
+    //   cabanamd.check_correctness();
 
-   cabanamd.print_performance();
+    cabanamd.print_performance();
 
-   cabanamd.shutdown();
+    cabanamd.shutdown();
 
-   MPI_Finalize();
+    MPI_Finalize();
 }
-

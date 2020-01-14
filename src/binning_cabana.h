@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -51,19 +52,22 @@
 #define BINNING_CABANA_H
 #include <Cabana_Core.hpp>
 
-#include <types.h>
 #include <system.h>
+#include <types.h>
 
-class Binning {
-  System* system;
+class Binning
+{
+    System *system;
 
-public:
-  T_INT nbinx, nbiny, nbinz, nhalo;
-  T_X_FLOAT minx,maxx,miny,maxy,minz,maxz;
-  typename AoSoA::member_slice_type<Positions> x;
+  public:
+    T_INT nbinx, nbiny, nbinz, nhalo;
+    T_X_FLOAT minx, maxx, miny, maxy, minz, maxz;
+    typename AoSoA::member_slice_type<Positions> x;
 
-  Binning(System* s);
-  void create_binning(T_X_FLOAT dx, T_X_FLOAT dy, T_X_FLOAT dz, int halo_depth, bool do_local, bool do_ghost, bool sort);
-  const char* name();
+    Binning( System *s );
+    void create_binning( T_X_FLOAT dx, T_X_FLOAT dy, T_X_FLOAT dz,
+                         int halo_depth, bool do_local, bool do_ghost,
+                         bool sort );
+    const char *name();
 };
 #endif

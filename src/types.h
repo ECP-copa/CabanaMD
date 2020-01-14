@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -49,41 +50,83 @@
 
 #ifndef TYPES_H
 #define TYPES_H
-#include <Kokkos_Core.hpp>
 #include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
 
 #define VECLEN 16
 
 // Module Types etc
 // Units to be used
-enum {UNITS_REAL,UNITS_LJ,UNITS_METAL};
+enum
+{
+    UNITS_REAL,
+    UNITS_LJ,
+    UNITS_METAL
+};
 // Lattice Type
-enum {LATTICE_SC,LATTICE_FCC};
+enum
+{
+    LATTICE_SC,
+    LATTICE_FCC
+};
 // Integrator Type
-enum {INTEGRATOR_NVE};
+enum
+{
+    INTEGRATOR_NVE
+};
 // Binning Type
-enum {BINNING_LINKEDCELL};
+enum
+{
+    BINNING_LINKEDCELL
+};
 // Comm Type
-enum {COMM_MPI};
+enum
+{
+    COMM_MPI
+};
 // Force Type
-enum {FORCE_LJ,FORCE_SNAP,FORCE_NNP,FORCE_EWALD,FORCE_SPME,FORCE_NONE};
+enum
+{
+    FORCE_LJ,
+    FORCE_SNAP,
+    FORCE_NNP,
+    FORCE_EWALD,
+    FORCE_SPME,
+    FORCE_NONE
+};
 // Force Iteration Type
-enum {FORCE_ITER_NEIGH_FULL,FORCE_ITER_NEIGH_HALF};
+enum
+{
+    FORCE_ITER_NEIGH_FULL,
+    FORCE_ITER_NEIGH_HALF
+};
 // Force neighbor parallel Type
-enum {FORCE_PARALLEL_NEIGH_SERIAL,FORCE_PARALLEL_NEIGH_TEAM,FORCE_PARALLEL_NEIGH_VECTOR};
+enum
+{
+    FORCE_PARALLEL_NEIGH_SERIAL,
+    FORCE_PARALLEL_NEIGH_TEAM,
+    FORCE_PARALLEL_NEIGH_VECTOR
+};
 // Neighbor Type
-enum {NEIGH_2D,NEIGH_CSR};
+enum
+{
+    NEIGH_2D,
+    NEIGH_CSR
+};
 // Input File Type
-enum {INPUT_LAMMPS};
+enum
+{
+    INPUT_LAMMPS
+};
 
-constexpr double PI(3.141592653589793238462643);
-constexpr double PI_SQRT(1.772453850905516);
-constexpr double PI_SQ(PI*PI);// 9.869604401089359
-constexpr double PI_DIV_SQ(1.0/PI_SQ);//0.101321183642338
+constexpr double PI( 3.141592653589793238462643 );
+constexpr double PI_SQRT( 1.772453850905516 );
+constexpr double PI_SQ( PI *PI );          // 9.869604401089359
+constexpr double PI_DIV_SQ( 1.0 / PI_SQ ); // 0.101321183642338
 
 // Macros to work around the fact that std::max/min is not available on GPUs
-#define MAX(a,b) (a>b?a:b)
-#define MIN(a,b) (a<b?a:b)
+#define MAX( a, b ) ( a > b ? a : b )
+#define MIN( a, b ) ( a < b ? a : b )
 
 #define MAX_TYPES_STACKPARAMS 12
 
@@ -105,15 +148,22 @@ constexpr double PI_DIV_SQ(1.0/PI_SQ);//0.101321183642338
 #define T_F_FLOAT T_FLOAT
 #endif
 
-typedef Kokkos::View<T_V_FLOAT*>          t_mass;       // Mass
-typedef Kokkos::View<const T_V_FLOAT*>    t_mass_const; // Mass
+typedef Kokkos::View<T_V_FLOAT *> t_mass;             // Mass
+typedef Kokkos::View<const T_V_FLOAT *> t_mass_const; // Mass
 
-
-//Cabana
-using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
-                                    T_INT, T_INT, T_FLOAT, T_FLOAT>;
-enum TypeNames { Positions = 0, Velocities = 1, Forces = 2,
-                 Types = 3, IDs = 4, Charges = 5, Potentials = 6 };
+// Cabana
+using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3], T_INT,
+                                    T_INT, T_FLOAT, T_FLOAT>;
+enum TypeNames
+{
+    Positions = 0,
+    Velocities = 1,
+    Forces = 2,
+    Types = 3,
+    IDs = 4,
+    Charges = 5,
+    Potentials = 6
+};
 
 #ifdef CabanaMD_ENABLE_Cuda
 using MemorySpace = Kokkos::CudaUVMSpace;
@@ -126,22 +176,29 @@ using ExecutionSpace = Kokkos::Serial;
 using ExecutionSpace = Kokkos::OpenMP;
 #endif
 #endif
-using DeviceType = Kokkos::Device<ExecutionSpace,MemorySpace>;
+using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
 using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
-using AoSoA = Cabana::AoSoA<t_tuple,DeviceType,VECLEN>;
+using AoSoA = Cabana::AoSoA<t_tuple, DeviceType, VECLEN>;
 using t_particle = Cabana::Tuple<t_tuple>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
-using t_verletlist_full_2D = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayout2D>;
-using t_verletlist_half_2D = Cabana::VerletList<DeviceType,Cabana::HalfNeighborTag,Cabana::VerletLayout2D>;
-using t_verletlist_full_CSR = Cabana::VerletList<DeviceType,Cabana::FullNeighborTag,Cabana::VerletLayoutCSR>;
-using t_verletlist_half_CSR = Cabana::VerletList<DeviceType,Cabana::HalfNeighborTag,Cabana::VerletLayoutCSR>;
+using t_verletlist_full_2D =
+    Cabana::VerletList<DeviceType, Cabana::FullNeighborTag,
+                       Cabana::VerletLayout2D>;
+using t_verletlist_half_2D =
+    Cabana::VerletList<DeviceType, Cabana::HalfNeighborTag,
+                       Cabana::VerletLayout2D>;
+using t_verletlist_full_CSR =
+    Cabana::VerletList<DeviceType, Cabana::FullNeighborTag,
+                       Cabana::VerletLayoutCSR>;
+using t_verletlist_half_CSR =
+    Cabana::VerletList<DeviceType, Cabana::HalfNeighborTag,
+                       Cabana::VerletLayoutCSR>;
 
 using t_neighborop_serial = Cabana::SerialOpTag;
 using t_neighborop_team = Cabana::TeamOpTag;
 using t_neighborop_vector = Cabana::TeamVectorOpTag;
 
 #endif
-

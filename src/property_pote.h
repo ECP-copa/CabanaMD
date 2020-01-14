@@ -24,9 +24,10 @@
 //    1. Redistributions of source code must retain the above copyright notice,
 //       this list of conditions and the following disclaimer.
 //
-//    2. Redistributions in binary form must reproduce the above copyright notice,
-//       this list of conditions and the following disclaimer in the documentation
-//       and/or other materials provided with the distribution.
+//    2. Redistributions in binary form must reproduce the above copyright
+//    notice,
+//       this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
 //       may be used to endorse or promote products derived from this software
@@ -47,15 +48,17 @@
 //  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <types.h>
-#include <system.h>
 #include <comm_mpi.h>
+#include <system.h>
+#include <types.h>
 
-class PotE {
+class PotE
+{
   private:
-    Comm* comm;
-  public:
-    PotE(Comm* comm_);
+    Comm *comm;
 
-    T_F_FLOAT compute(System*, Force*);
+  public:
+    PotE( Comm *comm_ );
+
+    T_F_FLOAT compute( System *, Force * );
 };

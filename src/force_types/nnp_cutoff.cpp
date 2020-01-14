@@ -26,32 +26,33 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "nnp_cutoff.h"
-#include <stdexcept>
-#include <cmath>  // cos, sin, tanh, exp, pow
-#include <limits> // std::numeric_limits
+#include <cmath> // cos, sin, tanh, exp, pow
 #include <iostream>
+#include <limits> // std::numeric_limits
+#include <stdexcept>
 
 using namespace std;
 using namespace nnpCbn;
 
-double const CutoffFunction::PI = 4.0 * atan(1.0);
-double const CutoffFunction::PI_2 = 2.0 * atan(1.0);
-double const CutoffFunction::E = exp(1.0);
-double const CutoffFunction::TANH_PRE = pow((E + 1 / E) / (E - 1 / E), 3);
+double const CutoffFunction::PI = 4.0 * atan( 1.0 );
+double const CutoffFunction::PI_2 = 2.0 * atan( 1.0 );
+double const CutoffFunction::E = exp( 1.0 );
+double const CutoffFunction::TANH_PRE = pow( ( E + 1 / E ) / ( E - 1 / E ), 3 );
 
-CutoffFunction::CutoffFunction() : cutoffType(CT_HARD                 ),
-                                   rc        (0.0                     ),
-                                   rcinv     (0.0                     ),
-                                   rci       (0.0                     ),
-                                   alpha     (0.0                     ),
-                                   iw        (0.0                     )
+CutoffFunction::CutoffFunction()
+    : cutoffType( CT_HARD )
+    , rc( 0.0 )
+    , rcinv( 0.0 )
+    , rci( 0.0 )
+    , alpha( 0.0 )
+    , iw( 0.0 )
 {
 }
 
-CutoffFunction::CutoffFunction(double _rc) 
+CutoffFunction::CutoffFunction( double _rc )
 {
-  cutoffType = CT_TANHU;
-  rc = _rc;
-  rcinv = 1/rc;
-  rci = alpha = iw = 0.0;
+    cutoffType = CT_TANHU;
+    rc = _rc;
+    rcinv = 1 / rc;
+    rci = alpha = iw = 0.0;
 }
