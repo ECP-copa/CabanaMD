@@ -34,15 +34,13 @@
    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
    USA.  See also: http://www.gnu.org/licenses/lgpl.txt .
 
-   For questions, contact Paul S. Crozier (pscrozi@sandia.gov) or
-   Christian Trott (crtrott@sandia.gov).
-
    Please read the accompanying LICENSE_MINIMD file.
 ---------------------------------------------------------------------- */
-#include <Cabana_Core.hpp>
 
 #include <comm_mpi.h>
 #include <types.h>
+
+#include <Cabana_Core.hpp>
 
 #include <cstring>
 #include <fstream>
@@ -113,8 +111,10 @@ void read_lammps_header( ifstream &file, System *s )
 
         int natoms, ntypes;
         double xlo, xhi, ylo, yhi, zlo, zhi;
+
         const char *temp =
             line.data(); // convert to C-string for sscanf utility
+
         // search line for header keyword and set corresponding variable
         if ( line.find( "atoms" ) != string::npos )
         {

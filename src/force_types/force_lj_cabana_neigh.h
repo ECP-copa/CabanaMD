@@ -25,8 +25,7 @@
 //       this list of conditions and the following disclaimer.
 //
 //    2. Redistributions in binary form must reproduce the above copyright
-//    notice,
-//       this list of conditions and the following disclaimer in the
+//       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
@@ -45,7 +44,6 @@
 //  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 //
-//  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
 #ifdef MODULES_OPTION_CHECK
@@ -90,11 +88,13 @@ else if ( input->force_type == FORCE_LJ )
 
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
-#include <Cabana_Core.hpp>
 
 #include <force.h>
 #include <system.h>
 #include <types.h>
+
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
 
 template <class t_neighbor>
 class ForceLJ : public Force

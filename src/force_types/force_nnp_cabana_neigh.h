@@ -88,12 +88,14 @@ else if ( input->force_type == FORCE_NNP )
 
 #ifndef FORCE_NNP_CABANA_NEIGH_H
 #define FORCE_NNP_CABANA_NEIGH_H
-#include <Cabana_Core.hpp>
 
-#include "nnp_mode_impl.h"
+#include <nnp_mode_impl.h>
+
 #include <force.h>
 #include <system.h>
 #include <types.h>
+
+#include <Cabana_Core.hpp>
 
 template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 class ForceNNP : public Force

@@ -28,17 +28,22 @@
 #ifndef CBN_MODE_H
 #define CBN_MODE_H
 
-#include "Log.h"
-#include "Settings.h"
-#include "nnp_cutoff.h"
-#include "nnp_element.h"
-#include <Cabana_Core.hpp>
-#include <cstddef> // std::size_t
-#include <string>  // std::string
+#include <nnp_cutoff.h>
+#include <nnp_element.h>
+#include <types_nnp.h>
+
 #include <system.h>
 #include <types.h>
-#include <types_nnp.h>
-#include <vector> // std::vector
+
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
+#include <Log.h>
+#include <Settings.h>
+
+#include <cstddef> // std::size_t
+#include <string>  // std::string
+#include <vector>  // std::vector
 
 namespace nnpCbn
 {
@@ -95,6 +100,7 @@ class Mode
 {
   public:
     Mode( bool do_print );
+
     /** Write welcome message with version information.
      */
     void initialize();

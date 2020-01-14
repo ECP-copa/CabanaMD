@@ -25,8 +25,7 @@
 //       this list of conditions and the following disclaimer.
 //
 //    2. Redistributions in binary form must reproduce the above copyright
-//    notice,
-//       this list of conditions and the following disclaimer in the
+//       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
@@ -45,19 +44,18 @@
 //  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 //
-//  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
 #ifndef COMM_MPI_H
 #define COMM_MPI_H
 
-#include "mpi.h"
+#include <system.h>
+#include <types.h>
 
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-#include <system.h>
-#include <types.h>
+#include <mpi.h>
 
 #include <algorithm>
 #include <memory>
@@ -65,7 +63,6 @@
 
 class Comm
 {
-
     // Variables Comm doesn't own but requires for computations
 
     T_INT N_local;

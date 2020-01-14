@@ -25,7 +25,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "nnp_cutoff.h"
+#include <nnp_cutoff.h>
+
 #include <cmath> // cos, sin, tanh, exp, pow
 #include <iostream>
 #include <limits> // std::numeric_limits

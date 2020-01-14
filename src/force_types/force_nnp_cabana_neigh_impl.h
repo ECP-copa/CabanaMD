@@ -10,6 +10,7 @@
  ****************************************************************************/
 
 #include <force_nnp_cabana_neigh.h>
+
 #include <iostream>
 #include <string.h>
 #include <string>
@@ -98,7 +99,6 @@ T_V_FLOAT
 ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute_energy(
     System *s )
 {
-
     auto energy = Cabana::slice<NNPNames::energy>( nnp_data );
     T_V_FLOAT system_energy = 0.0;
     // Loop over all atoms and add atomic contributions to total energy.

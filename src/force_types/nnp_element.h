@@ -28,14 +28,17 @@
 #ifndef CBN_ELEMENT_H
 #define CBN_ELEMENT_H
 
-#include "nnp_cutoff.h"
-#include "utility.h"
-#include <cstddef> // size_t
-#include <string>  // string
+#include <nnp_cutoff.h>
+#include <types_nnp.h>
+
 #include <system.h>
 #include <types.h>
-#include <types_nnp.h>
-#include <vector> // vector
+
+#include <utility.h>
+
+#include <cstddef> // size_t
+#include <string>  // string
+#include <vector>  // vector
 
 using namespace std;
 namespace nnpCbn

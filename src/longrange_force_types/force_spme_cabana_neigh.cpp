@@ -9,11 +9,9 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include<force_spme_cabana_neigh_impl.h>
-
+#include <force_spme_cabana_neigh_impl.h>
 
 template class ForceSPME<t_verletlist_half_2D>;
 template class ForceSPME<t_verletlist_full_2D>;
-//TODO: Don't allow full verletlist, since algorithm assumes half
 template class ForceSPME<t_verletlist_half_CSR>;
 template class ForceSPME<t_verletlist_full_CSR>;

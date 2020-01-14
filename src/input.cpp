@@ -25,8 +25,7 @@
 //       this list of conditions and the following disclaimer.
 //
 //    2. Redistributions in binary form must reproduce the above copyright
-//    notice,
-//       this list of conditions and the following disclaimer in the
+//       notice, this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
@@ -45,13 +44,13 @@
 //  IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //  POSSIBILITY OF SUCH DAMAGE.
 //
-//  Questions? Contact Christian R. Trott (crtrott@sandia.gov)
 //************************************************************************
 
-#include <fstream>
 #include <input.h>
-#include <iostream>
 #include <property_temperature.h>
+
+#include <fstream>
+#include <iostream>
 
 ItemizedFile::ItemizedFile()
 {
@@ -174,6 +173,7 @@ Input::Input( System *p )
         Kokkos::View<int *, Kokkos::HostSpace>( "Input::force_coeff_lines", 0 );
     lrforce_coeff_lines = Kokkos::View<int *, Kokkos::HostSpace>(
         "Input::LRforce_coeff_lines", 0 );
+
     input_file_type = -1;
     data_file_type = -1;
 
@@ -197,6 +197,7 @@ Input::Input( System *p )
     units_style = UNITS_LJ;
     lattice_style = LATTICE_FCC;
     lattice_constant = 0.8442;
+
     num_lattice = -1;
     curr_lattice = 0;
     done_lattice = 1;

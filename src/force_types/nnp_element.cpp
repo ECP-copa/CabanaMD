@@ -25,8 +25,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "nnp_element.h"
-#include "utility.h"
+#include <nnp_element.h>
+
+#include <utility.h>
+
 #include <algorithm> // std::sort, std::min, std::max
 #include <cstdlib>   // atoi
 #include <iostream>  // std::cerr
