@@ -534,9 +534,13 @@ void Input::check_lammps_command( int line )
     if ( strcmp( input_data.words[line][0], "create_box" ) == 0 )
     {
         known = true;
-        system->ntypes = atoi( input_data.words[line][1] );
-        system->mass = t_mass( "System::mass", system->ntypes );
-        system->charge = t_mass( "System::charge", system->ntypes );
+        // Avoid resetting arrays if creating multiple lattices
+        if ( num_lattice == -1 )
+        {
+            system->ntypes = atoi( input_data.words[line][1] );
+            system->mass = t_mass( "System::mass", system->ntypes );
+            system->charge = t_mass( "System::charge", system->ntypes );
+        }
     }
     if ( strcmp( input_data.words[line][0], "create_atoms" ) == 0 )
     {
