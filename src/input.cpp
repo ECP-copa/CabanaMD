@@ -162,8 +162,6 @@ Input::Input( System *p )
     lrforce_type = FORCE_NONE;
     lrforce_iteration_type = force_iteration_type;
 
-    longrange = false;
-
     force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
 
     // set defaults (matches ExaMiniMD LJ example)
@@ -635,7 +633,6 @@ void Input::check_lammps_command( int line )
         if ( strcmp( input_data.words[line][1], "ewald" ) == 0 )
         {
             known = true;
-            longrange = true;
             lrforce_type = FORCE_EWALD;
             Kokkos::resize( lrforce_coeff_lines, 1 );
             lrforce_coeff_lines( 0 ) = line;
@@ -643,7 +640,6 @@ void Input::check_lammps_command( int line )
         if ( strcmp( input_data.words[line][1], "spme" ) == 0 )
         {
             known = true;
-            longrange = true;
             lrforce_type = FORCE_SPME;
             Kokkos::resize( lrforce_coeff_lines, 1 );
             lrforce_coeff_lines( 0 ) = line;

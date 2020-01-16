@@ -124,7 +124,7 @@ void CabanaMD::init( int argc, char *argv[] )
 
     // Create long range Force class: options in longrangeforce_types/ folder
     // Delay because tuning (within init) uses atom count, domain size
-    if ( input->longrange )
+    if ( input->lrforce_type != FORCE_NONE )
     {
         if ( false )
         {
@@ -142,7 +142,7 @@ void CabanaMD::init( int argc, char *argv[] )
     // Output settings
     if ( system->do_print )
     {
-        if ( input->longrange )
+        if ( input->lrforce_type != FORCE_NONE )
             printf( "Using: %s %s %s %s %s\n", force->name(), lrforce->name(),
                     comm->name(), binning->name(), integrator->name() );
         else
@@ -171,7 +171,7 @@ void CabanaMD::init( int argc, char *argv[] )
     auto p = Cabana::slice<Potentials>( system->xvf );
     Cabana::deep_copy( p, 0.0 );
     force->compute( system );
-    if ( input->longrange )
+    if ( input->lrforce_type != FORCE_NONE )
     {
         lrforce->create_neigh_list( system );
         lrforce->compute( system );
@@ -195,7 +195,7 @@ void CabanaMD::init( int argc, char *argv[] )
         T_FLOAT SR_PE = pote.compute( system, force ) / system->N_global;
         // If PE slice is used in short range, it needs to be reset here
         T_FLOAT LR_PE = 0.0;
-        if ( input->longrange )
+        if ( input->lrforce_type != FORCE_NONE )
             LR_PE = pote.compute( system, lrforce ) / system->N_global;
         T_FLOAT PE = SR_PE + LR_PE;
         T_FLOAT KE = kine.compute( system ) / system->N_global;
@@ -272,7 +272,7 @@ void CabanaMD::run( int nsteps )
             // Compute atom neighbors
             neigh_timer.reset();
             force->create_neigh_list( system );
-            if ( input->longrange )
+            if ( input->lrforce_type != FORCE_NONE )
                 lrforce->create_neigh_list( system );
             neigh_time += neigh_timer.seconds();
         }
@@ -296,7 +296,7 @@ void CabanaMD::run( int nsteps )
         force_time += force_timer.seconds();
 
         // Compute long range force
-        if ( input->longrange )
+        if ( input->lrforce_type != FORCE_NONE )
         {
             lrforce_timer.reset();
             lrforce->compute( system );
@@ -327,7 +327,7 @@ void CabanaMD::run( int nsteps )
             T_FLOAT SR_PE = pote.compute( system, force ) / system->N_global;
             // If PE slice is used in short range, it needs to be reset here
             T_FLOAT LR_PE = 0.0;
-            if ( input->longrange )
+            if ( input->lrforce_type != FORCE_NONE )
                 LR_PE = pote.compute( system, lrforce ) / system->N_global;
             T_FLOAT PE = SR_PE + LR_PE;
             T_FLOAT KE = kine.compute( system ) / system->N_global;
