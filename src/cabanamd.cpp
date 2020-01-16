@@ -107,7 +107,7 @@ void CabanaMD::init( int argc, char *argv[] )
 
     force->comm_newton = input->comm_newton;
 
-    // Ok lets go ahead and create the particles if that didn't happen yet
+    // Create atoms - from LAMMPS data file or create FCC/SC lattice
     if ( system->N_global == 0 && input->read_data_flag == true )
     {
         read_lammps_data_file( input->lammps_data_file, system, comm );
@@ -193,7 +193,10 @@ void CabanaMD::init( int argc, char *argv[] )
         KinE kine( comm );
         T_FLOAT T = temp.compute( system );
         T_FLOAT SR_PE = pote.compute( system, force ) / system->N_global;
-        T_FLOAT LR_PE = pote.compute( system, lrforce ) / system->N_global;
+        // If PE slice is used in short range, it needs to be reset here
+        T_FLOAT LR_PE = 0.0;
+        if ( input->longrange )
+            LR_PE = pote.compute( system, lrforce ) / system->N_global;
         T_FLOAT PE = SR_PE + LR_PE;
         T_FLOAT KE = kine.compute( system ) / system->N_global;
         if ( system->do_print )
@@ -322,7 +325,10 @@ void CabanaMD::run( int nsteps )
         {
             T_FLOAT T = temp.compute( system );
             T_FLOAT SR_PE = pote.compute( system, force ) / system->N_global;
-            T_FLOAT LR_PE = pote.compute( system, lrforce ) / system->N_global;
+            // If PE slice is used in short range, it needs to be reset here
+            T_FLOAT LR_PE = 0.0;
+            if ( input->longrange )
+                LR_PE = pote.compute( system, lrforce ) / system->N_global;
             T_FLOAT PE = SR_PE + LR_PE;
             T_FLOAT KE = kine.compute( system ) / system->N_global;
             if ( system->do_print )
