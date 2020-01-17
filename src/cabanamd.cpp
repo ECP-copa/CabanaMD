@@ -67,16 +67,33 @@ CabanaMD::CabanaMD()
 void CabanaMD::init( int argc, char *argv[] )
 {
     if ( system->do_print )
+    {
         Kokkos::DefaultExecutionSpace::print_configuration( std::cout );
-
+    }
     // Parse command line arguments
     input->read_command_line_args( argc, argv );
     if ( system->do_print )
+    {
         printf( "Read command line arguments\n" );
+    }
+
     // Read input file
     input->read_file();
     if ( system->do_print )
+    {
         printf( "Read input file\n" );
+    }
+    // Check that the requested pair_style was compiled
+#ifndef CabanaMD_ENABLE_NNP
+    if ( input->force_type == FORCE_NNP )
+    {
+        if ( system->do_print )
+        {
+            std::cout << "NNP requested, but not compiled!" << std::endl;
+        }
+        std::exit( 1 );
+    }
+#endif
     T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
 
     // Create Integrator class: NVE ensemble
@@ -218,10 +235,13 @@ void CabanaMD::init( int argc, char *argv[] )
     }
 
     if ( input->dumpbinaryflag )
+    {
         dump_binary( step );
-
+    }
     if ( input->correctnessflag )
+    {
         check_correctness( step );
+    }
 }
 
 void CabanaMD::run( int nsteps )
