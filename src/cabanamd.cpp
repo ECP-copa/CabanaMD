@@ -83,13 +83,23 @@ void CabanaMD::init( int argc, char *argv[] )
     {
         printf( "Read input file\n" );
     }
-    // Check that the requested pair_style was compiled
+    // Check that the requested pair_style/kspace_style was compiled
 #ifndef CabanaMD_ENABLE_NNP
     if ( input->force_type == FORCE_NNP )
     {
         if ( system->do_print )
         {
             std::cout << "NNP requested, but not compiled!" << std::endl;
+        }
+        std::exit( 1 );
+    }
+#endif
+#ifndef CabanaMD_ENABLE_LongRange
+    if ( input->lrforce_type != FORCE_NONE )
+    {
+        if ( system->do_print )
+        {
+            std::cout << "LongRange requested, but not compiled!" << std::endl;
         }
         std::exit( 1 );
     }
