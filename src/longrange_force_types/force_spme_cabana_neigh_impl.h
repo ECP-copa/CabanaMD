@@ -700,8 +700,34 @@ void ForceSPME<t_neighbor>::compute( System *system )
     // TODO: return nothing, just update forces. calc_energy will return this
 }
 
+
+template <class t_neighbor>
+T_V_FLOAT ForceSPME<t_neighbor>::compute_energy( System *system )
+{
+//TODO: calc energies
+}
+
+
 template <class t_neighbor>
 const char *ForceSPME<t_neighbor>::name()
 {
     return "LongRangeForce:SPMECabanaVerletHalf";
+}
+
+template <class t_neighbor>
+void ForceSPME<t_neighbor>::create_neigh_list( System *system )
+{
+    N_local = system->N_local;
+
+    double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
+                          system->sub_domain_lo_y - system->sub_domain_y,
+                          system->sub_domain_lo_z - system->sub_domain_z};
+    double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
+                          system->sub_domain_hi_y + system->sub_domain_y,
+                          system->sub_domain_hi_z + system->sub_domain_z};
+
+    auto x = Cabana::slice<Positions>( system->xvf );
+
+    t_neighbor list( x, 0, N_local, _r_max, 1.0, grid_min, grid_max );
+    neigh_list = list;
 }
