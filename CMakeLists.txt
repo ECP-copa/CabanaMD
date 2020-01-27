@@ -132,7 +132,7 @@ link_directories(${N2P2_DIR}/lib)
 add_executable(CabanaMD ${SOURCES})
 
 if( CabanaMD_ENABLE_LongRange )
-  target_link_libraries(CabanaMD Cajita)
+  target_link_libraries(CabanaMD Cajita heffte)
 endif()
 if(CabanaMD_ENABLE_NNP)
   target_link_libraries(CabanaMD nnp)
