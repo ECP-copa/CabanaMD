@@ -700,13 +700,11 @@ void ForceSPME<t_neighbor>::compute( System *system )
     // TODO: return nothing, just update forces. calc_energy will return this
 }
 
-
 template <class t_neighbor>
 T_V_FLOAT ForceSPME<t_neighbor>::compute_energy( System *system )
 {
-//TODO: calc energies
+    // TODO: calc energies
 }
-
 
 template <class t_neighbor>
 const char *ForceSPME<t_neighbor>::name()
