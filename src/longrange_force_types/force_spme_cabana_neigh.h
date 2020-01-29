@@ -25,8 +25,8 @@ if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
         neighbor_type = NEIGH_CSR;
 }
 #endif
-#ifdef FORCE_MODULES_INSTANTIATION
-else if ( input->lrforce_type == FORCE_EWALD )
+#ifdef LONGRANGE_FORCE_MODULES_INSTANTIATION
+else if ( input->lrforce_type == FORCE_SPME )
 {
     bool half_neigh = input->lrforce_iteration_type == FORCE_ITER_NEIGH_HALF;
     if ( input->neighbor_type == NEIGH_2D )
@@ -34,7 +34,7 @@ else if ( input->lrforce_type == FORCE_EWALD )
         if ( half_neigh )
             lrforce = new ForceSPME<t_verletlist_half_2D>( system, half_neigh );
         else
-            throw std::runtime_error( "Half neighbor list not implemented "
+            throw std::runtime_error( "Full neighbor list not implemented "
                                       "for the SPME longrange solver." );
     }
     else if ( input->neighbor_type == NEIGH_CSR )
@@ -43,7 +43,7 @@ else if ( input->lrforce_type == FORCE_EWALD )
             lrforce =
                 new ForceSPME<t_verletlist_half_CSR>( system, half_neigh );
         else
-            throw std::runtime_error( "Half neighbor list not implemented "
+            throw std::runtime_error( "Full neighbor list not implemented "
                                       "for the SPME longrange solver." );
     }
 #undef FORCETYPE_ALLOCATION_MACRO
@@ -52,8 +52,8 @@ else if ( input->lrforce_type == FORCE_EWALD )
 
 #if !defined( MODULES_OPTION_CHECK ) && !defined( FORCE_MODULES_INSTANTIATION )
 
-#ifndef FORCE_EWALD_CABANA_NEIGH_H
-#define FORCE_EWALD_CABANA_NEIGH_H
+#ifndef FORCE_SPME_CABANA_NEIGH_H
+#define FORCE_SPME_CABANA_NEIGH_H
 #include <Cabana_Core.hpp>
 #include <Cajita.hpp>
 #include <comm_mpi.h>
