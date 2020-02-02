@@ -56,8 +56,8 @@
 class Temperature
 {
   private:
-    typename AoSoA::member_slice_type<Velocities> v;
-    typename AoSoA::member_slice_type<Types> type;
+    t_v v;
+    t_type type;
     t_mass mass;
 
     Comm *comm;

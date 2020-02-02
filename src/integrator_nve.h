@@ -59,16 +59,53 @@ class Integrator
 {
     T_V_FLOAT dtv, dtf;
 
-  public:
-    System *system;
+    t_x x;
+    t_v v;
+    t_f f;
+    t_type type;
 
+    t_mass_const mass;
+
+  public:
     Integrator( System *s );
     ~Integrator();
     T_V_FLOAT timestep_size;
 
-    void initial_integrate();
-    void final_integrate();
+    void initial_integrate( System *s );
+    void final_integrate( System *s );
 
     const char *name();
+
+    struct TagInitial
+    {
+    };
+    struct TagFinal
+    {
+    };
+    typedef Kokkos::RangePolicy<TagInitial, Kokkos::IndexType<T_INT>>
+        t_policy_initial;
+    typedef Kokkos::RangePolicy<TagFinal, Kokkos::IndexType<T_INT>>
+        t_policy_final;
+
+    KOKKOS_INLINE_FUNCTION
+    void operator()( TagInitial, const T_INT &i ) const
+    {
+        const T_V_FLOAT dtfm = dtf / mass( type( i ) );
+        v( i, 0 ) += dtfm * f( i, 0 );
+        v( i, 1 ) += dtfm * f( i, 1 );
+        v( i, 2 ) += dtfm * f( i, 2 );
+        x( i, 0 ) += dtv * v( i, 0 );
+        x( i, 1 ) += dtv * v( i, 1 );
+        x( i, 2 ) += dtv * v( i, 2 );
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    void operator()( TagFinal, const T_INT &i ) const
+    {
+        const T_V_FLOAT dtfm = dtf / mass( type( i ) );
+        v( i, 0 ) += dtfm * f( i, 0 );
+        v( i, 1 ) += dtfm * f( i, 1 );
+        v( i, 2 ) += dtfm * f( i, 2 );
+    }
 };
 #endif

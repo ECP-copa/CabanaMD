@@ -75,8 +75,4 @@ class CabanaMD
 
     void dump_binary( int );
     void check_correctness( int );
-
-    void print_performance();
-
-    void shutdown();
 };

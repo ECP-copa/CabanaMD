@@ -162,7 +162,7 @@ class Element
      */
     // void                     updateSymmetryFunctionStatistics(
     //                                                         System* s,
-    //                                                         AoSoA_NNP
+    //                                                         AoSoA_NNP_all
     //                                                         nnp_data,...);
 
     /** Get symmetry function instance.

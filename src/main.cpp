@@ -67,9 +67,5 @@ int main( int argc, char *argv[] )
 
     //   cabanamd.check_correctness();
 
-    cabanamd.print_performance();
-
-    cabanamd.shutdown();
-
     MPI_Finalize();
 }

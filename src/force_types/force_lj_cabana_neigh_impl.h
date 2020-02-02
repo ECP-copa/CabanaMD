@@ -96,7 +96,8 @@ void ForceLJ<t_neighbor>::create_neigh_list( System *system )
                           system->sub_domain_hi_y + system->sub_domain_y,
                           system->sub_domain_hi_z + system->sub_domain_z};
 
-    auto x = Cabana::slice<Positions>( system->xvf );
+    system->slice_x();
+    auto x = system->x;
 
     t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
     neigh_list = list;
@@ -106,11 +107,11 @@ template <class t_neighbor>
 void ForceLJ<t_neighbor>::compute( System *system )
 {
     N_local = system->N_local;
-    x = Cabana::slice<Positions>( system->xvf );
-    f = Cabana::slice<Forces>( system->xvf );
-    f_a = Cabana::slice<Forces>( system->xvf );
-    id = Cabana::slice<IDs>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
+    system->slice_force();
+    x = system->x;
+    f = system->f;
+    f_a = f;
+    type = system->type;
 
     if ( half_neigh )
     {
@@ -133,11 +134,11 @@ template <class t_neighbor>
 T_V_FLOAT ForceLJ<t_neighbor>::compute_energy( System *system )
 {
     N_local = system->N_local;
-    x = Cabana::slice<Positions>( system->xvf );
-    f = Cabana::slice<Forces>( system->xvf );
-    f_a = Cabana::slice<Forces>( system->xvf );
-    id = Cabana::slice<IDs>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
+    system->slice_force();
+    x = system->x;
+    f = system->f;
+    f_a = f;
+    type = system->type;
 
     T_V_FLOAT energy;
 

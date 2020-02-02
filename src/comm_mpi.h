@@ -69,12 +69,8 @@ class Comm
     T_INT N_ghost;
 
     System s;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Velocities> v;
-    typename AoSoA::member_slice_type<IDs> id;
-    typename AoSoA::member_slice_type<Types> type;
-    typename AoSoA::member_slice_type<Charges> q;
+    t_x x;
+    t_f f;
 
     // Owned Variables
 

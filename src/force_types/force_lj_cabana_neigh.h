@@ -101,11 +101,10 @@ class ForceLJ : public Force
 {
   private:
     int N_local, ntypes;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-    typename AoSoA::member_slice_type<IDs> id;
-    typename AoSoA::member_slice_type<Types> type;
+    t_x x;
+    t_f f;
+    t_f::atomic_access_slice f_a;
+    t_type type;
 
     int step;
 

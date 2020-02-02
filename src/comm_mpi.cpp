@@ -275,8 +275,9 @@ void Comm::exchange()
 
     N_local = system->N_local;
     system->resize( N_local );
+    system->slice_x();
     s = *system;
-    x = Cabana::slice<Positions>( s.xvf );
+    x = s.x;
 
     max_local = x.size() * 1.1;
 
@@ -327,12 +328,13 @@ void Comm::exchange()
 
             distributor = std::make_shared<Cabana::Distributor<DeviceType>>(
                 MPI_COMM_WORLD, pack_ranks_migrate, neighbors_dist[phase] );
-            Cabana::migrate( *distributor, s.xvf );
+            system->migrate( *distributor );
             system->resize(
                 distributor->totalNumImport() ); // Resized by migrate, but not
                                                  // within System
+            system->slice_x();
             s = *system;
-            x = Cabana::slice<Positions>( s.xvf );
+            x = s.x;
 
             proc_num_recv[phase] = distributor->totalNumImport() + count -
                                    distributor->totalNumExport();
@@ -359,8 +361,9 @@ void Comm::exchange_halo()
     N_local = system->N_local;
     N_ghost = 0;
 
+    system->slice_x();
     s = *system;
-    x = Cabana::slice<Positions>( s.xvf );
+    x = s.x;
 
     for ( phase = 0; phase < 6; phase++ )
     {
@@ -410,9 +413,11 @@ void Comm::exchange_halo()
             neighbors_halo[phase] );
         system->resize( halo_all[phase]->numLocal() +
                         halo_all[phase]->numGhost() );
+        system->slice_x();
         s = *system;
-        x = Cabana::slice<Positions>( s.xvf );
-        Cabana::gather( *halo_all[phase], s.xvf );
+        x = s.x;
+
+        system->gather( *halo_all[phase] );
 
         proc_num_recv[phase] = halo_all[phase]->numGhost();
         count = proc_num_recv[phase];
@@ -440,8 +445,9 @@ void Comm::update_halo()
 
     N_local = system->N_local;
     N_ghost = 0;
+    system->slice_x();
     s = *system;
-    x = Cabana::slice<Positions>( s.xvf );
+    x = s.x;
 
     for ( phase = 0; phase < 6; phase++ )
     {
@@ -454,8 +460,9 @@ void Comm::update_halo()
 
         system->resize( halo_all[phase]->numLocal() +
                         halo_all[phase]->numGhost() );
+        system->slice_x();
         s = *system;
-        x = Cabana::slice<Positions>( s.xvf );
+        x = s.x;
         Cabana::gather( *halo_all[phase], x );
 
         Kokkos::parallel_for(
@@ -478,8 +485,9 @@ void Comm::update_force()
 
     N_local = system->N_local;
     N_ghost = 0;
+    system->slice_f();
     s = *system;
-    f = Cabana::slice<Forces>( s.xvf );
+    f = s.f;
 
     for ( phase = 5; phase >= 0; phase-- )
     {
@@ -492,8 +500,9 @@ void Comm::update_force()
 
         system->resize( halo_all[phase]->numLocal() +
                         halo_all[phase]->numGhost() );
+        system->slice_f();
         s = *system;
-        f = Cabana::slice<Forces>( s.xvf );
+        f = s.f;
         Cabana::scatter( *halo_all[phase], f );
 
         N_ghost += proc_num_recv[phase];

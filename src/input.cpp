@@ -700,12 +700,13 @@ void Input::create_lattice( Comm *comm )
         system->N_local = n;
         system->N = n;
         system->resize( n );
+        system->slice_all();
         s = *system;
-        auto x = Cabana::slice<Positions>( s.xvf );
-        auto v = Cabana::slice<Velocities>( s.xvf );
-        auto id = Cabana::slice<IDs>( s.xvf );
-        auto type = Cabana::slice<Types>( s.xvf );
-        auto q = Cabana::slice<Charges>( s.xvf );
+        auto x = s.x;
+        auto v = s.v;
+        auto id = s.id;
+        auto type = s.type;
+        auto q = s.q;
 
         n = 0;
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
@@ -821,12 +822,13 @@ void Input::create_lattice( Comm *comm )
         system->N_local = n;
         system->N = n;
         system->resize( n );
+        system->slice_all();
         s = *system;
-        auto x = Cabana::slice<Positions>( s.xvf );
-        auto v = Cabana::slice<Velocities>( s.xvf );
-        auto id = Cabana::slice<IDs>( s.xvf );
-        auto type = Cabana::slice<Types>( s.xvf );
-        auto q = Cabana::slice<Charges>( s.xvf );
+        auto x = s.x;
+        auto v = s.v;
+        auto id = s.id;
+        auto type = s.type;
+        auto q = s.q;
 
         n = 0;
 
@@ -880,11 +882,12 @@ void Input::create_lattice( Comm *comm )
     // drift (bad for energy statistics)
 
     { // Scope s
+        system->slice_all();
         System s = *system;
-        auto x = Cabana::slice<Positions>( s.xvf );
-        auto v = Cabana::slice<Velocities>( s.xvf );
-        auto type = Cabana::slice<Types>( s.xvf );
-        auto q = Cabana::slice<Charges>( s.xvf );
+        auto x = s.x;
+        auto v = s.v;
+        auto type = s.type;
+        auto q = s.q;
 
         T_FLOAT total_mass = 0.0;
         T_FLOAT total_momentum_x = 0.0;

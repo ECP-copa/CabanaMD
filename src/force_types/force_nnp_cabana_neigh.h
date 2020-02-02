@@ -90,6 +90,7 @@ else if ( input->force_type == FORCE_NNP )
 #define FORCE_NNP_CABANA_NEIGH_H
 
 #include <nnp_mode_impl.h>
+#include <system_nnp.h>
 
 #include <force.h>
 #include <system.h>
@@ -102,11 +103,10 @@ class ForceNNP : public Force
 {
   private:
     int N_local, ntypes;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-    typename AoSoA::member_slice_type<IDs> id;
-    typename AoSoA::member_slice_type<Types> type;
+    t_x x;
+    t_f f;
+    t_f::atomic_access_slice f_a;
+    t_type type;
 
     int step;
 
@@ -142,9 +142,9 @@ class ForceNNP : public Force
     nnpCbn::Mode *mode;
     t_neighbor neigh_list;
 
-    /// AoSoAs of use to compute energy and force
-    /// Allow storage of G, dEdG and energy (per atom properties)
-    AoSoA_NNP nnp_data;
+    // NNP-specific System class for AoSoAs
+    // Storage of G, dEdG and energy (per atom properties)
+    System_NNP *system_nnp;
     // numSymmetryFunctionsPerElement (per type property)
     t_mass d_numSFperElem;
     h_t_mass h_numSFperElem, atomicEnergyOffset;

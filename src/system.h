@@ -68,7 +68,13 @@ class System
     std::string atom_style;
 
     // Per Particle Property
-    AoSoA xvf;
+    t_x x;
+    t_v v;
+    t_f f;
+    t_type type;
+    t_id id;
+    t_q q;
+
     // Per Type Property
     t_mass mass;
 
@@ -92,23 +98,26 @@ class System
 
     System();
     ~System(){};
-    void init();
-    void destroy();
 
-    void resize( T_INT new_N );
+    virtual void init() {}
 
-    KOKKOS_INLINE_FUNCTION
-    t_particle get_particle( const T_INT &i ) const
-    {
-        return xvf.getTuple( i );
-    }
+    virtual void resize( T_INT new_N ) {}
 
-    KOKKOS_INLINE_FUNCTION
-    void set_particle( const T_INT &i, const t_particle &p ) const
-    {
-        xvf.setTuple( i, p );
-    }
+    void slice_all();
+    void slice_integrate();
+    void slice_force();
+    void slice_properties();
+    virtual void slice_x() {}
+    virtual void slice_v() {}
+    virtual void slice_f() {}
+    virtual void slice_type() {}
+    virtual void slice_id() {}
+    virtual void slice_q() {}
 
-    void print_particles();
+    virtual void permute( t_linkedcell cell_list ) {}
+    virtual void migrate( t_distributor distributor ) {}
+    virtual void gather( t_halo halo ) {}
 };
+
+#include <modules_system.h>
 #endif

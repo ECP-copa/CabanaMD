@@ -52,8 +52,6 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-#define VECLEN 16
-
 // Module Types etc
 // Units to be used
 enum
@@ -143,17 +141,6 @@ typedef Kokkos::View<T_V_FLOAT *> t_mass;             // Mass
 typedef Kokkos::View<const T_V_FLOAT *> t_mass_const; // Mass
 
 // Cabana
-using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3], T_INT,
-                                    T_INT, T_FLOAT>;
-enum TypeNames
-{
-    Positions = 0,
-    Velocities = 1,
-    Forces = 2,
-    Types = 3,
-    IDs = 4,
-    Charges = 5
-};
 
 #ifdef CabanaMD_ENABLE_Cuda
 using MemorySpace = Kokkos::CudaUVMSpace;
@@ -170,10 +157,11 @@ using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
 using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
-using AoSoA = Cabana::AoSoA<t_tuple, DeviceType, VECLEN>;
-using t_particle = Cabana::Tuple<t_tuple>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
+using t_distributor = Cabana::Distributor<DeviceType>;
+using t_halo = Cabana::Halo<DeviceType>;
+
 using t_verletlist_full_2D =
     Cabana::VerletList<DeviceType, Cabana::FullNeighborTag,
                        Cabana::VerletLayout2D>;
@@ -191,4 +179,44 @@ using t_neighborop_serial = Cabana::SerialOpTag;
 using t_neighborop_team = Cabana::TeamOpTag;
 using t_neighborop_vector = Cabana::TeamVectorOpTag;
 
+#ifdef CabanaMD_LAYOUT_1AoSoA
+using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3], T_INT,
+                                    T_INT, T_FLOAT>;
+using AoSoA_1 = Cabana::AoSoA<t_tuple, DeviceType, CabanaMD_VECTORLENGTH>;
+using t_x = AoSoA_1::member_slice_type<0>;
+using t_v = AoSoA_1::member_slice_type<1>;
+using t_f = AoSoA_1::member_slice_type<2>;
+using t_type = AoSoA_1::member_slice_type<3>;
+using t_id = AoSoA_1::member_slice_type<4>;
+using t_q = AoSoA_1::member_slice_type<5>;
+
+#elif defined( CabanaMD_LAYOUT_2AoSoA )
+using t_tuple_0 = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_INT>;
+using t_tuple_1 = Cabana::MemberTypes<T_FLOAT[3], T_INT, T_FLOAT>;
+using AoSoA_2_0 = Cabana::AoSoA<t_tuple_0, DeviceType, CabanaMD_VECTORLENGTH>;
+using AoSoA_2_1 = Cabana::AoSoA<t_tuple_1, DeviceType, CabanaMD_VECTORLENGTH>;
+
+using t_x = AoSoA_2_0::member_slice_type<0>;
+using t_v = AoSoA_2_1::member_slice_type<0>;
+using t_f = AoSoA_2_0::member_slice_type<1>;
+using t_type = AoSoA_2_0::member_slice_type<2>;
+using t_id = AoSoA_2_1::member_slice_type<1>;
+using t_q = AoSoA_2_1::member_slice_type<2>;
+
+#elif defined( CabanaMD_LAYOUT_6AoSoA )
+using t_tuple_x = Cabana::MemberTypes<T_FLOAT[3]>;
+using t_tuple_int = Cabana::MemberTypes<T_INT>;
+using t_tuple_fl = Cabana::MemberTypes<T_FLOAT>;
+using AoSoA_x = Cabana::AoSoA<t_tuple_x, DeviceType, CabanaMD_VECTORLENGTH>;
+using AoSoA_int = Cabana::AoSoA<t_tuple_int, DeviceType, CabanaMD_VECTORLENGTH>;
+using AoSoA_fl = Cabana::AoSoA<t_tuple_fl, DeviceType, CabanaMD_VECTORLENGTH>;
+
+using t_x = AoSoA_x::member_slice_type<0>;
+using t_v = AoSoA_x::member_slice_type<0>;
+using t_f = AoSoA_x::member_slice_type<0>;
+using t_type = AoSoA_int::member_slice_type<0>;
+using t_id = AoSoA_int::member_slice_type<0>;
+using t_q = AoSoA_fl::member_slice_type<0>;
 #endif
+
+#endif // TYPES_H

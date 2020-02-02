@@ -61,7 +61,6 @@ class Binning
   public:
     T_INT nbinx, nbiny, nbinz, nhalo;
     T_X_FLOAT minx, maxx, miny, maxy, minz, maxz;
-    typename AoSoA::member_slice_type<Positions> x;
 
     Binning( System *s );
     void create_binning( T_X_FLOAT dx, T_X_FLOAT dy, T_X_FLOAT dz,

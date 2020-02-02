@@ -55,8 +55,10 @@ KinE::KinE( Comm *comm_ )
 
 T_V_FLOAT KinE::compute( System *system )
 {
-    v = Cabana::slice<Velocities>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
+    system->slice_properties();
+    v = system->v;
+    type = system->type;
+
     mass = system->mass;
 
     T_V_FLOAT KE;

@@ -30,6 +30,7 @@
 
 #include <nnp_cutoff.h>
 #include <nnp_element.h>
+#include <system_nnp.h>
 #include <types_nnp.h>
 
 #include <system.h>
@@ -342,15 +343,15 @@ class Mode
     double scale( int attype, double value, int k, d_t_SFscaling SFscaling );
 
     template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateForces( System *s, AoSoA_NNP nnp_data,
+    void calculateForces( System *s, System_NNP *system_nnp,
                           t_neighbor neigh_list );
 
     template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateAtomicNeuralNetworks( System *s, AoSoA_NNP nnp_data,
+    void calculateAtomicNeuralNetworks( System *s, System_NNP *system_nnp,
                                         t_mass numSFperElem );
 
     template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateSymmetryFunctionGroups( System *s, AoSoA_NNP nnp_data,
+    void calculateSymmetryFunctionGroups( System *s, System_NNP *system_nnp,
                                           t_neighbor neigh_list );
 
     /// Global log file.

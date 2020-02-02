@@ -57,7 +57,14 @@
 CabanaMD::CabanaMD()
 {
     // Create the System class: atom properties (AoSoA) and simulation box
-    system = new System();
+    // Variable number of AoSoA
+#ifdef CabanaMD_LAYOUT_1AoSoA
+    system = new System1AoSoA();
+#elif defined( CabanaMD_LAYOUT_2AoSoA )
+    system = new System2AoSoA();
+#elif defined( CabanaMD_LAYOUT_6AoSoA )
+    system = new System6AoSoA();
+#endif
     system->init();
 
     // Create the Input class: Command line and LAMMPS input file
@@ -124,7 +131,6 @@ void CabanaMD::init( int argc, char *argv[] )
 
     force->comm_newton = input->comm_newton;
 
-    // system->print_particles();
     if ( system->do_print )
     {
         printf( "Using: %s %s %s %s\n", force->name(), comm->name(),
@@ -155,7 +161,8 @@ void CabanaMD::init( int argc, char *argv[] )
     force->create_neigh_list( system );
 
     // Compute initial forces
-    auto f = Cabana::slice<Forces>( system->xvf );
+    system->slice_f();
+    auto f = system->f;
     Cabana::deep_copy( f, 0.0 );
     force->compute( system );
 
@@ -227,7 +234,7 @@ void CabanaMD::run( int nsteps )
     {
         // Integrate atom positions - velocity Verlet first half
         integrate_timer.reset();
-        integrator->initial_integrate();
+        integrator->initial_integrate( system );
         integrate_time += integrate_timer.seconds();
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
@@ -263,7 +270,8 @@ void CabanaMD::run( int nsteps )
 
         // Reset forces
         force_timer.reset();
-        auto f = Cabana::slice<Forces>( system->xvf );
+        system->slice_f();
+        auto f = system->f;
         Cabana::deep_copy( f, 0.0 );
 
         // Compute short range force
@@ -283,7 +291,7 @@ void CabanaMD::run( int nsteps )
 
         // Integrate atom positions - velocity Verlet second half
         integrate_timer.reset();
-        integrator->final_integrate();
+        integrator->final_integrate( system );
         integrate_time += integrate_timer.seconds();
 
         other_timer.reset();
@@ -374,13 +382,14 @@ void CabanaMD::dump_binary( int step )
         // comm->error(str);
     }
 
+    system->slice_all();
     System s = *system;
-    auto h_id = Cabana::slice<IDs>( s.xvf );
-    auto h_type = Cabana::slice<Types>( s.xvf );
-    auto h_q = Cabana::slice<Charges>( s.xvf );
-    auto h_x = Cabana::slice<Positions>( s.xvf );
-    auto h_v = Cabana::slice<Velocities>( s.xvf );
-    auto h_f = Cabana::slice<Forces>( s.xvf );
+    auto h_x = s.x;
+    auto h_v = s.v;
+    auto h_f = s.f;
+    auto h_id = s.id;
+    auto h_type = s.type;
+    auto h_q = s.q;
 
     fwrite( &n, sizeof( T_INT ), 1, fp );
     fwrite( h_id.data(), sizeof( T_INT ), n, fp );
@@ -410,12 +419,14 @@ void CabanaMD::check_correctness( int step )
     T_INT n = system->N_local;
     T_INT ntmp;
 
-    auto x = Cabana::slice<Positions>( system->xvf );
-    auto v = Cabana::slice<Velocities>( system->xvf );
-    auto f = Cabana::slice<Forces>( system->xvf );
-    auto id = Cabana::slice<IDs>( system->xvf );
-    auto type = Cabana::slice<Types>( system->xvf );
-    auto q = Cabana::slice<Charges>( system->xvf );
+    system->slice_all();
+    System s = *system;
+    auto x = s.x;
+    auto v = s.v;
+    auto f = s.f;
+    auto id = s.id;
+    auto type = s.type;
+    auto q = s.q;
 
     char *filename = new char[MAXPATHLEN];
     sprintf( filename, "%s%s.%010d.%03d", input->reference_path, "/output",
@@ -435,13 +446,16 @@ void CabanaMD::check_correctness( int step )
         printf( "Mismatch in current and reference atom counts\n" );
     }
 
-    AoSoA xvf_ref( "ref", n );
-    auto xref = Cabana::slice<Positions>( xvf_ref );
-    auto vref = Cabana::slice<Velocities>( xvf_ref );
-    auto fref = Cabana::slice<Forces>( xvf_ref );
-    auto idref = Cabana::slice<IDs>( xvf_ref );
-    auto typeref = Cabana::slice<Types>( xvf_ref );
-    auto qref = Cabana::slice<Charges>( xvf_ref );
+    Kokkos::View<T_INT *, Kokkos::LayoutRight> idref( "Correctness::id", n );
+    Kokkos::View<T_INT *, Kokkos::LayoutRight> typeref( "Correctness::type",
+                                                        n );
+    Kokkos::View<T_FLOAT *, Kokkos::LayoutRight> qref( "Correctness::q", n );
+    Kokkos::View<T_X_FLOAT * [3], Kokkos::LayoutRight> xref( "Correctness::x",
+                                                             n );
+    Kokkos::View<T_V_FLOAT * [3], Kokkos::LayoutRight> vref( "Correctness::v",
+                                                             n );
+    Kokkos::View<T_F_FLOAT * [3], Kokkos::LayoutRight> fref( "Correctness::f",
+                                                             n );
 
     fread( idref.data(), sizeof( T_INT ), n, fpref );
     fread( typeref.data(), sizeof( T_INT ), n, fpref );
@@ -449,13 +463,6 @@ void CabanaMD::check_correctness( int step )
     fread( xref.data(), sizeof( T_X_FLOAT ), 3 * n, fpref );
     fread( vref.data(), sizeof( T_V_FLOAT ), 3 * n, fpref );
     fread( fref.data(), sizeof( T_F_FLOAT ), 3 * n, fpref );
-
-    xref = Cabana::slice<Positions>( xvf_ref );
-    vref = Cabana::slice<Velocities>( xvf_ref );
-    fref = Cabana::slice<Forces>( xvf_ref );
-    idref = Cabana::slice<IDs>( xvf_ref );
-    typeref = Cabana::slice<Types>( xvf_ref );
-    qref = Cabana::slice<Charges>( xvf_ref );
 
     T_FLOAT sumdelrsq = 0.0;
     T_FLOAT sumdelvsq = 0.0;
@@ -561,7 +568,3 @@ void CabanaMD::check_correctness( int step )
         }
     }
 }
-
-void CabanaMD::print_performance() {}
-
-void CabanaMD::shutdown() { system->destroy(); }

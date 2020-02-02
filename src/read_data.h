@@ -162,10 +162,12 @@ int read_lammps_header( std::ifstream &file, System *s )
 void read_lammps_atoms( std::ifstream &file, System *s )
 {
     std::string line;
-    auto x = Cabana::slice<Positions>( s->xvf );
-    auto id = Cabana::slice<IDs>( s->xvf );
-    auto type = Cabana::slice<Types>( s->xvf );
-    auto q = Cabana::slice<Charges>( s->xvf );
+
+    s->slice_all();
+    auto x = s->x;
+    auto id = s->id;
+    auto type = s->type;
+    auto q = s->q;
 
     skip_empty( file, line );
 
@@ -227,7 +229,9 @@ void read_lammps_atoms( std::ifstream &file, System *s )
 void read_lammps_velocities( std::ifstream &file, System *s )
 {
     std::string line;
-    auto v = Cabana::slice<Velocities>( s->xvf );
+
+    s->slice_v();
+    auto v = s->v;
 
     skip_empty( file, line );
 
