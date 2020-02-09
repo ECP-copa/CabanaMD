@@ -12,6 +12,7 @@ option(CMAKE_VERBOSE_MAKEFILE "Generate verbose Makefiles" OFF)
 include(GNUInstallDirs)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(Kokkos REQUIRED)
 
 ##---------------------------------------------------------------------------##
 # Set up main options
@@ -57,10 +58,6 @@ if(NOT DEFINED CABANA_DIR)
   set(CABANA_DIR ~/install/cabana/)
 endif()
 
-if(NOT DEFINED KOKKOS_DIR)
-  set(KOKKOS_DIR ~/install/kokkos/)
-endif()
-
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if( CabanaMD_ENABLE_NNP )
   add_definitions(-DCabanaMD_ENABLE_NNP=ON)
@@ -88,31 +85,25 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-include_directories(src src/force_types)
-if(CabanaMD_ENABLE_NNP)
-  file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
-else()
-  file(GLOB SOURCES src/*.cpp src/force_types/force_lj*.cpp)
+add_subdirectory(src)
+add_subdirectory(bin)
+
+##---------------------------------------------------------------------------##
+## Enable Tests?
+##---------------------------------------------------------------------------##
+
+option(CabanaMD_ENABLE_TESTING "Build tests" OFF)
+if(CabanaMD_ENABLE_TESTING)
+  enable_testing()
+  #add_executable()
+  #target_link_libraries()
+  #add_test(NAME Core_tutorial_14 COMMAND UnmanagedParallelFor)
 endif()
 
-include_directories(SYSTEM ${KOKKOS_DIR}/include)
-link_directories(${KOKKOS_DIR}/lib)
-include_directories(${CABANA_DIR}/include)
-link_directories(${CABANA_DIR}/lib64)
-link_directories(${CABANA_DIR}/lib)
-include_directories(${N2P2_DIR}/include)
-link_directories(${N2P2_DIR}/lib)
 
-add_executable(CabanaMD ${SOURCES})
-
-if(CabanaMD_ENABLE_NNP)
-  target_link_libraries(CabanaMD cabanacore kokkos dl hwloc MPI::MPI_CXX nnp)
-else()
-  target_link_libraries(CabanaMD cabanacore kokkos dl hwloc MPI::MPI_CXX)
-endif()
-
-install(TARGETS CabanaMD DESTINATION bin)
-
+##---------------------------------------------------------------------------##
+## Pretty-printing wizardry:
+##---------------------------------------------------------------------------##
 find_package(CLANG_FORMAT)
 if(CLANG_FORMAT_FOUND)
   file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h)

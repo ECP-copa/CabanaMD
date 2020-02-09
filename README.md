@@ -44,7 +44,7 @@ mkdir build
 cd build
 pwd
 cmake \
-    -D KOKKOS_DIR=$KOKKOS_INSTALL_DIR \
+    -D Kokkos_DIR=$KOKKOS_INSTALL_DIR/lib/cmake/Kokkos \
     -D CABANA_DIR=$CABANA_INSTALL_DIR \
     -D CabanaMD_ENABLE_Serial=OFF \
     -D CabanaMD_ENABLE_OpenMP=ON \
@@ -63,7 +63,7 @@ the GPU build is identical to that above except the options passed to CMake:
 ```
 cmake \
     -D CMAKE_CXX_COMPILER=$KOKKOS_SRC_DIR/bin/nvcc_wrapper \
-    -D KOKKOS_DIR=$KOKKOS_INSTALL_DIR \
+    -D Kokkos_DIR=$KOKKOS_INSTALL_DIR/lib/cmake/Kokkos \
     -D CABANA_DIR=$CABANA_INSTALL_DIR \
     -D CabanaMD_ENABLE_Serial=OFF \
     -D CabanaMD_ENABLE_OpenMP=OFF \
