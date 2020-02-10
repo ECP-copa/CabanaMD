@@ -14,47 +14,46 @@ include(GNUInstallDirs)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ##---------------------------------------------------------------------------##
-# Set up main options
+# Set up main options (inherit from Kokkos and Cabana CMake)
 ##---------------------------------------------------------------------------##
+find_package(Cabana REQUIRED)
+find_package(MPI REQUIRED)
+
 option(CabanaMD_ENABLE_Serial "Build CabanaMD with Serial support" ON)
 if( CabanaMD_ENABLE_Serial )
+  if( NOT Kokkos_ENABLE_SERIAL )
+    message( FATAL_ERROR "Requested SERIAL, but not enabled in Kokkos!" )
+  endif()
   add_definitions(-DCabanaMD_ENABLE_Serial=ON)
 endif()
 
-#option(CabanaMD_ENABLE_Pthread "Build CabanaMD with Pthread support" OFF)
-#if( CabanaMD_ENABLE_Pthread )
-#  add_definitions(-DCabanaMD_ENABLE_Pthread=ON)
-#  find_package(Threads)
-#endif()
+option(CabanaMD_ENABLE_Pthread "Build CabanaMD with Pthread support" OFF)
+if( CabanaMD_ENABLE_Pthread )
+  if( NOT Kokkos_ENABLE_PTHREAD )
+    message( FATAL_ERROR "Requested PTHREAD, but not enabled in Kokkos!" )
+  endif()
+  add_definitions(-DCabanaMD_ENABLE_Pthread=ON)
+endif()
 
 option(CabanaMD_ENABLE_OpenMP "Build CabanaMD with OpenMP support" OFF)
 if( CabanaMD_ENABLE_OpenMP )
-  add_definitions(-DCabanaMD_ENABLE_OpenMP=ON)
-  find_package(OpenMP)
-  if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+  if( NOT Kokkos_ENABLE_OPENMP )
+    message( FATAL_ERROR "Requested OPENMP, but not enabled in Kokkos!" )
   endif()
+  add_definitions(-DCabanaMD_ENABLE_OpenMP=ON)
 endif()
 
 option(CabanaMD_ENABLE_Cuda "Build CabanaMD with Cuda support" OFF)
 if( CabanaMD_ENABLE_Cuda )
+  if( NOT Kokkos_ENABLE_CUDA )
+    message( FATAL_ERROR "Requested CUDA, but not enabled in Kokkos!" )
+  endif()
   add_definitions(-DCabanaMD_ENABLE_Cuda=ON)
-  find_package(CUDA)
-  if (CUDA_FOUND)
-    message("Found CUDA")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --expt-extended-lambda -g")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
-  else()
-    message( FATAL_ERROR "Requested CUDA but cant find it!")
-  endif(CUDA_FOUND)
 endif()
 
-find_package(Kokkos REQUIRED)
-find_package(Cabana REQUIRED)
-find_package(MPI REQUIRED)
-
+##---------------------------------------------------------------------------##
+# Set up optional libraries
+##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if( CabanaMD_ENABLE_NNP )
   add_definitions(-DCabanaMD_ENABLE_NNP=ON)
@@ -83,7 +82,7 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
 include_directories(src src/force_types)
-if(CabanaMD_ENABLE_NNP)
+if( CabanaMD_ENABLE_NNP )
   file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
 else()
   file(GLOB SOURCES src/*.cpp src/force_types/force_lj*.cpp)
@@ -95,7 +94,7 @@ link_directories(${N2P2_DIR}/lib)
 add_executable(CabanaMD ${SOURCES})
 
 target_link_libraries(CabanaMD Cabana::cabanacore Kokkos::kokkos MPI::MPI_CXX dl hwloc)
-if(CabanaMD_ENABLE_NNP)
+if( CabanaMD_ENABLE_NNP )
   target_link_libraries(CabanaMD nnp)
 endif()
 
