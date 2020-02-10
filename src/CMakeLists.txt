@@ -32,8 +32,8 @@ target_link_libraries(CabanaMD Cabana::cabanacore Kokkos::kokkos MPI::MPI_CXX dl
 
 if(CabanaMD_ENABLE_NNP)
   target_include_directories(CabanaMD PUBLIC ${N2P2_DIR}/include)
-  link_directories(${N2P2_DIR}/lib)
-  target_link_libraries(CabanaMD nnp)
+  find_library(N2P2_LIB nnp PATHS ${N2P2_DIR}/lib NO_DEFAULT_PATH)
+  target_link_libraries(CabanaMD ${N2P2_LIB})
 endif()
 
 install(TARGETS CabanaMD DESTINATION lib)
