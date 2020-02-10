@@ -28,10 +28,7 @@ target_include_directories(CabanaMD PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_C
 
 #------------------------------------------------------------
 
-target_include_directories(CabanaMD PUBLIC ${CABANA_DIR}/include)
-link_directories(${CABANA_DIR}/lib64)
-link_directories(${CABANA_DIR}/lib)
-target_link_libraries(CabanaMD cabanacore Kokkos::kokkos dl hwloc MPI::MPI_CXX)
+target_link_libraries(CabanaMD Cabana::cabanacore Kokkos::kokkos MPI::MPI_CXX dl hwloc)
 
 if(CabanaMD_ENABLE_NNP)
   target_include_directories(CabanaMD PUBLIC ${N2P2_DIR}/include)
