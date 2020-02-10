@@ -51,15 +51,9 @@ if( CabanaMD_ENABLE_Cuda )
   endif(CUDA_FOUND)
 endif()
 
+find_package(Kokkos REQUIRED)
+find_package(Cabana REQUIRED)
 find_package(MPI REQUIRED)
-
-if(NOT DEFINED CABANA_DIR)
-  set(CABANA_DIR ~/install/cabana/)
-endif()
-
-if(NOT DEFINED KOKKOS_DIR)
-  set(KOKKOS_DIR ~/install/kokkos/)
-endif()
 
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if( CabanaMD_ENABLE_NNP )
@@ -95,20 +89,14 @@ else()
   file(GLOB SOURCES src/*.cpp src/force_types/force_lj*.cpp)
 endif()
 
-include_directories(SYSTEM ${KOKKOS_DIR}/include)
-link_directories(${KOKKOS_DIR}/lib)
-include_directories(${CABANA_DIR}/include)
-link_directories(${CABANA_DIR}/lib64)
-link_directories(${CABANA_DIR}/lib)
 include_directories(${N2P2_DIR}/include)
 link_directories(${N2P2_DIR}/lib)
 
 add_executable(CabanaMD ${SOURCES})
 
+target_link_libraries(CabanaMD Cabana::cabanacore Kokkos::kokkos MPI::MPI_CXX dl hwloc)
 if(CabanaMD_ENABLE_NNP)
-  target_link_libraries(CabanaMD cabanacore kokkos dl hwloc MPI::MPI_CXX nnp)
-else()
-  target_link_libraries(CabanaMD cabanacore kokkos dl hwloc MPI::MPI_CXX)
+  target_link_libraries(CabanaMD nnp)
 endif()
 
 install(TARGETS CabanaMD DESTINATION bin)
