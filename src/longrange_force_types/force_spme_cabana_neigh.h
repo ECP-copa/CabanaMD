@@ -72,7 +72,6 @@ class ForceSPME : public Force
     typename AoSoA::member_slice_type<IDs> id;
     typename AoSoA::member_slice_type<Types> type;
     typename AoSoA::member_slice_type<Charges> q;
-    typename AoSoA::member_slice_type<Potentials> p;
 
     double _alpha;
     double _r_max;
@@ -81,30 +80,17 @@ class ForceSPME : public Force
     // dielectric constant
     double _eps_r = 1.0; // Assume 1 for now (vacuum)
 
-    // double *EwaldUk_coeffs;
-
-    // Kokkos::View<double *, MemorySpace> domain_width;
-
-    // MPI_Comm comm;
-
   public:
     bool half_neigh;
 
     t_neighbor neigh_list;
-    std::shared_ptr<Cajita::LocalMesh<DeviceType, Cajita::UniformMesh<double>>>
-        local_mesh;
     std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> local_grid;
-    // Cajita::PointSet<double, Cajita::Node, 3, DeviceType> point_set;
-    // std::shared_ptr<Cajita::Array<Kokkos::complex<double>, Cajita::Node,
-    // Cajita::UniformMesh<double>>> meshq;
-    // std::shared_ptr<Cajita::Halo<Kokkos::complex<double>, DeviceType>>
-    // q_halo;
-    std::shared_ptr<
-        Cajita::Array<double, Cajita::Node, Cajita::UniformMesh<double>>>
-        meshq;
-    std::shared_ptr<Cajita::Halo<double, DeviceType>> q_halo;
+    std::shared_ptr<Cajita::Array<double, Cajita::Node,
+                                  Cajita::UniformMesh<double>, DeviceType>>
+        Q;
+    std::shared_ptr<Cajita::Halo<double, DeviceType>> Q_halo;
     std::shared_ptr<Cajita::Array<Kokkos::complex<double>, Cajita::Node,
-                                  Cajita::UniformMesh<double>>>
+                                  Cajita::UniformMesh<double>, DeviceType>>
         BC_array;
 
     ForceSPME( System *system, bool half_neigh );

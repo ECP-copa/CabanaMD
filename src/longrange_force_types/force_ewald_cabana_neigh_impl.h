@@ -281,7 +281,6 @@ void ForceEwald<t_neighbor>::compute( System *system )
 template <class t_neighbor>
 T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
 {
-
     N_local = system->N_local;
 
     // get the solver parameters
@@ -290,11 +289,11 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
 
     x = Cabana::slice<Positions>( system->xvf );
     q = Cabana::slice<Charges>( system->xvf );
-    p = Cabana::slice<Potentials>( system->xvf );
 
     int k_int = std::ceil( k_max ) + 1;
 
-    auto kspace_potential = KOKKOS_LAMBDA( const int idx )
+    T_V_FLOAT energy_k = 0.0;
+    auto kspace_potential = KOKKOS_LAMBDA( const int idx, T_V_FLOAT &PE )
     {
         double coeff = 4.0 * PI / ( lx * ly * lz );
         double k[3];
@@ -325,20 +324,21 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
                     double k_coeff = exp( -kk / ( 4 * alpha * alpha ) ) / kk;
 
                     // contribution to potential energy
-                    double contrib = coeff * k_coeff *
-                                     ( U_trigonometric( 2 * kidx ) *
-                                           U_trigonometric( 2 * kidx ) +
-                                       U_trigonometric( 2 * kidx + 1 ) *
-                                           U_trigonometric( 2 * kidx + 1 ) );
-                    p( idx ) += contrib;
+                    PE += coeff * k_coeff *
+                          ( U_trigonometric( 2 * kidx ) *
+                                U_trigonometric( 2 * kidx ) +
+                            U_trigonometric( 2 * kidx + 1 ) *
+                                U_trigonometric( 2 * kidx + 1 ) );
                 }
             }
         }
     };
-    Kokkos::parallel_for( "ForceEwald::KspacePE", N_local, kspace_potential );
+    Kokkos::parallel_reduce( "ForceEwald::KspacePE", N_local, kspace_potential,
+                             energy_k );
     Kokkos::fence();
 
-    auto realspace_potential = KOKKOS_LAMBDA( const int idx )
+    T_V_FLOAT energy_r = 0.0;
+    auto realspace_potential = KOKKOS_LAMBDA( const int idx, T_V_FLOAT &PE )
     {
         int num_n =
             Cabana::NeighborList<t_neighbor>::numNeighbor( neigh_list, idx );
@@ -358,29 +358,19 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
             double d = sqrt( dx * dx + dy * dy + dz * dz );
             double qj = q( j );
 
-            double contrib = 0.5 * qi * qj * erfc( alpha * d ) / d;
-            Kokkos::atomic_add( &p( idx ), contrib );
-            Kokkos::atomic_add( &p( j ), contrib );
+            PE += qi * qj * erfc( alpha * d ) / d;
         }
 
         // self-energy contribution
-        p( idx ) += -alpha / PI_SQRT * q( idx ) * q( idx );
+        PE += -alpha / PI_SQRT * qi * qi;
     };
-    Kokkos::parallel_for( "ForceEwald::RealSpacePE", N_local,
-                          realspace_potential );
-    Kokkos::fence();
-
-    T_V_FLOAT energy = 0.0;
-    auto reduce_potential = KOKKOS_LAMBDA( const int idx, T_V_FLOAT &PE )
-    {
-        PE += p( idx );
-    };
-    Kokkos::parallel_reduce( "ForceEwald::ReducePE", N_local, reduce_potential,
-                             energy );
+    Kokkos::parallel_reduce( "ForceEwald::RealSpacePE", N_local,
+                             realspace_potential, energy_r );
     Kokkos::fence();
 
     // Not including dipole correction (usually unnecessary)
 
+    T_V_FLOAT energy = energy_k + energy_r;
     return energy;
 }
 

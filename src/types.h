@@ -152,7 +152,7 @@ typedef Kokkos::View<const T_V_FLOAT *> t_mass_const; // Mass
 
 // Cabana
 using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3], T_INT,
-                                    T_INT, T_FLOAT, T_FLOAT>;
+                                    T_INT, T_FLOAT>;
 enum TypeNames
 {
     Positions = 0,
@@ -161,7 +161,6 @@ enum TypeNames
     Types = 3,
     IDs = 4,
     Charges = 5,
-    Potentials = 6
 };
 
 #ifdef CabanaMD_ENABLE_Cuda
