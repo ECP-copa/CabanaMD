@@ -414,10 +414,13 @@ void Comm::exchange_halo()
         system->resize( halo_all[phase]->numLocal() +
                         halo_all[phase]->numGhost() );
         system->slice_x();
+        system->slice_type();
         s = *system;
         x = s.x;
+        type = s.type;
 
-        system->gather( *halo_all[phase] );
+        Cabana::gather( *halo_all[phase], x );
+        Cabana::gather( *halo_all[phase], type );
 
         proc_num_recv[phase] = halo_all[phase]->numGhost();
         count = proc_num_recv[phase];

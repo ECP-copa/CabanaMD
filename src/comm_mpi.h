@@ -70,6 +70,7 @@ class Comm
 
     System s;
     t_x x;
+    t_type type;
     t_f f;
 
     // Owned Variables
