@@ -430,29 +430,37 @@ void Input::check_lammps_command( int line )
     }
     if ( strcmp( input_data.words[line][0], "lattice" ) == 0 )
     {
+        float atoms_per_unit = 1.0;
         if ( strcmp( input_data.words[line][1], "sc" ) == 0 )
         {
             known = true;
             lattice_style = LATTICE_SC;
             lattice_constant = atof( input_data.words[line][2] );
         }
+        else if ( strcmp( input_data.words[line][1], "bcc" ) == 0 )
+        {
+            known = true;
+            lattice_style = LATTICE_BCC;
+            atoms_per_unit = 2.0;
+            lattice_constant = atof( input_data.words[line][2] );
+        }
         else if ( strcmp( input_data.words[line][1], "fcc" ) == 0 )
         {
             known = true;
             lattice_style = LATTICE_FCC;
-            if ( units_style == UNITS_LJ )
-                lattice_constant =
-                    std::pow( ( 4.0 / atof( input_data.words[line][2] ) ),
-                              ( 1.0 / 3.0 ) );
-            else
-                lattice_constant = atof( input_data.words[line][2] );
+            atoms_per_unit = 4.0;
+            lattice_constant = atof( input_data.words[line][2] );
         }
         else
         {
             if ( system->do_print )
-                printf( "LAMMPS-Command: 'lattice' command only supports 'sc' "
-                        "and 'fcc' in CabanaMD\n" );
+                printf( "LAMMPS-Command: 'lattice' command only supports "
+                        "'sc', 'bcc', or 'fcc' in CabanaMD\n" );
         }
+        if ( units_style == UNITS_LJ ) // words[line][2] was actually rho=N/V
+            lattice_constant =
+                    std::pow( atoms_per_unit / lattice_constant,
+                              1.0 / 3.0 );
         if ( strcmp( input_data.words[line][3], "origin" ) == 0 )
         {
             lattice_offset_x = atof( input_data.words[line][4] );
