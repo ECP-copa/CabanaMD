@@ -162,7 +162,9 @@ using ExecutionSpace = Kokkos::Cuda;
 using MemorySpace = Kokkos::HostSpace;
 #ifdef CabanaMD_ENABLE_Serial
 using ExecutionSpace = Kokkos::Serial;
-#else // CabanaMD_ENABLE_OpenMP
+#elif defined( CabanaMD_ENABLE_Threads )
+using ExecutionSpace = Kokkos::Threads;
+#elif defined( CabanaMD_ENABLE_OpenMP )
 using ExecutionSpace = Kokkos::OpenMP;
 #endif
 #endif

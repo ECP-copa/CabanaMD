@@ -7,9 +7,10 @@ https://github.com/ECP-copa/Cabana
 
 
 ExaMiniMD is a proxy app and research vehicle for 
-MD using Kokkos:
+MD using the Kokkos performance portability library
+("KokkosMD"):
 https://github.com/ECP-copa/ExaMiniMD
-
+https://github.com/kokkos/kokkos
 
 
 # Build instructions
@@ -22,7 +23,7 @@ CabanaMD has the following dependencies:
 |---------- | ------- |--------  |------- |
 |CMake      | 3.9+    | Yes      | Build system
 |MPI        | GPU Aware if CUDA Enabled | Yes | Message Passing Interface
-|Kokkos     | 2.7.0   | Yes      | Provides portable on-node parallelism
+|Kokkos     | 3.0     | Yes      | Provides portable on-node parallelism
 |Cabana     | 0.3-dev | Yes      | Performance portable particle algorithms
 |libnnp     | 1.0.0   | No       | Neural network potential utilities
 
@@ -36,15 +37,15 @@ MPI is required (`-D Cabana_ENABLE_MPI=ON`)
 After building Kokkos and Cabana for CPU:
 ```
 # Change directories as needed
-export KOKKOS_INSTALL_DIR=$HOME/install/kokkos
-export CABANA_INSTALL_DIR=$HOME/install/cabana
+export KOKKOS_INSTALL_DIR=$HOME/kokkos
+export CABANA_INSTALL_DIR=$HOME/Cabana
 
 cd ./CabanaMD
 mkdir build
 cd build
 pwd
 cmake \
-    -D CMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos" \
+    -D CMAKE_PREFIX_PATH="$KOKKOS_INSTALL_DIR;$CABANA_INSTALL_DIR" \
     -D CabanaMD_ENABLE_Serial=OFF \
     -D CabanaMD_ENABLE_OpenMP=ON \
     -D CabanaMD_ENABLE_Cuda=OFF \
@@ -62,7 +63,7 @@ the GPU build is identical to that above except the options passed to CMake:
 ```
 cmake \
     -D CMAKE_CXX_COMPILER=$KOKKOS_SRC_DIR/bin/nvcc_wrapper \
-    -D CMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos" \
+    -D CMAKE_PREFIX_PATH="$KOKKOS_INSTALL_DIR;$CABANA_INSTALL_DIR" \
     -D CabanaMD_ENABLE_Serial=OFF \
     -D CabanaMD_ENABLE_OpenMP=OFF \
     -D CabanaMD_ENABLE_Cuda=ON \
