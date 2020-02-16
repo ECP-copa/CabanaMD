@@ -15,7 +15,6 @@ addons:
       - g++-6
 
 before_script:
-  - sudo ln -s /usr/bin/ccache /usr/lib/ccache/clang++
   - ccache -z
   - KOKKOS_OPTS=( -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DKokkos_ENABLE_HWLOC=ON )
   - for i in ${BACKENDS}; do KOKKOS_OPTS+=( -DKokkos_ENABLE_${i^^}=ON ); done
