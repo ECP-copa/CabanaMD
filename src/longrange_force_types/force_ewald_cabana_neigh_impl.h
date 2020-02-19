@@ -73,10 +73,9 @@ void ForceEwald<t_neighbor>::tune( System *system, double accuracy )
             "Ewald needs symmetric system size for now." );
 
     const int N = system->N_global;
-    lx = system->domain_x / system->lattice_constant;
-    ly = system->domain_y / system->lattice_constant;
-    lz = system->domain_z / system->lattice_constant;
-
+    lx = system->domain_x;
+    ly = system->domain_y;
+    lz = system->domain_z;
     // Fincham 1994, Optimisation of the Ewald Sum for Large Systems
     // only valid for cubic systems (needs adjustement for non-cubic systems)
     constexpr double EXECUTION_TIME_RATIO_K_R = 2.0; // TODO: Change?
@@ -85,12 +84,12 @@ void ForceEwald<t_neighbor>::tune( System *system, double accuracy )
         pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI );
 
     _r_max = tune_factor / pow( N, 1.0 / 6.0 ) * lx;
-    // make the maximum cut_off dependent on the domain size
-    double comp_size =
-        ( 5.0 > 0.75 * system->domain_x ) ? 0.75 * system->domain_x : 5.0;
-    comp_size = 4.0;
-    if ( _r_max > comp_size )
-        tune_factor = pow( N, 1.0 / 6.0 ) * 0.91 * comp_size / lx;
+    //TODO: make the maximum cut_off dependent on the domain size
+    //double comp_size =
+    //    ( 5.0 > 0.75 * system->domain_x ) ? 0.75 * system->domain_x : 5.0;
+    //comp_size = 20.0;
+    //if ( _r_max > comp_size )
+    //    tune_factor = pow( N, 1.0 / 6.0 ) * 0.91 * comp_size / lx;
 
     _r_max = tune_factor / pow( N, 1.0 / 6.0 ) * lx;
     _alpha = tune_factor * pow( N, 1.0 / 6.0 ) / lx;
@@ -103,17 +102,24 @@ template <class t_neighbor>
 void ForceEwald<t_neighbor>::create_neigh_list( System *system )
 {
     N_local = system->N_local;
+    int N_ghost = system->N_ghost;
 
-    double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
-                          system->sub_domain_lo_y - system->sub_domain_y,
-                          system->sub_domain_lo_z - system->sub_domain_z};
-    double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
-                          system->sub_domain_hi_y + system->sub_domain_y,
-                          system->sub_domain_hi_z + system->sub_domain_z};
+    double grid_min[3] = {system->sub_domain_lo_x - _r_max,
+                          system->sub_domain_lo_y - _r_max,
+                          system->sub_domain_lo_z - _r_max};
+    double grid_max[3] = {system->sub_domain_hi_x + _r_max,
+                          system->sub_domain_hi_y + _r_max,
+                          system->sub_domain_hi_z + _r_max};
 
+    double cell_size;
+    cell_size =
+        std::max( std::min( ( grid_max[0] - grid_min[0] ) / 20.0,
+                            std::min( ( grid_max[1] - grid_min[1] ) / 20.0,
+                                      ( grid_max[2] - grid_min[2] ) / 20.0 ) ),
+                  1.0 );
     auto x = Cabana::slice<Positions>( system->xvf );
 
-    t_neighbor list( x, 0, N_local, _r_max, 1.0, grid_min, grid_max );
+    t_neighbor list( x, 0, N_local+N_ghost, _r_max, cell_size, grid_min, grid_max );
     neigh_list = list;
 }
 
@@ -126,6 +132,7 @@ void ForceEwald<t_neighbor>::compute( System *system )
     x = Cabana::slice<Positions>( system->xvf );
     f = Cabana::slice<Forces>( system->xvf );
     q = Cabana::slice<Charges>( system->xvf );
+
 
     // get the solver parameters
     double alpha = _alpha;
@@ -192,6 +199,7 @@ void ForceEwald<t_neighbor>::compute( System *system )
     // reduce the partial results
     MPI_Allreduce( MPI_IN_PLACE, U_trigonometric.data(), 2 * n_kvec, MPI_DOUBLE,
                    MPI_SUM, cart_comm );
+
 
     auto kspace_force = KOKKOS_LAMBDA( const int idx )
     {
@@ -292,6 +300,10 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
     q = Cabana::slice<Charges>( system->xvf );
     p = Cabana::slice<Potentials>( system->xvf );
 
+    const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
+    const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
+    const double ENERGY_CONVERSION_FACTOR = ELECTRON_CHARGE/(4.0*PI*EPS_0)
+;
     int k_int = std::ceil( k_max ) + 1;
 
     auto kspace_potential = KOKKOS_LAMBDA( const int idx )
@@ -330,19 +342,18 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
                                            U_trigonometric( 2 * kidx ) +
                                        U_trigonometric( 2 * kidx + 1 ) *
                                            U_trigonometric( 2 * kidx + 1 ) );
-                    p( idx ) += contrib;
+                    p( idx ) += contrib*ENERGY_CONVERSION_FACTOR;
                 }
             }
         }
     };
     Kokkos::parallel_for( "ForceEwald::KspacePE", N_local, kspace_potential );
     Kokkos::fence();
-
+    
     auto realspace_potential = KOKKOS_LAMBDA( const int idx )
     {
         int num_n =
             Cabana::NeighborList<t_neighbor>::numNeighbor( neigh_list, idx );
-
         double rx = x( idx, 0 );
         double ry = x( idx, 1 );
         double rz = x( idx, 2 );
@@ -358,13 +369,13 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
             double d = sqrt( dx * dx + dy * dy + dz * dz );
             double qj = q( j );
 
-            double contrib = 0.5 * qi * qj * erfc( alpha * d ) / d;
+            double contrib = ENERGY_CONVERSION_FACTOR * 0.5 * qi * qj * erfc( alpha * d ) / d;
             Kokkos::atomic_add( &p( idx ), contrib );
             Kokkos::atomic_add( &p( j ), contrib );
         }
-
+        
         // self-energy contribution
-        p( idx ) += -alpha / PI_SQRT * q( idx ) * q( idx );
+        p( idx ) += -alpha / PI_SQRT * q( idx ) * q( idx ) * ENERGY_CONVERSION_FACTOR;
     };
     Kokkos::parallel_for( "ForceEwald::RealSpacePE", N_local,
                           realspace_potential );
@@ -375,10 +386,9 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
     {
         PE += p( idx );
     };
-    Kokkos::parallel_reduce( "ForceEwald::ReducePE", N_local, reduce_potential,
-                             energy );
+    Kokkos::parallel_reduce( "ForceEwald::ReducePE", N_local + system->N_ghost, reduce_potential,
+                             energy );//TODO: Should this reduction include ghost particles?
     Kokkos::fence();
-
     // Not including dipole correction (usually unnecessary)
 
     return energy;
