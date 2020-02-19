@@ -195,8 +195,6 @@ void CabanaMD::init( int argc, char *argv[] )
     // Compute initial forces
     auto f = Cabana::slice<Forces>( system->xvf );
     Cabana::deep_copy( f, 0.0 );
-    auto p = Cabana::slice<Potentials>( system->xvf );
-    Cabana::deep_copy( p, 0.0 );
     force->compute( system );
     if ( input->lrforce_type != FORCE_NONE )
     {
@@ -220,7 +218,6 @@ void CabanaMD::init( int argc, char *argv[] )
         KinE kine( comm );
         T_FLOAT T = temp.compute( system );
         T_FLOAT SR_PE = pote.compute( system, force ) / system->N_global;
-        // If PE slice is used in short range, it needs to be reset here
         T_FLOAT LR_PE = 0.0;
         if ( input->lrforce_type != FORCE_NONE )
             LR_PE = pote.compute( system, lrforce ) / system->N_global;
@@ -318,8 +315,6 @@ void CabanaMD::run( int nsteps )
         force_timer.reset();
         auto f = Cabana::slice<Forces>( system->xvf );
         Cabana::deep_copy( f, 0.0 );
-        auto p = Cabana::slice<Potentials>( system->xvf );
-        Cabana::deep_copy( p, 0.0 );
 
         // Compute short range force
         force->compute( system );
@@ -355,7 +350,6 @@ void CabanaMD::run( int nsteps )
         {
             T_FLOAT T = temp.compute( system );
             T_FLOAT SR_PE = pote.compute( system, force ) / system->N_global;
-            // If PE slice is used in short range, it needs to be reset here
             T_FLOAT LR_PE = 0.0;
             if ( input->lrforce_type != FORCE_NONE )
                 LR_PE = pote.compute( system, lrforce ) / system->N_global;

@@ -76,7 +76,6 @@ class ForceEwald : public Force
     typename AoSoA::member_slice_type<IDs> id;
     typename AoSoA::member_slice_type<Types> type;
     typename AoSoA::member_slice_type<Charges> q;
-    typename AoSoA::member_slice_type<Potentials> p;
 
     Kokkos::View<T_F_FLOAT *, DeviceType> U_trigonometric;
 
