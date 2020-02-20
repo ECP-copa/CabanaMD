@@ -300,8 +300,8 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
 
     const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
     const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
-    const double ENERGY_CONVERSION_FACTOR = ELECTRON_CHARGE/(4.0*PI*EPS_0)
-;
+    const double ENERGY_CONVERSION_FACTOR = ELECTRON_CHARGE/(4.0*PI*EPS_0);
+    
     int k_int = std::ceil( k_max ) + 1;
 
     T_V_FLOAT energy_k = 0.0;
