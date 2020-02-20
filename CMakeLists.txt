@@ -33,9 +33,11 @@ foreach(_device ${CABANAMD_SUPPORTED_DEVICES})
   endif()
 endforeach()
 
+
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
 ##---------------------------------------------------------------------------##
+
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if( CabanaMD_ENABLE_NNP )
   add_definitions(-DCabanaMD_ENABLE_NNP=ON)
@@ -62,25 +64,23 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-include_directories(src src/force_types)
-if( CabanaMD_ENABLE_NNP )
-  file(GLOB SOURCES src/*.cpp src/force_types/*.cpp)
-else()
-  file(GLOB SOURCES src/*.cpp src/force_types/force_lj*.cpp)
+
+add_subdirectory(src)
+add_subdirectory(bin)
+
+##---------------------------------------------------------------------------##
+## Enable Tests?
+##---------------------------------------------------------------------------##
+
+option(CabanaMD_ENABLE_TESTING "Build tests" OFF)
+if(CabanaMD_ENABLE_TESTING)
+  enable_testing()
+  add_subdirectory(unit_test)
 endif()
 
-include_directories(${N2P2_DIR}/include)
-link_directories(${N2P2_DIR}/lib)
-
-add_executable(CabanaMD ${SOURCES})
-
-target_link_libraries(CabanaMD Cabana::cabanacore Kokkos::kokkos MPI::MPI_CXX dl hwloc)
-if( CabanaMD_ENABLE_NNP )
-  target_link_libraries(CabanaMD nnp)
-endif()
-
-install(TARGETS CabanaMD DESTINATION bin)
-
+##---------------------------------------------------------------------------##
+## Pretty-printing wizardry:
+##---------------------------------------------------------------------------##
 find_package(CLANG_FORMAT)
 if(CLANG_FORMAT_FOUND)
   file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h)
