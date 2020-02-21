@@ -61,13 +61,14 @@ class CabanaMD
 {
   public:
     System *system;
+    Input *input;
     Integrator *integrator;
     Force *force;
     Comm *comm;
-    Input *input;
     Binning *binning;
 
     CabanaMD();
+    ~CabanaMD();
 
     void init( int argc, char *argv[] );
 
@@ -77,6 +78,4 @@ class CabanaMD
     void check_correctness( int );
 
     void print_performance();
-
-    void shutdown();
 };

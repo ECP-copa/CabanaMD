@@ -55,6 +55,14 @@
 
 #include <vector>
 
+// Lattice Type
+enum
+{
+    LATTICE_SC,
+    LATTICE_BCC,
+    LATTICE_FCC
+};
+
 class ItemizedFile
 {
   public:
@@ -215,6 +223,6 @@ class Input
     void read_file( const char *filename = NULL );
     void read_lammps_file( const char *filename );
     void read_data_file( const char *filename );
-    void check_lammps_command( int line );
+    void run_lammps_command( int line );
     void create_lattice( Comm *comm );
 };

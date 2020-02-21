@@ -54,7 +54,8 @@
 
 #define MAXPATHLEN 1024
 
-CabanaMD::CabanaMD()
+CabanaMD::CabanaMD() :
+    integrator(nullptr), force(nullptr), comm(nullptr), binning(nullptr)
 {
     // Create the System class: atom properties (AoSoA) and simulation box
     system = new System();
@@ -102,10 +103,13 @@ void CabanaMD::init( int argc, char *argv[] )
     // Create Binning class: linked cell bin sort
     binning = new Binning( system );
 
+    // Create Communication class: MPI
+    comm = new Comm( system, neigh_cutoff );
+
     // Create Force class: potential options in force_types/ folder
     if ( false )
     {
-    }
+    } // NOTE: modules_force cannot change neigh_cutoff!
 #define FORCE_MODULES_INSTANTIATION
 #include <modules_force.h>
 #undef FORCE_MODULES_INSTANTIATION
@@ -118,9 +122,6 @@ void CabanaMD::init( int argc, char *argv[] )
             neigh_cutoff,
             input->input_data.words[input->force_coeff_lines( line )] );
     }
-
-    // Create Communication class: MPI
-    comm = new Comm( system, neigh_cutoff );
 
     force->comm_newton = input->comm_newton;
 
@@ -564,4 +565,17 @@ void CabanaMD::check_correctness( int step )
 
 void CabanaMD::print_performance() {}
 
-void CabanaMD::shutdown() { system->destroy(); }
+CabanaMD::~CabanaMD()
+{
+    delete system;
+    delete input;
+
+    if(integrator != nullptr)
+       delete integrator;
+    if(force != nullptr)
+       delete force;
+    if(comm != nullptr)
+       delete comm;
+    if(binning != nullptr)
+       delete binning;
+}

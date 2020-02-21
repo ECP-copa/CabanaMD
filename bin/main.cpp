@@ -60,6 +60,7 @@ int main( int argc, char *argv[] )
 
     Kokkos::ScopeGuard scope_guard( argc, argv );
 
+    {
     CabanaMD cabanamd;
     cabanamd.init( argc, argv );
 
@@ -68,8 +69,7 @@ int main( int argc, char *argv[] )
     //   cabanamd.check_correctness();
 
     cabanamd.print_performance();
-
-    cabanamd.shutdown();
+    } // cabanamd's destructor called
 
     MPI_Finalize();
 }

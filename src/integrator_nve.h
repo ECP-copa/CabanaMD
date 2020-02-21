@@ -63,7 +63,7 @@ class Integrator
     System *system;
 
     Integrator( System *s );
-    ~Integrator();
+    ~Integrator() {};
     T_V_FLOAT timestep_size;
 
     void initial_integrate();

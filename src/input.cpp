@@ -351,11 +351,12 @@ void Input::read_lammps_file( const char *filename )
         printf( "\n" );
     }
     for ( int l = 0; l < input_data.nlines; l++ )
-        check_lammps_command( l );
+        run_lammps_command( l );
 }
 
-void Input::check_lammps_command( int line )
+void Input::run_lammps_command( int line )
 {
+    System &s = *system;
     bool known = false;
 
     if ( input_data.words[line][0][0] == 0 )
@@ -368,7 +369,7 @@ void Input::check_lammps_command( int line )
     }
     if ( strcmp( input_data.words[line][0], "variable" ) == 0 )
     {
-        if ( system->do_print )
+        if ( s.do_print )
             printf( "LAMMPS-Command: 'variable' keyword is not supported in "
                     "CabanaMD\n" );
     }
@@ -378,34 +379,34 @@ void Input::check_lammps_command( int line )
         {
             known = true;
             units_style = UNITS_METAL;
-            system->boltz = 8.617343e-5;
+            s.boltz = 8.617343e-5;
             // hplanck = 95.306976368;
-            system->mvv2e = 1.0364269e-4;
-            system->dt = 0.001;
+            s.mvv2e = 1.0364269e-4;
+            s.dt = 0.001;
         }
         else if ( strcmp( input_data.words[line][1], "real" ) == 0 )
         {
             known = true;
             units_style = UNITS_REAL;
-            system->boltz = 0.0019872067;
+            s.boltz = 0.0019872067;
             // hplanck = 95.306976368;
-            system->mvv2e = 48.88821291 * 48.88821291;
+            s.mvv2e = 48.88821291 * 48.88821291;
             if ( !timestepflag )
-                system->dt = 1.0;
+                s.dt = 1.0;
         }
         else if ( strcmp( input_data.words[line][1], "lj" ) == 0 )
         {
             known = true;
             units_style = UNITS_LJ;
-            system->boltz = 1.0;
+            s.boltz = 1.0;
             // hplanck = 0.18292026;
-            system->mvv2e = 1.0;
+            s.mvv2e = 1.0;
             if ( !timestepflag )
-                system->dt = 0.005;
+                s.dt = 0.005;
         }
         else
         {
-            if ( system->do_print )
+            if ( s.do_print )
                 printf( "LAMMPS-Command: 'units' command only supports "
                         "'metal', 'real', and 'lj' in CabanaMD\n" );
         }
@@ -419,11 +420,11 @@ void Input::check_lammps_command( int line )
         else if ( strcmp( input_data.words[line][1], "charge" ) == 0 )
         {
             known = true;
-            system->atom_style = "charge";
+            s.atom_style = "charge";
         }
         else
         {
-            if ( system->do_print )
+            if ( s.do_print )
                 printf( "LAMMPS-Command: 'atom_style' command only supports "
                         "'atomic' and 'charge' in CabanaMD\n" );
         }
@@ -453,7 +454,7 @@ void Input::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( s.do_print )
                 printf( "LAMMPS-Command: 'lattice' command only supports "
                         "'sc', 'bcc', or 'fcc' in CabanaMD\n" );
         }
@@ -481,7 +482,7 @@ void Input::check_lammps_command( int line )
             box[4] = atoi( input_data.words[line][7] );
             box[5] = atoi( input_data.words[line][8] );
             if ( ( box[0] != 0 ) || ( box[2] != 0 ) || ( box[4] != 0 ) )
-                if ( system->do_print )
+                if ( s.do_print )
                     printf( "LAMMPS-Command: region only allows for boxes with "
                             "0,0,0 offset in CabanaMD\n" );
             lattice_nx = box[1];
@@ -490,7 +491,7 @@ void Input::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( s.do_print )
                 printf( "LAMMPS-Command: 'region' command only supports "
                         "'block' option in CabanaMD\n" );
         }
@@ -498,8 +499,8 @@ void Input::check_lammps_command( int line )
     if ( strcmp( input_data.words[line][0], "create_box" ) == 0 )
     {
         known = true;
-        system->ntypes = atoi( input_data.words[line][1] );
-        system->mass = t_mass( "System::mass", system->ntypes );
+        s.ntypes = atoi( input_data.words[line][1] );
+        s.mass = t_mass( "System::mass", s.ntypes );
     }
     if ( strcmp( input_data.words[line][0], "create_atoms" ) == 0 )
     {
@@ -509,7 +510,7 @@ void Input::check_lammps_command( int line )
     {
         known = true;
         int type = atoi( input_data.words[line][1] ) - 1;
-        Kokkos::View<T_V_FLOAT> mass_one( system->mass, type );
+        Kokkos::View<T_V_FLOAT> mass_one( s.mass, type );
         T_V_FLOAT mass = atof( input_data.words[line][2] );
         Kokkos::deep_copy( mass_one, mass );
     }
@@ -545,7 +546,7 @@ void Input::check_lammps_command( int line )
             Kokkos::resize( force_coeff_lines, 1 );
             force_coeff_lines( 0 ) = line;
         }
-        if ( system->do_print && !known )
+        if ( s.do_print && !known )
             printf( "LAMMPS-Command: 'pair_style' command only supports "
                     "'lj/cut' and 'nnp' style in CabanaMD\n" );
     }
@@ -567,13 +568,13 @@ void Input::check_lammps_command( int line )
         known = true;
         if ( strcmp( input_data.words[line][1], "all" ) != 0 )
         {
-            if ( system->do_print )
+            if ( s.do_print )
                 printf( "LAMMPS-Command: 'velocity' command can only be "
                         "applied to 'all' in CabanaMD\n" );
         }
         if ( strcmp( input_data.words[line][2], "create" ) != 0 )
         {
-            if ( system->do_print )
+            if ( s.do_print )
                 printf( "LAMMPS-Command: 'velocity' command can only be used "
                         "with option 'create' in CabanaMD\n" );
         }
@@ -603,7 +604,7 @@ void Input::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( s.do_print )
                 printf( "LAMMPS-Command: 'fix' command only supports 'nve' "
                         "style in CabanaMD\n" );
         }
@@ -621,7 +622,7 @@ void Input::check_lammps_command( int line )
     if ( strcmp( input_data.words[line][0], "timestep" ) == 0 )
     {
         known = true;
-        system->dt = atof( input_data.words[line][1] );
+        s.dt = atof( input_data.words[line][1] );
         timestepflag = true;
     }
     if ( strcmp( input_data.words[line][0], "newton" ) == 0 )
@@ -637,7 +638,7 @@ void Input::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( s.do_print )
                 printf( "LAMMPS-Command: 'newton' must be followed by 'on' or "
                         "'off'\n" );
         }
@@ -646,7 +647,7 @@ void Input::check_lammps_command( int line )
     {
         known = true;
     }
-    if ( !known && system->do_print )
+    if ( !known && s.do_print )
     {
         printf( "ERROR: unknown keyword\n" );
         input_data.print_line( line );
@@ -655,133 +656,46 @@ void Input::check_lammps_command( int line )
 
 void Input::create_lattice( Comm *comm )
 {
-
-    System s = *system;
+    System &s = *system;
 
     t_mass::HostMirror h_mass = Kokkos::create_mirror_view( s.mass );
     Kokkos::deep_copy( h_mass, s.mass );
 
-    // Create Simple Cubic Lattice
-    if ( lattice_style == LATTICE_SC )
+    // Create Simple Cubic Lattice Types
+    if (   lattice_style == LATTICE_SC
+        || lattice_style == LATTICE_BCC
+        || lattice_style == LATTICE_FCC )
     {
-        system->domain_x = lattice_constant * lattice_nx;
-        system->domain_y = lattice_constant * lattice_ny;
-        system->domain_z = lattice_constant * lattice_nz;
-        system->domain_hi_x = system->domain_x;
-        system->domain_hi_y = system->domain_y;
-        system->domain_hi_z = system->domain_z;
+        s.domain_x = lattice_constant * lattice_nx;
+        s.domain_y = lattice_constant * lattice_ny;
+        s.domain_z = lattice_constant * lattice_nz;
+        s.domain_hi_x = s.domain_x;
+        s.domain_hi_y = s.domain_y;
+        s.domain_hi_z = s.domain_z;
 
         comm->create_domain_decomposition();
-        s = *system;
 
-        T_INT ix_start = s.sub_domain_lo_x / s.domain_x * lattice_nx - 0.5;
-        T_INT iy_start = s.sub_domain_lo_y / s.domain_y * lattice_ny - 0.5;
-        T_INT iz_start = s.sub_domain_lo_z / s.domain_z * lattice_nz - 0.5;
-
-        T_INT ix_end = s.sub_domain_hi_x / s.domain_x * lattice_nx + 0.5;
-        T_INT iy_end = s.sub_domain_hi_y / s.domain_y * lattice_ny + 0.5;
-        T_INT iz_end = s.sub_domain_hi_z / s.domain_z * lattice_nz + 0.5;
-
-        T_INT n = 0;
-
-        for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
+        double basis[4][3] = {
+            {0.0, 0.0, 0.0},
+            {0.5, 0.5, 0.0},
+            {0.5, 0.0, 0.5},
+            {0.0, 0.5, 0.5}
+        };
+        int nbasis = 0; // default = no atoms
+        switch( lattice_style )
         {
-            T_FLOAT ztmp = lattice_constant * ( iz + lattice_offset_z );
-            for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
-            {
-                T_FLOAT ytmp = lattice_constant * ( iy + lattice_offset_y );
-                for ( T_INT ix = ix_start; ix <= ix_end; ix++ )
-                {
-                    T_FLOAT xtmp = lattice_constant * ( ix + lattice_offset_x );
-                    if ( ( xtmp >= s.sub_domain_lo_x ) &&
-                         ( ytmp >= s.sub_domain_lo_y ) &&
-                         ( ztmp >= s.sub_domain_lo_z ) &&
-                         ( xtmp < s.sub_domain_hi_x ) &&
-                         ( ytmp < s.sub_domain_hi_y ) &&
-                         ( ztmp < s.sub_domain_hi_z ) )
-                    {
-                        n++;
-                    }
-                }
-            }
+        case LATTICE_SC:
+            nbasis = 1;
+            break;
+        case LATTICE_BCC:
+            nbasis = 2;
+            basis[1][2] = 0.5; // {0,0,0} and {0.5,0.5,0.5}
+            break;
+        case LATTICE_FCC:
+            nbasis = 4;
+            break;
         }
-        system->N_local = n;
-        system->N = n;
-        system->resize( n );
-        s = *system;
-        auto x = Cabana::slice<Positions>( s.xvf );
-        auto v = Cabana::slice<Velocities>( s.xvf );
-        auto id = Cabana::slice<IDs>( s.xvf );
-        auto type = Cabana::slice<Types>( s.xvf );
-        auto q = Cabana::slice<Charges>( s.xvf );
-
-        n = 0;
-        for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
-        {
-            T_FLOAT ztmp = lattice_constant * ( iz + lattice_offset_z );
-            for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
-            {
-                T_FLOAT ytmp = lattice_constant * ( iy + lattice_offset_y );
-                for ( T_INT ix = ix_start; ix <= ix_end; ix++ )
-                {
-                    T_FLOAT xtmp = lattice_constant * ( ix + lattice_offset_x );
-                    if ( ( xtmp >= s.sub_domain_lo_x ) &&
-                         ( ytmp >= s.sub_domain_lo_y ) &&
-                         ( ztmp >= s.sub_domain_lo_z ) &&
-                         ( xtmp < s.sub_domain_hi_x ) &&
-                         ( ytmp < s.sub_domain_hi_y ) &&
-                         ( ztmp < s.sub_domain_hi_z ) )
-                    {
-                        x( n, 0 ) = xtmp;
-                        x( n, 1 ) = ytmp;
-                        x( n, 2 ) = ztmp;
-                        type( n ) = rand() % s.ntypes;
-                        id( n ) = n + 1;
-                        n++;
-                    }
-                }
-            }
-        }
-        comm->reduce_int( &system->N, 1 );
-
-        // Make ids unique over all processes
-        T_INT N_local_offset = n;
-        comm->scan_int( &N_local_offset, 1 );
-        for ( T_INT i = 0; i < n; i++ )
-            id( i ) += N_local_offset - n;
-
-        if ( system->do_print )
-            printf( "Atoms: %i %i\n", system->N, system->N_local );
-    }
-
-    // Create Face Centered Cubic (FCC) Lattice
-    if ( lattice_style == LATTICE_FCC )
-    {
-        system->domain_x = lattice_constant * lattice_nx;
-        system->domain_y = lattice_constant * lattice_ny;
-        system->domain_z = lattice_constant * lattice_nz;
-        system->domain_hi_x = system->domain_x;
-        system->domain_hi_y = system->domain_y;
-        system->domain_hi_z = system->domain_z;
-
-        comm->create_domain_decomposition();
-        s = *system;
-
-        double basis[4][3];
-        basis[0][0] = 0.0;
-        basis[0][1] = 0.0;
-        basis[0][2] = 0.0;
-        basis[1][0] = 0.5;
-        basis[1][1] = 0.5;
-        basis[1][2] = 0.0;
-        basis[2][0] = 0.5;
-        basis[2][1] = 0.0;
-        basis[2][2] = 0.5;
-        basis[3][0] = 0.0;
-        basis[3][1] = 0.5;
-        basis[3][2] = 0.5;
-
-        for ( int i = 0; i < 4; i++ )
+        for ( int i = 0; i < nbasis; i++ )
         {
             basis[i][0] += lattice_offset_x;
             basis[i][1] += lattice_offset_y;
@@ -797,14 +711,14 @@ void Input::create_lattice( Comm *comm )
         T_INT iz_end = s.sub_domain_hi_z / s.domain_z * lattice_nz + 0.5;
 
         T_INT n = 0;
-
+        // Count local atoms
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
         {
             for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
             {
                 for ( T_INT ix = ix_start; ix <= ix_end; ix++ )
                 {
-                    for ( int k = 0; k < 4; k++ )
+                    for ( int k = 0; k < nbasis; k++ )
                     {
                         T_FLOAT xtmp =
                             lattice_constant * ( 1.0 * ix + basis[k][0] );
@@ -825,26 +739,25 @@ void Input::create_lattice( Comm *comm )
                 }
             }
         }
+        s.N_local = n;
+        s.N = n;
+        s.resize( n ); // Allocate space for n local atoms.
 
-        system->N_local = n;
-        system->N = n;
-        system->resize( n );
-        s = *system;
         auto x = Cabana::slice<Positions>( s.xvf );
         auto v = Cabana::slice<Velocities>( s.xvf );
         auto id = Cabana::slice<IDs>( s.xvf );
         auto type = Cabana::slice<Types>( s.xvf );
         auto q = Cabana::slice<Charges>( s.xvf );
 
+        // Loop again to fill-in atom properties.
         n = 0;
-
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
         {
             for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
             {
                 for ( T_INT ix = ix_start; ix <= ix_end; ix++ )
                 {
-                    for ( int k = 0; k < 4; k++ )
+                    for ( int k = 0; k < nbasis; k++ )
                     {
                         T_FLOAT xtmp =
                             lattice_constant * ( 1.0 * ix + basis[k][0] );
@@ -870,6 +783,7 @@ void Input::create_lattice( Comm *comm )
                 }
             }
         }
+        comm->reduce_int( &s.N, 1 );
 
         // Make ids unique over all processes
         T_INT N_local_offset = n;
@@ -877,18 +791,16 @@ void Input::create_lattice( Comm *comm )
         for ( T_INT i = 0; i < n; i++ )
             id( i ) += N_local_offset - n;
 
-        comm->reduce_int( &system->N, 1 );
-
-        if ( system->do_print )
-            printf( "Atoms: %i %i\n", system->N, system->N_local );
+        if ( s.do_print )
+            printf( "Atoms: %i %i\n", s.N, s.N_local );
     }
+
     // Initialize velocity using the equivalent of the LAMMPS
     // velocity geom option, i.e. uniform random kinetic energies.
     // zero out momentum of the whole system afterwards, to eliminate
     // drift (bad for energy statistics)
 
-    { // Scope s
-        System s = *system;
+    {
         auto x = Cabana::slice<Positions>( s.xvf );
         auto v = Cabana::slice<Velocities>( s.xvf );
         auto type = Cabana::slice<Types>( s.xvf );
@@ -899,7 +811,7 @@ void Input::create_lattice( Comm *comm )
         T_FLOAT total_momentum_y = 0.0;
         T_FLOAT total_momentum_z = 0.0;
 
-        for ( T_INT i = 0; i < system->N_local; i++ )
+        for ( T_INT i = 0; i < s.N_local; i++ )
         {
             LAMMPS_RandomVelocityGeom random;
             double x_i[3] = {x( i, 0 ), x( i, 1 ), x( i, 2 )};
@@ -930,7 +842,7 @@ void Input::create_lattice( Comm *comm )
         T_FLOAT system_vy = total_momentum_y / total_mass;
         T_FLOAT system_vz = total_momentum_z / total_mass;
 
-        for ( T_INT i = 0; i < system->N_local; i++ )
+        for ( T_INT i = 0; i < s.N_local; i++ )
         {
             v( i, 0 ) -= system_vx;
             v( i, 1 ) -= system_vy;
@@ -942,7 +854,7 @@ void Input::create_lattice( Comm *comm )
 
         T_V_FLOAT T_init_scale = sqrt( temperature_target / T );
 
-        for ( T_INT i = 0; i < system->N_local; i++ )
+        for ( T_INT i = 0; i < s.N_local; i++ )
         {
             v( i, 0 ) *= T_init_scale;
             v( i, 1 ) *= T_init_scale;

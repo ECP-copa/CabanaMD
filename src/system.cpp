@@ -80,7 +80,7 @@ void System::init()
     mass = t_mass( "System::mass", ntypes );
 }
 
-void System::destroy()
+System::~System()
 {
     N_max = 0;
     N_local = 0;

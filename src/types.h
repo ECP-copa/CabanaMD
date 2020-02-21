@@ -62,12 +62,6 @@ enum
     UNITS_LJ,
     UNITS_METAL
 };
-// Lattice Type
-enum
-{
-    LATTICE_SC,
-    LATTICE_FCC
-};
 // Integrator Type
 enum
 {

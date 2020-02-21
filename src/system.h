@@ -91,9 +91,8 @@ class System
     bool print_lammps;
 
     System();
-    ~System(){};
+    ~System();
     void init();
-    void destroy();
 
     void resize( T_INT new_N );
 
