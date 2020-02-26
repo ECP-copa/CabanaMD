@@ -451,11 +451,15 @@ T_V_FLOAT ForceSPME<t_neighbor>::compute_energy( System *system )
         "Qcomplex", vector_layout );
     auto Qcomplex_view = Qcomplex->view();
 
+    const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
+    const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
+    const double ENERGY_CONVERSION_FACTOR = ELECTRON_CHARGE/(4.0*PI*EPS_0);
+    
     T_V_FLOAT energy_k = 0.0;
     auto kspace_potential =
         KOKKOS_LAMBDA( const int i, const int j, const int k, T_V_FLOAT &PE )
     {
-        PE += BC_view( i, j, k, 0 ).real() *
+        PE += ENERGY_CONVERSION_FACTOR * BC_view( i, j, k, 0 ).real() *
               ( ( Qcomplex_view( i, j, k, 0 ).real() *
                   Qcomplex_view( i, j, k, 0 ).real() ) +
                 ( Qcomplex_view( i, j, k, 0 ).imag() *
@@ -488,11 +492,11 @@ T_V_FLOAT ForceSPME<t_neighbor>::compute_energy( System *system )
             double d = sqrt( dx * dx + dy * dy + dz * dz );
             double qj = q( j );
 
-            PE += qi * qj * erfc( alpha * d ) / d;
+            PE += ENERGY_CONVERSION_FACTOR * qi * qj * erfc( alpha * d ) / d;
         }
 
         // self-energy contribution
-        PE += -alpha / PI_SQRT * qi * qi;
+        PE += -alpha / PI_SQRT * qi * qi * ENERGY_CONVERSION_FACTOR;
     };
     Kokkos::parallel_reduce( "ForceSPME::RealSpacePE", N_local,
                              realspace_potential, energy_r );
