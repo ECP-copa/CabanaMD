@@ -71,7 +71,6 @@ void ForceEwald<t_neighbor>::tune( System *system, double accuracy )
          system->domain_x != system->domain_z )
         throw std::runtime_error(
             "Ewald needs symmetric system size for now." );
-
     const int N = system->N_global;
     lx = system->domain_x;
     ly = system->domain_y;
@@ -85,11 +84,11 @@ void ForceEwald<t_neighbor>::tune( System *system, double accuracy )
 
     _r_max = tune_factor / pow( N, 1.0 / 6.0 ) * lx;
     //TODO: make the maximum cut_off dependent on the domain size
-    //double comp_size =
-    //    ( 5.0 > 0.75 * system->domain_x ) ? 0.75 * system->domain_x : 5.0;
-    //comp_size = 20.0;
-    //if ( _r_max > comp_size )
-    //    tune_factor = pow( N, 1.0 / 6.0 ) * 0.91 * comp_size / lx;
+    double comp_size =
+        ( 5.0 > 0.75 * system->domain_x ) ? 0.75 * system->domain_x : 5.0;
+    comp_size = 20.0;
+    if ( _r_max > comp_size )
+        tune_factor = pow( N, 1.0 / 6.0 ) * 0.91 * comp_size / lx;
 
     _r_max = tune_factor / pow( N, 1.0 / 6.0 ) * lx;
     _alpha = tune_factor * pow( N, 1.0 / 6.0 ) / lx;
@@ -300,8 +299,8 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
 
     const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
     const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
-    const double ENERGY_CONVERSION_FACTOR = ELECTRON_CHARGE/(4.0*PI*EPS_0)
-;
+    const double ENERGY_CONVERSION_FACTOR = ELECTRON_CHARGE/(4.0*PI*EPS_0);
+
     int k_int = std::ceil( k_max ) + 1;
 
     T_V_FLOAT energy_k = 0.0;
@@ -379,7 +378,6 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
                              realspace_potential, energy_r );
     Kokkos::fence();
     // Not including dipole correction (usually unnecessary)
-
     T_V_FLOAT energy = energy_k + energy_r;
     return energy;
 }
