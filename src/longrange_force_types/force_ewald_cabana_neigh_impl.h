@@ -199,6 +199,10 @@ void ForceEwald<t_neighbor>::compute( System *system )
     MPI_Allreduce( MPI_IN_PLACE, U_trigonometric.data(), 2 * n_kvec, MPI_DOUBLE,
                    MPI_SUM, cart_comm );
 
+    const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
+    const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
+    const double ANGSTROMS = 1E-10;//convert meters to Angstroms
+    const double FORCE_CONVERSION_FACTOR = ANGSTROMS*ELECTRON_CHARGE/(4.0*PI*EPS_0);
 
     auto kspace_force = KOKKOS_LAMBDA( const int idx )
     {
@@ -238,7 +242,7 @@ void ForceEwald<t_neighbor>::compute( System *system )
 
                     for ( int dim = 0; dim < 3; ++dim )
                         f( idx, dim ) +=
-                            k_coeff * 2.0 * qi * k[dim] *
+                            k_coeff * 2.0 * qi * k[dim] * FORCE_CONVERSION_FACTOR * 
                             ( U_trigonometric( 2 * kidx + 1 ) * cos( kr ) -
                               U_trigonometric( 2 * kidx ) * sin( kr ) );
                 }
@@ -269,7 +273,7 @@ void ForceEwald<t_neighbor>::compute( System *system )
             double qj = q( j );
 
             // force computation
-            double f_fact = qi * qj *
+            double f_fact = qi * qj * FORCE_CONVERSION_FACTOR * 
                             ( 2.0 * sqrt( alpha / PI ) * exp( -alpha * d * d ) +
                               erfc( sqrt( alpha ) * d ) ) /
                             ( d * d );
