@@ -14,63 +14,38 @@ include(GNUInstallDirs)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ##---------------------------------------------------------------------------##
-# Set up main options
+# Set up main options (inherit from Kokkos and Cabana CMake)
 ##---------------------------------------------------------------------------##
-option(CabanaMD_ENABLE_Serial "Build CabanaMD with Serial support" ON)
-if( CabanaMD_ENABLE_Serial )
-  add_definitions(-DCabanaMD_ENABLE_Serial=ON)
-endif()
-
-#option(CabanaMD_ENABLE_Pthread "Build CabanaMD with Pthread support" OFF)
-#if( CabanaMD_ENABLE_Pthread )
-#  add_definitions(-DCabanaMD_ENABLE_Pthread=ON)
-#  find_package(Threads)
-#endif()
-
-option(CabanaMD_ENABLE_OpenMP "Build CabanaMD with OpenMP support" OFF)
-if( CabanaMD_ENABLE_OpenMP )
-  add_definitions(-DCabanaMD_ENABLE_OpenMP=ON)
-  find_package(OpenMP)
-  if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-  endif()
-endif()
-
-option(CabanaMD_ENABLE_Cuda "Build CabanaMD with Cuda support" OFF)
-if( CabanaMD_ENABLE_Cuda )
-  add_definitions(-DCabanaMD_ENABLE_Cuda=ON)
-  find_package(CUDA)
-  if (CUDA_FOUND)
-    message("Found CUDA")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --expt-extended-lambda -g")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
-  else()
-    message( FATAL_ERROR "Requested CUDA, but cant find it!")
-  endif(CUDA_FOUND)
-endif()
-
+find_package(Cabana REQUIRED)
 find_package(MPI REQUIRED)
 
-if(NOT DEFINED CABANA_DIR)
-  set(CABANA_DIR ~/install/cabana/)
-endif()
+option(CabanaMD_ENABLE_Serial "Build CabanaMD with Serial support" ON)
+option(CabanaMD_ENABLE_Threads "Build CabanaMD with Threads support" OFF)
+option(CabanaMD_ENABLE_OpenMP "Build CabanaMD with OpenMP support" OFF)
+option(CabanaMD_ENABLE_Cuda "Build CabanaMD with Cuda support" OFF)
 
-if(NOT DEFINED KOKKOS_DIR)
-  set(KOKKOS_DIR ~/install/kokkos/)
-endif()
+set(CABANAMD_SUPPORTED_DEVICES Serial Threads OpenMP Cuda)
+foreach(_device ${CABANAMD_SUPPORTED_DEVICES})
+  if(CabanaMD_ENABLE_${_device})
+    string(TOUPPER ${_device} _uppercase_device)
+    kokkos_check( DEVICES ${_uppercase_device} )
+    add_definitions(-DCabanaMD_ENABLE_${_device}=ON)
+  endif()
+endforeach()
 
+
+##---------------------------------------------------------------------------##
+# Set up optional libraries
+##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_LongRange "Build CabanaMD with longrange forces (Ewald)" OFF)
 if( CabanaMD_ENABLE_LongRange )
   add_definitions(-DCabanaMD_ENABLE_LongRange=ON)
-
-  if(NOT DEFINED CAJITA_DIR)
-    set(CAJITA_DIR ~/install/cajita/)
-  endif()
-  if(NOT DEFINED HEFFTE_DIR)
-    set(HEFFTE_DIR ~/install/heffte/)
-  endif()
+endif()
+if(NOT DEFINED CAJITA_DIR)
+  set(CAJITA_DIR ~/Cajita/)
+endif()
+if(NOT DEFINED HEFFTE_DIR)
+  set(HEFFTE_DIR ~/heffte/)
 endif()
 
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
@@ -78,13 +53,12 @@ if( CabanaMD_ENABLE_NNP )
   add_definitions(-DCabanaMD_ENABLE_NNP=ON)
 endif()
 if(NOT DEFINED N2P2_DIR)
-  set(N2P2_DIR ~/install/n2p2/)
+  set(N2P2_DIR ~/n2p2/)
 endif()
 
 ##---------------------------------------------------------------------------##
 ## Print the revision number to stdout
 ##---------------------------------------------------------------------------##
-
 FIND_PACKAGE(Git)
 IF(GIT_FOUND AND IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.git)
     EXECUTE_PROCESS(
@@ -100,54 +74,21 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-if( CabanaMD_ENABLE_LongRange )
-  include_directories(src src/force_types src/longrange_force_types)
-  file(GLOB SOURCES_LR src/longrange_force_types/*.cpp)
-else()
-  include_directories(src src/force_types)
+add_subdirectory(src)
+add_subdirectory(bin)
+
+##---------------------------------------------------------------------------##
+## Enable Tests?
+##---------------------------------------------------------------------------##
+option(CabanaMD_ENABLE_TESTING "Build tests" OFF)
+if(CabanaMD_ENABLE_TESTING)
+  enable_testing()
+  add_subdirectory(unit_test)
 endif()
 
-if( CabanaMD_ENABLE_NNP )
-  file(GLOB SOURCES_SR src/force_types/*.cpp)
-else()
-  file(GLOB SOURCES_SR src/force_types/force_lj*.cpp)
-endif()
-
-file(GLOB SOURCES src/*.cpp)
-list(APPEND SOURCES ${SOURCES_SR} ${SOURCES_LR})
-
-
-include_directories(SYSTEM ${KOKKOS_DIR}/include)
-link_directories(${KOKKOS_DIR}/lib)
-include_directories(${CABANA_DIR}/include)
-link_directories(${CABANA_DIR}/lib64)
-link_directories(${CABANA_DIR}/lib)
-include_directories(${CAJITA_DIR}/include)
-link_directories(${CAJITA_DIR}/lib)
-include_directories(${HEFFTE_DIR}/include)
-link_directories(${HEFFTE_DIR}/lib)
-include_directories(${N2P2_DIR}/include)
-link_directories(${N2P2_DIR}/lib)
-
-add_executable(CabanaMD ${SOURCES})
-
-if( CabanaMD_ENABLE_LongRange )
-  find_package(FFTW)
-  if(FFTW_FOUND)
-    target_link_libraries(CabanaMD Cajita heffte ${FFTW_LIB} ${FFTWF_LIB})
-  else()
-    message(WARNING "FFTW not found! Longrange SPME not enabled")
-    target_link_libraries(CabanaMD Cajita)
-  endif()
-endif()
-if(CabanaMD_ENABLE_NNP)
-  target_link_libraries(CabanaMD nnp)
-endif()
-
-target_link_libraries(CabanaMD cabanacore kokkos dl hwloc MPI::MPI_CXX)
-
-install(TARGETS CabanaMD DESTINATION bin)
-
+##---------------------------------------------------------------------------##
+## Pretty-printing wizardry:
+##---------------------------------------------------------------------------##
 find_package(CLANG_FORMAT)
 if(CLANG_FORMAT_FOUND)
   file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h)

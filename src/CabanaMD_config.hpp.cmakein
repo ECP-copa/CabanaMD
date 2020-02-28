@@ -1,0 +1,14 @@
+#ifndef CabanaMD_CONFIG_HPP
+#define CabanaMD_CONFIG_HPP
+
+#define CabanaMD_VERSION_STRING "@PROJECT_VERSION@"
+#define CabanaMD_GIT_COMMIT_HASH "@CabanaMD_GIT_COMMIT_HASH@"
+
+#cmakedefine CabanaMD_ENABLE_Serial
+#cmakefefile CabanaMD_ENABLE_Threads
+#cmakedefine CabanaMD_ENABLE_OpenMP
+#cmakedefine CabanaMD_ENABLE_Cuda
+#cmakedefine CabanaMD_ENABLE_NNP
+#cmakedefine CabanaMD_ENABLE_LongRange
+
+#endif

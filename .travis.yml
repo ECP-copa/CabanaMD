@@ -25,10 +25,9 @@ addons:
       - libfftw3-dev
 
 before_script:
-  - sudo ln -s /usr/bin/ccache /usr/lib/ccache/clang++
   - ccache -z
-  - KOKKOS_OPTS=( --with-hwloc=/usr --gcc-toolchain=/usr)
-  - for i in ${BACKENDS}; do KOKKOS_OPTS+=( --with-${i,,[A-Z]} ); done
+  - KOKKOS_OPTS=( -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DKokkos_ENABLE_HWLOC=ON )
+  - for i in ${BACKENDS}; do KOKKOS_OPTS+=( -DKokkos_ENABLE_${i^^}=ON ); done
   - for i in ${BACKENDS}; do CABANA_OPTS+=( -DCabana_ENABLE_${i}=ON ); done
   - for i in ${BACKENDS}; do CABANAMD_OPTS+=( -DCabanaMD_ENABLE_${i}=ON ); done
     # LD_LIBRARY_PATH workaround for libomp: https://github.com/travis-ci/travis-ci/issues/8613
@@ -37,14 +36,14 @@ before_script:
   - pushd $HOME/build
   - git clone --depth=1 https://github.com/kokkos/kokkos.git &&
     pushd kokkos && mkdir build && pushd build &&
-    ../generate_makefile.bash --prefix=$HOME/kokkos ${KOKKOS_OPTS[@]} &&
-    make -j2 &&
-    make install &&
+    cmake -DCMAKE_INSTALL_PREFIX=$HOME/kokkos ${KOKKOS_OPTS[@]} .. &&
+    make -j2 VERBOSE=1 && make install &&
     popd && popd
   - pwd
   - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
   - pushd Cabana && mkdir build && pushd build &&
-    cmake -DCMAKE_PREFIX_PATH=$HOME/kokkos
+    cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_PREFIX_PATH=$HOME/kokkos
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
           -DCabana_ENABLE_Serial=OFF
           ${CABANA_OPTS[@]}
@@ -98,12 +97,12 @@ env:
 
 script:
   - mkdir build && pushd build &&
-    cmake -DKOKKOS_DIR=$HOME/kokkos
-          -DCABANA_DIR=$HOME/Cabana
-          -DCAJITA_DIR=$HOME/Cajita
+    cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos"
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
           -DCabanaMD_ENABLE_LongRange=${LongRange}
+          -DCAJITA_DIR=$HOME/Cajita
           -DN2P2_DIR=$HOME/build/n2p2
           -DHEFFTE_DIR=$HOME/heffte
           ${CABANAMD_OPTS[@]}
