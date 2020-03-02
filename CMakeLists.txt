@@ -29,7 +29,6 @@ foreach(_device ${CABANAMD_SUPPORTED_DEVICES})
   if(CabanaMD_ENABLE_${_device})
     string(TOUPPER ${_device} _uppercase_device)
     kokkos_check( DEVICES ${_uppercase_device} )
-    add_definitions(-DCabanaMD_ENABLE_${_device}=ON)
   endif()
 endforeach()
 
@@ -39,11 +38,8 @@ endforeach()
 ##---------------------------------------------------------------------------##
 
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
-if( CabanaMD_ENABLE_NNP )
-  add_definitions(-DCabanaMD_ENABLE_NNP=ON)
-endif()
 if(NOT DEFINED N2P2_DIR)
-  set(N2P2_DIR ~/install/n2p2/)
+  set(N2P2_DIR ~/n2p2/)
 endif()
 
 ##---------------------------------------------------------------------------##
