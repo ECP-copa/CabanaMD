@@ -56,12 +56,7 @@
 #include <vector>
 
 // Lattice Type
-enum
-{
-    LATTICE_SC,
-    LATTICE_BCC,
-    LATTICE_FCC
-};
+enum class Lattice { SC, BCC, FCC };
 
 class ItemizedFile
 {
@@ -174,7 +169,7 @@ class Input
     System *system;
 
     int units_style;
-    int lattice_style;
+    Lattice lattice_style;
     double lattice_constant, lattice_offset_x, lattice_offset_y,
         lattice_offset_z;
     int lattice_nx, lattice_ny, lattice_nz;

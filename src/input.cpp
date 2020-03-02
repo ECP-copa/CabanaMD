@@ -187,7 +187,7 @@ Input::Input( System *p )
     box[5] = 40;
 
     units_style = UNITS_LJ;
-    lattice_style = LATTICE_FCC;
+    lattice_style = Lattice::FCC;
     lattice_constant = 0.8442;
 
     temperature_target = 1.4;
@@ -435,20 +435,20 @@ void Input::run_lammps_command( int line )
         if ( strcmp( input_data.words[line][1], "sc" ) == 0 )
         {
             known = true;
-            lattice_style = LATTICE_SC;
+            lattice_style = Lattice::SC;
             lattice_constant = atof( input_data.words[line][2] );
         }
         else if ( strcmp( input_data.words[line][1], "bcc" ) == 0 )
         {
             known = true;
-            lattice_style = LATTICE_BCC;
+            lattice_style = Lattice::BCC;
             atoms_per_unit = 2.0;
             lattice_constant = atof( input_data.words[line][2] );
         }
         else if ( strcmp( input_data.words[line][1], "fcc" ) == 0 )
         {
             known = true;
-            lattice_style = LATTICE_FCC;
+            lattice_style = Lattice::FCC;
             atoms_per_unit = 4.0;
             lattice_constant = atof( input_data.words[line][2] );
         }
@@ -474,7 +474,6 @@ void Input::run_lammps_command( int line )
         if ( strcmp( input_data.words[line][2], "block" ) == 0 )
         {
             known = true;
-            int box[6];
             box[0] = atoi( input_data.words[line][3] );
             box[1] = atoi( input_data.words[line][4] );
             box[2] = atoi( input_data.words[line][5] );
@@ -662,9 +661,9 @@ void Input::create_lattice( Comm *comm )
     Kokkos::deep_copy( h_mass, s.mass );
 
     // Create Simple Cubic Lattice Types
-    if (   lattice_style == LATTICE_SC
-        || lattice_style == LATTICE_BCC
-        || lattice_style == LATTICE_FCC )
+    if (   lattice_style == Lattice::SC
+        || lattice_style == Lattice::BCC
+        || lattice_style == Lattice::FCC )
     {
         s.domain_x = lattice_constant * lattice_nx;
         s.domain_y = lattice_constant * lattice_ny;
@@ -684,14 +683,14 @@ void Input::create_lattice( Comm *comm )
         int nbasis = 0; // default = no atoms
         switch( lattice_style )
         {
-        case LATTICE_SC:
+        case Lattice::SC:
             nbasis = 1;
             break;
-        case LATTICE_BCC:
+        case Lattice::BCC:
             nbasis = 2;
             basis[1][2] = 0.5; // {0,0,0} and {0.5,0.5,0.5}
             break;
-        case LATTICE_FCC:
+        case Lattice::FCC:
             nbasis = 4;
             break;
         }
