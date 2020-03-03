@@ -54,6 +54,8 @@
 #include <system.h>
 #include <types.h>
 
+#include <CabanaMD_config.hpp>
+
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
