@@ -41,14 +41,14 @@ void System2AoSoA::permute( t_linkedcell linkedcell )
     Cabana::permute( linkedcell, aosoa_1 );
 }
 
-void System2AoSoA::migrate( t_distributor distributor )
+void System2AoSoA::migrate( std::shared_ptr<t_distributor> distributor )
 {
-    Cabana::migrate( distributor, aosoa_0 );
-    Cabana::migrate( distributor, aosoa_1 );
+    Cabana::migrate( *distributor, aosoa_0 );
+    Cabana::migrate( *distributor, aosoa_1 );
 }
 
-void System2AoSoA::gather( t_halo halo )
+void System2AoSoA::gather( std::shared_ptr<t_halo> halo )
 {
-    Cabana::gather( halo, aosoa_0 );
-    Cabana::gather( halo, aosoa_1 );
+    Cabana::gather( *halo, aosoa_0 );
+    Cabana::gather( *halo, aosoa_1 );
 }

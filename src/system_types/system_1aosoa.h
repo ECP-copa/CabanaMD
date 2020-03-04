@@ -31,8 +31,8 @@ class System1AoSoA : public System
     void slice_q();
 
     void permute( t_linkedcell linkedcell );
-    void migrate( t_distributor distributor );
-    void gather( t_halo halo );
+    void migrate( std::shared_ptr<t_distributor> distributor );
+    void gather( std::shared_ptr<t_halo> halo );
 
   private:
     AoSoA_1 aosoa_0;

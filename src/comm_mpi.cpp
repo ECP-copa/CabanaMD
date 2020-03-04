@@ -328,7 +328,7 @@ void Comm::exchange()
 
             distributor = std::make_shared<Cabana::Distributor<DeviceType>>(
                 MPI_COMM_WORLD, pack_ranks_migrate, neighbors_dist[phase] );
-            system->migrate( *distributor );
+            system->migrate( distributor );
             system->resize(
                 distributor->totalNumImport() ); // Resized by migrate, but not
                                                  // within System

@@ -53,22 +53,22 @@ void System6AoSoA::permute( t_linkedcell cell_list )
     Cabana::permute( cell_list, aosoa_q );
 }
 
-void System6AoSoA::migrate( t_distributor distributor )
+void System6AoSoA::migrate( std::shared_ptr<t_distributor> distributor )
 {
-    Cabana::migrate( distributor, aosoa_x );
-    Cabana::migrate( distributor, aosoa_v );
-    Cabana::migrate( distributor, aosoa_f );
-    Cabana::migrate( distributor, aosoa_type );
-    Cabana::migrate( distributor, aosoa_id );
-    Cabana::migrate( distributor, aosoa_q );
+    Cabana::migrate( *distributor, aosoa_x );
+    Cabana::migrate( *distributor, aosoa_v );
+    Cabana::migrate( *distributor, aosoa_f );
+    Cabana::migrate( *distributor, aosoa_type );
+    Cabana::migrate( *distributor, aosoa_id );
+    Cabana::migrate( *distributor, aosoa_q );
 }
 
-void System6AoSoA::gather( t_halo halo )
+void System6AoSoA::gather( std::shared_ptr<t_halo> halo )
 {
-    Cabana::gather( halo, aosoa_x );
-    Cabana::gather( halo, aosoa_v );
-    Cabana::gather( halo, aosoa_f );
-    Cabana::gather( halo, aosoa_type );
-    Cabana::gather( halo, aosoa_id );
-    Cabana::gather( halo, aosoa_q );
+    Cabana::gather( *halo, aosoa_x );
+    Cabana::gather( *halo, aosoa_v );
+    Cabana::gather( *halo, aosoa_f );
+    Cabana::gather( *halo, aosoa_type );
+    Cabana::gather( *halo, aosoa_id );
+    Cabana::gather( *halo, aosoa_q );
 }

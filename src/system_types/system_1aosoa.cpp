@@ -35,9 +35,9 @@ void System1AoSoA::permute( t_linkedcell cell_list )
     Cabana::permute( cell_list, aosoa_0 );
 }
 
-void System1AoSoA::migrate( t_distributor distributor )
+void System1AoSoA::migrate( std::shared_ptr<t_distributor> distributor )
 {
-    Cabana::migrate( distributor, aosoa_0 );
+    Cabana::migrate( *distributor, aosoa_0 );
 }
 
-void System1AoSoA::gather( t_halo halo ) { Cabana::gather( halo, aosoa_0 ); }
+void System1AoSoA::gather( std::shared_ptr<t_halo> halo ) { Cabana::gather( *halo, aosoa_0 ); }

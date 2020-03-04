@@ -54,6 +54,7 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+#include <memory>
 #include <string>
 
 class System
@@ -115,8 +116,8 @@ class System
     virtual void slice_q() {}
 
     virtual void permute( t_linkedcell cell_list ) {}
-    virtual void migrate( t_distributor distributor ) {}
-    virtual void gather( t_halo halo ) {}
+    virtual void migrate( std::shared_ptr<t_distributor> distributor ) {}
+    virtual void gather( std::shared_ptr<t_halo> halo ) {}
 };
 
 #include <modules_system.h>
