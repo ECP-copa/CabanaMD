@@ -40,4 +40,7 @@ void System1AoSoA::migrate( std::shared_ptr<t_distributor> distributor )
     Cabana::migrate( *distributor, aosoa_0 );
 }
 
-void System1AoSoA::gather( std::shared_ptr<t_halo> halo ) { Cabana::gather( *halo, aosoa_0 ); }
+void System1AoSoA::gather( std::shared_ptr<t_halo> halo )
+{
+    Cabana::gather( *halo, aosoa_0 );
+}
