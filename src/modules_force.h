@@ -46,6 +46,8 @@
 //
 //************************************************************************
 
+#include <CabanaMD_config.hpp>
+
 // Include Module header files for force
 #include <force_lj_cabana_neigh.h>
 

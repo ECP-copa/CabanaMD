@@ -29,94 +29,15 @@ foreach(_device ${CABANAMD_SUPPORTED_DEVICES})
   if(CabanaMD_ENABLE_${_device})
     string(TOUPPER ${_device} _uppercase_device)
     kokkos_check( DEVICES ${_uppercase_device} )
-    add_definitions(-DCabanaMD_ENABLE_${_device}=ON)
   endif()
 endforeach()
-
-##---------------------------------------------------------------------------##
-# Set up layout and vector length options
-##---------------------------------------------------------------------------##
-if(NOT CabanaMD_LAYOUT)
-  set(CabanaMD_LAYOUT 6AoSoA CACHE STRING "Cabana AoSoA particle property layouts; options are 1AoSoA 6AoSoA 2AoSoA (separate AoSoA denoted by underscores)")
-endif()
-if( CabanaMD_LAYOUT STREQUAL 1AoSoA )
-  add_definitions(-DCabanaMD_LAYOUT_1AoSoA=ON)
-  message( STATUS "Using layout: 1 combined AoSoA" )
-elseif( CabanaMD_LAYOUT STREQUAL 6AoSoA )
-  add_definitions(-DCabanaMD_LAYOUT_6AoSoA=ON)
-  message( STATUS "Using layout: 6 separate AoSoA" )
-elseif( CabanaMD_LAYOUT STREQUAL 2AoSoA )
-  add_definitions(-DCabanaMD_LAYOUT_2AoSoA=ON)
-  message( STATUS "Using layout: 2 AoSoA (XFType, VIdQ)" )
-else()
-  message( FATAL_ERROR "Layout option not supported: ${CabanaMD_LAYOUT}" )
-endif()
-
-if(NOT CabanaMD_VECTORLENGTH)
-  if(CUDA_FOUND)
-    set(CabanaMD_VECTORLENGTH 32)
-  else()
-    set(CabanaMD_VECTORLENGTH 1)
-  endif()
-endif()
-message( STATUS "Using vector length: ${CabanaMD_VECTORLENGTH}" )
-if( CabanaMD_VECTORLENGTH )
-  string(REGEX MATCH "(^[0-9]*[02468]$)" _ ${CabanaMD_VECTORLENGTH})
-  if(${CMAKE_MATCH_1})
-    add_definitions(-DCabanaMD_VECTORLENGTH=${CabanaMD_VECTORLENGTH})
-  else()
-    if( ${CabanaMD_VECTORLENGTH} EQUAL 1 )
-      add_definitions(-DCabanaMD_VECTORLENGTH=${CabanaMD_VECTORLENGTH})
-    else()
-      message( FATAL_ERROR "Vector length must be a factor of 2 or equal to 1" )
-    endif()
-  endif()
-endif()
 
 ##---------------------------------------------------------------------------##
 # Set up neural network options
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
-if( CabanaMD_ENABLE_NNP )
-  add_definitions(-DCabanaMD_ENABLE_NNP=ON)
-
-  if(NOT CabanaMD_LAYOUT_NNP)
-    set(CabanaMD_LAYOUT_NNP 3AoSoA CACHE STRING "Cabana AoSoA NNP particle property layouts; options are 3AoSoA 1AoSoA (separate AoSoA denoted by underscores)")
-  endif()
-  if( CabanaMD_LAYOUT_NNP STREQUAL 1AoSoA )
-    add_definitions(-DCabanaMD_LAYOUT_NNP_1AoSoA=ON)
-    message( STATUS "Using layout: 1 combined AoSoA (NNP)" )
-  elseif( CabanaMD_LAYOUT_NNP STREQUAL 3AoSoA )
-    add_definitions(-DCabanaMD_LAYOUT_NNP_3AoSoA=ON)
-    message( STATUS "Using layout: 3 separate AoSoA (NNP)" )
-  else()
-    message( FATAL_ERROR "NNP layout option not supported: ${CabanaMD_LAYOUT_NNP}" )
-  endif()
-
-  if(NOT CabanaMD_VECTORLENGTH_NNP)
-    if(CUDA_FOUND)
-      set(CabanaMD_VECTORLENGTH_NNP 32)
-    else()
-      set(CabanaMD_VECTORLENGTH_NNP 1)
-    endif()
-  endif()
-  message( STATUS "Using vector length: ${CabanaMD_VECTORLENGTH_NNP} (NNP)" )
-  if( CabanaMD_VECTORLENGTH_NNP )
-    string(REGEX MATCH "(^[0-9]*[02468]$)" _ ${CabanaMD_VECTORLENGTH_NNP})
-    if(${CMAKE_MATCH_1})
-      add_definitions(-DCabanaMD_VECTORLENGTH_NNP=${CabanaMD_VECTORLENGTH_NNP})
-    else()
-      if( ${CabanaMD_VECTORLENGTH_NNP} EQUAL 1 )
-        add_definitions(-DCabanaMD_VECTORLENGTH_NNP=${CabanaMD_VECTORLENGTH_NNP})
-      else()
-        message( FATAL_ERROR "NNP vector length must be a factor of 2 or equal to 1" )
-      endif()
-    endif()
-  endif()
-endif()
-
 if(NOT DEFINED N2P2_DIR)
-  set(N2P2_DIR ~/install/n2p2/)
+  set(N2P2_DIR ~/n2p2/)
 endif()
 
 ##---------------------------------------------------------------------------##
@@ -137,39 +58,17 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-include_directories(src src/force_types src/system_types)
-if( CabanaMD_ENABLE_NNP )
-  file(GLOB SOURCES_SR src/force_types/*.cpp)
-  if( CabanaMD_LAYOUT_NNP STREQUAL 1AoSoA )
-    file(GLOB SOURCES_SYSNNP src/system_types/system_nnp_1aosoa.cpp)
-  elseif( CabanaMD_LAYOUT_NNP STREQUAL 3AoSoA )
-    file(GLOB SOURCES_SYSNNP src/system_types/system_nnp_3aosoa.cpp)
-  endif()
-else()
-  file(GLOB SOURCES_SR src/force_types/force_lj*.cpp)
+add_subdirectory(src)
+add_subdirectory(bin)
+
+##---------------------------------------------------------------------------##
+## Enable Tests?
+##---------------------------------------------------------------------------##
+option(CabanaMD_ENABLE_TESTING "Build tests" OFF)
+if(CabanaMD_ENABLE_TESTING)
+  enable_testing()
+  add_subdirectory(unit_test)
 endif()
-if( CabanaMD_LAYOUT STREQUAL 1AoSoA )
-  file(GLOB SOURCES_SYS src/system_types/system_1aosoa.cpp)
-elseif( CabanaMD_LAYOUT STREQUAL 2AoSoA )
-  file(GLOB SOURCES_SYS src/system_types/system_2aosoa.cpp)
-elseif( CabanaMD_LAYOUT STREQUAL 6AoSoA )
-  file(GLOB SOURCES_SYS src/system_types/system_6aosoa.cpp)
-endif()
-
-file(GLOB SOURCES src/*.cpp)
-list(APPEND SOURCES ${SOURCES_SR} ${SOURCES_SYS} ${SOURCES_SYSNNP})
-
-include_directories(${N2P2_DIR}/include)
-link_directories(${N2P2_DIR}/lib)
-
-add_executable(CabanaMD ${SOURCES})
-
-target_link_libraries(CabanaMD Cabana::cabanacore Kokkos::kokkos MPI::MPI_CXX dl hwloc)
-if( CabanaMD_ENABLE_NNP )
-  target_link_libraries(CabanaMD nnp)
-endif()
-
-install(TARGETS CabanaMD DESTINATION bin)
 
 ##---------------------------------------------------------------------------##
 ## Clang format

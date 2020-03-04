@@ -97,7 +97,7 @@ std::string read_lammps_parse_keyword( std::ifstream &file )
     return keyword;
 }
 
-int read_lammps_header( std::ifstream &file, System *s )
+void read_lammps_header( std::ifstream &file, System *s )
 {
     std::string line;
     // skip 1st line of file
