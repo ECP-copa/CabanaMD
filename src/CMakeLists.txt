@@ -108,7 +108,7 @@ target_include_directories(CabanaMD PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 
 target_link_libraries(CabanaMD Cabana::cabanacore Kokkos::kokkos MPI::MPI_CXX dl hwloc)
 
-if(CabanaMD_ENABLE_NNP)
+if(CabanaMD_ENABLE_NNP AND N2P2_DIR)
   target_include_directories(CabanaMD PUBLIC ${N2P2_DIR}/include)
   find_library(N2P2_LIB nnp PATHS ${N2P2_DIR}/lib NO_DEFAULT_PATH)
   target_link_libraries(CabanaMD ${N2P2_LIB})
