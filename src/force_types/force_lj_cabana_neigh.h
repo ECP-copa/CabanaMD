@@ -56,29 +56,29 @@ if ( ( strcmp( argv[i], "--force-iteration" ) == 0 ) )
 }
 if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
 {
-    if ( ( strcmp( argv[i + 1], "NEIGH_2D" ) == 0 ) )
-        neighbor_type = NEIGH_2D;
-    if ( ( strcmp( argv[i + 1], "NEIGH_CSR" ) == 0 ) )
-        neighbor_type = NEIGH_CSR;
+    if ( ( strcmp( argv[i + 1], "NEIGH_VERLET_2D" ) == 0 ) )
+        neighbor_type = NEIGH_VERLET_2D;
+    if ( ( strcmp( argv[i + 1], "NEIGH_VERLET_CSR" ) == 0 ) )
+        neighbor_type = NEIGH_VERLET_CSR;
 }
 #endif
 #ifdef FORCE_MODULES_INSTANTIATION
 else if ( input->force_type == FORCE_LJ )
 {
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
-    if ( input->neighbor_type == NEIGH_2D )
+    if ( input->neighbor_type == NEIGH_VERLET_2D )
     {
         if ( half_neigh )
-            force = new ForceLJ<t_verletlist_half_2D>( system, half_neigh );
+            force = new ForceLJ<t_verletlist_half_2D>( system );
         else
-            force = new ForceLJ<t_verletlist_full_2D>( system, half_neigh );
+            force = new ForceLJ<t_verletlist_full_2D>( system );
     }
-    else if ( input->neighbor_type == NEIGH_CSR )
+    else if ( input->neighbor_type == NEIGH_VERLET_CSR )
     {
         if ( half_neigh )
-            force = new ForceLJ<t_verletlist_half_CSR>( system, half_neigh );
+            force = new ForceLJ<t_verletlist_half_CSR>( system );
         else
-            force = new ForceLJ<t_verletlist_full_CSR>( system, half_neigh );
+            force = new ForceLJ<t_verletlist_full_CSR>( system );
     }
 #undef FORCETYPE_ALLOCATION_MACRO
 }
@@ -90,6 +90,7 @@ else if ( input->force_type == FORCE_LJ )
 #define FORCE_LJ_CABANA_NEIGH_H
 
 #include <force.h>
+#include <neighbor.h>
 #include <system.h>
 #include <types.h>
 
@@ -150,19 +151,14 @@ class ForceLJ : public Force
     typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_pe_stackparams;
 
-    bool half_neigh, comm_newton;
-    T_X_FLOAT neigh_cut;
-
     t_neighbor neigh_list;
 
-    ForceLJ( System *system, bool half_neigh_ );
+    ForceLJ( System *system );
 
-    void init_coeff( T_X_FLOAT neigh_cut, char **args );
+    void init_coeff( char **args );
 
-    void create_neigh_list( System *system );
-
-    void compute( System *system );
-    T_F_FLOAT compute_energy( System *system );
+    void compute( System *system, Neighbor *neighbor );
+    T_F_FLOAT compute_energy( System *system, Neighbor *neighbor );
 
     KOKKOS_INLINE_FUNCTION
     void operator()( TagFullNeigh, const T_INT &i ) const;

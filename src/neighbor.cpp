@@ -46,41 +46,13 @@
 //
 //************************************************************************
 
-#include <binning_cabana.h>
-#include <comm_mpi.h>
-#include <force.h>
-#include <input.h>
-#include <integrator_nve.h>
-#include <neighbor.h>
-#include <system.h>
-#include <types.h>
+#include <neighbor.h> //_impl.h>
 
-#include <CabanaMD_config.hpp>
+void Neighbor::init( T_X_FLOAT, bool ) {}
+void Neighbor::create( System * ) {}
+const char *Neighbor::name() { return "NeighborNone"; }
 
-#include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
-
-class CabanaMD
-{
-  public:
-    System *system;
-    Integrator *integrator;
-    Neighbor *neighbor;
-    Force *force;
-    Comm *comm;
-    Input *input;
-    Binning *binning;
-
-    CabanaMD();
-
-    void init( int argc, char *argv[] );
-
-    void run( int nsteps );
-
-    void dump_binary( int );
-    void check_correctness( int );
-
-    void print_performance();
-
-    void shutdown();
-};
+template class NeighborVerlet<t_verletlist_half_2D>;
+template class NeighborVerlet<t_verletlist_full_2D>;
+template class NeighborVerlet<t_verletlist_half_CSR>;
+template class NeighborVerlet<t_verletlist_full_CSR>;

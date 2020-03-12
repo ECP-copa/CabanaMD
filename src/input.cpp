@@ -155,7 +155,7 @@ Input::Input( System *p )
 
     comm_type = COMM_MPI;
     integrator_type = INTEGRATOR_NVE;
-    neighbor_type = NEIGH_2D;
+    neighbor_type = NEIGH_VERLET_2D;
     force_type = FORCE_LJ;
     force_iteration_type = FORCE_ITER_NEIGH_FULL;
     force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
@@ -231,7 +231,7 @@ void Input::read_command_line_args( int argc, char *argv[] )
                 printf( "  --neigh-type [TYPE]:        Specify Neighbor "
                         "Routines implementation \n" );
                 printf(
-                    "                              (NEIGH_2D, NEIGH_CSR)\n" );
+                    "                              (NEIGH_VERLET_2D, NEIGH_VERLET_CSR)\n" );
                 printf( "  --comm-type [TYPE]:         Specify Communication "
                         "Routines implementation \n" );
                 printf( "                              (MPI, SERIAL)\n" );

@@ -58,5 +58,5 @@ class PotE
   public:
     PotE( Comm *comm_ );
 
-    T_F_FLOAT compute( System *, Force * );
+    T_F_FLOAT compute( System *, Force *, Neighbor * );
 };

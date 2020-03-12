@@ -108,8 +108,8 @@ enum
 // Neighbor Type
 enum
 {
-    NEIGH_2D,
-    NEIGH_CSR
+    NEIGH_VERLET_2D,
+    NEIGH_VERLET_CSR
 };
 // Input File Type
 enum

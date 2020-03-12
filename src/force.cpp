@@ -48,12 +48,8 @@
 
 #include <force.h>
 
-Force::Force( System *, bool half_neigh_ )
-    : half_neigh( half_neigh_ )
-{
-}
+Force::Force( System * ) {}
 
-void Force::init_coeff( T_X_FLOAT, char ** ) {}
-void Force::create_neigh_list( System * ) {}
-void Force::compute( System * ) {}
+void Force::init_coeff( char ** ) {}
+void Force::compute( System *, Neighbor * ) {}
 const char *Force::name() { return "ForceNone"; }

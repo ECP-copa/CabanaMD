@@ -46,41 +46,50 @@
 //
 //************************************************************************
 
-#include <binning_cabana.h>
-#include <comm_mpi.h>
-#include <force.h>
-#include <input.h>
-#include <integrator_nve.h>
-#include <neighbor.h>
-#include <system.h>
-#include <types.h>
+//#include <neighbor.h>
 
-#include <CabanaMD_config.hpp>
+#include <type_traits>
 
-#include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
-
-class CabanaMD
+template <class t_neigh_list>
+void NeighborVerlet<t_neigh_list>::init( T_X_FLOAT _neigh_cut,
+                                         bool _half_neigh )
 {
-  public:
-    System *system;
-    Integrator *integrator;
-    Neighbor *neighbor;
-    Force *force;
-    Comm *comm;
-    Input *input;
-    Binning *binning;
+    neigh_cut = _neigh_cut;
+    half_neigh = _half_neigh;
+}
 
-    CabanaMD();
+template <class t_neigh_list>
+void NeighborVerlet<t_neigh_list>::create( System *system )
+{
+    T_INT N_local = system->N_local;
 
-    void init( int argc, char *argv[] );
+    double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
+                          system->sub_domain_lo_y - system->sub_domain_y,
+                          system->sub_domain_lo_z - system->sub_domain_z};
+    double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
+                          system->sub_domain_hi_y + system->sub_domain_y,
+                          system->sub_domain_hi_z + system->sub_domain_z};
 
-    void run( int nsteps );
+    auto x = Cabana::slice<Positions>( system->xvf );
 
-    void dump_binary( int );
-    void check_correctness( int );
+    t_neigh_list verlet( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
+    list = verlet;
+}
 
-    void print_performance();
+template <class t_neigh_list>
+const char *NeighborVerlet<t_neigh_list>::name()
+{
+    return half_neigh ? "Neighbor:CabanaVerletHalf" : "Neighbor:CabanaVerletFull";
+}
 
-    void shutdown();
-};
+template <class t_neigh_list>
+t_neigh_list &NeighborVerlet<t_neigh_list>::get()
+{
+    return list;
+}
+
+template <class t_neigh_list>
+t_neigh_list &Neighbor::get()
+{
+    return dynamic_cast<NeighborVerlet<t_neigh_list> &>( *this ).get();
+}

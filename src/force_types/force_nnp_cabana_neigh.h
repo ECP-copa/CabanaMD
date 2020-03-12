@@ -28,10 +28,10 @@ if ( ( strcmp( argv[i], "--neigh-parallel" ) == 0 ) )
 }
 if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
 {
-    if ( ( strcmp( argv[i + 1], "NEIGH_2D" ) == 0 ) )
-        neighbor_type = NEIGH_2D;
-    if ( ( strcmp( argv[i + 1], "NEIGH_CSR" ) == 0 ) )
-        neighbor_type = NEIGH_CSR;
+    if ( ( strcmp( argv[i + 1], "NEIGH_VERLET_2D" ) == 0 ) )
+        neighbor_type = NEIGH_VERLET_2D;
+    if ( ( strcmp( argv[i + 1], "NEIGH_VERLET_CSR" ) == 0 ) )
+        neighbor_type = NEIGH_VERLET_CSR;
 }
 #endif
 #ifdef FORCE_MODULES_INSTANTIATION
@@ -44,7 +44,7 @@ else if ( input->force_type == FORCE_NNP )
         input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_TEAM;
     bool vector_angle =
         input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_VECTOR;
-    if ( input->neighbor_type == NEIGH_2D )
+    if ( input->neighbor_type == NEIGH_VERLET_2D )
     {
         if ( half_neigh )
             throw std::runtime_error( "Half neighbor list not implemented "
@@ -53,16 +53,16 @@ else if ( input->force_type == FORCE_NNP )
         {
             if ( serial_neigh )
                 force = new ForceNNP<t_verletlist_full_2D, t_neighborop_serial,
-                                     t_neighborop_serial>( system, half_neigh );
+                                     t_neighborop_serial>( system );
             if ( team_neigh )
                 force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
-                                     t_neighborop_team>( system, half_neigh );
+                                     t_neighborop_team>( system );
             if ( vector_angle )
                 force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
-                                     t_neighborop_vector>( system, half_neigh );
+                                     t_neighborop_vector>( system );
         }
     }
-    else if ( input->neighbor_type == NEIGH_CSR )
+    else if ( input->neighbor_type == NEIGH_VERLET_CSR )
     {
         if ( half_neigh )
             throw std::runtime_error( "Half neighbor list not implemented "
@@ -71,13 +71,13 @@ else if ( input->force_type == FORCE_NNP )
         {
             if ( serial_neigh )
                 force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_serial,
-                                     t_neighborop_serial>( system, half_neigh );
+                                     t_neighborop_serial>( system );
             if ( team_neigh )
                 force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
-                                     t_neighborop_team>( system, half_neigh );
+                                     t_neighborop_team>( system );
             if ( vector_angle )
                 force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
-                                     t_neighborop_vector>( system, half_neigh );
+                                     t_neighborop_vector>( system );
         }
     }
 #undef FORCETYPE_ALLOCATION_MACRO
@@ -92,6 +92,7 @@ else if ( input->force_type == FORCE_NNP )
 #include <nnp_mode_impl.h>
 
 #include <force.h>
+#include <neighbor.h>
 #include <system.h>
 #include <types.h>
 
@@ -136,11 +137,7 @@ class ForceNNP : public Force
     typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_pe_stackparams;
 
-    bool half_neigh, comm_newton;
-    T_X_FLOAT neigh_cut;
-
     nnpCbn::Mode *mode;
-    t_neighbor neigh_list;
 
     /// AoSoAs of use to compute energy and force
     /// Allow storage of G, dEdG and energy (per atom properties)
@@ -149,13 +146,11 @@ class ForceNNP : public Force
     t_mass d_numSFperElem;
     h_t_mass h_numSFperElem, atomicEnergyOffset;
 
-    ForceNNP( System *system, bool half_neigh_ );
-    void init_coeff( T_X_FLOAT neigh_cutoff, char **args );
+    ForceNNP( System *system );
+    void init_coeff( char **args );
 
-    void create_neigh_list( System *system );
-
-    void compute( System *system );
-    T_F_FLOAT compute_energy( System *system );
+    void compute( System *system, Neighbor *neighbor );
+    T_F_FLOAT compute_energy( System *system, Neighbor *neighbor );
 
     const char *name();
 

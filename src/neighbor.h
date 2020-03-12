@@ -46,41 +46,40 @@
 //
 //************************************************************************
 
-#include <binning_cabana.h>
-#include <comm_mpi.h>
-#include <force.h>
-#include <input.h>
-#include <integrator_nve.h>
-#include <neighbor.h>
+#ifndef NEIGHBOR_H
+#define NEIGHBOR_H
 #include <system.h>
 #include <types.h>
 
-#include <CabanaMD_config.hpp>
-
-#include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
-
-class CabanaMD
+class Neighbor
 {
   public:
-    System *system;
-    Integrator *integrator;
-    Neighbor *neighbor;
-    Force *force;
-    Comm *comm;
-    Input *input;
-    Binning *binning;
+    T_X_FLOAT neigh_cut;
+    bool half_neigh;
 
-    CabanaMD();
+    virtual void init( T_X_FLOAT neigh_cut, bool half_neigh );
+    virtual void create( System *system );
 
-    void init( int argc, char *argv[] );
+    template <class t_neigh_list>
+    t_neigh_list &get();
 
-    void run( int nsteps );
-
-    void dump_binary( int );
-    void check_correctness( int );
-
-    void print_performance();
-
-    void shutdown();
+    virtual const char *name();
 };
+
+template <class t_neigh_list>
+class NeighborVerlet : public Neighbor
+{
+  public:
+    t_neigh_list list;
+
+    void init( T_X_FLOAT neigh_cut, bool half_neigh );
+    void create( System *system );
+
+    t_neigh_list &get();
+
+    const char *name();
+};
+
+#include <neighbor_impl.h>
+
+#endif

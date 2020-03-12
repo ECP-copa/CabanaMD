@@ -102,6 +102,35 @@ void CabanaMD::init( int argc, char *argv[] )
     // Create Binning class: linked cell bin sort
     binning = new Binning( system );
 
+    // Create Neighbor class: create neighbor list
+    bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
+    if ( input->neighbor_type == NEIGH_VERLET_2D )
+    {
+        if ( half_neigh )
+        {
+            neighbor = new NeighborVerlet<t_verletlist_half_2D>;
+            neighbor->init( neigh_cutoff, true );
+        }
+        else
+        {
+            neighbor = new NeighborVerlet<t_verletlist_full_2D>;
+            neighbor->init( neigh_cutoff, false );
+        }
+    }
+    else if ( input->neighbor_type == NEIGH_VERLET_CSR )
+    {
+        if ( half_neigh )
+        {
+            neighbor = new NeighborVerlet<t_verletlist_half_CSR>;
+            neighbor->init( neigh_cutoff, true );
+        }
+        else
+        {
+            neighbor = new NeighborVerlet<t_verletlist_full_CSR>;
+            neighbor->init( neigh_cutoff, false );
+        }
+    }
+
     // Create Force class: potential options in force_types/ folder
     if ( false )
     {
@@ -115,20 +144,17 @@ void CabanaMD::init( int argc, char *argv[] )
           line++ )
     {
         force->init_coeff(
-            neigh_cutoff,
             input->input_data.words[input->force_coeff_lines( line )] );
     }
 
     // Create Communication class: MPI
     comm = new Comm( system, neigh_cutoff );
 
-    force->comm_newton = input->comm_newton;
-
     // system->print_particles();
     if ( system->do_print )
     {
-        printf( "Using: %s %s %s %s\n", force->name(), comm->name(),
-                binning->name(), integrator->name() );
+        printf( "Using: %s %s %s %s %s\n", force->name(), neighbor->name(),
+                comm->name(), binning->name(), integrator->name() );
     }
 
     // Create atoms - from LAMMPS data file or create FCC/SC lattice
@@ -152,12 +178,12 @@ void CabanaMD::init( int argc, char *argv[] )
     comm->exchange_halo();
 
     // Compute atom neighbors
-    force->create_neigh_list( system );
+    neighbor->create( system );
 
     // Compute initial forces
     auto f = Cabana::slice<Forces>( system->xvf );
     Cabana::deep_copy( f, 0.0 );
-    force->compute( system );
+    force->compute( system, neighbor );
 
     // Scatter ghost atom forces back to original MPI rank
     //   (update force for pair_style nnp even if full neighbor list)
@@ -174,7 +200,7 @@ void CabanaMD::init( int argc, char *argv[] )
         PotE pote( comm );
         KinE kine( comm );
         T_FLOAT T = temp.compute( system );
-        T_FLOAT PE = pote.compute( system, force ) / system->N;
+        T_FLOAT PE = pote.compute( system, force, neighbor ) / system->N;
         T_FLOAT KE = kine.compute( system ) / system->N;
         if ( system->do_print )
         {
@@ -250,7 +276,7 @@ void CabanaMD::run( int nsteps )
 
             // Compute atom neighbors
             neigh_timer.reset();
-            force->create_neigh_list( system );
+            neighbor->create( system );
             neigh_time += neigh_timer.seconds();
         }
         else
@@ -267,7 +293,7 @@ void CabanaMD::run( int nsteps )
         Cabana::deep_copy( f, 0.0 );
 
         // Compute short range force
-        force->compute( system );
+        force->compute( system, neighbor );
         force_time += force_timer.seconds();
 
         // This is where Bonds, Angles, and KSpace should go eventually
@@ -292,7 +318,7 @@ void CabanaMD::run( int nsteps )
         if ( step % input->thermo_rate == 0 )
         {
             T_FLOAT T = temp.compute( system );
-            T_FLOAT PE = pote.compute( system, force ) / system->N;
+            T_FLOAT PE = pote.compute( system, force, neighbor ) / system->N;
             T_FLOAT KE = kine.compute( system ) / system->N;
             if ( system->do_print )
             {

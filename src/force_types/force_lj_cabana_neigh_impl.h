@@ -49,10 +49,9 @@
 #include <force_lj_cabana_neigh.h>
 
 template <class t_neighbor>
-ForceLJ<t_neighbor>::ForceLJ( System *system, bool half_neigh_ )
-    : Force( system, half_neigh_ )
+ForceLJ<t_neighbor>::ForceLJ( System *system )
+    : Force( system )
 {
-    half_neigh = half_neigh_;
     ntypes = system->ntypes;
 
     lj1 = t_fparams( "ForceLJCabanaNeigh::lj1", ntypes, ntypes );
@@ -64,9 +63,8 @@ ForceLJ<t_neighbor>::ForceLJ( System *system, bool half_neigh_ )
 }
 
 template <class t_neighbor>
-void ForceLJ<t_neighbor>::init_coeff( T_X_FLOAT neigh_cut_, char **args )
+void ForceLJ<t_neighbor>::init_coeff( char **args )
 {
-    neigh_cut = neigh_cut_;
     step = 0;
 
     double eps = atof( args[3] );
@@ -85,25 +83,7 @@ void ForceLJ<t_neighbor>::init_coeff( T_X_FLOAT neigh_cut_, char **args )
 }
 
 template <class t_neighbor>
-void ForceLJ<t_neighbor>::create_neigh_list( System *system )
-{
-    N_local = system->N_local;
-
-    double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
-                          system->sub_domain_lo_y - system->sub_domain_y,
-                          system->sub_domain_lo_z - system->sub_domain_z};
-    double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
-                          system->sub_domain_hi_y + system->sub_domain_y,
-                          system->sub_domain_hi_z + system->sub_domain_z};
-
-    auto x = Cabana::slice<Positions>( system->xvf );
-
-    t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
-    neigh_list = list;
-}
-
-template <class t_neighbor>
-void ForceLJ<t_neighbor>::compute( System *system )
+void ForceLJ<t_neighbor>::compute( System *system, Neighbor *neighbor )
 {
     N_local = system->N_local;
     x = Cabana::slice<Positions>( system->xvf );
@@ -112,7 +92,9 @@ void ForceLJ<t_neighbor>::compute( System *system )
     id = Cabana::slice<IDs>( system->xvf );
     type = Cabana::slice<Types>( system->xvf );
 
-    if ( half_neigh )
+    neigh_list = neighbor->get<t_neighbor>();
+
+    if ( neighbor->half_neigh )
     {
         Kokkos::parallel_for(
             "ForceLJCabanaNeigh::compute",
@@ -130,7 +112,8 @@ void ForceLJ<t_neighbor>::compute( System *system )
 }
 
 template <class t_neighbor>
-T_V_FLOAT ForceLJ<t_neighbor>::compute_energy( System *system )
+T_V_FLOAT ForceLJ<t_neighbor>::compute_energy( System *system,
+                                               Neighbor *neighbor )
 {
     N_local = system->N_local;
     x = Cabana::slice<Positions>( system->xvf );
@@ -139,9 +122,11 @@ T_V_FLOAT ForceLJ<t_neighbor>::compute_energy( System *system )
     id = Cabana::slice<IDs>( system->xvf );
     type = Cabana::slice<Types>( system->xvf );
 
+    neigh_list = neighbor->get<t_neighbor>();
+
     T_V_FLOAT energy;
 
-    if ( half_neigh )
+    if ( neighbor->half_neigh )
         Kokkos::parallel_reduce(
             "ForceLJCabanaNeigh::compute_energy",
             t_policy_half_neigh_pe_stackparams( 0, system->N_local ), *this,
@@ -161,7 +146,7 @@ T_V_FLOAT ForceLJ<t_neighbor>::compute_energy( System *system )
 template <class t_neighbor>
 const char *ForceLJ<t_neighbor>::name()
 {
-    return half_neigh ? "Force:LJCabanaVerletHalf" : "Force:LJCabanaVerletFull";
+    return "Force:LJCabana";
 }
 
 template <class t_neighbor>

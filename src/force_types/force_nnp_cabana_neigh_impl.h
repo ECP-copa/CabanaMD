@@ -17,47 +17,26 @@
 
 template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::ForceNNP(
-    System *system, bool half_neigh_ )
-    : Force( system, half_neigh )
+    System *system )
+    : Force( system )
 {
     ntypes = system->ntypes;
     N_local = 0;
     step = 0;
-    half_neigh = half_neigh_;
     // resize nnp_data to have size as big as number of atoms in system
     AoSoA_NNP nnp_data( "ForceNNP::nnp_data", system->N );
 }
 
 template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void ForceNNP<t_neighbor, t_neigh_parallel,
-              t_angle_parallel>::create_neigh_list( System *system )
-{
-    N_local = system->N_local;
-    double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
-                          system->sub_domain_lo_y - system->sub_domain_y,
-                          system->sub_domain_lo_z - system->sub_domain_z};
-    double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
-                          system->sub_domain_hi_y + system->sub_domain_y,
-                          system->sub_domain_hi_z + system->sub_domain_z};
-
-    auto x = Cabana::slice<Positions>( system->xvf );
-
-    t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
-    neigh_list = list;
-}
-
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 const char *ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::name()
 {
-    return half_neigh ? "Force:NNPCabanaVerletHalf"
-                      : "Force:NNPCabanaVerletFull";
+    return "Force:NNPCabana";
 }
 
 template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::init_coeff(
-    T_X_FLOAT neigh_cutoff, char **args )
+    char **args )
 {
-    neigh_cut = neigh_cutoff;
     mode = new ( nnpCbn::Mode );
     mode->initialize();
     std::string settingsfile =
@@ -81,8 +60,10 @@ void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::init_coeff(
 
 template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute(
-    System *s )
+    System *s, Neighbor *neighbor )
 {
+    auto neigh_list = neighbor->get<t_neighbor>();
+
     nnp_data.resize( s->N_local );
     Kokkos::deep_copy( d_numSFperElem, h_numSFperElem );
     mode->calculateSymmetryFunctionGroups<t_neighbor, t_neigh_parallel,
@@ -98,9 +79,8 @@ void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute(
 template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
 T_V_FLOAT
 ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute_energy(
-    System *s )
+    System *s, Neighbor * )
 {
-
     auto energy = Cabana::slice<NNPNames::energy>( nnp_data );
     T_V_FLOAT system_energy = 0.0;
     // Loop over all atoms and add atomic contributions to total energy.

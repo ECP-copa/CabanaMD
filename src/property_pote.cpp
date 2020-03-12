@@ -54,10 +54,10 @@ PotE::PotE( Comm *comm_ )
 {
 }
 
-T_F_FLOAT PotE::compute( System *system, Force *force )
+T_F_FLOAT PotE::compute( System *system, Force *force, Neighbor *neighbor )
 {
     T_F_FLOAT PE;
-    PE = force->compute_energy( system );
+    PE = force->compute_energy( system, neighbor );
     comm->reduce_float( &PE, 1 );
     return PE;
 }

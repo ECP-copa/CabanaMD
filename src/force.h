@@ -49,20 +49,18 @@
 #ifndef FORCE_H
 #define FORCE_H
 
+#include <neighbor.h>
 #include <system.h>
 #include <types.h>
 
 class Force
 {
   public:
-    bool half_neigh, comm_newton;
-    Force( System *system, bool half_neigh_ );
+    Force( System *system );
 
-    virtual void init_coeff( T_X_FLOAT neigh_cut, char **args );
-    virtual void create_neigh_list( System *system );
-
-    virtual void compute( System *system );
-    virtual T_F_FLOAT compute_energy( System * )
+    virtual void init_coeff( char **args );
+    virtual void compute( System *system, Neighbor *neighbor );
+    virtual T_F_FLOAT compute_energy( System *, Neighbor * )
     {
         return 0.0;
     } // Only needed for thermo output
