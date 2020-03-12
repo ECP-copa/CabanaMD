@@ -206,7 +206,6 @@ Input::Input( System *p )
 
 void Input::read_command_line_args( int argc, char *argv[] )
 {
-#define MODULES_OPTION_CHECK
     for ( int i = 1; i < argc; i++ )
     {
         // Help command
@@ -263,20 +262,31 @@ void Input::read_command_line_args( int argc, char *argv[] )
         // Force Iteration Type Related
         else if ( ( strcmp( argv[i], "--force-iteration" ) == 0 ) )
         {
-#include <modules_force.h>
+            if ( ( strcmp( argv[i + 1], "NEIGH_FULL" ) == 0 ) )
+                force_iteration_type = FORCE_ITER_NEIGH_FULL;
+            if ( ( strcmp( argv[i + 1], "NEIGH_HALF" ) == 0 ) )
+                force_iteration_type = FORCE_ITER_NEIGH_HALF;
             ++i;
         }
 
         // Neighbor Type
         else if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
         {
-#include <modules_force.h>
+            if ( ( strcmp( argv[i + 1], "NEIGH_VERLET_2D" ) == 0 ) )
+                neighbor_type = NEIGH_VERLET_2D;
+            if ( ( strcmp( argv[i + 1], "NEIGH_VERLET_CSR" ) == 0 ) )
+                neighbor_type = NEIGH_VERLET_CSR;
             ++i;
         }
 
         else if ( ( strcmp( argv[i], "--neigh-parallel" ) == 0 ) )
         {
-#include <modules_force.h>
+            if ( ( strcmp( argv[i + 1], "SERIAL" ) == 0 ) )
+                force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
+            if ( ( strcmp( argv[i + 1], "TEAM" ) == 0 ) )
+                force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_TEAM;
+            if ( ( strcmp( argv[i + 1], "TEAM_VECTOR" ) == 0 ) )
+                force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_VECTOR;
             ++i;
         }
 
@@ -306,7 +316,6 @@ void Input::read_command_line_args( int argc, char *argv[] )
             exit( 1 );
         }
     }
-#undef MODULES_OPTION_CHECK
 }
 
 void Input::read_file( const char *filename )

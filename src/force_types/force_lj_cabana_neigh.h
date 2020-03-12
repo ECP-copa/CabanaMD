@@ -46,46 +46,6 @@
 //
 //************************************************************************
 
-#ifdef MODULES_OPTION_CHECK
-if ( ( strcmp( argv[i], "--force-iteration" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "NEIGH_FULL" ) == 0 ) )
-        force_iteration_type = FORCE_ITER_NEIGH_FULL;
-    if ( ( strcmp( argv[i + 1], "NEIGH_HALF" ) == 0 ) )
-        force_iteration_type = FORCE_ITER_NEIGH_HALF;
-}
-if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "NEIGH_VERLET_2D" ) == 0 ) )
-        neighbor_type = NEIGH_VERLET_2D;
-    if ( ( strcmp( argv[i + 1], "NEIGH_VERLET_CSR" ) == 0 ) )
-        neighbor_type = NEIGH_VERLET_CSR;
-}
-#endif
-#ifdef FORCE_MODULES_INSTANTIATION
-else if ( input->force_type == FORCE_LJ )
-{
-    bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
-    if ( input->neighbor_type == NEIGH_VERLET_2D )
-    {
-        if ( half_neigh )
-            force = new ForceLJ<t_verletlist_half_2D>( system );
-        else
-            force = new ForceLJ<t_verletlist_full_2D>( system );
-    }
-    else if ( input->neighbor_type == NEIGH_VERLET_CSR )
-    {
-        if ( half_neigh )
-            force = new ForceLJ<t_verletlist_half_CSR>( system );
-        else
-            force = new ForceLJ<t_verletlist_full_CSR>( system );
-    }
-#undef FORCETYPE_ALLOCATION_MACRO
-}
-#endif
-
-#if !defined( MODULES_OPTION_CHECK ) && !defined( FORCE_MODULES_INSTANTIATION )
-
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
 
@@ -175,5 +135,4 @@ class ForceLJ : public Force
     const char *name();
 };
 
-#endif
 #endif

@@ -107,39 +107,81 @@ void CabanaMD::init( int argc, char *argv[] )
     if ( input->neighbor_type == NEIGH_VERLET_2D )
     {
         if ( half_neigh )
-        {
             neighbor = new NeighborVerlet<t_verletlist_half_2D>;
-            neighbor->init( neigh_cutoff, true );
-        }
         else
-        {
             neighbor = new NeighborVerlet<t_verletlist_full_2D>;
-            neighbor->init( neigh_cutoff, false );
-        }
     }
     else if ( input->neighbor_type == NEIGH_VERLET_CSR )
     {
         if ( half_neigh )
-        {
             neighbor = new NeighborVerlet<t_verletlist_half_CSR>;
-            neighbor->init( neigh_cutoff, true );
+        else
+            neighbor = new NeighborVerlet<t_verletlist_full_CSR>;
+    }
+    neighbor->init( neigh_cutoff, half_neigh );
+
+    // Create Force class: potential options in force_types/ folder
+    bool serial_neigh =
+        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_SERIAL;
+    bool team_neigh =
+        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_TEAM;
+    bool vector_angle =
+        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_VECTOR;
+    if ( input->force_type == FORCE_LJ )
+    {
+        if ( half_neigh )
+        {
+            if ( input->neighbor_type == NEIGH_VERLET_2D )
+                force = new ForceLJ<t_verletlist_half_2D>( system );
+            else if ( input->neighbor_type == NEIGH_VERLET_CSR )
+                force = new ForceLJ<t_verletlist_half_CSR>( system );
         }
         else
         {
-            neighbor = new NeighborVerlet<t_verletlist_full_CSR>;
-            neighbor->init( neigh_cutoff, false );
+            if ( input->neighbor_type == NEIGH_VERLET_2D )
+                force = new ForceLJ<t_verletlist_full_2D>( system );
+            else if ( input->neighbor_type == NEIGH_VERLET_CSR )
+                force = new ForceLJ<t_verletlist_full_CSR>( system );
         }
     }
-
-    // Create Force class: potential options in force_types/ folder
-    if ( false )
+#ifdef CabanaMD_ENABLE_NNP
+    else if (input->force_type == FORCE_NNP )
     {
+        if ( half_neigh )
+            throw std::runtime_error( "Half neighbor list not implemented "
+                                      "for the neural network potential." );
+        else
+        {
+            if ( input->neighbor_type == NEIGH_VERLET_2D )
+            {
+                if ( serial_neigh )
+                    force = new ForceNNP<t_verletlist_full_2D, t_neighborop_serial,
+                                         t_neighborop_serial>( system );
+                if ( team_neigh )
+                    force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
+                                         t_neighborop_team>( system );
+                if ( vector_angle )
+                    force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
+                                         t_neighborop_vector>( system );
+            }
+            else if ( input->neighbor_type == NEIGH_VERLET_CSR )
+            {
+                if ( serial_neigh )
+                    force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_serial,
+                                         t_neighborop_serial>( system );
+                if ( team_neigh )
+                    force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
+                                         t_neighborop_team>( system );
+                if ( vector_angle )
+                    force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
+                                         t_neighborop_vector>( system );
+            }
+        }
     }
-#define FORCE_MODULES_INSTANTIATION
-#include <modules_force.h>
-#undef FORCE_MODULES_INSTANTIATION
+#endif
     else
         comm->error( "Invalid ForceType" );
+
     for ( std::size_t line = 0; line < input->force_coeff_lines.extent( 0 );
           line++ )
     {
