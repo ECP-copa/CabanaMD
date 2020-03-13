@@ -145,7 +145,7 @@ void CabanaMD::init( int argc, char *argv[] )
         }
     }
 #ifdef CabanaMD_ENABLE_NNP
-    else if (input->force_type == FORCE_NNP )
+    else if ( input->force_type == FORCE_NNP )
     {
         if ( half_neigh )
             throw std::runtime_error( "Half neighbor list not implemented "
@@ -155,26 +155,32 @@ void CabanaMD::init( int argc, char *argv[] )
             if ( input->neighbor_type == NEIGH_VERLET_2D )
             {
                 if ( serial_neigh )
-                    force = new ForceNNP<t_verletlist_full_2D, t_neighborop_serial,
-                                         t_neighborop_serial>( system );
+                    force =
+                        new ForceNNP<t_verletlist_full_2D, t_neighborop_serial,
+                                     t_neighborop_serial>( system );
                 if ( team_neigh )
-                    force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
-                                         t_neighborop_team>( system );
+                    force =
+                        new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
+                                     t_neighborop_team>( system );
                 if ( vector_angle )
-                    force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
-                                         t_neighborop_vector>( system );
+                    force =
+                        new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
+                                     t_neighborop_vector>( system );
             }
             else if ( input->neighbor_type == NEIGH_VERLET_CSR )
             {
                 if ( serial_neigh )
-                    force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_serial,
-                                         t_neighborop_serial>( system );
+                    force =
+                        new ForceNNP<t_verletlist_full_CSR, t_neighborop_serial,
+                                     t_neighborop_serial>( system );
                 if ( team_neigh )
-                    force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
-                                         t_neighborop_team>( system );
+                    force =
+                        new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
+                                     t_neighborop_team>( system );
                 if ( vector_angle )
-                    force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
-                                         t_neighborop_vector>( system );
+                    force =
+                        new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
+                                     t_neighborop_vector>( system );
             }
         }
     }

@@ -229,8 +229,8 @@ void Input::read_command_line_args( int argc, char *argv[] )
                         "TEAM_VECTOR)\n" );
                 printf( "  --neigh-type [TYPE]:        Specify Neighbor "
                         "Routines implementation \n" );
-                printf(
-                    "                              (NEIGH_VERLET_2D, NEIGH_VERLET_CSR)\n" );
+                printf( "                              (NEIGH_VERLET_2D, "
+                        "NEIGH_VERLET_CSR)\n" );
                 printf( "  --comm-type [TYPE]:         Specify Communication "
                         "Routines implementation \n" );
                 printf( "                              (MPI, SERIAL)\n" );

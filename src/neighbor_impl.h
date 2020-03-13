@@ -79,7 +79,8 @@ void NeighborVerlet<t_neigh_list>::create( System *system )
 template <class t_neigh_list>
 const char *NeighborVerlet<t_neigh_list>::name()
 {
-    return half_neigh ? "Neighbor:CabanaVerletHalf" : "Neighbor:CabanaVerletFull";
+    return half_neigh ? "Neighbor:CabanaVerletHalf"
+                      : "Neighbor:CabanaVerletFull";
 }
 
 template <class t_neigh_list>
