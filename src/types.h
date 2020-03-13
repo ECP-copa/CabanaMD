@@ -179,16 +179,16 @@ using t_particle = Cabana::Tuple<t_tuple>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
 using t_verletlist_full_2D =
-    Cabana::VerletList<DeviceType, Cabana::FullNeighborTag,
+    Cabana::VerletList<MemorySpace, Cabana::FullNeighborTag,
                        Cabana::VerletLayout2D>;
 using t_verletlist_half_2D =
-    Cabana::VerletList<DeviceType, Cabana::HalfNeighborTag,
+    Cabana::VerletList<MemorySpace, Cabana::HalfNeighborTag,
                        Cabana::VerletLayout2D>;
 using t_verletlist_full_CSR =
-    Cabana::VerletList<DeviceType, Cabana::FullNeighborTag,
+    Cabana::VerletList<MemorySpace, Cabana::FullNeighborTag,
                        Cabana::VerletLayoutCSR>;
 using t_verletlist_half_CSR =
-    Cabana::VerletList<DeviceType, Cabana::HalfNeighborTag,
+    Cabana::VerletList<MemorySpace, Cabana::HalfNeighborTag,
                        Cabana::VerletLayoutCSR>;
 
 using t_neighborop_serial = Cabana::SerialOpTag;
