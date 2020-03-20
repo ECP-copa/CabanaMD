@@ -49,6 +49,7 @@ cmake \
     -D CabanaMD_ENABLE_Serial=OFF \
     -D CabanaMD_ENABLE_OpenMP=ON \
     -D CabanaMD_ENABLE_Cuda=OFF \
+    -D CabanaMD_VECTORLENGTH=1 \
     \
     .. ;
 make install
@@ -67,15 +68,17 @@ cmake \
     -D CabanaMD_ENABLE_Serial=OFF \
     -D CabanaMD_ENABLE_OpenMP=OFF \
     -D CabanaMD_ENABLE_Cuda=ON \
+    -D CabanaMD_VECTORLENGTH=32 \
     \
     .. ;
 ```
 
 ## Neural network potential build
-If using the optional neural network potential, additional flags for the
+If using the optional neural network potential, additional CMake flags for the
 location of the libnnp library (https://github.com/CompPhysVienna/n2p2)
-and enabling the potential are needed for CMake:
+and enabling the potential are needed (with one additional optional setting):
 ```
     -D N2P2_DIR=$N2P2_INSTALL_DIR \
     -D CabanaMD_ENABLE_NNP=ON \
+    -D CabanaMD_VECTORLENGTH_NNP=1 \
 ```
