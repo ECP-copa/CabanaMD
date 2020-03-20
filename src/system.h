@@ -57,7 +57,8 @@
 #include <memory>
 #include <string>
 
-class System
+template <class t_layout>
+class SystemCommon
 {
   public:
     T_INT N;       // Number of Global Particles
@@ -67,14 +68,6 @@ class System
 
     int ntypes;
     std::string atom_style;
-
-    // Per Particle Property
-    t_x x;
-    t_v v;
-    t_f f;
-    t_type type;
-    t_id id;
-    t_q q;
 
     // Per Type Property
     t_mass mass;
@@ -97,28 +90,33 @@ class System
     // Should print LAMMPS style messages
     bool print_lammps;
 
-    System();
-    ~System(){};
-
-    virtual void init() {}
-
-    virtual void resize( T_INT new_N ) {}
+    SystemCommon();
+    ~SystemCommon(){}
 
     void slice_all();
     void slice_integrate();
     void slice_force();
     void slice_properties();
-    virtual void slice_x() {}
-    virtual void slice_v() {}
-    virtual void slice_f() {}
-    virtual void slice_type() {}
-    virtual void slice_id() {}
-    virtual void slice_q() {}
+    virtual void slice_x() = 0;
+    virtual void slice_v() = 0;
+    virtual void slice_f() = 0;
+    virtual void slice_type() = 0;
+    virtual void slice_id() = 0;
+    virtual void slice_q() = 0;
 
-    virtual void permute( t_linkedcell cell_list ) {}
-    virtual void migrate( std::shared_ptr<t_distributor> distributor ) {}
-    virtual void gather( std::shared_ptr<t_halo> halo ) {}
+    virtual void permute( t_linkedcell cell_list ) = 0;
+    virtual void migrate( std::shared_ptr<t_distributor> distributor ) = 0;
+    virtual void gather( std::shared_ptr<t_halo> halo ) = 0;
+    virtual const char *name();
+};
+
+template <class t_layout>
+class System : public SystemCommon<t_layout>
+{
+  public:
+    using SystemCommon<t_layout>::SystemCommon;
 };
 
 #include <modules_system.h>
+#include <system_impl.h>
 #endif

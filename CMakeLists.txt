@@ -75,7 +75,7 @@ endif()
 ##---------------------------------------------------------------------------##
 find_package(CLANG_FORMAT)
 if(CLANG_FORMAT_FOUND)
-  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h)
+  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h bin/*.cpp)
   add_custom_target(format
     COMMAND ${CLANG_FORMAT_EXECUTABLE} -i -style=file ${FORMAT_SOURCES}
     DEPENDS ${FORMAT_SOURCES})

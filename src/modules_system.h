@@ -10,10 +10,6 @@
  ****************************************************************************/
 
 // Include Module header files for system
-#ifdef CabanaMD_LAYOUT_1AoSoA
 #include <system_1aosoa.h>
-#elif defined( CabanaMD_LAYOUT_2AoSoA )
 #include <system_2aosoa.h>
-#elif defined( CabanaMD_LAYOUT_6AoSoA )
 #include <system_6aosoa.h>
-#endif

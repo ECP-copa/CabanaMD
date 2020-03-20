@@ -46,6 +46,9 @@
 //
 //************************************************************************
 
+#ifndef PROPERTY_TEMP_H
+#define PROPERTY_TEMP_H
+
 #include <comm_mpi.h>
 #include <system.h>
 #include <types.h>
@@ -53,19 +56,20 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+template <class t_System>
 class Temperature
 {
   private:
-    t_v v;
-    t_type type;
+    typename t_System::t_v v;
+    typename t_System::t_type type;
     t_mass mass;
 
-    Comm *comm;
+    Comm<t_System> *comm;
 
   public:
-    Temperature( Comm *comm_ );
+    Temperature( Comm<t_System> *comm_ );
 
-    T_V_FLOAT compute( System * );
+    T_V_FLOAT compute( t_System * );
 
     KOKKOS_INLINE_FUNCTION
     void operator()( const T_INT &i, T_V_FLOAT &T ) const
@@ -75,3 +79,6 @@ class Temperature
              mass( type( i ) );
     }
 };
+
+#include <property_temperature_impl.h>
+#endif

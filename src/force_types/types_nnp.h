@@ -68,6 +68,12 @@ enum ScalingType {
   ST_SCALESIGMA
 };
 
+// AoSoA layout type
+enum {
+  AOSOA_NNP_1,
+  AOSOA_NNP_3,
+};
+
 typedef ExecutionSpace::array_layout array_layout; // TODO: check this
 using h_t_mass = Kokkos::View<T_V_FLOAT *, array_layout, Kokkos::HostSpace>;
 using d_t_SF = Kokkos::View<T_FLOAT * * [15]>;
@@ -86,26 +92,5 @@ using t_bias = Kokkos::View<T_FLOAT ***, array_layout, Kokkos::HostSpace>;
 using d_t_weights = Kokkos::View<T_FLOAT ****>;
 using t_weights = Kokkos::View<T_FLOAT ****, array_layout, Kokkos::HostSpace>;
 using d_t_NN = Kokkos::View<T_FLOAT ***>;
-
-#ifdef CabanaMD_LAYOUT_NNP_1AoSoA
-using t_tuple_NNP =
-    Cabana::MemberTypes<T_FLOAT[MAX_SF], T_FLOAT[MAX_SF], T_FLOAT>;
-using AoSoA_NNP_1 =
-    Cabana::AoSoA<t_tuple_NNP, MemorySpace, CabanaMD_VECTORLENGTH_NNP>;
-using t_G = AoSoA_NNP_1::member_slice_type<0>;
-using t_dEdG = AoSoA_NNP_1::member_slice_type<1>;
-using t_E = AoSoA_NNP_1::member_slice_type<2>;
-
-#elif defined(CabanaMD_LAYOUT_NNP_3AoSoA)
-using t_tuple_NNP_SF = Cabana::MemberTypes<T_FLOAT[MAX_SF]>;
-using t_tuple_NNP_fl = Cabana::MemberTypes<T_FLOAT>;
-using AoSoA_NNP_SF =
-    Cabana::AoSoA<t_tuple_NNP_SF, MemorySpace, CabanaMD_VECTORLENGTH_NNP>;
-using AoSoA_NNP_fl =
-    Cabana::AoSoA<t_tuple_NNP_fl, MemorySpace, CabanaMD_VECTORLENGTH_NNP>;
-using t_G = AoSoA_NNP_SF::member_slice_type<0>;
-using t_dEdG = AoSoA_NNP_SF::member_slice_type<0>;
-using t_E = AoSoA_NNP_fl::member_slice_type<0>;
-#endif
 
 #endif // TYPES_NNP_H

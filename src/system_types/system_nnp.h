@@ -16,22 +16,9 @@
 
 #include <types.h>
 
-#include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
-
+template <class t_layout>
 class System_NNP
 {
-  public:
-    // Per Particle Property
-    t_G G;
-    t_dEdG dEdG;
-    t_E E;
-
-    virtual void resize( T_INT new_N ) {}
-
-    virtual void slice_G() {}
-    virtual void slice_dEdG() {}
-    virtual void slice_E() {}
 };
 
 #include <modules_system_nnp.h>

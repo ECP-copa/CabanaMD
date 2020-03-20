@@ -46,14 +46,35 @@
 //
 //************************************************************************
 
-#include <force.h>
+#include <property_temperature.h>
 
-Force::Force( System *, bool half_neigh_ )
-    : half_neigh( half_neigh_ )
+template <class t_System>
+Temperature<t_System>::Temperature( Comm<t_System> *comm_ )
+    : comm( comm_ )
 {
 }
 
-void Force::init_coeff( T_X_FLOAT, char ** ) {}
-void Force::create_neigh_list( System * ) {}
-void Force::compute( System * ) {}
-const char *Force::name() { return "ForceNone"; }
+template <class t_System>
+T_V_FLOAT Temperature<t_System>::compute( t_System *system )
+{
+    system->slice_properties();
+    v = system->v;
+    type = system->type;
+
+    mass = system->mass;
+
+    T_V_FLOAT T;
+    Kokkos::parallel_reduce(
+        Kokkos::RangePolicy<Kokkos::IndexType<T_INT>>( 0, system->N_local ),
+        *this, T );
+
+    // Make sure I don't carry around references to data
+    mass = t_mass();
+
+    // Multiply by scaling factor (units based) to get to temperature
+    T_INT dof = 3 * system->N - 3;
+    T_V_FLOAT factor = system->mvv2e / ( 1.0 * dof * system->boltz );
+
+    comm->reduce_float( &T, 1 );
+    return T * factor;
+}

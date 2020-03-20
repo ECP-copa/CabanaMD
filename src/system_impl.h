@@ -46,45 +46,73 @@
 //
 //************************************************************************
 
-#include <integrator_nve.h>
+#include <system.h>
 
-Integrator::Integrator( System *system )
+template <class t_layout>
+SystemCommon<t_layout>::SystemCommon()
 {
-    dtf = 0.5 * system->dt / system->mvv2e;
-    dtv = system->dt;
+    N = 0;
+    N_max = 0;
+    N_local = 0;
+    N_ghost = 0;
+    ntypes = 1;
+    atom_style = "atomic";
+
+    mass = t_mass();
+    domain_x = domain_y = domain_z = 0.0;
+    sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
+    domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
+    domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
+    sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
+    sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
+    mvv2e = boltz = dt = 0.0;
+
+    print_lammps = false;
+
+    mass = t_mass( "System::mass", ntypes );
+
+    int proc_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+    do_print = proc_rank == 0;
 }
 
-Integrator::~Integrator() {}
-
-void Integrator::initial_integrate( System *system )
+template <class t_layout>
+const char *SystemCommon<t_layout>::name()
 {
-    mass = system->mass;
-
-    system->slice_integrate();
-    x = system->x;
-    v = system->v;
-    f = system->f;
-    type = system->type;
-
-    static int step = 1;
-    Kokkos::parallel_for( "IntegratorNVE::initial_integrate",
-                          t_policy_initial( 0, system->N_local ), *this );
-    step++;
+    return "SystemNone";
 }
 
-void Integrator::final_integrate( System *system )
+template <class t_layout>
+void SystemCommon<t_layout>::slice_all()
 {
-    mass = system->mass;
-
-    system->slice_integrate();
-    v = system->v;
-    f = system->f;
-    type = system->type;
-
-    static int step = 1;
-    Kokkos::parallel_for( "IntegratorNVE::final_integrate",
-                          t_policy_final( 0, system->N_local ), *this );
-    step++;
+    slice_x();
+    slice_v();
+    slice_f();
+    slice_type();
+    slice_id();
+    slice_q();
 }
 
-const char *Integrator::name() { return "Integrator:NVE"; }
+template <class t_layout>
+void SystemCommon<t_layout>::slice_integrate()
+{
+    slice_x();
+    slice_v();
+    slice_f();
+    slice_type();
+}
+
+template <class t_layout>
+void SystemCommon<t_layout>::slice_force()
+{
+    slice_x();
+    slice_f();
+    slice_type();
+}
+
+template <class t_layout>
+void SystemCommon<t_layout>::slice_properties()
+{
+    slice_v();
+    slice_type();
+}

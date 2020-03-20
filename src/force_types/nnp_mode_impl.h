@@ -44,8 +44,9 @@
 using namespace std;
 using namespace nnpCbn;
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateSymmetryFunctionGroups( System *s, System_NNP *s_nnp,
+template <class t_System, class t_System_NNP, class t_neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
                                             t_neighbor neigh_list )
 {
     s->slice_x();
@@ -54,7 +55,8 @@ void Mode::calculateSymmetryFunctionGroups( System *s, System_NNP *s_nnp,
     auto type = s->type;
 
     s_nnp->slice_G();
-    t_G::atomic_access_slice G = s_nnp->G;
+    typename t_System_NNP::t_G::atomic_access_slice G;
+    G = s_nnp->G;
     Cabana::deep_copy( G, 0.0 );
 
     Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
@@ -263,8 +265,9 @@ void Mode::calculateSymmetryFunctionGroups( System *s, System_NNP *s_nnp,
     Kokkos::fence();
 }
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateAtomicNeuralNetworks( System *s, System_NNP *s_nnp,
+template <class t_System, class t_System_NNP, class t_neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
                                           t_mass numSFperElem )
 {
     s->slice_type();
@@ -355,15 +358,17 @@ void Mode::calculateAtomicNeuralNetworks( System *s, System_NNP *s_nnp,
     Kokkos::fence();
 }
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateForces( System *s, System_NNP *s_nnp,
+template <class t_System, class t_System_NNP, class t_neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+void Mode::calculateForces( t_System *s, t_System_NNP *s_nnp,
                             t_neighbor neigh_list )
 {
     // Calculate Forces
     s->slice_force();
     auto x = s->x;
     auto f = s->f;
-    t_f::atomic_access_slice f_a = f;
+    typename t_System::t_f::atomic_access_slice f_a;
+    f_a = f;
     auto type = s->type;
 
     s_nnp->slice_dEdG();

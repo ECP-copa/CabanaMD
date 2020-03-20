@@ -10,8 +10,5 @@
  ****************************************************************************/
 
 // Include Module header files for NNP system
-#ifdef CabanaMD_LAYOUT_NNP_1AoSoA
 #include <system_nnp_1aosoa.h>
-#elif defined( CabanaMD_LAYOUT_NNP_3AoSoA )
 #include <system_nnp_3aosoa.h>
-#endif

@@ -46,9 +46,35 @@
 //
 //************************************************************************
 
-#include <force_lj_cabana_neigh_impl.h>
+#ifndef INPUTCL_H
+#define INPUTCL_H
 
-template class ForceLJ<t_verletlist_half_2D>;
-template class ForceLJ<t_verletlist_full_2D>;
-template class ForceLJ<t_verletlist_half_CSR>;
-template class ForceLJ<t_verletlist_full_CSR>;
+#include <types.h>
+
+#include <iostream>
+
+class InputCL
+{
+  public:
+    bool do_print;
+
+    int input_file_type;
+
+    int neighbor_type;
+    int force_iteration_type;
+    bool set_force_iteration;
+    int force_neigh_parallel_type;
+    int layout_type;
+    int nnp_layout_type;
+
+    int dumpbinary_rate, correctness_rate;
+    bool dumpbinaryflag, correctnessflag;
+    char *dumpbinary_path, *reference_path, *correctness_file;
+    char *input_file = NULL;
+
+    InputCL();
+    ~InputCL();
+    void read_args( int argc, char *argv[] );
+};
+
+#endif

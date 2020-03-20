@@ -47,6 +47,7 @@
 //************************************************************************
 
 #include <cabanamd.h>
+#include <types.h>
 
 // CabanaMD can be used as a library
 // This main file is simply a driver
@@ -60,10 +61,27 @@ int main( int argc, char *argv[] )
 
     Kokkos::ScopeGuard scope_guard( argc, argv );
 
-    CabanaMD cabanamd;
-    cabanamd.init( argc, argv );
+    InputCL commandline;
+    commandline.read_args( argc, argv );
 
-    cabanamd.run( cabanamd.input->nsteps );
+    if ( commandline.layout_type == AOSOA_1 )
+    {
+        CabanaMD<System<AoSoA1>> cabanamd;
+        cabanamd.init( commandline );
+        cabanamd.run( cabanamd.input->nsteps );
+    }
+    else if ( commandline.layout_type == AOSOA_2 )
+    {
+        CabanaMD<System<AoSoA2>> cabanamd;
+        cabanamd.init( commandline );
+        cabanamd.run( cabanamd.input->nsteps );
+    }
+    else if ( commandline.layout_type == AOSOA_6 )
+    {
+        CabanaMD<System<AoSoA6>> cabanamd;
+        cabanamd.init( commandline );
+        cabanamd.run( cabanamd.input->nsteps );
+    }
 
     //   cabanamd.check_correctness();
 

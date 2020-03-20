@@ -46,10 +46,14 @@
 //
 //************************************************************************
 
+#ifndef CABANAMD_H
+#define CABANAMD_H
+
 #include <binning_cabana.h>
 #include <comm_mpi.h>
 #include <force.h>
-#include <input.h>
+#include <inputCL.h>
+#include <inputFile.h>
 #include <integrator_nve.h>
 #include <system.h>
 #include <types.h>
@@ -59,22 +63,23 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+template <class t_System>
 class CabanaMD
 {
   public:
-    System *system;
-    Integrator *integrator;
-    Force *force;
-    Comm *comm;
-    Input *input;
-    Binning *binning;
+    t_System *system;
+    Integrator<t_System> *integrator;
+    Force<t_System> *force;
+    Comm<t_System> *comm;
+    InputFile<t_System> *input;
+    Binning<t_System> *binning;
 
-    CabanaMD();
-
-    void init( int argc, char *argv[] );
-
+    void init( InputCL cl );
     void run( int nsteps );
 
     void dump_binary( int );
     void check_correctness( int );
 };
+
+#include <cabanamd_impl.h>
+#endif

@@ -55,24 +55,25 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+template <class t_System>
 class Integrator
 {
     T_V_FLOAT dtv, dtf;
 
-    t_x x;
-    t_v v;
-    t_f f;
-    t_type type;
+    typename t_System::t_x x;
+    typename t_System::t_v v;
+    typename t_System::t_f f;
+    typename t_System::t_type type;
 
     t_mass_const mass;
 
   public:
-    Integrator( System *s );
-    ~Integrator();
+    Integrator( t_System *s );
+    ~Integrator() {}
     T_V_FLOAT timestep_size;
 
-    void initial_integrate( System *s );
-    void final_integrate( System *s );
+    void initial_integrate( t_System *s );
+    void final_integrate( t_System *s );
 
     const char *name();
 
@@ -108,4 +109,6 @@ class Integrator
         v( i, 2 ) += dtfm * f( i, 2 );
     }
 };
+
+#include <integrator_nve_impl.h>
 #endif

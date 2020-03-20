@@ -25,7 +25,8 @@
 //       this list of conditions and the following disclaimer.
 //
 //    2. Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
+//    notice,
+//       this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
@@ -46,32 +47,29 @@
 //
 //************************************************************************
 
-#include <property_kine.h>
+#include <neighbor_tree.h>
 
-KinE::KinE( Comm *comm_ )
-    : comm( comm_ )
+template <class t_neigh_iter>
+void NeighborTree<class t_neigh_iter>::create( System *system )
 {
+    N_local = system->N_local;
+
+    auto x = Cabana::slice<Positions>( system->xvf );
+
+    t_neigh_iter iteration_tag;
+    auto const list = Cabana::Experimental::makeNeighborList<DeviceType>(
+        iteration_tag, x, 0, N_local, neigh_cut );
+    neigh_list = list;
 }
 
-T_V_FLOAT KinE::compute( System *system )
+template <class t_neigh_iter>
+t_neigh_list NeighborTree<class t_neigh_iter>::get()
 {
-    system->slice_properties();
-    v = system->v;
-    type = system->type;
+    return neigh_list;
+};
 
-    mass = system->mass;
-
-    T_V_FLOAT KE;
-    Kokkos::parallel_reduce(
-        Kokkos::RangePolicy<Kokkos::IndexType<T_INT>>( 0, system->N_local ),
-        *this, KE );
-
-    // Make sure I don't carry around references to data
-    mass = t_mass();
-
-    // Multiply by scaling factor (units based) to get to kinetic energy
-    T_V_FLOAT factor = 0.5 * system->mvv2e;
-
-    comm->reduce_float( &KE, 1 );
-    return KE * factor;
+template <class t_neigh_iter>
+const char *Neighbor::name()
+{
+    return "NeighborTree";
 }

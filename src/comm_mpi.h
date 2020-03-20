@@ -61,6 +61,7 @@
 #include <memory>
 #include <vector>
 
+template <class t_System>
 class Comm
 {
     // Variables Comm doesn't own but requires for computations
@@ -68,10 +69,10 @@ class Comm
     T_INT N_local;
     T_INT N_ghost;
 
-    System s;
-    t_x x;
-    t_type type;
-    t_f f;
+    t_System s;
+    typename t_System::t_x x;
+    typename t_System::t_type type;
+    typename t_System::t_f f;
 
     // Owned Variables
 
@@ -100,7 +101,7 @@ class Comm
     std::vector<std::shared_ptr<Cabana::Halo<DeviceType>>> halo_all;
 
   protected:
-    System *system;
+    t_System *system;
 
     T_X_FLOAT comm_depth;
 
@@ -119,7 +120,7 @@ class Comm
     {
     };
 
-    Comm( System *s, T_X_FLOAT comm_depth_ );
+    Comm( t_System *s, T_X_FLOAT comm_depth_ );
     void init();
     void create_domain_decomposition();
     void exchange();
@@ -356,4 +357,5 @@ class Comm
     void error( const char * );
 };
 
+#include <comm_mpi_impl.h>
 #endif

@@ -333,7 +333,8 @@ class Mode
      *
      * Warning: #numSymmetryFunctions needs to be set first!
      */
-    void allocate( System *s, T_INT numSymmetryFunctions, bool all );
+    template <class t_System>
+    void allocate( t_System *s, T_INT numSymmetryFunctions, bool all );
 
     KOKKOS_INLINE_FUNCTION
     void compute_cutoff( CutoffFunction::CutoffType cutoffType, double &fc,
@@ -342,16 +343,19 @@ class Mode
     KOKKOS_INLINE_FUNCTION
     double scale( int attype, double value, int k, d_t_SFscaling SFscaling );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateForces( System *s, System_NNP *system_nnp,
+    template <class t_System, class t_System_NNP, class t_neighbor,
+              class t_neigh_parallel, class t_angle_parallel>
+    void calculateForces( t_System *s, t_System_NNP *system_nnp,
                           t_neighbor neigh_list );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateAtomicNeuralNetworks( System *s, System_NNP *system_nnp,
+    template <class t_System, class t_System_NNP, class t_neighbor,
+              class t_neigh_parallel, class t_angle_parallel>
+    void calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *system_nnp,
                                         t_mass numSFperElem );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateSymmetryFunctionGroups( System *s, System_NNP *system_nnp,
+    template <class t_System, class t_System_NNP, class t_neighbor,
+              class t_neigh_parallel, class t_angle_parallel>
+    void calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *system_nnp,
                                           t_neighbor neigh_list );
 
     /// Global log file.

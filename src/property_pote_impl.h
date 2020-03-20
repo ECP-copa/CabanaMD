@@ -46,61 +46,20 @@
 //
 //************************************************************************
 
-#include <system.h>
+#include <cabanamd.h>
+#include <property_pote.h>
 
-System::System()
+template <class t_System>
+PotE<t_System>::PotE( Comm<t_System> *comm_ )
+    : comm( comm_ )
 {
-    N = 0;
-    N_max = 0;
-    N_local = 0;
-    N_ghost = 0;
-    ntypes = 1;
-    atom_style = "atomic";
-
-    mass = t_mass();
-    domain_x = domain_y = domain_z = 0.0;
-    sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
-    domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
-    domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
-    sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
-    sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
-    mvv2e = boltz = dt = 0.0;
-
-    int proc_rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
-    do_print = proc_rank == 0;
-    print_lammps = false;
-
-    mass = t_mass( "System::mass", ntypes );
 }
 
-void System::slice_all()
+template <class t_System>
+T_F_FLOAT PotE<t_System>::compute( t_System *system, Force<t_System> *force )
 {
-    slice_x();
-    slice_v();
-    slice_f();
-    slice_type();
-    slice_id();
-    slice_q();
-}
-
-void System::slice_integrate()
-{
-    slice_x();
-    slice_v();
-    slice_f();
-    slice_type();
-}
-
-void System::slice_force()
-{
-    slice_x();
-    slice_f();
-    slice_type();
-}
-
-void System::slice_properties()
-{
-    slice_v();
-    slice_type();
+    T_F_FLOAT PE;
+    PE = force->compute_energy( system );
+    comm->reduce_float( &PE, 1 );
+    return PE;
 }

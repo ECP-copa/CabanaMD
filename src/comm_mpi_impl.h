@@ -46,9 +46,8 @@
 //
 //************************************************************************
 
-#include <comm_mpi.h>
-
-Comm::Comm( System *s, T_X_FLOAT comm_depth_ )
+template <class t_System>
+Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     : neighbors_halo( 6 )
     , neighbors_dist( 6 )
     , system( s )
@@ -62,9 +61,13 @@ Comm::Comm( System *s, T_X_FLOAT comm_depth_ )
         "CommMPI::pack_ranks_all", 6, 200 );
 }
 
-void Comm::init() {}
+template <class t_System>
+void Comm<t_System>::init()
+{
+}
 
-void Comm::create_domain_decomposition()
+template <class t_System>
+void Comm<t_System>::create_domain_decomposition()
 {
 
     MPI_Comm_size( MPI_COMM_WORLD, &proc_size );
@@ -205,7 +208,8 @@ void Comm::create_domain_decomposition()
     }
 }
 
-void Comm::scan_int( T_INT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::scan_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )
     {
@@ -213,7 +217,8 @@ void Comm::scan_int( T_INT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_int( T_INT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )
     {
@@ -222,7 +227,8 @@ void Comm::reduce_int( T_INT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_float( T_FLOAT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_float( T_FLOAT *vals, T_INT count )
 {
     if ( std::is_same<T_FLOAT, double>::value )
     {
@@ -232,7 +238,8 @@ void Comm::reduce_float( T_FLOAT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_max_int( T_INT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_max_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )
     {
@@ -241,7 +248,8 @@ void Comm::reduce_max_int( T_INT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_max_float( T_FLOAT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_max_float( T_FLOAT *vals, T_INT count )
 {
     if ( std::is_same<T_FLOAT, double>::value )
     {
@@ -250,7 +258,8 @@ void Comm::reduce_max_float( T_FLOAT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_min_int( T_INT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_min_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )
     {
@@ -259,7 +268,8 @@ void Comm::reduce_min_int( T_INT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_min_float( T_FLOAT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_min_float( T_FLOAT *vals, T_INT count )
 {
     if ( std::is_same<T_FLOAT, double>::value )
     {
@@ -268,7 +278,8 @@ void Comm::reduce_min_float( T_FLOAT *vals, T_INT count )
     }
 }
 
-void Comm::exchange()
+template <class t_System>
+void Comm<t_System>::exchange()
 {
 
     Kokkos::Profiling::pushRegion( "Comm::exchange" );
@@ -353,7 +364,8 @@ void Comm::exchange()
     Kokkos::Profiling::popRegion();
 }
 
-void Comm::exchange_halo()
+template <class t_System>
+void Comm<t_System>::exchange_halo()
 {
 
     Kokkos::Profiling::pushRegion( "Comm::exchange_halo" );
@@ -441,7 +453,8 @@ void Comm::exchange_halo()
     Kokkos::Profiling::popRegion();
 }
 
-void Comm::update_halo()
+template <class t_System>
+void Comm<t_System>::update_halo()
 {
 
     Kokkos::Profiling::pushRegion( "Comm::update_halo" );
@@ -481,7 +494,8 @@ void Comm::update_halo()
     Kokkos::Profiling::popRegion();
 }
 
-void Comm::update_force()
+template <class t_System>
+void Comm<t_System>::update_force()
 {
 
     Kokkos::Profiling::pushRegion( "Comm::update_force" );
@@ -514,11 +528,26 @@ void Comm::update_force()
     Kokkos::Profiling::popRegion();
 }
 
-const char *Comm::name() { return "Comm:CabanaMPI"; }
+template <class t_System>
+const char *Comm<t_System>::name()
+{
+    return "Comm:CabanaMPI";
+}
 
-int Comm::process_rank() { return proc_rank; }
-int Comm::num_processes() { return proc_size; }
-void Comm::error( const char *errormsg )
+template <class t_System>
+int Comm<t_System>::process_rank()
+{
+    return proc_rank;
+}
+
+template <class t_System>
+int Comm<t_System>::num_processes()
+{
+    return proc_size;
+}
+
+template <class t_System>
+void Comm<t_System>::error( const char *errormsg )
 {
     if ( proc_rank == 0 )
         printf( "%s\n", errormsg );

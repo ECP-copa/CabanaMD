@@ -46,31 +46,31 @@
 //
 //************************************************************************
 
-#ifndef FORCE_H
-#define FORCE_H
-
-#include <system.h>
-#include <types.h>
+#include <force.h>
 
 template <class t_System>
-class Force
+Force<t_System>::Force( t_System *, bool half_neigh_ )
+    : half_neigh( half_neigh_ )
 {
-  public:
-    bool half_neigh;
-    Force( t_System *system, bool half_neigh_ );
+}
 
-    virtual void init_coeff( T_X_FLOAT neigh_cut, char **args );
-    virtual void create_neigh_list( t_System *system );
+template <class t_System>
+void Force<t_System>::init_coeff( T_X_FLOAT, char ** )
+{
+}
 
-    virtual void compute( t_System *system );
-    virtual T_F_FLOAT compute_energy( t_System * )
-    {
-        return 0.0;
-    } // Only needed for thermo output
+template <class t_System>
+void Force<t_System>::create_neigh_list( t_System * )
+{
+}
 
-    virtual const char *name();
-};
+template <class t_System>
+void Force<t_System>::compute( t_System * )
+{
+}
 
-#include <force_impl.h>
-#include <modules_force.h>
-#endif
+template <class t_System>
+const char *Force<t_System>::name()
+{
+    return "ForceNone";
+}

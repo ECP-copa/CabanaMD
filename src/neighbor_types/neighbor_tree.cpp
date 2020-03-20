@@ -25,7 +25,8 @@
 //       this list of conditions and the following disclaimer.
 //
 //    2. Redistributions in binary form must reproduce the above copyright
-//       notice, this list of conditions and the following disclaimer in the
+//    notice,
+//       this list of conditions and the following disclaimer in the
 //       documentation and/or other materials provided with the distribution.
 //
 //    3. Neither the name of the Corporation nor the names of the contributors
@@ -46,31 +47,7 @@
 //
 //************************************************************************
 
-#ifndef FORCE_H
-#define FORCE_H
+#include <neighbor_tree.h>
 
-#include <system.h>
-#include <types.h>
-
-template <class t_System>
-class Force
-{
-  public:
-    bool half_neigh;
-    Force( t_System *system, bool half_neigh_ );
-
-    virtual void init_coeff( T_X_FLOAT neigh_cut, char **args );
-    virtual void create_neigh_list( t_System *system );
-
-    virtual void compute( t_System *system );
-    virtual T_F_FLOAT compute_energy( t_System * )
-    {
-        return 0.0;
-    } // Only needed for thermo output
-
-    virtual const char *name();
-};
-
-#include <force_impl.h>
-#include <modules_force.h>
-#endif
+template class NeighborTree<Cabana::HalfNeighborTag>;
+template class NeighborTree<Cabana::FullNeighborTag>;
