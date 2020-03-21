@@ -35,7 +35,7 @@ class System_NNP<AoSoA1>
     t_E E;
 
     System_NNP<AoSoA1>() { AoSoA_NNP_1 aosoa_0( "All", 0 ); }
-    ~System_NNP<AoSoA1>(){}
+    ~System_NNP<AoSoA1>() {}
 
     void resize( T_INT N_new ) { aosoa_0.resize( N_new ); }
 

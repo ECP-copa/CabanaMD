@@ -91,7 +91,7 @@ class SystemCommon
     bool print_lammps;
 
     SystemCommon();
-    ~SystemCommon(){}
+    ~SystemCommon() {}
 
     void slice_all();
     void slice_integrate();

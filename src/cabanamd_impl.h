@@ -439,12 +439,12 @@ void CabanaMD<t_System>::check_correctness( int step )
     Kokkos::View<T_INT *, Kokkos::LayoutRight> typeref( "Correctness::type",
                                                         n );
     Kokkos::View<T_FLOAT *, Kokkos::LayoutRight> qref( "Correctness::q", n );
-    Kokkos::View<T_X_FLOAT * [3], Kokkos::LayoutRight> xref( "Correctness::x",
-                                                             n );
-    Kokkos::View<T_V_FLOAT * [3], Kokkos::LayoutRight> vref( "Correctness::v",
-                                                             n );
-    Kokkos::View<T_F_FLOAT * [3], Kokkos::LayoutRight> fref( "Correctness::f",
-                                                             n );
+    Kokkos::View<T_X_FLOAT **, Kokkos::LayoutRight> xref( "Correctness::x", 3,
+                                                          n );
+    Kokkos::View<T_V_FLOAT **, Kokkos::LayoutRight> vref( "Correctness::v", 3,
+                                                          n );
+    Kokkos::View<T_F_FLOAT **, Kokkos::LayoutRight> fref( "Correctness::f", 3,
+                                                          n );
 
     fread( idref.data(), sizeof( T_INT ), n, fpref );
     fread( typeref.data(), sizeof( T_INT ), n, fpref );
