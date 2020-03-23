@@ -57,20 +57,22 @@ class Force
 {
   public:
     bool half_neigh;
-    Force( t_System *system, bool half_neigh_ );
+    Force( t_System *, bool half_neigh_ )
+        : half_neigh( half_neigh_ )
+    {
+    }
 
-    virtual void init_coeff( T_X_FLOAT neigh_cut, char **args );
-    virtual void create_neigh_list( t_System *system );
+    virtual void init_coeff( T_X_FLOAT neigh_cut, char **args ) = 0;
+    virtual void create_neigh_list( t_System *system ) = 0;
 
-    virtual void compute( t_System *system );
+    virtual void compute( t_System *system ) = 0;
     virtual T_F_FLOAT compute_energy( t_System * )
     {
         return 0.0;
     } // Only needed for thermo output
 
-    virtual const char *name();
+    virtual const char *name() { return "ForceNone"; }
 };
 
-#include <force_impl.h>
 #include <modules_force.h>
 #endif

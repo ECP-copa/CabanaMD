@@ -49,7 +49,7 @@ class System<AoSoA6> : public SystemCommon<AoSoA6>
     t_id id;
     t_q q;
 
-    void init()
+    void init() override
     {
         AoSoA_x aosoa_x( "X", N_max );
         AoSoA_x aosoa_v( "V", N_max );
@@ -59,7 +59,7 @@ class System<AoSoA6> : public SystemCommon<AoSoA6>
         AoSoA_fl aosoa_q( "Q", N_max );
     }
 
-    void resize( T_INT N_new )
+    void resize( T_INT N_new ) override
     {
         if ( N_new > N_max )
         {
@@ -74,14 +74,14 @@ class System<AoSoA6> : public SystemCommon<AoSoA6>
         aosoa_q.resize( N_new );
     }
 
-    void slice_x() { x = Cabana::slice<0>( aosoa_x ); }
-    void slice_v() { v = Cabana::slice<0>( aosoa_v ); }
-    void slice_f() { f = Cabana::slice<0>( aosoa_f ); }
-    void slice_type() { type = Cabana::slice<0>( aosoa_type ); }
-    void slice_id() { id = Cabana::slice<0>( aosoa_id ); }
-    void slice_q() { q = Cabana::slice<0>( aosoa_q ); }
+    void slice_x() override { x = Cabana::slice<0>( aosoa_x ); }
+    void slice_v() override { v = Cabana::slice<0>( aosoa_v ); }
+    void slice_f() override { f = Cabana::slice<0>( aosoa_f ); }
+    void slice_type() override { type = Cabana::slice<0>( aosoa_type ); }
+    void slice_id() override { id = Cabana::slice<0>( aosoa_id ); }
+    void slice_q() override { q = Cabana::slice<0>( aosoa_q ); }
 
-    void permute( t_linkedcell cell_list )
+    void permute( t_linkedcell cell_list ) override
     {
         Cabana::permute( cell_list, aosoa_x );
         Cabana::permute( cell_list, aosoa_v );
@@ -91,7 +91,7 @@ class System<AoSoA6> : public SystemCommon<AoSoA6>
         Cabana::permute( cell_list, aosoa_q );
     }
 
-    void migrate( std::shared_ptr<t_distributor> distributor )
+    void migrate( std::shared_ptr<t_distributor> distributor ) override
     {
         Cabana::migrate( *distributor, aosoa_x );
         Cabana::migrate( *distributor, aosoa_v );
@@ -101,7 +101,7 @@ class System<AoSoA6> : public SystemCommon<AoSoA6>
         Cabana::migrate( *distributor, aosoa_q );
     }
 
-    void gather( std::shared_ptr<t_halo> halo )
+    void gather( std::shared_ptr<t_halo> halo ) override
     {
         Cabana::gather( *halo, aosoa_x );
         Cabana::gather( *halo, aosoa_v );
@@ -111,6 +111,6 @@ class System<AoSoA6> : public SystemCommon<AoSoA6>
         Cabana::gather( *halo, aosoa_q );
     }
 
-    const char *name() { return "System:6AoSoA"; }
+    const char *name() override { return "System:6AoSoA"; }
 };
 #endif

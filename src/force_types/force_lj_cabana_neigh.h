@@ -143,12 +143,12 @@ class ForceLJ : public Force<t_System>
 
     ForceLJ( t_System *system, bool half_neigh_ );
 
-    void init_coeff( T_X_FLOAT neigh_cut, char **args );
+    void init_coeff( T_X_FLOAT neigh_cut, char **args ) override;
 
-    void create_neigh_list( t_System *system );
+    void create_neigh_list( t_System *system ) override;
 
-    void compute( t_System *system );
-    T_F_FLOAT compute_energy( t_System *system );
+    void compute( t_System *system ) override;
+    T_F_FLOAT compute_energy( t_System *system ) override;
 
     KOKKOS_INLINE_FUNCTION
     void operator()( TagFullNeigh, const T_INT &i ) const;
@@ -162,7 +162,7 @@ class ForceLJ : public Force<t_System>
     KOKKOS_INLINE_FUNCTION
     void operator()( TagHalfNeighPE, const T_INT &i, T_V_FLOAT &PE ) const;
 
-    const char *name();
+    const char *name() override;
 };
 
 #include <force_lj_cabana_neigh_impl.h>

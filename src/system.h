@@ -104,6 +104,8 @@ class SystemCommon
     virtual void slice_id() = 0;
     virtual void slice_q() = 0;
 
+    virtual void init() = 0;
+    virtual void resize( T_INT N_new ) = 0;
     virtual void permute( t_linkedcell cell_list ) = 0;
     virtual void migrate( std::shared_ptr<t_distributor> distributor ) = 0;
     virtual void gather( std::shared_ptr<t_halo> halo ) = 0;

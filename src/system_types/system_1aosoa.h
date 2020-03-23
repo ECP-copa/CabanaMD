@@ -39,9 +39,9 @@ class System<AoSoA1> : public SystemCommon<AoSoA1>
     t_id id;
     t_q q;
 
-    void init() { AoSoA_1 aosoa_0( "All", N_max ); }
+    void init() override { AoSoA_1 aosoa_0( "All", N_max ); }
 
-    void resize( T_INT N_new )
+    void resize( T_INT N_new ) override
     {
         if ( N_new > N_max )
         {
@@ -51,28 +51,28 @@ class System<AoSoA1> : public SystemCommon<AoSoA1>
         aosoa_0.resize( N_new );
     }
 
-    void slice_x() { x = Cabana::slice<0>( aosoa_0 ); }
-    void slice_v() { v = Cabana::slice<1>( aosoa_0 ); }
-    void slice_f() { f = Cabana::slice<2>( aosoa_0 ); }
-    void slice_type() { type = Cabana::slice<3>( aosoa_0 ); }
-    void slice_id() { id = Cabana::slice<4>( aosoa_0 ); }
-    void slice_q() { q = Cabana::slice<5>( aosoa_0 ); }
+    void slice_x() override { x = Cabana::slice<0>( aosoa_0 ); }
+    void slice_v() override { v = Cabana::slice<1>( aosoa_0 ); }
+    void slice_f() override { f = Cabana::slice<2>( aosoa_0 ); }
+    void slice_type() override { type = Cabana::slice<3>( aosoa_0 ); }
+    void slice_id() override { id = Cabana::slice<4>( aosoa_0 ); }
+    void slice_q() override { q = Cabana::slice<5>( aosoa_0 ); }
 
-    void permute( t_linkedcell cell_list )
+    void permute( t_linkedcell cell_list ) override
     {
         Cabana::permute( cell_list, aosoa_0 );
     }
 
-    void migrate( std::shared_ptr<t_distributor> distributor )
+    void migrate( std::shared_ptr<t_distributor> distributor ) override
     {
         Cabana::migrate( *distributor, aosoa_0 );
     }
 
-    void gather( std::shared_ptr<t_halo> halo )
+    void gather( std::shared_ptr<t_halo> halo ) override
     {
         Cabana::gather( *halo, aosoa_0 );
     }
 
-    const char *name() { return "System:1AoSoA"; }
+    const char *name() override { return "System:1AoSoA"; }
 };
 #endif
