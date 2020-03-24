@@ -57,7 +57,6 @@
 #include <memory>
 #include <string>
 
-template <class t_layout>
 class SystemCommon
 {
   public:
@@ -90,13 +89,62 @@ class SystemCommon
     // Should print LAMMPS style messages
     bool print_lammps;
 
-    SystemCommon();
+    SystemCommon()
+    {
+        N = 0;
+        N_max = 0;
+        N_local = 0;
+        N_ghost = 0;
+        ntypes = 1;
+        atom_style = "atomic";
+
+        mass = t_mass();
+        domain_x = domain_y = domain_z = 0.0;
+        sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
+        domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
+        domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
+        sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
+        sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
+        mvv2e = boltz = dt = 0.0;
+
+        print_lammps = false;
+
+        mass = t_mass( "System::mass", ntypes );
+
+        int proc_rank;
+        MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+        do_print = proc_rank == 0;
+    }
+
     ~SystemCommon() {}
 
-    void slice_all();
-    void slice_integrate();
-    void slice_force();
-    void slice_properties();
+    void slice_all()
+    {
+        slice_x();
+        slice_v();
+        slice_f();
+        slice_type();
+        slice_id();
+        slice_q();
+    }
+    void slice_integrate()
+    {
+        slice_x();
+        slice_v();
+        slice_f();
+        slice_type();
+    }
+    void slice_force()
+    {
+        slice_x();
+        slice_f();
+        slice_type();
+    }
+    void slice_properties()
+    {
+        slice_v();
+        slice_type();
+    }
     virtual void slice_x() = 0;
     virtual void slice_v() = 0;
     virtual void slice_f() = 0;
@@ -109,16 +157,15 @@ class SystemCommon
     virtual void permute( t_linkedcell cell_list ) = 0;
     virtual void migrate( std::shared_ptr<t_distributor> distributor ) = 0;
     virtual void gather( std::shared_ptr<t_halo> halo ) = 0;
-    virtual const char *name();
+    virtual const char *name() { return "SystemNone"; }
 };
 
 template <class t_layout>
-class System : public SystemCommon<t_layout>
+class System : public SystemCommon
 {
   public:
-    using SystemCommon<t_layout>::SystemCommon;
+    using SystemCommon::SystemCommon;
 };
 
 #include <modules_system.h>
-#include <system_impl.h>
 #endif

@@ -48,8 +48,7 @@
 
 #include <system.h>
 
-template <class t_layout>
-SystemCommon<t_layout>::SystemCommon()
+SystemCommon::SystemCommon()
 {
     N = 0;
     N_max = 0;
@@ -76,14 +75,9 @@ SystemCommon<t_layout>::SystemCommon()
     do_print = proc_rank == 0;
 }
 
-template <class t_layout>
-const char *SystemCommon<t_layout>::name()
-{
-    return "SystemNone";
-}
+const char *SystemCommon::name() { return "SystemNone"; }
 
-template <class t_layout>
-void SystemCommon<t_layout>::slice_all()
+void SystemCommon::slice_all()
 {
     slice_x();
     slice_v();
@@ -93,8 +87,7 @@ void SystemCommon<t_layout>::slice_all()
     slice_q();
 }
 
-template <class t_layout>
-void SystemCommon<t_layout>::slice_integrate()
+void SystemCommon::slice_integrate()
 {
     slice_x();
     slice_v();
@@ -102,16 +95,14 @@ void SystemCommon<t_layout>::slice_integrate()
     slice_type();
 }
 
-template <class t_layout>
-void SystemCommon<t_layout>::slice_force()
+void SystemCommon::slice_force()
 {
     slice_x();
     slice_f();
     slice_type();
 }
 
-template <class t_layout>
-void SystemCommon<t_layout>::slice_properties()
+void SystemCommon::slice_properties()
 {
     slice_v();
     slice_type();

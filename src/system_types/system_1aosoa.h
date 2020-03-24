@@ -15,7 +15,7 @@
 #include <system.h>
 
 template <>
-class System<AoSoA1> : public SystemCommon<AoSoA1>
+class System<AoSoA1> : public SystemCommon
 {
     using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
                                         T_INT, T_INT, T_FLOAT>;
@@ -23,7 +23,7 @@ class System<AoSoA1> : public SystemCommon<AoSoA1>
     AoSoA_1 aosoa_0;
 
   public:
-    using SystemCommon<AoSoA1>::SystemCommon;
+    using SystemCommon::SystemCommon;
 
     // Per Particle Property
     using t_x = AoSoA_1::member_slice_type<0>;
