@@ -63,8 +63,20 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-template <class t_System>
 class CabanaMD
+{
+  public:
+    int nsteps;
+
+    virtual void init( InputCL cl ) = 0;
+    virtual void run() = 0;
+
+    virtual void dump_binary( int ) = 0;
+    virtual void check_correctness( int ) = 0;
+};
+
+template <class t_System>
+class CbnMD : public CabanaMD
 {
   public:
     t_System *system;
@@ -74,11 +86,11 @@ class CabanaMD
     InputFile<t_System> *input;
     Binning<t_System> *binning;
 
-    void init( InputCL cl );
-    void run( int nsteps );
+    void init( InputCL cl ) override;
+    void run() override;
 
-    void dump_binary( int );
-    void check_correctness( int );
+    void dump_binary( int ) override;
+    void check_correctness( int ) override;
 };
 
 #include <cabanamd_impl.h>

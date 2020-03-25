@@ -47,13 +47,13 @@
 //************************************************************************
 
 #include <cabanamd.h>
+#include <mdfactory.h>
 #include <types.h>
-
-// CabanaMD can be used as a library
-// This main file is simply a driver
 
 #include "mpi.h"
 
+// CabanaMD can be used as a library
+// This main file is simply a driver
 int main( int argc, char *argv[] )
 {
 
@@ -64,24 +64,10 @@ int main( int argc, char *argv[] )
     InputCL commandline;
     commandline.read_args( argc, argv );
 
-    if ( commandline.layout_type == AOSOA_1 )
-    {
-        CabanaMD<System<AoSoA1>> cabanamd;
-        cabanamd.init( commandline );
-        cabanamd.run( cabanamd.input->nsteps );
-    }
-    else if ( commandline.layout_type == AOSOA_2 )
-    {
-        CabanaMD<System<AoSoA2>> cabanamd;
-        cabanamd.init( commandline );
-        cabanamd.run( cabanamd.input->nsteps );
-    }
-    else if ( commandline.layout_type == AOSOA_6 )
-    {
-        CabanaMD<System<AoSoA6>> cabanamd;
-        cabanamd.init( commandline );
-        cabanamd.run( cabanamd.input->nsteps );
-    }
+    CabanaMD *cabanamd = MDfactory::create( commandline );
+
+    cabanamd->init( commandline );
+    cabanamd->run();
 
     //   cabanamd.check_correctness();
 

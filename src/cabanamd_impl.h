@@ -54,7 +54,7 @@
 #define MAXPATHLEN 1024
 
 template <class t_System>
-void CabanaMD<t_System>::init( InputCL commandline )
+void CbnMD<t_System>::init( InputCL commandline )
 {
     // Create the System class: atom properties (AoSoA) and simulation box
     system = new t_System;
@@ -69,6 +69,7 @@ void CabanaMD<t_System>::init( InputCL commandline )
     }
     // Read input file
     input->read_file();
+    nsteps = input->nsteps;
     if ( system->do_print )
     {
         printf( "Read input file\n" );
@@ -197,7 +198,7 @@ void CabanaMD<t_System>::init( InputCL commandline )
 }
 
 template <class t_System>
-void CabanaMD<t_System>::run( int nsteps )
+void CbnMD<t_System>::run()
 {
     T_F_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
@@ -348,7 +349,7 @@ void CabanaMD<t_System>::run( int nsteps )
 }
 
 template <class t_System>
-void CabanaMD<t_System>::dump_binary( int step )
+void CbnMD<t_System>::dump_binary( int step )
 {
 
     // On dump steps print configuration
@@ -398,7 +399,7 @@ void CabanaMD<t_System>::dump_binary( int step )
 //     6. correctness output to file [DONE]
 
 template <class t_System>
-void CabanaMD<t_System>::check_correctness( int step )
+void CbnMD<t_System>::check_correctness( int step )
 {
 
     if ( step % input->correctness_rate )
