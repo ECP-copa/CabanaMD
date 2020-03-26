@@ -205,6 +205,8 @@ void Comm::create_domain_decomposition()
     }
 }
 
+T_INT Comm::get_proc_size() { return proc_size; }
+
 void Comm::scan_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )

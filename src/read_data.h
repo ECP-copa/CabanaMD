@@ -41,6 +41,7 @@
 #include <types.h>
 
 #include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
 
 #include <cstring>
 #include <fstream>
@@ -58,7 +59,7 @@ void skip_empty( std::ifstream &file, std::string &line )
     }
 }
 
-std::string read_lammps_parse_keyword( std::ifstream &file )
+std::string read_lammps_parse_keyword( std::ifstream &file, bool do_print )
 {
     // Read up to first non-blank line plus 1 following
     std::string line;
@@ -76,7 +77,7 @@ std::string read_lammps_parse_keyword( std::ifstream &file )
         if ( pos != std::string::npos )
         {
             keyword = line;
-            int end = keyword.find_last_not_of( " " ) + 1;
+            std::size_t end = keyword.find_last_not_of( " " ) + 1;
             if ( end < line.length() )
                 keyword.erase( end );
             if ( ( keyword.compare( "Atoms" ) == 0 ) ||
@@ -86,8 +87,9 @@ std::string read_lammps_parse_keyword( std::ifstream &file )
                 return keyword;
             else
             {
-                std::cout << "ERROR: Unknown identifier in data file: "
-                          << keyword.data() << std::endl;
+                if ( do_print )
+                    std::cout << "ERROR: Unknown identifier in data file: "
+                              << keyword.data() << std::endl;
                 return keyword;
             }
         }
@@ -102,13 +104,14 @@ void read_lammps_header( std::ifstream &file, System *s )
     std::string line;
     // skip 1st line of file
     if ( !std::getline( file, line ) )
-        std::cout
-            << "ERROR: could not read line from file. Please check for a valid "
-               "file and ensure that file path is less than 32 characters"
-            << std::endl;
+        if ( s->do_print )
+            std::cout
+                << "ERROR: could not read line from file. Please check for a "
+                   "valid file and ensure that file path is less than 32 "
+                   "characters."
+                << std::endl;
     while ( 1 )
     {
-
         std::getline( file, line );
         // skip blank lines
         std::size_t pos = line.find_first_not_of( " \r\t\n" );
@@ -171,9 +174,19 @@ void read_lammps_atoms( std::ifstream &file, System *s )
 
     T_INT id_tmp, type_tmp;
     T_FLOAT x_tmp, y_tmp, z_tmp, q_tmp;
-    T_INT counter = 0;
+    std::size_t count = 0;
     for ( int n = 0; n < s->N; n++ )
     {
+        // Resize if needed
+        if ( count >= x.size() - 1 )
+        {
+            s->resize( count * 1.1 );
+            x = Cabana::slice<Positions>( s->xvf );
+            id = Cabana::slice<IDs>( s->xvf );
+            type = Cabana::slice<Types>( s->xvf );
+            q = Cabana::slice<Charges>( s->xvf );
+        }
+
         // TODO: error if atom_style doesn't match data
         const char *temp = line.data();
         if ( s->atom_style == "atomic" )
@@ -187,15 +200,14 @@ void read_lammps_atoms( std::ifstream &file, System *s )
                  ( y_tmp < s->sub_domain_hi_y ) &&
                  ( z_tmp < s->sub_domain_hi_z ) )
             {
-                id( n ) = id_tmp;
-                type( n ) = type_tmp - 1;
-                x( n, 0 ) = x_tmp;
-                x( n, 1 ) = y_tmp;
-                x( n, 2 ) = z_tmp;
-                q( n ) = 0;
-                counter++;
+                id( count ) = id_tmp;
+                type( count ) = type_tmp - 1;
+                x( count, 0 ) = x_tmp;
+                x( count, 1 ) = y_tmp;
+                x( count, 2 ) = z_tmp;
+                q( count ) = 0;
+                count++;
             }
-            std::getline( file, line );
         }
         if ( s->atom_style == "charge" )
         {
@@ -208,39 +220,46 @@ void read_lammps_atoms( std::ifstream &file, System *s )
                  ( y_tmp < s->sub_domain_hi_y ) &&
                  ( z_tmp < s->sub_domain_hi_z ) )
             {
-                id( n ) = id_tmp;
-                type( n ) = type_tmp - 1;
-                q( n ) = q_tmp;
-                x( n, 0 ) = x_tmp;
-                x( n, 1 ) = y_tmp;
-                x( n, 2 ) = z_tmp;
-                counter++;
+                id( count ) = id_tmp;
+                type( count ) = type_tmp - 1;
+                q( count ) = q_tmp;
+                x( count, 0 ) = x_tmp;
+                x( count, 1 ) = y_tmp;
+                x( count, 2 ) = z_tmp;
+                count++;
             }
-            // getline pushed to the end of loop because line already stores the
-            // 1st non-blank line after exiting while loop
-            std::getline( file, line );
         }
+        // getline pushed to the end of loop because line already stores the
+        // 1st non-blank line after exiting while loop
+        std::getline( file, line );
     }
-    s->N_local = counter;
+    s->N_local = count;
+    s->resize( s->N_local );
 }
 
 void read_lammps_velocities( std::ifstream &file, System *s )
 {
     std::string line;
     auto v = Cabana::slice<Velocities>( s->xvf );
-
+    auto id = Cabana::slice<IDs>( s->xvf );
     skip_empty( file, line );
 
     T_INT id_tmp;
     T_FLOAT vx_tmp, vy_tmp, vz_tmp;
+    std::size_t count = 0;
     for ( int n = 0; n < s->N; n++ )
     {
         const char *temp = line.data();
         std::sscanf( temp, "%i %lg %lg %lg", &id_tmp, &vx_tmp, &vy_tmp,
                      &vz_tmp );
-        v( n, 0 ) = vx_tmp;
-        v( n, 1 ) = vy_tmp;
-        v( n, 2 ) = vz_tmp;
+        // Only extract velocities on this rank (order matches positions)
+        if ( id_tmp == id( count ) )
+        {
+            v( count, 0 ) = vx_tmp;
+            v( count, 1 ) = vy_tmp;
+            v( count, 2 ) = vz_tmp;
+            count++;
+        }
         std::getline( file, line );
     }
 }
@@ -283,14 +302,14 @@ void read_lammps_data_file( const char *filename, System *s, Comm *comm )
 
     read_lammps_header( file, s );
 
-    // TODO: this won't scale
-    s->resize( s->N );
-
     // perform domain decomposition and get access to subdomains
     comm->create_domain_decomposition();
 
+    // Assume near load balance and resize as necessary
+    s->resize( s->N / comm->get_proc_size() );
+
     // check that the next string is a valid section keyword
-    keyword = read_lammps_parse_keyword( file );
+    keyword = read_lammps_parse_keyword( file, s->do_print );
     while ( keyword.length() )
     {
         if ( keyword.compare( "Atoms" ) == 0 )
@@ -300,7 +319,7 @@ void read_lammps_data_file( const char *filename, System *s, Comm *comm )
         }
         else if ( keyword.compare( "Velocities" ) == 0 )
         {
-            if ( atomflag == 0 )
+            if ( atomflag == 0 && s->do_print )
                 std::cout << "ERROR: Must read Atoms before Velocities"
                           << std::endl;
 
@@ -312,18 +331,21 @@ void read_lammps_data_file( const char *filename, System *s, Comm *comm )
         }
         else if ( keyword.compare( "Pair Coeffs" ) == 0 )
         {
-            std::cout << "WARNING: Ignoring potential parameters in data file. "
-                         "CabanaMD only reads pair_coeff in the input file."
-                      << std::endl;
+            if ( s->do_print )
+                std::cout
+                    << "WARNING: Ignoring potential parameters in data file. "
+                       "CabanaMD only reads pair_coeff in the input file."
+                    << std::endl;
             read_lammps_pair( file, s );
         }
         else
         {
-            std::cout << "ERROR: Unknown identifier in data file: " << keyword
-                      << std::endl;
+            if ( s->do_print )
+                std::cout << "ERROR: Unknown identifier in data file: "
+                          << keyword << std::endl;
         }
 
-        keyword = read_lammps_parse_keyword( file );
+        keyword = read_lammps_parse_keyword( file, s->do_print );
     }
 
     // check that correct # of atoms were created
@@ -335,6 +357,4 @@ void read_lammps_data_file( const char *filename, System *s, Comm *comm )
         if ( s->do_print )
             std::cout << "ERROR: Created incorrect # of atoms" << std::endl;
     }
-
-    s->resize( s->N_local );
 }
