@@ -46,13 +46,48 @@
 //
 //************************************************************************
 
-#include <neighbor.h> //_impl.h>
+template <class t_System>
+Integrator<t_System>::Integrator( t_System *system )
+{
+    dtf = 0.5 * system->dt / system->mvv2e;
+    dtv = system->dt;
+}
 
-void Neighbor::init( T_X_FLOAT, bool ) {}
-void Neighbor::create( System * ) {}
-const char *Neighbor::name() { return "NeighborNone"; }
+template <class t_System>
+void Integrator<t_System>::initial_integrate( t_System *system )
+{
+    mass = system->mass;
 
-template class NeighborVerlet<t_verletlist_half_2D>;
-template class NeighborVerlet<t_verletlist_full_2D>;
-template class NeighborVerlet<t_verletlist_half_CSR>;
-template class NeighborVerlet<t_verletlist_full_CSR>;
+    system->slice_integrate();
+    x = system->x;
+    v = system->v;
+    f = system->f;
+    type = system->type;
+
+    static int step = 1;
+    Kokkos::parallel_for( "IntegratorNVE::initial_integrate",
+                          t_policy_initial( 0, system->N_local ), *this );
+    step++;
+}
+
+template <class t_System>
+void Integrator<t_System>::final_integrate( t_System *system )
+{
+    mass = system->mass;
+
+    system->slice_integrate();
+    v = system->v;
+    f = system->f;
+    type = system->type;
+
+    static int step = 1;
+    Kokkos::parallel_for( "IntegratorNVE::final_integrate",
+                          t_policy_final( 0, system->N_local ), *this );
+    step++;
+}
+
+template <class t_System>
+const char *Integrator<t_System>::name()
+{
+    return "Integrator:NVE";
+}

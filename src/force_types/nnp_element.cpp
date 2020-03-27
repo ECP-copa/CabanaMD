@@ -484,7 +484,8 @@ double Element::getMaxCutoffRadius( t_SF SF, int attype,
 
 // TODO:add functionality
 /*
-void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data,
+void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP_all
+nnp_data,
 ...)
 {
     return;

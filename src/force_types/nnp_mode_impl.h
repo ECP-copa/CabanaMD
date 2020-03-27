@@ -44,16 +44,19 @@
 using namespace std;
 using namespace nnpCbn;
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateSymmetryFunctionGroups( System *s, AoSoA_NNP nnp_data,
-                                            t_neighbor neigh_list )
+template <class t_System, class t_System_NNP, class t_neigh_list,
+          class t_neigh_parallel, class t_angle_parallel>
+void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
+                                            t_neigh_list neigh_list )
 {
-    auto id = Cabana::slice<IDs>( s->xvf );
-    auto type = Cabana::slice<Types>( s->xvf );
-    auto x = Cabana::slice<Positions>( s->xvf );
-    typename AoSoA_NNP::member_slice_type<NNPNames::G>::atomic_access_slice G;
-    G = Cabana::slice<NNPNames::G>( nnp_data );
+    s->slice_x();
+    auto x = s->x;
+    s->slice_type();
+    auto type = s->type;
 
+    s_nnp->slice_G();
+    typename t_System_NNP::t_G::atomic_access_slice G;
+    G = s_nnp->G;
     Cabana::deep_copy( G, 0.0 );
 
     Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
@@ -262,14 +265,20 @@ void Mode::calculateSymmetryFunctionGroups( System *s, AoSoA_NNP nnp_data,
     Kokkos::fence();
 }
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateAtomicNeuralNetworks( System *s, AoSoA_NNP nnp_data,
+template <class t_System, class t_System_NNP, class t_neigh_list,
+          class t_neigh_parallel, class t_angle_parallel>
+void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
                                           t_mass numSFperElem )
 {
-    auto type = Cabana::slice<Types>( s->xvf );
-    auto G = Cabana::slice<NNPNames::G>( nnp_data );
-    auto dEdG = Cabana::slice<NNPNames::dEdG>( nnp_data );
-    auto energy = Cabana::slice<NNPNames::energy>( nnp_data );
+    s->slice_type();
+    auto type = s->type;
+
+    s_nnp->slice_G();
+    s_nnp->slice_dEdG();
+    s_nnp->slice_E();
+    auto G = s_nnp->G;
+    auto dEdG = s_nnp->dEdG;
+    auto energy = s_nnp->E;
 
     NN = d_t_NN( "Mode::NN", s->N, numLayers, maxNeurons );
     dfdx = d_t_NN( "Mode::dfdx", s->N, numLayers, maxNeurons );
@@ -349,17 +358,21 @@ void Mode::calculateAtomicNeuralNetworks( System *s, AoSoA_NNP nnp_data,
     Kokkos::fence();
 }
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateForces( System *s, AoSoA_NNP nnp_data,
-                            t_neighbor neigh_list )
+template <class t_System, class t_System_NNP, class t_neigh_list,
+          class t_neigh_parallel, class t_angle_parallel>
+void Mode::calculateForces( t_System *s, t_System_NNP *s_nnp,
+                            t_neigh_list neigh_list )
 {
     // Calculate Forces
-    auto type = Cabana::slice<Types>( s->xvf );
-    auto x = Cabana::slice<Positions>( s->xvf );
-    auto f = Cabana::slice<Forces>( s->xvf );
-    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-    f_a = Cabana::slice<Forces>( s->xvf );
-    auto dEdG = Cabana::slice<NNPNames::dEdG>( nnp_data );
+    s->slice_force();
+    auto x = s->x;
+    auto f = s->f;
+    typename t_System::t_f::atomic_access_slice f_a;
+    f_a = f;
+    auto type = s->type;
+
+    s_nnp->slice_dEdG();
+    auto dEdG = s_nnp->dEdG;
 
     double convForce = convLength / convEnergy;
 

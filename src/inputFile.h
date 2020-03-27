@@ -46,7 +46,11 @@
 //
 //************************************************************************
 
+#ifndef INPUT_H
+#define INPUT_H
+
 #include <comm_mpi.h>
+#include <inputCL.h>
 #include <system.h>
 #include <types.h>
 
@@ -158,13 +162,16 @@ class LAMMPS_RandomVelocityGeom
     }
 };
 
-class Input
+template <class t_System>
+class InputFile
 {
   private:
     bool timestepflag; // input timestep?
   public:
-    System *system;
+    InputCL commandline;
+    t_System *system;
 
+    bool do_print;
     int units_style;
     int lattice_style;
     double lattice_constant, lattice_offset_x, lattice_offset_y,
@@ -172,8 +179,6 @@ class Input
     int lattice_nx, lattice_ny, lattice_nz;
     int box[6];
 
-    char *input_file;
-    int input_file_type;
     ItemizedFile input_data;
 
     char *data_file;
@@ -190,7 +195,6 @@ class Input
 
     int comm_type;
     int comm_exchange_rate;
-    int comm_newton;
 
     int force_type;
     int force_iteration_type;
@@ -203,18 +207,22 @@ class Input
     T_F_FLOAT neighbor_skin;
     int neighbor_type;
 
+    int layout_type;
+    int nnp_layout_type;
+
     int thermo_rate, dumpbinary_rate, correctness_rate;
     bool dumpbinaryflag, correctnessflag;
     char *dumpbinary_path, *reference_path, *correctness_file;
     char *lammps_data_file;
     bool read_data_flag = false;
 
-  public:
-    Input( System *s );
-    void read_command_line_args( int argc, char *argv[] );
+    InputFile( InputCL cl, t_System *s );
     void read_file( const char *filename = NULL );
     void read_lammps_file( const char *filename );
     void read_data_file( const char *filename );
     void check_lammps_command( int line );
-    void create_lattice( Comm *comm );
+    void create_lattice( Comm<t_System> *comm );
 };
+
+#include <inputFile_impl.h>
+#endif

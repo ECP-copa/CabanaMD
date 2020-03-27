@@ -51,35 +51,24 @@
 #include <system.h>
 #include <types.h>
 
+template <class t_System, class t_iteration, class t_layout>
 class Neighbor
 {
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
 
-    virtual void init( T_X_FLOAT neigh_cut, bool half_neigh );
-    virtual void create( System *system );
+    Neighbor( T_X_FLOAT neigh_cut_, bool half_neigh_ )
+        : neigh_cut( neigh_cut_ )
+        , half_neigh( half_neigh_ )
+    {
+    }
+    virtual ~Neighbor() {}
 
-    template <class t_neigh_list>
-    t_neigh_list &get();
+    virtual void create( t_System *system ) = 0;
 
-    virtual const char *name();
+    virtual const char *name() { return "Neighbor:None"; };
 };
 
-template <class t_neigh_list>
-class NeighborVerlet : public Neighbor
-{
-  public:
-    t_neigh_list list;
-
-    void init( T_X_FLOAT neigh_cut, bool half_neigh );
-    void create( System *system );
-
-    t_neigh_list &get();
-
-    const char *name();
-};
-
-#include <neighbor_impl.h>
-
+#include <modules_neighbor.h>
 #endif

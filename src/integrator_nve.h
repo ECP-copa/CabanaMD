@@ -55,20 +55,60 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+template <class t_System>
 class Integrator
 {
     T_V_FLOAT dtv, dtf;
 
-  public:
-    System *system;
+    typename t_System::t_x x;
+    typename t_System::t_v v;
+    typename t_System::t_f f;
+    typename t_System::t_type type;
 
-    Integrator( System *s );
-    ~Integrator();
+    t_mass_const mass;
+
+  public:
+    Integrator( t_System *s );
+    ~Integrator() {}
     T_V_FLOAT timestep_size;
 
-    void initial_integrate();
-    void final_integrate();
+    void initial_integrate( t_System *s );
+    void final_integrate( t_System *s );
 
     const char *name();
+
+    struct TagInitial
+    {
+    };
+    struct TagFinal
+    {
+    };
+    typedef Kokkos::RangePolicy<TagInitial, Kokkos::IndexType<T_INT>>
+        t_policy_initial;
+    typedef Kokkos::RangePolicy<TagFinal, Kokkos::IndexType<T_INT>>
+        t_policy_final;
+
+    KOKKOS_INLINE_FUNCTION
+    void operator()( TagInitial, const T_INT &i ) const
+    {
+        const T_V_FLOAT dtfm = dtf / mass( type( i ) );
+        v( i, 0 ) += dtfm * f( i, 0 );
+        v( i, 1 ) += dtfm * f( i, 1 );
+        v( i, 2 ) += dtfm * f( i, 2 );
+        x( i, 0 ) += dtv * v( i, 0 );
+        x( i, 1 ) += dtv * v( i, 1 );
+        x( i, 2 ) += dtv * v( i, 2 );
+    }
+
+    KOKKOS_INLINE_FUNCTION
+    void operator()( TagFinal, const T_INT &i ) const
+    {
+        const T_V_FLOAT dtfm = dtf / mass( type( i ) );
+        v( i, 0 ) += dtfm * f( i, 0 );
+        v( i, 1 ) += dtfm * f( i, 1 );
+        v( i, 2 ) += dtfm * f( i, 2 );
+    }
 };
+
+#include <integrator_nve_impl.h>
 #endif

@@ -30,6 +30,7 @@
 
 #include <nnp_cutoff.h>
 #include <nnp_element.h>
+#include <system_nnp.h>
 #include <types_nnp.h>
 
 #include <system.h>
@@ -332,7 +333,8 @@ class Mode
      *
      * Warning: #numSymmetryFunctions needs to be set first!
      */
-    void allocate( System *s, T_INT numSymmetryFunctions, bool all );
+    template <class t_System>
+    void allocate( t_System *s, T_INT numSymmetryFunctions, bool all );
 
     KOKKOS_INLINE_FUNCTION
     void compute_cutoff( CutoffFunction::CutoffType cutoffType, double &fc,
@@ -341,17 +343,20 @@ class Mode
     KOKKOS_INLINE_FUNCTION
     double scale( int attype, double value, int k, d_t_SFscaling SFscaling );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateForces( System *s, AoSoA_NNP nnp_data,
-                          t_neighbor neigh_list );
+    template <class t_System, class t_System_NNP, class t_neigh_list,
+              class t_neigh_parallel, class t_angle_parallel>
+    void calculateForces( t_System *s, t_System_NNP *system_nnp,
+                          t_neigh_list neigh_list );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateAtomicNeuralNetworks( System *s, AoSoA_NNP nnp_data,
+    template <class t_System, class t_System_NNP, class t_neigh_list,
+              class t_neigh_parallel, class t_angle_parallel>
+    void calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *system_nnp,
                                         t_mass numSFperElem );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateSymmetryFunctionGroups( System *s, AoSoA_NNP nnp_data,
-                                          t_neighbor neigh_list );
+    template <class t_System, class t_System_NNP, class t_neigh_list,
+              class t_neigh_parallel, class t_angle_parallel>
+    void calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *system_nnp,
+                                          t_neigh_list neigh_list );
 
     /// Global log file.
     nnp::Log log;

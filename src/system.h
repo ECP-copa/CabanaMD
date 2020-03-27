@@ -54,9 +54,10 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+#include <memory>
 #include <string>
 
-class System
+class SystemCommon
 {
   public:
     T_INT N;       // Number of Global Particles
@@ -67,8 +68,6 @@ class System
     int ntypes;
     std::string atom_style;
 
-    // Per Particle Property
-    AoSoA xvf;
     // Per Type Property
     t_mass mass;
 
@@ -90,25 +89,83 @@ class System
     // Should print LAMMPS style messages
     bool print_lammps;
 
-    System();
-    ~System(){};
-    void init();
-    void destroy();
-
-    void resize( T_INT new_N );
-
-    KOKKOS_INLINE_FUNCTION
-    t_particle get_particle( const T_INT &i ) const
+    SystemCommon()
     {
-        return xvf.getTuple( i );
+        N = 0;
+        N_max = 0;
+        N_local = 0;
+        N_ghost = 0;
+        ntypes = 1;
+        atom_style = "atomic";
+
+        mass = t_mass();
+        domain_x = domain_y = domain_z = 0.0;
+        sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
+        domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
+        domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
+        sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
+        sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
+        mvv2e = boltz = dt = 0.0;
+
+        print_lammps = false;
+
+        mass = t_mass( "System::mass", ntypes );
+
+        int proc_rank;
+        MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+        do_print = proc_rank == 0;
     }
 
-    KOKKOS_INLINE_FUNCTION
-    void set_particle( const T_INT &i, const t_particle &p ) const
-    {
-        xvf.setTuple( i, p );
-    }
+    ~SystemCommon() {}
 
-    void print_particles();
+    void slice_all()
+    {
+        slice_x();
+        slice_v();
+        slice_f();
+        slice_type();
+        slice_id();
+        slice_q();
+    }
+    void slice_integrate()
+    {
+        slice_x();
+        slice_v();
+        slice_f();
+        slice_type();
+    }
+    void slice_force()
+    {
+        slice_x();
+        slice_f();
+        slice_type();
+    }
+    void slice_properties()
+    {
+        slice_v();
+        slice_type();
+    }
+    virtual void slice_x() = 0;
+    virtual void slice_v() = 0;
+    virtual void slice_f() = 0;
+    virtual void slice_type() = 0;
+    virtual void slice_id() = 0;
+    virtual void slice_q() = 0;
+
+    virtual void init() = 0;
+    virtual void resize( T_INT N_new ) = 0;
+    virtual void permute( t_linkedcell cell_list ) = 0;
+    virtual void migrate( std::shared_ptr<t_distributor> distributor ) = 0;
+    virtual void gather( std::shared_ptr<t_halo> halo ) = 0;
+    virtual const char *name() { return "SystemNone"; }
 };
+
+template <class t_layout>
+class System : public SystemCommon
+{
+  public:
+    using SystemCommon::SystemCommon;
+};
+
+#include <modules_system.h>
 #endif

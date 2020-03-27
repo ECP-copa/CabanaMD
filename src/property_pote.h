@@ -46,17 +46,25 @@
 //
 //************************************************************************
 
+#ifndef PROPERTY_POTE_H
+#define PROPERTY_POTE_H
+
 #include <comm_mpi.h>
 #include <system.h>
 #include <types.h>
 
+template <class t_System, class t_Neighbor>
 class PotE
 {
   private:
-    Comm *comm;
+    Comm<t_System> *comm;
 
   public:
-    PotE( Comm *comm_ );
+    PotE( Comm<t_System> *comm_ );
 
-    T_F_FLOAT compute( System *, Force *, Neighbor * );
+    T_F_FLOAT compute( t_System *, Force<t_System, t_Neighbor> *,
+                       t_Neighbor * );
 };
+
+#include <property_pote_impl.h>
+#endif

@@ -46,30 +46,35 @@
 //
 //************************************************************************
 
-#include <property_kine.h>
+#include <property_temperature.h>
 
-KinE::KinE( Comm *comm_ )
+template <class t_System>
+Temperature<t_System>::Temperature( Comm<t_System> *comm_ )
     : comm( comm_ )
 {
 }
 
-T_V_FLOAT KinE::compute( System *system )
+template <class t_System>
+T_V_FLOAT Temperature<t_System>::compute( t_System *system )
 {
-    v = Cabana::slice<Velocities>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
+    system->slice_properties();
+    v = system->v;
+    type = system->type;
+
     mass = system->mass;
 
-    T_V_FLOAT KE;
+    T_V_FLOAT T;
     Kokkos::parallel_reduce(
         Kokkos::RangePolicy<Kokkos::IndexType<T_INT>>( 0, system->N_local ),
-        *this, KE );
+        *this, T );
 
     // Make sure I don't carry around references to data
     mass = t_mass();
 
-    // Multiply by scaling factor (units based) to get to kinetic energy
-    T_V_FLOAT factor = 0.5 * system->mvv2e;
+    // Multiply by scaling factor (units based) to get to temperature
+    T_INT dof = 3 * system->N - 3;
+    T_V_FLOAT factor = system->mvv2e / ( 1.0 * dof * system->boltz );
 
-    comm->reduce_float( &KE, 1 );
-    return KE * factor;
+    comm->reduce_float( &T, 1 );
+    return T * factor;
 }

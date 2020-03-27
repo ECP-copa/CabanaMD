@@ -53,19 +53,22 @@
 #include <system.h>
 #include <types.h>
 
+template <class t_System, class t_Neighbor>
 class Force
 {
   public:
-    Force( System *system );
+    Force( t_System * ) {}
+    virtual ~Force() {}
 
-    virtual void init_coeff( char **args );
-    virtual void compute( System *system, Neighbor *neighbor );
-    virtual T_F_FLOAT compute_energy( System *, Neighbor * )
+    virtual void init_coeff( char **args ) = 0;
+
+    virtual void compute( t_System *system, t_Neighbor *neighbor ) = 0;
+    virtual T_F_FLOAT compute_energy( t_System *, t_Neighbor * )
     {
         return 0.0;
     } // Only needed for thermo output
 
-    virtual const char *name();
+    virtual const char *name() { return "ForceNone"; }
 };
 
 #include <modules_force.h>

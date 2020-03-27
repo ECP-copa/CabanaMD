@@ -46,60 +46,64 @@
 //
 //************************************************************************
 
-#include <binning_cabana.h>
+#include <system.h>
 
-Binning::Binning( System *s )
-    : system( s )
+SystemCommon::SystemCommon()
 {
+    N = 0;
+    N_max = 0;
+    N_local = 0;
+    N_ghost = 0;
+    ntypes = 1;
+    atom_style = "atomic";
+
+    mass = t_mass();
+    domain_x = domain_y = domain_z = 0.0;
+    sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
+    domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
+    domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
+    sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
+    sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
+    mvv2e = boltz = dt = 0.0;
+
+    print_lammps = false;
+
+    mass = t_mass( "System::mass", ntypes );
+
+    int proc_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+    do_print = proc_rank == 0;
 }
 
-void Binning::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in,
-                              int halo_depth, bool do_local, bool do_ghost,
-                              bool sort )
+const char *SystemCommon::name() { return "SystemNone"; }
+
+void SystemCommon::slice_all()
 {
-    if ( do_local || do_ghost )
-    {
-        nhalo = halo_depth;
-        int begin = do_local ? 0 : system->N_local;
-        int end =
-            do_ghost ? system->N_local + system->N_ghost : system->N_local;
-
-        nbinx = T_INT( system->sub_domain_x / dx_in );
-        nbiny = T_INT( system->sub_domain_y / dy_in );
-        nbinz = T_INT( system->sub_domain_z / dz_in );
-
-        if ( nbinx == 0 )
-            nbinx = 1;
-        if ( nbiny == 0 )
-            nbiny = 1;
-        if ( nbinz == 0 )
-            nbinz = 1;
-
-        T_X_FLOAT dx = system->sub_domain_x / nbinx;
-        T_X_FLOAT dy = system->sub_domain_y / nbiny;
-        T_X_FLOAT dz = system->sub_domain_z / nbinz;
-
-        T_X_FLOAT eps = dx / 1000;
-        minx = -dx * halo_depth - eps + system->sub_domain_lo_x;
-        maxx = dx * halo_depth + eps + system->sub_domain_hi_x;
-        miny = -dy * halo_depth - eps + system->sub_domain_lo_y;
-        maxy = dy * halo_depth + eps + system->sub_domain_hi_y;
-        minz = -dz * halo_depth - eps + system->sub_domain_lo_z;
-        maxz = dz * halo_depth + eps + system->sub_domain_hi_z;
-
-        T_X_FLOAT delta[3] = {dx, dy, dz};
-        T_X_FLOAT min[3] = {minx, miny, minz};
-        T_X_FLOAT max[3] = {maxx, maxy, maxz};
-
-        x = Cabana::slice<Positions>( system->xvf );
-
-        t_linkedcell cell_list( x, begin, end, delta, min, max );
-
-        if ( sort )
-        {
-            Cabana::permute( cell_list, system->xvf );
-        }
-    }
+    slice_x();
+    slice_v();
+    slice_f();
+    slice_type();
+    slice_id();
+    slice_q();
 }
 
-const char *Binning::name() { return "Binning:CabanaLinkedCell"; }
+void SystemCommon::slice_integrate()
+{
+    slice_x();
+    slice_v();
+    slice_f();
+    slice_type();
+}
+
+void SystemCommon::slice_force()
+{
+    slice_x();
+    slice_f();
+    slice_type();
+}
+
+void SystemCommon::slice_properties()
+{
+    slice_v();
+    slice_type();
+}

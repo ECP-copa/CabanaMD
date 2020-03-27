@@ -38,6 +38,7 @@
 ---------------------------------------------------------------------- */
 
 #include <comm_mpi.h>
+#include <system.h>
 #include <types.h>
 
 #include <Cabana_Core.hpp>
@@ -97,7 +98,8 @@ std::string read_lammps_parse_keyword( std::ifstream &file )
     return keyword;
 }
 
-void read_lammps_header( std::ifstream &file, System *s )
+template <class t_System>
+void read_lammps_header( std::ifstream &file, t_System *s )
 {
     std::string line;
     // skip 1st line of file
@@ -159,13 +161,16 @@ void read_lammps_header( std::ifstream &file, System *s )
     }
 }
 
-void read_lammps_atoms( std::ifstream &file, System *s )
+template <class t_System>
+void read_lammps_atoms( std::ifstream &file, t_System *s )
 {
     std::string line;
-    auto x = Cabana::slice<Positions>( s->xvf );
-    auto id = Cabana::slice<IDs>( s->xvf );
-    auto type = Cabana::slice<Types>( s->xvf );
-    auto q = Cabana::slice<Charges>( s->xvf );
+
+    s->slice_all();
+    auto x = s->x;
+    auto id = s->id;
+    auto type = s->type;
+    auto q = s->q;
 
     skip_empty( file, line );
 
@@ -224,10 +229,13 @@ void read_lammps_atoms( std::ifstream &file, System *s )
     s->N_local = counter;
 }
 
-void read_lammps_velocities( std::ifstream &file, System *s )
+template <class t_System>
+void read_lammps_velocities( std::ifstream &file, t_System *s )
 {
     std::string line;
-    auto v = Cabana::slice<Velocities>( s->xvf );
+
+    s->slice_v();
+    auto v = s->v;
 
     skip_empty( file, line );
 
@@ -245,7 +253,8 @@ void read_lammps_velocities( std::ifstream &file, System *s )
     }
 }
 
-void read_lammps_masses( std::ifstream &file, System *s )
+template <class t_System>
+void read_lammps_masses( std::ifstream &file, t_System *s )
 {
     std::string line;
     s->mass = t_mass( "System::mass", s->ntypes );
@@ -264,7 +273,8 @@ void read_lammps_masses( std::ifstream &file, System *s )
     }
 }
 
-void read_lammps_pair( std::ifstream &file, System *s )
+template <class t_System>
+void read_lammps_pair( std::ifstream &file, t_System *s )
 {
     // Parse through pair_coeff lines to avoid error, but ignore values
     std::string line;
@@ -274,14 +284,16 @@ void read_lammps_pair( std::ifstream &file, System *s )
         std::getline( file, line );
 }
 
-void read_lammps_data_file( const char *filename, System *s, Comm *comm )
+template <class t_System>
+void read_lammps_data_file( std::string filename, t_System *s,
+                            Comm<t_System> *comm )
 {
 
     int atomflag = 0;
     std::string keyword;
     std::ifstream file( filename );
 
-    read_lammps_header( file, s );
+    read_lammps_header<t_System>( file, s );
 
     // TODO: this won't scale
     s->resize( s->N );
@@ -295,7 +307,7 @@ void read_lammps_data_file( const char *filename, System *s, Comm *comm )
     {
         if ( keyword.compare( "Atoms" ) == 0 )
         {
-            read_lammps_atoms( file, s );
+            read_lammps_atoms<t_System>( file, s );
             atomflag = 1;
         }
         else if ( keyword.compare( "Velocities" ) == 0 )
@@ -304,18 +316,18 @@ void read_lammps_data_file( const char *filename, System *s, Comm *comm )
                 std::cout << "ERROR: Must read Atoms before Velocities"
                           << std::endl;
 
-            read_lammps_velocities( file, s );
+            read_lammps_velocities<t_System>( file, s );
         }
         else if ( keyword.compare( "Masses" ) == 0 )
         {
-            read_lammps_masses( file, s );
+            read_lammps_masses<t_System>( file, s );
         }
         else if ( keyword.compare( "Pair Coeffs" ) == 0 )
         {
             std::cout << "WARNING: Ignoring potential parameters in data file. "
                          "CabanaMD only reads pair_coeff in the input file."
                       << std::endl;
-            read_lammps_pair( file, s );
+            read_lammps_pair<t_System>( file, s );
         }
         else
         {

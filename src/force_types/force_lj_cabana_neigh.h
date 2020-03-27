@@ -57,16 +57,18 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-template <class t_neighbor>
-class ForceLJ : public Force
+template <class t_System, class t_Neighbor>
+class ForceLJ : public Force<t_System, t_Neighbor>
 {
   private:
     int N_local, ntypes;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-    typename AoSoA::member_slice_type<IDs> id;
-    typename AoSoA::member_slice_type<Types> type;
+    typename t_System::t_x x;
+    typename t_System::t_f f;
+    typename t_System::t_f::atomic_access_slice f_a;
+    typename t_System::t_type type;
+
+    typedef typename t_Neighbor::t_neigh_list t_neigh_list;
+    typename t_Neighbor::t_neigh_list neigh_list;
 
     int step;
 
@@ -111,14 +113,12 @@ class ForceLJ : public Force
     typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_pe_stackparams;
 
-    t_neighbor neigh_list;
+    ForceLJ( t_System *system );
+    ~ForceLJ() override {}
 
-    ForceLJ( System *system );
-
-    void init_coeff( char **args );
-
-    void compute( System *system, Neighbor *neighbor );
-    T_F_FLOAT compute_energy( System *system, Neighbor *neighbor );
+    void init_coeff( char **args ) override;
+    void compute( t_System *system, t_Neighbor *neighbor ) override;
+    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
     KOKKOS_INLINE_FUNCTION
     void operator()( TagFullNeigh, const T_INT &i ) const;
@@ -132,7 +132,9 @@ class ForceLJ : public Force
     KOKKOS_INLINE_FUNCTION
     void operator()( TagHalfNeighPE, const T_INT &i, T_V_FLOAT &PE ) const;
 
-    const char *name();
+    const char *name() override;
 };
+
+#include <force_lj_cabana_neigh_impl.h>
 
 #endif

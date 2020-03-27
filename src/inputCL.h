@@ -46,18 +46,35 @@
 //
 //************************************************************************
 
-#include <cabanamd.h>
-#include <property_pote.h>
+#ifndef INPUTCL_H
+#define INPUTCL_H
 
-PotE::PotE( Comm *comm_ )
-    : comm( comm_ )
-{
-}
+#include <types.h>
 
-T_F_FLOAT PotE::compute( System *system, Force *force, Neighbor *neighbor )
+#include <iostream>
+
+class InputCL
 {
-    T_F_FLOAT PE;
-    PE = force->compute_energy( system, neighbor );
-    comm->reduce_float( &PE, 1 );
-    return PE;
-}
+  public:
+    bool do_print;
+
+    int input_file_type;
+
+    int neighbor_type;
+    int force_iteration_type;
+    bool set_force_iteration;
+    int force_neigh_parallel_type;
+    int layout_type;
+    int nnp_layout_type;
+
+    int dumpbinary_rate, correctness_rate;
+    bool dumpbinaryflag, correctnessflag;
+    char *dumpbinary_path, *reference_path, *correctness_file;
+    char *input_file = NULL;
+
+    InputCL();
+    ~InputCL();
+    void read_args( int argc, char *argv[] );
+};
+
+#endif

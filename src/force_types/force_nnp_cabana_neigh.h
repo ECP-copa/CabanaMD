@@ -13,6 +13,7 @@
 #define FORCE_NNP_CABANA_NEIGH_H
 
 #include <nnp_mode_impl.h>
+#include <system_nnp.h>
 
 #include <force.h>
 #include <neighbor.h>
@@ -21,18 +22,19 @@
 
 #include <Cabana_Core.hpp>
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-class ForceNNP : public Force
+template <class t_System, class t_System_NNP, class t_Neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+class ForceNNP : public Force<t_System, t_Neighbor>
 {
   private:
     int N_local, ntypes;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-    typename AoSoA::member_slice_type<IDs> id;
-    typename AoSoA::member_slice_type<Types> type;
-
     int step;
+
+    typedef typename t_Neighbor::t_neigh_list t_neigh_list;
+
+    // NNP-specific System class for AoSoAs
+    // Storage of G, dEdG and energy (per atom properties)
+    t_System_NNP *system_nnp;
 
   public:
     struct TagFullNeigh
@@ -62,20 +64,18 @@ class ForceNNP : public Force
 
     nnpCbn::Mode *mode;
 
-    /// AoSoAs of use to compute energy and force
-    /// Allow storage of G, dEdG and energy (per atom properties)
-    AoSoA_NNP nnp_data;
     // numSymmetryFunctionsPerElement (per type property)
     t_mass d_numSFperElem;
     h_t_mass h_numSFperElem, atomicEnergyOffset;
 
-    ForceNNP( System *system );
-    void init_coeff( char **args );
+    ForceNNP( t_System *system );
+    ~ForceNNP() override {}
 
-    void compute( System *system, Neighbor *neighbor );
-    T_F_FLOAT compute_energy( System *system, Neighbor *neighbor );
+    void init_coeff( char **args ) override;
+    void compute( t_System *system, t_Neighbor *neighbor ) override;
+    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
-    const char *name();
+    const char *name() override;
 
     bool showew;
     bool resetew;
@@ -87,4 +87,5 @@ class ForceNNP : public Force
     char *directory;
 };
 
+#include <force_nnp_cabana_neigh_impl.h>
 #endif

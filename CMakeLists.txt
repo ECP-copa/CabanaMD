@@ -32,18 +32,16 @@ foreach(_device ${CABANAMD_SUPPORTED_DEVICES})
   endif()
 endforeach()
 
-
 ##---------------------------------------------------------------------------##
-# Set up optional libraries
+# Set up neural network options
 ##---------------------------------------------------------------------------##
-
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
 endif()
 
 ##---------------------------------------------------------------------------##
-## Print the revision number to stdout
+## Print the Git revision number to stdout
 ##---------------------------------------------------------------------------##
 FIND_PACKAGE(Git)
 IF(GIT_FOUND AND IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.git)
@@ -60,14 +58,12 @@ MESSAGE(STATUS "CabanaMD Revision = '${CabanaMD_GIT_COMMIT_HASH}'")
 ##---------------------------------------------------------------------------##
 ## Build CabanaMD
 ##---------------------------------------------------------------------------##
-
 add_subdirectory(src)
 add_subdirectory(bin)
 
 ##---------------------------------------------------------------------------##
 ## Enable Tests?
 ##---------------------------------------------------------------------------##
-
 option(CabanaMD_ENABLE_TESTING "Build tests" OFF)
 if(CabanaMD_ENABLE_TESTING)
   enable_testing()
@@ -75,11 +71,11 @@ if(CabanaMD_ENABLE_TESTING)
 endif()
 
 ##---------------------------------------------------------------------------##
-## Pretty-printing wizardry:
+## Clang format
 ##---------------------------------------------------------------------------##
 find_package(CLANG_FORMAT)
 if(CLANG_FORMAT_FOUND)
-  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h)
+  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h bin/*.cpp)
   add_custom_target(format
     COMMAND ${CLANG_FORMAT_EXECUTABLE} -i -style=file ${FORMAT_SOURCES}
     DEPENDS ${FORMAT_SOURCES})

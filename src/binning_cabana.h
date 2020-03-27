@@ -54,19 +54,21 @@
 
 #include <Cabana_Core.hpp>
 
+template <class t_System>
 class Binning
 {
-    System *system;
+    t_System *system;
 
   public:
     T_INT nbinx, nbiny, nbinz, nhalo;
     T_X_FLOAT minx, maxx, miny, maxy, minz, maxz;
-    typename AoSoA::member_slice_type<Positions> x;
 
-    Binning( System *s );
+    Binning( t_System *s );
     void create_binning( T_X_FLOAT dx, T_X_FLOAT dy, T_X_FLOAT dz,
                          int halo_depth, bool do_local, bool do_ghost,
                          bool sort );
     const char *name();
 };
+
+#include <binning_cabana_impl.h>
 #endif

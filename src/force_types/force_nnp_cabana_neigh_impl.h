@@ -9,33 +9,39 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <force_nnp_cabana_neigh.h>
-
 #include <iostream>
 #include <string.h>
 #include <string>
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::ForceNNP(
-    System *system )
-    : Force( system )
+template <class t_System, class t_System_NNP, class t_Neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
+         t_angle_parallel>::ForceNNP( t_System *system )
+    : Force<t_System, t_Neighbor>( system )
 {
     ntypes = system->ntypes;
     N_local = 0;
     step = 0;
-    // resize nnp_data to have size as big as number of atoms in system
-    AoSoA_NNP nnp_data( "ForceNNP::nnp_data", system->N );
+
+    system_nnp = new t_System_NNP;
+
+    if ( system->do_print )
+        printf( "Using: NNPVectorLength:%i %s\n", CabanaMD_VECTORLENGTH_NNP,
+                system_nnp->name() );
 }
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-const char *ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::name()
+template <class t_System, class t_System_NNP, class t_Neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+const char *ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
+                     t_angle_parallel>::name()
 {
     return "Force:NNPCabana";
 }
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::init_coeff(
-    char **args )
+template <class t_System, class t_System_NNP, class t_Neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
+              t_angle_parallel>::init_coeff( char **args )
 {
     mode = new ( nnpCbn::Mode );
     mode->initialize();
@@ -58,30 +64,36 @@ void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::init_coeff(
     mode->setupNeuralNetworkWeights( weightsfile );
 }
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-void ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute(
-    System *s, Neighbor *neighbor )
+template <class t_System, class t_System_NNP, class t_Neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
+              t_angle_parallel>::compute( t_System *s, t_Neighbor *neighbor )
 {
-    auto neigh_list = neighbor->get<t_neighbor>();
+    auto neigh_list = neighbor->get();
 
-    nnp_data.resize( s->N_local );
+    system_nnp->resize( s->N_local );
+
     Kokkos::deep_copy( d_numSFperElem, h_numSFperElem );
-    mode->calculateSymmetryFunctionGroups<t_neighbor, t_neigh_parallel,
-                                          t_angle_parallel>( s, nnp_data,
-                                                             neigh_list );
-    mode->calculateAtomicNeuralNetworks<t_neighbor, t_neigh_parallel,
-                                        t_angle_parallel>( s, nnp_data,
-                                                           d_numSFperElem );
-    mode->calculateForces<t_neighbor, t_neigh_parallel, t_angle_parallel>(
-        s, nnp_data, neigh_list );
+    mode->calculateSymmetryFunctionGroups<t_System, t_System_NNP, t_neigh_list,
+                                          t_neigh_parallel, t_angle_parallel>(
+        s, system_nnp, neigh_list );
+    mode->calculateAtomicNeuralNetworks<t_System, t_System_NNP, t_neigh_list,
+                                        t_neigh_parallel, t_angle_parallel>(
+        s, system_nnp, d_numSFperElem );
+    mode->calculateForces<t_System, t_System_NNP, t_neigh_list,
+                          t_neigh_parallel, t_angle_parallel>( s, system_nnp,
+                                                               neigh_list );
 }
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-T_V_FLOAT
-ForceNNP<t_neighbor, t_neigh_parallel, t_angle_parallel>::compute_energy(
-    System *s, Neighbor * )
+template <class t_System, class t_System_NNP, class t_Neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+T_V_FLOAT ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
+                   t_angle_parallel>::compute_energy( t_System *s,
+                                                      t_Neighbor * )
 {
-    auto energy = Cabana::slice<NNPNames::energy>( nnp_data );
+    system_nnp->slice_E();
+    auto energy = system_nnp->E;
+
     T_V_FLOAT system_energy = 0.0;
     // Loop over all atoms and add atomic contributions to total energy.
     Kokkos::parallel_reduce(
