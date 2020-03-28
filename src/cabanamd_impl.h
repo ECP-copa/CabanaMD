@@ -50,7 +50,6 @@
 #include <property_pote.h>
 #include <property_temperature.h>
 #include <read_data.h>
-#include <system_nnp.h>
 
 #define MAXPATHLEN 1024
 
@@ -113,6 +112,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         force = new ForceLJ<t_System, t_Neighbor>( system );
     }
 #ifdef CabanaMD_ENABLE_NNP
+#include <system_nnp.h>
     else if ( input->force_type == FORCE_NNP )
     {
         if ( half_neigh )

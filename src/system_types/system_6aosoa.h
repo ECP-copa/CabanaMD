@@ -13,6 +13,11 @@
 #define SYSTEM_6AOSOA_H
 
 #include <system.h>
+#include <types.h>
+
+#include <CabanaMD_config.hpp>
+
+#include <Cabana_Core.hpp>
 
 template <>
 class System<AoSoA6> : public SystemCommon

@@ -17,6 +17,10 @@
 
 #include <types.h>
 
+#include <CabanaMD_config.hpp>
+
+#include <Cabana_Core.hpp>
+
 template <>
 class System_NNP<AoSoA1>
 {
