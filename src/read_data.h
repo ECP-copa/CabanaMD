@@ -306,7 +306,7 @@ void read_lammps_data_file( const char *filename, System *s, Comm *comm )
     comm->create_domain_decomposition();
 
     // Assume near load balance and resize as necessary
-    s->resize( s->N / comm->get_proc_size() );
+    s->resize( s->N / comm->num_processes() );
 
     // check that the next string is a valid section keyword
     keyword = read_lammps_parse_keyword( file, s->do_print );
