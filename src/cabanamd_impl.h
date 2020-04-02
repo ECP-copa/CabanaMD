@@ -85,7 +85,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         std::exit( 1 );
     }
 #endif
-    T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
+    auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
     // Create Communication class: MPI
@@ -219,9 +219,9 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         Temperature<t_System> temp( comm );
         PotE<t_System, t_Neighbor> pote( comm );
         KinE<t_System> kine( comm );
-        T_FLOAT T = temp.compute( system );
-        T_FLOAT PE = pote.compute( system, force, neighbor ) / system->N;
-        T_FLOAT KE = kine.compute( system ) / system->N;
+        auto T = temp.compute( system );
+        auto PE = pote.compute( system, force, neighbor ) / system->N;
+        auto KE = kine.compute( system ) / system->N;
         if ( system->do_print )
         {
             if ( !system->print_lammps )
@@ -253,7 +253,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 template <class t_System, class t_Neighbor>
 void CbnMD<t_System, t_Neighbor>::run()
 {
-    T_F_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
+    auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
     Temperature<t_System> temp( comm );
@@ -340,9 +340,9 @@ void CbnMD<t_System, t_Neighbor>::run()
         // Print output
         if ( step % input->thermo_rate == 0 )
         {
-            T_FLOAT T = temp.compute( system );
-            T_FLOAT PE = pote.compute( system, force, neighbor ) / system->N;
-            T_FLOAT KE = kine.compute( system ) / system->N;
+            auto T = temp.compute( system );
+            auto PE = pote.compute( system, force, neighbor ) / system->N;
+            auto KE = kine.compute( system ) / system->N;
             if ( system->do_print )
             {
                 if ( !system->print_lammps )
