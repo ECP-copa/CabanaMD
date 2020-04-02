@@ -11,6 +11,7 @@
 
 #include <cabanamd.h>
 #include <inputCL.h>
+#include <neighbor.h>
 #include <system.h>
 
 class MDfactory
@@ -18,12 +19,90 @@ class MDfactory
   public:
     static CabanaMD *create( InputCL commandline )
     {
-        if ( commandline.layout_type == AOSOA_1 )
-            return new CbnMD<System<AoSoA1>>;
-        else if ( commandline.layout_type == AOSOA_2 )
-            return new CbnMD<System<AoSoA2>>;
-        else if ( commandline.layout_type == AOSOA_6 )
-            return new CbnMD<System<AoSoA6>>;
+        bool half_neigh =
+            commandline.force_iteration_type == FORCE_ITER_NEIGH_HALF;
+        int layout = commandline.layout_type;
+        int neigh = commandline.neighbor_type;
+
+        if ( neigh == NEIGH_VERLET_2D )
+        {
+            if ( half_neigh )
+            {
+                if ( layout == AOSOA_1 )
+                    return new CbnMD<
+                        System<AoSoA1>,
+                        NeighborVerlet<System<AoSoA1>, Cabana::HalfNeighborTag,
+                                       Cabana::VerletLayout2D>>;
+                else if ( layout == AOSOA_2 )
+                    return new CbnMD<
+                        System<AoSoA2>,
+                        NeighborVerlet<System<AoSoA2>, Cabana::HalfNeighborTag,
+                                       Cabana::VerletLayout2D>>;
+                else if ( layout == AOSOA_6 )
+                    return new CbnMD<
+                        System<AoSoA6>,
+                        NeighborVerlet<System<AoSoA6>, Cabana::HalfNeighborTag,
+                                       Cabana::VerletLayout2D>>;
+            }
+            else
+            {
+                if ( layout == AOSOA_1 )
+                    return new CbnMD<
+                        System<AoSoA1>,
+                        NeighborVerlet<System<AoSoA1>, Cabana::FullNeighborTag,
+                                       Cabana::VerletLayout2D>>;
+                else if ( layout == AOSOA_2 )
+                    return new CbnMD<
+                        System<AoSoA2>,
+                        NeighborVerlet<System<AoSoA2>, Cabana::FullNeighborTag,
+                                       Cabana::VerletLayout2D>>;
+                else if ( layout == AOSOA_6 )
+                    return new CbnMD<
+                        System<AoSoA6>,
+                        NeighborVerlet<System<AoSoA6>, Cabana::FullNeighborTag,
+                                       Cabana::VerletLayout2D>>;
+            }
+        }
+        if ( neigh == NEIGH_VERLET_CSR )
+        {
+            if ( half_neigh )
+            {
+                if ( layout == AOSOA_1 )
+                    return new CbnMD<
+                        System<AoSoA1>,
+                        NeighborVerlet<System<AoSoA1>, Cabana::HalfNeighborTag,
+                                       Cabana::VerletLayoutCSR>>;
+                else if ( layout == AOSOA_2 )
+                    return new CbnMD<
+                        System<AoSoA2>,
+                        NeighborVerlet<System<AoSoA2>, Cabana::HalfNeighborTag,
+                                       Cabana::VerletLayoutCSR>>;
+                else if ( layout == AOSOA_6 )
+                    return new CbnMD<
+                        System<AoSoA6>,
+                        NeighborVerlet<System<AoSoA6>, Cabana::HalfNeighborTag,
+                                       Cabana::VerletLayoutCSR>>;
+            }
+            else
+            {
+                if ( layout == AOSOA_1 )
+                    return new CbnMD<
+                        System<AoSoA1>,
+                        NeighborVerlet<System<AoSoA1>, Cabana::FullNeighborTag,
+                                       Cabana::VerletLayoutCSR>>;
+                else if ( layout == AOSOA_2 )
+                    return new CbnMD<
+                        System<AoSoA2>,
+                        NeighborVerlet<System<AoSoA2>, Cabana::FullNeighborTag,
+                                       Cabana::VerletLayoutCSR>>;
+                else if ( layout == AOSOA_6 )
+                    return new CbnMD<
+                        System<AoSoA6>,
+                        NeighborVerlet<System<AoSoA6>, Cabana::FullNeighborTag,
+                                       Cabana::VerletLayoutCSR>>;
+            }
+        }
+
         return nullptr;
     }
 };

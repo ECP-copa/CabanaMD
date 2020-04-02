@@ -49,17 +49,18 @@
 #include <cabanamd.h>
 #include <property_pote.h>
 
-template <class t_System>
-PotE<t_System>::PotE( Comm<t_System> *comm_ )
+template <class t_System, class t_Neighbor>
+PotE<t_System, t_Neighbor>::PotE( Comm<t_System> *comm_ )
     : comm( comm_ )
 {
 }
 
-template <class t_System>
-T_F_FLOAT PotE<t_System>::compute( t_System *system, Force<t_System> *force )
+template <class t_System, class t_Neighbor>
+T_F_FLOAT PotE<t_System, t_Neighbor>::compute(
+    t_System *system, Force<t_System, t_Neighbor> *force, t_Neighbor *neighbor )
 {
     T_F_FLOAT PE;
-    PE = force->compute_energy( system );
+    PE = force->compute_energy( system, neighbor );
     comm->reduce_float( &PE, 1 );
     return PE;
 }

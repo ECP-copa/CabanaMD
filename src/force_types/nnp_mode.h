@@ -343,20 +343,20 @@ class Mode
     KOKKOS_INLINE_FUNCTION
     double scale( int attype, double value, int k, d_t_SFscaling SFscaling );
 
-    template <class t_System, class t_System_NNP, class t_neighbor,
+    template <class t_System, class t_System_NNP, class t_neigh_list,
               class t_neigh_parallel, class t_angle_parallel>
     void calculateForces( t_System *s, t_System_NNP *system_nnp,
-                          t_neighbor neigh_list );
+                          t_neigh_list neigh_list );
 
-    template <class t_System, class t_System_NNP, class t_neighbor,
+    template <class t_System, class t_System_NNP, class t_neigh_list,
               class t_neigh_parallel, class t_angle_parallel>
     void calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *system_nnp,
                                         t_mass numSFperElem );
 
-    template <class t_System, class t_System_NNP, class t_neighbor,
+    template <class t_System, class t_System_NNP, class t_neigh_list,
               class t_neigh_parallel, class t_angle_parallel>
     void calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *system_nnp,
-                                          t_neighbor neigh_list );
+                                          t_neigh_list neigh_list );
 
     /// Global log file.
     nnp::Log log;

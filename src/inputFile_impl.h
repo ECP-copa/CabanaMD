@@ -156,6 +156,7 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
 {
     comm_type = COMM_MPI;
     integrator_type = INTEGRATOR_NVE;
+    neighbor_type = NEIGH_VERLET_2D;
     force_type = FORCE_LJ;
     binning_type = BINNING_LINKEDCELL;
 

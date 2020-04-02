@@ -46,45 +46,19 @@
 //
 //************************************************************************
 
-#ifdef FORCE_MODULES_INSTANTIATION
-else if ( input->force_type == FORCE_LJ )
-{
-    if ( input->neighbor_type == NEIGH_2D )
-    {
-        if ( half_neigh )
-            force = new ForceLJ<t_System, t_verletlist_half_2D>( system,
-                                                                 half_neigh );
-        else
-            force = new ForceLJ<t_System, t_verletlist_full_2D>( system,
-                                                                 half_neigh );
-    }
-    else if ( input->neighbor_type == NEIGH_CSR )
-    {
-        if ( half_neigh )
-            force = new ForceLJ<t_System, t_verletlist_half_CSR>( system,
-                                                                  half_neigh );
-        else
-            force = new ForceLJ<t_System, t_verletlist_full_CSR>( system,
-                                                                  half_neigh );
-    }
-#undef FORCETYPE_ALLOCATION_MACRO
-}
-#endif
-
-#if !defined( MODULES_OPTION_CHECK ) && !defined( FORCE_MODULES_INSTANTIATION )
-
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
 
 #include <force.h>
+#include <neighbor.h>
 #include <system.h>
 #include <types.h>
 
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-template <class t_System, class t_neighbor>
-class ForceLJ : public Force<t_System>
+template <class t_System, class t_Neighbor>
+class ForceLJ : public Force<t_System, t_Neighbor>
 {
   private:
     int N_local, ntypes;
@@ -92,6 +66,9 @@ class ForceLJ : public Force<t_System>
     typename t_System::t_f f;
     typename t_System::t_f::atomic_access_slice f_a;
     typename t_System::t_type type;
+
+    typedef typename t_Neighbor::t_neigh_list t_neigh_list;
+    typename t_Neighbor::t_neigh_list neigh_list;
 
     int step;
 
@@ -136,19 +113,11 @@ class ForceLJ : public Force<t_System>
     typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_pe_stackparams;
 
-    bool half_neigh;
-    T_X_FLOAT neigh_cut;
+    ForceLJ( t_System *system );
 
-    t_neighbor neigh_list;
-
-    ForceLJ( t_System *system, bool half_neigh_ );
-
-    void init_coeff( T_X_FLOAT neigh_cut, char **args ) override;
-
-    void create_neigh_list( t_System *system ) override;
-
-    void compute( t_System *system ) override;
-    T_F_FLOAT compute_energy( t_System *system ) override;
+    void init_coeff( char **args ) override;
+    void compute( t_System *system, t_Neighbor *neighbor ) override;
+    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
     KOKKOS_INLINE_FUNCTION
     void operator()( TagFullNeigh, const T_INT &i ) const;
@@ -167,5 +136,4 @@ class ForceLJ : public Force<t_System>
 
 #include <force_lj_cabana_neigh_impl.h>
 
-#endif
 #endif

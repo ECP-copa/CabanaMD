@@ -125,11 +125,12 @@ enum
     FORCE_PARALLEL_NEIGH_TEAM,
     FORCE_PARALLEL_NEIGH_VECTOR
 };
+
 // Neighbor Type
 enum
 {
-    NEIGH_2D,
-    NEIGH_CSR
+    NEIGH_VERLET_2D,
+    NEIGH_VERLET_CSR
 };
 // Input File Type
 enum
@@ -187,22 +188,5 @@ using AtomicAccess = Cabana::AtomicAccessMemory;
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
 using t_distributor = Cabana::Distributor<DeviceType>;
 using t_halo = Cabana::Halo<DeviceType>;
-
-using t_verletlist_full_2D =
-    Cabana::VerletList<MemorySpace, Cabana::FullNeighborTag,
-                       Cabana::VerletLayout2D>;
-using t_verletlist_half_2D =
-    Cabana::VerletList<MemorySpace, Cabana::HalfNeighborTag,
-                       Cabana::VerletLayout2D>;
-using t_verletlist_full_CSR =
-    Cabana::VerletList<MemorySpace, Cabana::FullNeighborTag,
-                       Cabana::VerletLayoutCSR>;
-using t_verletlist_half_CSR =
-    Cabana::VerletList<MemorySpace, Cabana::HalfNeighborTag,
-                       Cabana::VerletLayoutCSR>;
-
-using t_neighborop_serial = Cabana::SerialOpTag;
-using t_neighborop_team = Cabana::TeamOpTag;
-using t_neighborop_vector = Cabana::TeamVectorOpTag;
 
 #endif // TYPES_H

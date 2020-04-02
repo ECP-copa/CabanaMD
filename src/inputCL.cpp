@@ -61,7 +61,7 @@ InputCL::InputCL()
 
     layout_type = AOSOA_6;
     nnp_layout_type = AOSOA_3;
-    neighbor_type = NEIGH_2D;
+    neighbor_type = NEIGH_VERLET_2D;
     force_iteration_type = FORCE_ITER_NEIGH_FULL;
     set_force_iteration = false;
     force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
@@ -102,7 +102,7 @@ void InputCL::read_args( int argc, char *argv[] )
                 printf( "  --neigh-type [TYPE]:        Specify Neighbor "
                         "Routines implementation \n" );
                 printf(
-                    "                              (NEIGH_2D, NEIGH_CSR)\n" );
+                    "                              (VERLET_2D, VERLET_CSR)\n" );
                 printf( "  --comm-type [TYPE]:         Specify Communication "
                         "Routines implementation \n" );
                 printf( "                              (MPI, SERIAL)\n" );
@@ -176,10 +176,10 @@ void InputCL::read_args( int argc, char *argv[] )
         // Neighbor Type
         else if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
         {
-            if ( ( strcmp( argv[i + 1], "NEIGH_2D" ) == 0 ) )
-                neighbor_type = NEIGH_2D;
-            if ( ( strcmp( argv[i + 1], "NEIGH_CSR" ) == 0 ) )
-                neighbor_type = NEIGH_CSR;
+            if ( ( strcmp( argv[i + 1], "VERLET_2D" ) == 0 ) )
+                neighbor_type = NEIGH_VERLET_2D;
+            if ( ( strcmp( argv[i + 1], "VERLET_CSR" ) == 0 ) )
+                neighbor_type = NEIGH_VERLET_CSR;
             ++i;
         }
 

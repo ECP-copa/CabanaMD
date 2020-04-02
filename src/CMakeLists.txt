@@ -28,7 +28,7 @@ configure_file(CabanaMD_config.hpp.cmakein CabanaMD_config.hpp @ONLY)
 #------------------------------------------------------------
 
 file(GLOB HEADERS_PUBLIC
-     GLOB *.h force_types/*.h system_types/*.h
+     GLOB *.h force_types/*.h neighbor_types/*.h system_types/*.h
     )
 
 file(GLOB SOURCES
@@ -53,6 +53,7 @@ add_library(CabanaMD ${SOURCES})
 # Sources linking against CabanaMD will implicitly include these directories:
 target_include_directories(CabanaMD PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
                                     ${CMAKE_CURRENT_SOURCE_DIR}/force_types
+                                    ${CMAKE_CURRENT_SOURCE_DIR}/neighbor_types
                                     ${CMAKE_CURRENT_SOURCE_DIR}/system_types
                                     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
