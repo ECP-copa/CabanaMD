@@ -46,31 +46,48 @@
 //
 //************************************************************************
 
-#include <property_temperature.h>
-
-Temperature::Temperature( Comm *comm_ )
-    : comm( comm_ )
+template <class t_System>
+Integrator<t_System>::Integrator( t_System *system )
 {
+    dtf = 0.5 * system->dt / system->mvv2e;
+    dtv = system->dt;
 }
 
-T_V_FLOAT Temperature::compute( System *system )
+template <class t_System>
+void Integrator<t_System>::initial_integrate( t_System *system )
 {
-    v = Cabana::slice<Velocities>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
     mass = system->mass;
 
-    T_V_FLOAT T;
-    Kokkos::parallel_reduce(
-        Kokkos::RangePolicy<Kokkos::IndexType<T_INT>>( 0, system->N_local ),
-        *this, T );
+    system->slice_integrate();
+    x = system->x;
+    v = system->v;
+    f = system->f;
+    type = system->type;
 
-    // Make sure I don't carry around references to data
-    mass = t_mass();
+    static int step = 1;
+    Kokkos::parallel_for( "IntegratorNVE::initial_integrate",
+                          t_policy_initial( 0, system->N_local ), *this );
+    step++;
+}
 
-    // Multiply by scaling factor (units based) to get to temperature
-    T_INT dof = 3 * system->N - 3;
-    T_V_FLOAT factor = system->mvv2e / ( 1.0 * dof * system->boltz );
+template <class t_System>
+void Integrator<t_System>::final_integrate( t_System *system )
+{
+    mass = system->mass;
 
-    comm->reduce_float( &T, 1 );
-    return T * factor;
+    system->slice_integrate();
+    v = system->v;
+    f = system->f;
+    type = system->type;
+
+    static int step = 1;
+    Kokkos::parallel_for( "IntegratorNVE::final_integrate",
+                          t_policy_final( 0, system->N_local ), *this );
+    step++;
+}
+
+template <class t_System>
+const char *Integrator<t_System>::name()
+{
+    return "Integrator:NVE";
 }

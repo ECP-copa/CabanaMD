@@ -46,11 +46,9 @@
 //
 //************************************************************************
 
-#include <force_lj_cabana_neigh.h>
-
-template <class t_neighbor>
-ForceLJ<t_neighbor>::ForceLJ( System *system, bool half_neigh_ )
-    : Force( system, half_neigh_ )
+template <class t_System, class t_neighbor>
+ForceLJ<t_System, t_neighbor>::ForceLJ( t_System *system, bool half_neigh_ )
+    : Force<t_System>( system, half_neigh_ )
 {
     half_neigh = half_neigh_;
     ntypes = system->ntypes;
@@ -63,8 +61,9 @@ ForceLJ<t_neighbor>::ForceLJ( System *system, bool half_neigh_ )
     step = 0;
 }
 
-template <class t_neighbor>
-void ForceLJ<t_neighbor>::init_coeff( T_X_FLOAT neigh_cut_, char **args )
+template <class t_System, class t_neighbor>
+void ForceLJ<t_System, t_neighbor>::init_coeff( T_X_FLOAT neigh_cut_,
+                                                char **args )
 {
     neigh_cut = neigh_cut_;
     step = 0;
@@ -84,8 +83,8 @@ void ForceLJ<t_neighbor>::init_coeff( T_X_FLOAT neigh_cut_, char **args )
     }
 }
 
-template <class t_neighbor>
-void ForceLJ<t_neighbor>::create_neigh_list( System *system )
+template <class t_System, class t_neighbor>
+void ForceLJ<t_System, t_neighbor>::create_neigh_list( t_System *system )
 {
     N_local = system->N_local;
 
@@ -96,21 +95,22 @@ void ForceLJ<t_neighbor>::create_neigh_list( System *system )
                           system->sub_domain_hi_y + system->sub_domain_y,
                           system->sub_domain_hi_z + system->sub_domain_z};
 
-    auto x = Cabana::slice<Positions>( system->xvf );
+    system->slice_x();
+    auto x = system->x;
 
     t_neighbor list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
     neigh_list = list;
 }
 
-template <class t_neighbor>
-void ForceLJ<t_neighbor>::compute( System *system )
+template <class t_System, class t_neighbor>
+void ForceLJ<t_System, t_neighbor>::compute( t_System *system )
 {
     N_local = system->N_local;
-    x = Cabana::slice<Positions>( system->xvf );
-    f = Cabana::slice<Forces>( system->xvf );
-    f_a = Cabana::slice<Forces>( system->xvf );
-    id = Cabana::slice<IDs>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
+    system->slice_force();
+    x = system->x;
+    f = system->f;
+    f_a = f;
+    type = system->type;
 
     if ( half_neigh )
     {
@@ -129,15 +129,15 @@ void ForceLJ<t_neighbor>::compute( System *system )
     step++;
 }
 
-template <class t_neighbor>
-T_V_FLOAT ForceLJ<t_neighbor>::compute_energy( System *system )
+template <class t_System, class t_neighbor>
+T_V_FLOAT ForceLJ<t_System, t_neighbor>::compute_energy( t_System *system )
 {
     N_local = system->N_local;
-    x = Cabana::slice<Positions>( system->xvf );
-    f = Cabana::slice<Forces>( system->xvf );
-    f_a = Cabana::slice<Forces>( system->xvf );
-    id = Cabana::slice<IDs>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
+    system->slice_force();
+    x = system->x;
+    f = system->f;
+    f_a = f;
+    type = system->type;
 
     T_V_FLOAT energy;
 
@@ -158,14 +158,14 @@ T_V_FLOAT ForceLJ<t_neighbor>::compute_energy( System *system )
     return energy;
 }
 
-template <class t_neighbor>
-const char *ForceLJ<t_neighbor>::name()
+template <class t_System, class t_neighbor>
+const char *ForceLJ<t_System, t_neighbor>::name()
 {
     return half_neigh ? "Force:LJCabanaVerletHalf" : "Force:LJCabanaVerletFull";
 }
 
-template <class t_neighbor>
-KOKKOS_INLINE_FUNCTION void ForceLJ<t_neighbor>::
+template <class t_System, class t_neighbor>
+KOKKOS_INLINE_FUNCTION void ForceLJ<t_System, t_neighbor>::
 operator()( TagFullNeigh, const T_INT &i ) const
 {
     const T_F_FLOAT x_i = x( i, 0 );
@@ -213,8 +213,8 @@ operator()( TagFullNeigh, const T_INT &i ) const
     f( i, 2 ) += fzi;
 }
 
-template <class t_neighbor>
-KOKKOS_INLINE_FUNCTION void ForceLJ<t_neighbor>::
+template <class t_System, class t_neighbor>
+KOKKOS_INLINE_FUNCTION void ForceLJ<t_System, t_neighbor>::
 operator()( TagHalfNeigh, const T_INT &i ) const
 {
     const T_F_FLOAT x_i = x( i, 0 );
@@ -263,8 +263,8 @@ operator()( TagHalfNeigh, const T_INT &i ) const
     f_a( i, 2 ) += fzi;
 }
 
-template <class t_neighbor>
-KOKKOS_INLINE_FUNCTION void ForceLJ<t_neighbor>::
+template <class t_System, class t_neighbor>
+KOKKOS_INLINE_FUNCTION void ForceLJ<t_System, t_neighbor>::
 operator()( TagFullNeighPE, const T_INT &i, T_V_FLOAT &PE ) const
 {
     const T_F_FLOAT x_i = x( i, 0 );
@@ -311,8 +311,8 @@ operator()( TagFullNeighPE, const T_INT &i, T_V_FLOAT &PE ) const
     }
 }
 
-template <class t_neighbor>
-KOKKOS_INLINE_FUNCTION void ForceLJ<t_neighbor>::
+template <class t_System, class t_neighbor>
+KOKKOS_INLINE_FUNCTION void ForceLJ<t_System, t_neighbor>::
 operator()( TagHalfNeighPE, const T_INT &i, T_V_FLOAT &PE ) const
 {
     const T_F_FLOAT x_i = x( i, 0 );

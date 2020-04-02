@@ -46,39 +46,26 @@
 //
 //************************************************************************
 
-#ifdef MODULES_OPTION_CHECK
-if ( ( strcmp( argv[i], "--force-iteration" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "NEIGH_FULL" ) == 0 ) )
-        force_iteration_type = FORCE_ITER_NEIGH_FULL;
-    if ( ( strcmp( argv[i + 1], "NEIGH_HALF" ) == 0 ) )
-        force_iteration_type = FORCE_ITER_NEIGH_HALF;
-}
-if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "NEIGH_2D" ) == 0 ) )
-        neighbor_type = NEIGH_2D;
-    if ( ( strcmp( argv[i + 1], "NEIGH_CSR" ) == 0 ) )
-        neighbor_type = NEIGH_CSR;
-}
-#endif
 #ifdef FORCE_MODULES_INSTANTIATION
 else if ( input->force_type == FORCE_LJ )
 {
-    bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
     if ( input->neighbor_type == NEIGH_2D )
     {
         if ( half_neigh )
-            force = new ForceLJ<t_verletlist_half_2D>( system, half_neigh );
+            force = new ForceLJ<t_System, t_verletlist_half_2D>( system,
+                                                                 half_neigh );
         else
-            force = new ForceLJ<t_verletlist_full_2D>( system, half_neigh );
+            force = new ForceLJ<t_System, t_verletlist_full_2D>( system,
+                                                                 half_neigh );
     }
     else if ( input->neighbor_type == NEIGH_CSR )
     {
         if ( half_neigh )
-            force = new ForceLJ<t_verletlist_half_CSR>( system, half_neigh );
+            force = new ForceLJ<t_System, t_verletlist_half_CSR>( system,
+                                                                  half_neigh );
         else
-            force = new ForceLJ<t_verletlist_full_CSR>( system, half_neigh );
+            force = new ForceLJ<t_System, t_verletlist_full_CSR>( system,
+                                                                  half_neigh );
     }
 #undef FORCETYPE_ALLOCATION_MACRO
 }
@@ -96,16 +83,15 @@ else if ( input->force_type == FORCE_LJ )
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-template <class t_neighbor>
-class ForceLJ : public Force
+template <class t_System, class t_neighbor>
+class ForceLJ : public Force<t_System>
 {
   private:
     int N_local, ntypes;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-    typename AoSoA::member_slice_type<IDs> id;
-    typename AoSoA::member_slice_type<Types> type;
+    typename t_System::t_x x;
+    typename t_System::t_f f;
+    typename t_System::t_f::atomic_access_slice f_a;
+    typename t_System::t_type type;
 
     int step;
 
@@ -150,19 +136,19 @@ class ForceLJ : public Force
     typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_pe_stackparams;
 
-    bool half_neigh, comm_newton;
+    bool half_neigh;
     T_X_FLOAT neigh_cut;
 
     t_neighbor neigh_list;
 
-    ForceLJ( System *system, bool half_neigh_ );
+    ForceLJ( t_System *system, bool half_neigh_ );
 
-    void init_coeff( T_X_FLOAT neigh_cut, char **args );
+    void init_coeff( T_X_FLOAT neigh_cut, char **args ) override;
 
-    void create_neigh_list( System *system );
+    void create_neigh_list( t_System *system ) override;
 
-    void compute( System *system );
-    T_F_FLOAT compute_energy( System *system );
+    void compute( t_System *system ) override;
+    T_F_FLOAT compute_energy( t_System *system ) override;
 
     KOKKOS_INLINE_FUNCTION
     void operator()( TagFullNeigh, const T_INT &i ) const;
@@ -176,8 +162,10 @@ class ForceLJ : public Force
     KOKKOS_INLINE_FUNCTION
     void operator()( TagHalfNeighPE, const T_INT &i, T_V_FLOAT &PE ) const;
 
-    const char *name();
+    const char *name() override;
 };
+
+#include <force_lj_cabana_neigh_impl.h>
 
 #endif
 #endif

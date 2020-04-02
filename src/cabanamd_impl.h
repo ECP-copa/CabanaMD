@@ -46,7 +46,6 @@
 //
 //************************************************************************
 
-#include <cabanamd.h>
 #include <property_kine.h>
 #include <property_pote.h>
 #include <property_temperature.h>
@@ -54,31 +53,23 @@
 
 #define MAXPATHLEN 1024
 
-CabanaMD::CabanaMD()
+template <class t_System>
+void CbnMD<t_System>::init( InputCL commandline )
 {
     // Create the System class: atom properties (AoSoA) and simulation box
-    system = new System();
+    system = new t_System;
     system->init();
 
     // Create the Input class: Command line and LAMMPS input file
-    input = new Input( system );
-}
-
-void CabanaMD::init( int argc, char *argv[] )
-{
+    input = new InputFile<t_System>( commandline, system );
 
     if ( system->do_print )
     {
         Kokkos::DefaultExecutionSpace::print_configuration( std::cout );
     }
-    // Parse command line arguments
-    input->read_command_line_args( argc, argv );
-    if ( system->do_print )
-    {
-        printf( "Read command line arguments\n" );
-    }
     // Read input file
     input->read_file();
+    nsteps = input->nsteps;
     if ( system->do_print )
     {
         printf( "Read input file\n" );
@@ -95,12 +86,16 @@ void CabanaMD::init( int argc, char *argv[] )
     }
 #endif
     T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
+    bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
+
+    // Create Communication class: MPI
+    comm = new Comm<t_System>( system, neigh_cutoff );
 
     // Create Integrator class: NVE ensemble
-    integrator = new Integrator( system );
+    integrator = new Integrator<t_System>( system );
 
     // Create Binning class: linked cell bin sort
-    binning = new Binning( system );
+    binning = new Binning<t_System>( system );
 
     // Create Force class: potential options in force_types/ folder
     if ( false )
@@ -119,22 +114,19 @@ void CabanaMD::init( int argc, char *argv[] )
             input->input_data.words[input->force_coeff_lines( line )] );
     }
 
-    // Create Communication class: MPI
-    comm = new Comm( system, neigh_cutoff );
-
-    force->comm_newton = input->comm_newton;
-
-    // system->print_particles();
     if ( system->do_print )
     {
-        printf( "Using: %s %s %s %s\n", force->name(), comm->name(),
+        printf( "Using: SystemVectorLength:%i %s\n", CabanaMD_VECTORLENGTH,
+                system->name() );
+        printf( "       %s %s %s %s\n", force->name(), comm->name(),
                 binning->name(), integrator->name() );
     }
 
     // Create atoms - from LAMMPS data file or create FCC/SC lattice
     if ( system->N == 0 && input->read_data_flag == true )
     {
-        read_lammps_data_file( input->lammps_data_file, system, comm );
+        read_lammps_data_file<t_System>( input->lammps_data_file, system,
+                                         comm );
     }
     else if ( system->N == 0 )
     {
@@ -155,13 +147,14 @@ void CabanaMD::init( int argc, char *argv[] )
     force->create_neigh_list( system );
 
     // Compute initial forces
-    auto f = Cabana::slice<Forces>( system->xvf );
+    system->slice_f();
+    auto f = system->f;
     Cabana::deep_copy( f, 0.0 );
     force->compute( system );
 
     // Scatter ghost atom forces back to original MPI rank
     //   (update force for pair_style nnp even if full neighbor list)
-    if ( input->comm_newton or input->force_type == FORCE_NNP )
+    if ( half_neigh or input->force_type == FORCE_NNP )
     {
         comm->update_force();
     }
@@ -170,9 +163,9 @@ void CabanaMD::init( int argc, char *argv[] )
     int step = 0;
     if ( input->thermo_rate > 0 )
     {
-        Temperature temp( comm );
-        PotE pote( comm );
-        KinE kine( comm );
+        Temperature<t_System> temp( comm );
+        PotE<t_System> pote( comm );
+        KinE<t_System> kine( comm );
         T_FLOAT T = temp.compute( system );
         T_FLOAT PE = pote.compute( system, force ) / system->N;
         T_FLOAT KE = kine.compute( system ) / system->N;
@@ -204,13 +197,15 @@ void CabanaMD::init( int argc, char *argv[] )
     }
 }
 
-void CabanaMD::run( int nsteps )
+template <class t_System>
+void CbnMD<t_System>::run()
 {
     T_F_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
+    bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
-    Temperature temp( comm );
-    PotE pote( comm );
-    KinE kine( comm );
+    Temperature<t_System> temp( comm );
+    PotE<t_System> pote( comm );
+    KinE<t_System> kine( comm );
 
     double force_time = 0;
     double comm_time = 0;
@@ -227,7 +222,7 @@ void CabanaMD::run( int nsteps )
     {
         // Integrate atom positions - velocity Verlet first half
         integrate_timer.reset();
-        integrator->initial_integrate();
+        integrator->initial_integrate( system );
         integrate_time += integrate_timer.seconds();
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
@@ -263,7 +258,8 @@ void CabanaMD::run( int nsteps )
 
         // Reset forces
         force_timer.reset();
-        auto f = Cabana::slice<Forces>( system->xvf );
+        system->slice_f();
+        auto f = system->f;
         Cabana::deep_copy( f, 0.0 );
 
         // Compute short range force
@@ -274,7 +270,7 @@ void CabanaMD::run( int nsteps )
 
         // Scatter ghost atom forces back to original MPI rank
         //   (update force for pair_style nnp even if full neighbor list)
-        if ( input->comm_newton or input->force_type == FORCE_NNP )
+        if ( half_neigh or input->force_type == FORCE_NNP )
         {
             comm_timer.reset();
             comm->update_force();
@@ -283,7 +279,7 @@ void CabanaMD::run( int nsteps )
 
         // Integrate atom positions - velocity Verlet second half
         integrate_timer.reset();
-        integrator->final_integrate();
+        integrator->final_integrate( system );
         integrate_time += integrate_timer.seconds();
 
         other_timer.reset();
@@ -352,7 +348,8 @@ void CabanaMD::run( int nsteps )
     }
 }
 
-void CabanaMD::dump_binary( int step )
+template <class t_System>
+void CbnMD<t_System>::dump_binary( int step )
 {
 
     // On dump steps print configuration
@@ -374,13 +371,14 @@ void CabanaMD::dump_binary( int step )
         // comm->error(str);
     }
 
-    System s = *system;
-    auto h_id = Cabana::slice<IDs>( s.xvf );
-    auto h_type = Cabana::slice<Types>( s.xvf );
-    auto h_q = Cabana::slice<Charges>( s.xvf );
-    auto h_x = Cabana::slice<Positions>( s.xvf );
-    auto h_v = Cabana::slice<Velocities>( s.xvf );
-    auto h_f = Cabana::slice<Forces>( s.xvf );
+    system->slice_all();
+    t_System s = *system;
+    auto h_x = s.x;
+    auto h_v = s.v;
+    auto h_f = s.f;
+    auto h_id = s.id;
+    auto h_type = s.type;
+    auto h_q = s.q;
 
     fwrite( &n, sizeof( T_INT ), 1, fp );
     fwrite( h_id.data(), sizeof( T_INT ), n, fp );
@@ -400,7 +398,8 @@ void CabanaMD::dump_binary( int step )
 //     5. basis_offset [DONE]
 //     6. correctness output to file [DONE]
 
-void CabanaMD::check_correctness( int step )
+template <class t_System>
+void CbnMD<t_System>::check_correctness( int step )
 {
 
     if ( step % input->correctness_rate )
@@ -410,12 +409,14 @@ void CabanaMD::check_correctness( int step )
     T_INT n = system->N_local;
     T_INT ntmp;
 
-    auto x = Cabana::slice<Positions>( system->xvf );
-    auto v = Cabana::slice<Velocities>( system->xvf );
-    auto f = Cabana::slice<Forces>( system->xvf );
-    auto id = Cabana::slice<IDs>( system->xvf );
-    auto type = Cabana::slice<Types>( system->xvf );
-    auto q = Cabana::slice<Charges>( system->xvf );
+    system->slice_all();
+    t_System s = *system;
+    auto x = s.x;
+    auto v = s.v;
+    auto f = s.f;
+    auto id = s.id;
+    auto type = s.type;
+    auto q = s.q;
 
     char *filename = new char[MAXPATHLEN];
     sprintf( filename, "%s%s.%010d.%03d", input->reference_path, "/output",
@@ -435,13 +436,16 @@ void CabanaMD::check_correctness( int step )
         printf( "Mismatch in current and reference atom counts\n" );
     }
 
-    AoSoA xvf_ref( "ref", n );
-    auto xref = Cabana::slice<Positions>( xvf_ref );
-    auto vref = Cabana::slice<Velocities>( xvf_ref );
-    auto fref = Cabana::slice<Forces>( xvf_ref );
-    auto idref = Cabana::slice<IDs>( xvf_ref );
-    auto typeref = Cabana::slice<Types>( xvf_ref );
-    auto qref = Cabana::slice<Charges>( xvf_ref );
+    Kokkos::View<T_INT *, Kokkos::LayoutRight> idref( "Correctness::id", n );
+    Kokkos::View<T_INT *, Kokkos::LayoutRight> typeref( "Correctness::type",
+                                                        n );
+    Kokkos::View<T_FLOAT *, Kokkos::LayoutRight> qref( "Correctness::q", n );
+    Kokkos::View<T_X_FLOAT **, Kokkos::LayoutRight> xref( "Correctness::x", 3,
+                                                          n );
+    Kokkos::View<T_V_FLOAT **, Kokkos::LayoutRight> vref( "Correctness::v", 3,
+                                                          n );
+    Kokkos::View<T_F_FLOAT **, Kokkos::LayoutRight> fref( "Correctness::f", 3,
+                                                          n );
 
     fread( idref.data(), sizeof( T_INT ), n, fpref );
     fread( typeref.data(), sizeof( T_INT ), n, fpref );
@@ -449,13 +453,6 @@ void CabanaMD::check_correctness( int step )
     fread( xref.data(), sizeof( T_X_FLOAT ), 3 * n, fpref );
     fread( vref.data(), sizeof( T_V_FLOAT ), 3 * n, fpref );
     fread( fref.data(), sizeof( T_F_FLOAT ), 3 * n, fpref );
-
-    xref = Cabana::slice<Positions>( xvf_ref );
-    vref = Cabana::slice<Velocities>( xvf_ref );
-    fref = Cabana::slice<Forces>( xvf_ref );
-    idref = Cabana::slice<IDs>( xvf_ref );
-    typeref = Cabana::slice<Types>( xvf_ref );
-    qref = Cabana::slice<Charges>( xvf_ref );
 
     T_FLOAT sumdelrsq = 0.0;
     T_FLOAT sumdelvsq = 0.0;
@@ -561,7 +558,3 @@ void CabanaMD::check_correctness( int step )
         }
     }
 }
-
-void CabanaMD::print_performance() {}
-
-void CabanaMD::shutdown() { system->destroy(); }

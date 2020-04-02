@@ -46,14 +46,64 @@
 //
 //************************************************************************
 
-#include <force.h>
+#include <system.h>
 
-Force::Force( System *, bool half_neigh_ )
-    : half_neigh( half_neigh_ )
+SystemCommon::SystemCommon()
 {
+    N = 0;
+    N_max = 0;
+    N_local = 0;
+    N_ghost = 0;
+    ntypes = 1;
+    atom_style = "atomic";
+
+    mass = t_mass();
+    domain_x = domain_y = domain_z = 0.0;
+    sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
+    domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
+    domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
+    sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
+    sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
+    mvv2e = boltz = dt = 0.0;
+
+    print_lammps = false;
+
+    mass = t_mass( "System::mass", ntypes );
+
+    int proc_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+    do_print = proc_rank == 0;
 }
 
-void Force::init_coeff( T_X_FLOAT, char ** ) {}
-void Force::create_neigh_list( System * ) {}
-void Force::compute( System * ) {}
-const char *Force::name() { return "ForceNone"; }
+const char *SystemCommon::name() { return "SystemNone"; }
+
+void SystemCommon::slice_all()
+{
+    slice_x();
+    slice_v();
+    slice_f();
+    slice_type();
+    slice_id();
+    slice_q();
+}
+
+void SystemCommon::slice_integrate()
+{
+    slice_x();
+    slice_v();
+    slice_f();
+    slice_type();
+}
+
+void SystemCommon::slice_force()
+{
+    slice_x();
+    slice_f();
+    slice_type();
+}
+
+void SystemCommon::slice_properties()
+{
+    slice_v();
+    slice_type();
+}

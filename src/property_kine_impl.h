@@ -46,18 +46,32 @@
 //
 //************************************************************************
 
-#include <cabanamd.h>
-#include <property_pote.h>
-
-PotE::PotE( Comm *comm_ )
+template <class t_System>
+KinE<t_System>::KinE( Comm<t_System> *comm_ )
     : comm( comm_ )
 {
 }
 
-T_F_FLOAT PotE::compute( System *system, Force *force )
+template <class t_System>
+T_V_FLOAT KinE<t_System>::compute( t_System *system )
 {
-    T_F_FLOAT PE;
-    PE = force->compute_energy( system );
-    comm->reduce_float( &PE, 1 );
-    return PE;
+    system->slice_properties();
+    v = system->v;
+    type = system->type;
+
+    mass = system->mass;
+
+    T_V_FLOAT KE;
+    Kokkos::parallel_reduce(
+        Kokkos::RangePolicy<Kokkos::IndexType<T_INT>>( 0, system->N_local ),
+        *this, KE );
+
+    // Make sure I don't carry around references to data
+    mass = t_mass();
+
+    // Multiply by scaling factor (units based) to get to kinetic energy
+    T_V_FLOAT factor = 0.5 * system->mvv2e;
+
+    comm->reduce_float( &KE, 1 );
+    return KE * factor;
 }

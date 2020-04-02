@@ -46,16 +46,17 @@
 //
 //************************************************************************
 
-#include <binning_cabana.h>
-
-Binning::Binning( System *s )
+template <class t_System>
+Binning<t_System>::Binning( t_System *s )
     : system( s )
 {
 }
 
-void Binning::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in,
-                              int halo_depth, bool do_local, bool do_ghost,
-                              bool sort )
+template <class t_System>
+void Binning<t_System>::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in,
+                                        T_X_FLOAT dz_in, int halo_depth,
+                                        bool do_local, bool do_ghost,
+                                        bool sort )
 {
     if ( do_local || do_ghost )
     {
@@ -91,15 +92,20 @@ void Binning::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in, T_X_FLOAT dz_in,
         T_X_FLOAT min[3] = {minx, miny, minz};
         T_X_FLOAT max[3] = {maxx, maxy, maxz};
 
-        x = Cabana::slice<Positions>( system->xvf );
+        system->slice_x();
+        auto x = system->x;
 
         t_linkedcell cell_list( x, begin, end, delta, min, max );
 
         if ( sort )
         {
-            Cabana::permute( cell_list, system->xvf );
+            system->permute( cell_list );
         }
     }
 }
 
-const char *Binning::name() { return "Binning:CabanaLinkedCell"; }
+template <class t_System>
+const char *Binning<t_System>::name()
+{
+    return "Binning:CabanaLinkedCell";
+}

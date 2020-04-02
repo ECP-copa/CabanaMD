@@ -46,10 +46,14 @@
 //
 //************************************************************************
 
+#ifndef CABANAMD_H
+#define CABANAMD_H
+
 #include <binning_cabana.h>
 #include <comm_mpi.h>
 #include <force.h>
-#include <input.h>
+#include <inputCL.h>
+#include <inputFile.h>
 #include <integrator_nve.h>
 #include <system.h>
 #include <types.h>
@@ -62,23 +66,32 @@
 class CabanaMD
 {
   public:
-    System *system;
-    Integrator *integrator;
-    Force *force;
-    Comm *comm;
-    Input *input;
-    Binning *binning;
+    int nsteps;
 
-    CabanaMD();
+    virtual void init( InputCL cl ) = 0;
+    virtual void run() = 0;
 
-    void init( int argc, char *argv[] );
-
-    void run( int nsteps );
-
-    void dump_binary( int );
-    void check_correctness( int );
-
-    void print_performance();
-
-    void shutdown();
+    virtual void dump_binary( int ) = 0;
+    virtual void check_correctness( int ) = 0;
 };
+
+template <class t_System>
+class CbnMD : public CabanaMD
+{
+  public:
+    t_System *system;
+    Integrator<t_System> *integrator;
+    Force<t_System> *force;
+    Comm<t_System> *comm;
+    InputFile<t_System> *input;
+    Binning<t_System> *binning;
+
+    void init( InputCL cl ) override;
+    void run() override;
+
+    void dump_binary( int ) override;
+    void check_correctness( int ) override;
+};
+
+#include <cabanamd_impl.h>
+#endif

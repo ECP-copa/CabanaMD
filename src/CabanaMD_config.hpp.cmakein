@@ -8,6 +8,16 @@
 #cmakedefine CabanaMD_ENABLE_Threads
 #cmakedefine CabanaMD_ENABLE_OpenMP
 #cmakedefine CabanaMD_ENABLE_Cuda
+
 #cmakedefine CabanaMD_ENABLE_NNP
+
+#cmakedefine CabanaMD_LAYOUT_1AoSoA
+#cmakedefine CabanaMD_LAYOUT_2AoSoA
+#cmakedefine CabanaMD_LAYOUT_6AoSoA
+#cmakedefine CabanaMD_VECTORLENGTH @CabanaMD_VECTORLENGTH@
+
+#cmakedefine CabanaMD_LAYOUT_NNP_1AoSoA
+#cmakedefine CabanaMD_LAYOUT_NNP_3AoSoA
+#cmakedefine CabanaMD_VECTORLENGTH_NNP @CabanaMD_VECTORLENGTH_NNP@
 
 #endif
