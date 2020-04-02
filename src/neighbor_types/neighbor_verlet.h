@@ -46,9 +46,8 @@ class NeighborVerlet : public Neighbor<t_System, t_iteration, t_layout>
         system->slice_x();
         auto x = system->x;
 
-        t_neigh_list verlet( x, 0, N_local, neigh_cut, 1.0, grid_min,
-                             grid_max );
-        list = verlet;
+        list =
+            t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
     }
 
     t_neigh_list &get() { return list; }
