@@ -67,12 +67,14 @@ script:
   - mkdir build && pushd build &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DCMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos"
+          -DCabanaMD_ENABLE_TESTING=ON
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
           -DN2P2_DIR=$HOME/build/n2p2
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
+    make test CTEST_OUTPUT_ON_FAILURE=1 &&
     make format && git diff --exit-code &&
     popd
 
