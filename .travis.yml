@@ -13,7 +13,6 @@ addons:
       - libopenmpi-dev
       - openmpi-bin
       - g++-6
-      - gfortran-6
 
 before_script:
   - ccache -z
