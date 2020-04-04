@@ -460,8 +460,7 @@ void Input::run_lammps_command( int line )
         }
         if ( units_style == UNITS_LJ ) // words[line][2] was actually rho=N/V
             lattice_constant =
-                    std::pow( atoms_per_unit / lattice_constant,
-                              1.0 / 3.0 );
+                std::pow( atoms_per_unit / lattice_constant, 1.0 / 3.0 );
         if ( strcmp( input_data.words[line][3], "origin" ) == 0 )
         {
             lattice_offset_x = atof( input_data.words[line][4] );
@@ -661,9 +660,8 @@ void Input::create_lattice( Comm *comm )
     Kokkos::deep_copy( h_mass, s.mass );
 
     // Create Simple Cubic Lattice Types
-    if (   lattice_style == Lattice::SC
-        || lattice_style == Lattice::BCC
-        || lattice_style == Lattice::FCC )
+    if ( lattice_style == Lattice::SC || lattice_style == Lattice::BCC ||
+         lattice_style == Lattice::FCC )
     {
         s.domain_x = lattice_constant * lattice_nx;
         s.domain_y = lattice_constant * lattice_ny;
@@ -675,13 +673,9 @@ void Input::create_lattice( Comm *comm )
         comm->create_domain_decomposition();
 
         double basis[4][3] = {
-            {0.0, 0.0, 0.0},
-            {0.5, 0.5, 0.0},
-            {0.5, 0.0, 0.5},
-            {0.0, 0.5, 0.5}
-        };
+            {0.0, 0.0, 0.0}, {0.5, 0.5, 0.0}, {0.5, 0.0, 0.5}, {0.0, 0.5, 0.5}};
         int nbasis = 0; // default = no atoms
-        switch( lattice_style )
+        switch ( lattice_style )
         {
         case Lattice::SC:
             nbasis = 1;

@@ -54,8 +54,11 @@
 
 #define MAXPATHLEN 1024
 
-CabanaMD::CabanaMD() :
-    integrator(nullptr), force(nullptr), comm(nullptr), binning(nullptr)
+CabanaMD::CabanaMD()
+    : integrator( nullptr )
+    , force( nullptr )
+    , comm( nullptr )
+    , binning( nullptr )
 {
     // Create the System class: atom properties (AoSoA) and simulation box
     system = new System();
@@ -570,12 +573,12 @@ CabanaMD::~CabanaMD()
     delete system;
     delete input;
 
-    if(integrator != nullptr)
-       delete integrator;
-    if(force != nullptr)
-       delete force;
-    if(comm != nullptr)
-       delete comm;
-    if(binning != nullptr)
-       delete binning;
+    if ( integrator != nullptr )
+        delete integrator;
+    if ( force != nullptr )
+        delete force;
+    if ( comm != nullptr )
+        delete comm;
+    if ( binning != nullptr )
+        delete binning;
 }

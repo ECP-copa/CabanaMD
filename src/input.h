@@ -56,7 +56,12 @@
 #include <vector>
 
 // Lattice Type
-enum class Lattice { SC, BCC, FCC };
+enum class Lattice
+{
+    SC,
+    BCC,
+    FCC
+};
 
 class ItemizedFile
 {
