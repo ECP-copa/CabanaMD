@@ -10,5 +10,8 @@
  ****************************************************************************/
 
 // Include module header files for Neighbor
-#include <neighbor_tree.h>
 #include <neighbor_verlet.h>
+
+#ifdef CabanaMD_ENABLE_ARBORX
+#include <neighbor_tree.h>
+#endif

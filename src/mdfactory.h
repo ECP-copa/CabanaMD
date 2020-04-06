@@ -14,6 +14,8 @@
 #include <neighbor.h>
 #include <system.h>
 
+#include <CabanaMD_config.hpp>
+
 class MDfactory
 {
   public:
@@ -102,6 +104,7 @@ class MDfactory
                                        Cabana::VerletLayoutCSR>>;
             }
         }
+#ifdef CabanaMD_ENABLE_ARBORX
         if ( neigh == NEIGH_TREE )
         {
             if ( half_neigh )
@@ -141,6 +144,7 @@ class MDfactory
                                      Cabana::VerletLayoutCSR>>;
             }
         }
+#endif
         return nullptr;
     }
 };
