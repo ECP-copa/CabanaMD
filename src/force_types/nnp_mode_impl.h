@@ -44,10 +44,10 @@
 using namespace std;
 using namespace nnpCbn;
 
-template <class t_System, class t_System_NNP, class t_neighbor,
+template <class t_System, class t_System_NNP, class t_neigh_list,
           class t_neigh_parallel, class t_angle_parallel>
 void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
-                                            t_neighbor neigh_list )
+                                            t_neigh_list neigh_list )
 {
     s->slice_x();
     auto x = s->x;
@@ -265,7 +265,7 @@ void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
     Kokkos::fence();
 }
 
-template <class t_System, class t_System_NNP, class t_neighbor,
+template <class t_System, class t_System_NNP, class t_neigh_list,
           class t_neigh_parallel, class t_angle_parallel>
 void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
                                           t_mass numSFperElem )
@@ -358,10 +358,10 @@ void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
     Kokkos::fence();
 }
 
-template <class t_System, class t_System_NNP, class t_neighbor,
+template <class t_System, class t_System_NNP, class t_neigh_list,
           class t_neigh_parallel, class t_angle_parallel>
 void Mode::calculateForces( t_System *s, t_System_NNP *s_nnp,
-                            t_neighbor neigh_list )
+                            t_neigh_list neigh_list )
 {
     // Calculate Forces
     s->slice_force();

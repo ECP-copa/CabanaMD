@@ -9,124 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifdef FORCE_MODULES_INSTANTIATION
-else if ( input->force_type == FORCE_NNP )
-{
-    bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
-    bool serial_neigh =
-        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_SERIAL;
-    bool team_neigh =
-        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_TEAM;
-    bool vector_angle =
-        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_VECTOR;
-    if ( input->nnp_layout_type == AOSOA_1 )
-    {
-        if ( input->neighbor_type == NEIGH_2D )
-        {
-            if ( half_neigh )
-                throw std::runtime_error( "Half neighbor list not implemented "
-                                          "for the neural network potential." );
-            else
-            {
-                if ( serial_neigh )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA1>,
-                                     t_verletlist_full_2D, t_neighborop_serial,
-                                     t_neighborop_serial>( system, half_neigh );
-                if ( team_neigh )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA1>,
-                                     t_verletlist_full_2D, t_neighborop_team,
-                                     t_neighborop_team>( system, half_neigh );
-                if ( vector_angle )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA1>,
-                                     t_verletlist_full_2D, t_neighborop_team,
-                                     t_neighborop_vector>( system, half_neigh );
-            }
-        }
-        else if ( input->neighbor_type == NEIGH_CSR )
-        {
-            if ( half_neigh )
-                throw std::runtime_error( "Half neighbor list not implemented "
-                                          "for the neural network potential." );
-            else
-            {
-                if ( serial_neigh )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA1>,
-                                     t_verletlist_full_CSR, t_neighborop_serial,
-                                     t_neighborop_serial>( system, half_neigh );
-                if ( team_neigh )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA1>,
-                                     t_verletlist_full_CSR, t_neighborop_team,
-                                     t_neighborop_team>( system, half_neigh );
-                if ( vector_angle )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA1>,
-                                     t_verletlist_full_CSR, t_neighborop_team,
-                                     t_neighborop_vector>( system, half_neigh );
-            }
-        }
-    }
-    else if ( input->nnp_layout_type == AOSOA_3 )
-    {
-        if ( input->neighbor_type == NEIGH_2D )
-        {
-            if ( half_neigh )
-                throw std::runtime_error( "Half neighbor list not implemented "
-                                          "for the neural network potential." );
-            else
-            {
-                if ( serial_neigh )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA3>,
-                                     t_verletlist_full_2D, t_neighborop_serial,
-                                     t_neighborop_serial>( system, half_neigh );
-                if ( team_neigh )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA3>,
-                                     t_verletlist_full_2D, t_neighborop_team,
-                                     t_neighborop_team>( system, half_neigh );
-                if ( vector_angle )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA3>,
-                                     t_verletlist_full_2D, t_neighborop_team,
-                                     t_neighborop_vector>( system, half_neigh );
-            }
-        }
-        else if ( input->neighbor_type == NEIGH_CSR )
-        {
-            if ( half_neigh )
-                throw std::runtime_error( "Half neighbor list not implemented "
-                                          "for the neural network potential." );
-            else
-            {
-                if ( serial_neigh )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA3>,
-                                     t_verletlist_full_CSR, t_neighborop_serial,
-                                     t_neighborop_serial>( system, half_neigh );
-                if ( team_neigh )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA3>,
-                                     t_verletlist_full_CSR, t_neighborop_team,
-                                     t_neighborop_team>( system, half_neigh );
-                if ( vector_angle )
-                    force =
-                        new ForceNNP<t_System, System_NNP<AoSoA3>,
-                                     t_verletlist_full_CSR, t_neighborop_team,
-                                     t_neighborop_vector>( system, half_neigh );
-            }
-        }
-    }
-#undef FORCETYPE_ALLOCATION_MACRO
-}
-#endif
-
-#if !defined( MODULES_OPTION_CHECK ) && !defined( FORCE_MODULES_INSTANTIATION )
-
 #ifndef FORCE_NNP_CABANA_NEIGH_H
 #define FORCE_NNP_CABANA_NEIGH_H
 
@@ -134,18 +16,25 @@ else if ( input->force_type == FORCE_NNP )
 #include <system_nnp.h>
 
 #include <force.h>
+#include <neighbor.h>
 #include <system.h>
 #include <types.h>
 
 #include <Cabana_Core.hpp>
 
-template <class t_System, class t_System_NNP, class t_neighbor,
+template <class t_System, class t_System_NNP, class t_Neighbor,
           class t_neigh_parallel, class t_angle_parallel>
-class ForceNNP : public Force<t_System>
+class ForceNNP : public Force<t_System, t_Neighbor>
 {
   private:
     int N_local, ntypes;
     int step;
+
+    typedef typename t_Neighbor::t_neigh_list t_neigh_list;
+
+    // NNP-specific System class for AoSoAs
+    // Storage of G, dEdG and energy (per atom properties)
+    t_System_NNP *system_nnp;
 
   public:
     struct TagFullNeigh
@@ -173,26 +62,17 @@ class ForceNNP : public Force<t_System>
     typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_pe_stackparams;
 
-    bool half_neigh;
-    T_X_FLOAT neigh_cut;
-
     nnpCbn::Mode *mode;
-    t_neighbor neigh_list;
 
-    // NNP-specific System class for AoSoAs
-    // Storage of G, dEdG and energy (per atom properties)
-    t_System_NNP *system_nnp;
     // numSymmetryFunctionsPerElement (per type property)
     t_mass d_numSFperElem;
     h_t_mass h_numSFperElem, atomicEnergyOffset;
 
-    ForceNNP( t_System *system, bool half_neigh_ );
-    void init_coeff( T_X_FLOAT neigh_cutoff, char **args ) override;
+    ForceNNP( t_System *system );
 
-    void create_neigh_list( t_System *system ) override;
-
-    void compute( t_System *system ) override;
-    T_F_FLOAT compute_energy( t_System *system ) override;
+    void init_coeff( char **args ) override;
+    void compute( t_System *system, t_Neighbor *neighbor ) override;
+    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
     const char *name() override;
 
@@ -207,5 +87,4 @@ class ForceNNP : public Force<t_System>
 };
 
 #include <force_nnp_cabana_neigh_impl.h>
-#endif
 #endif

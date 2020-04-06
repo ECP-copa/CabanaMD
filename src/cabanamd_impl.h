@@ -53,8 +53,8 @@
 
 #define MAXPATHLEN 1024
 
-template <class t_System>
-void CbnMD<t_System>::init( InputCL commandline )
+template <class t_System, class t_Neighbor>
+void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 {
     // Create the System class: atom properties (AoSoA) and simulation box
     system = new t_System;
@@ -85,7 +85,7 @@ void CbnMD<t_System>::init( InputCL commandline )
         std::exit( 1 );
     }
 #endif
-    T_X_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
+    auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
     // Create Communication class: MPI
@@ -97,20 +97,73 @@ void CbnMD<t_System>::init( InputCL commandline )
     // Create Binning class: linked cell bin sort
     binning = new Binning<t_System>( system );
 
+    // Create Neighbor class: create neighbor list
+    neighbor = new t_Neighbor( neigh_cutoff, half_neigh );
+
     // Create Force class: potential options in force_types/ folder
-    if ( false )
+    if ( input->force_type == FORCE_LJ )
     {
+        force = new ForceLJ<t_System, t_Neighbor>( system );
     }
-#define FORCE_MODULES_INSTANTIATION
-#include <modules_force.h>
-#undef FORCE_MODULES_INSTANTIATION
+#ifdef CabanaMD_ENABLE_NNP
+#include <system_nnp.h>
+    else if ( input->force_type == FORCE_NNP )
+    {
+        bool serial_neigh =
+            input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_SERIAL;
+        bool team_neigh =
+            input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_TEAM;
+        bool vector_angle =
+            input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_VECTOR;
+        if ( half_neigh )
+            throw std::runtime_error( "Half neighbor list not implemented "
+                                      "for the neural network potential." );
+        else
+        {
+            if ( input->nnp_layout_type == AOSOA_1 )
+            {
+                if ( serial_neigh )
+                    force =
+                        new ForceNNP<t_System, System_NNP<AoSoA1>, t_Neighbor,
+                                     Cabana::SerialOpTag, Cabana::SerialOpTag>(
+                            system );
+                if ( team_neigh )
+                    force =
+                        new ForceNNP<t_System, System_NNP<AoSoA1>, t_Neighbor,
+                                     Cabana::TeamOpTag, Cabana::TeamOpTag>(
+                            system );
+                if ( vector_angle )
+                    force = new ForceNNP<t_System, System_NNP<AoSoA1>,
+                                         t_Neighbor, Cabana::TeamOpTag,
+                                         Cabana::TeamVectorOpTag>( system );
+            }
+            if ( input->nnp_layout_type == AOSOA_3 )
+            {
+                if ( serial_neigh )
+                    force =
+                        new ForceNNP<t_System, System_NNP<AoSoA3>, t_Neighbor,
+                                     Cabana::SerialOpTag, Cabana::SerialOpTag>(
+                            system );
+                if ( team_neigh )
+                    force =
+                        new ForceNNP<t_System, System_NNP<AoSoA3>, t_Neighbor,
+                                     Cabana::TeamOpTag, Cabana::TeamOpTag>(
+                            system );
+                if ( vector_angle )
+                    force = new ForceNNP<t_System, System_NNP<AoSoA3>,
+                                         t_Neighbor, Cabana::TeamOpTag,
+                                         Cabana::TeamVectorOpTag>( system );
+            }
+        }
+    }
+#endif
     else
         comm->error( "Invalid ForceType" );
+
     for ( std::size_t line = 0; line < input->force_coeff_lines.extent( 0 );
           line++ )
     {
         force->init_coeff(
-            neigh_cutoff,
             input->input_data.words[input->force_coeff_lines( line )] );
     }
 
@@ -118,8 +171,8 @@ void CbnMD<t_System>::init( InputCL commandline )
     {
         printf( "Using: SystemVectorLength:%i %s\n", CabanaMD_VECTORLENGTH,
                 system->name() );
-        printf( "       %s %s %s %s\n", force->name(), comm->name(),
-                binning->name(), integrator->name() );
+        printf( "Using: %s %s %s %s %s\n", force->name(), neighbor->name(),
+                comm->name(), binning->name(), integrator->name() );
     }
 
     // Create atoms - from LAMMPS data file or create FCC/SC lattice
@@ -144,13 +197,13 @@ void CbnMD<t_System>::init( InputCL commandline )
     comm->exchange_halo();
 
     // Compute atom neighbors
-    force->create_neigh_list( system );
+    neighbor->create( system );
 
     // Compute initial forces
     system->slice_f();
     auto f = system->f;
     Cabana::deep_copy( f, 0.0 );
-    force->compute( system );
+    force->compute( system, neighbor );
 
     // Scatter ghost atom forces back to original MPI rank
     //   (update force for pair_style nnp even if full neighbor list)
@@ -164,11 +217,11 @@ void CbnMD<t_System>::init( InputCL commandline )
     if ( input->thermo_rate > 0 )
     {
         Temperature<t_System> temp( comm );
-        PotE<t_System> pote( comm );
+        PotE<t_System, t_Neighbor> pote( comm );
         KinE<t_System> kine( comm );
-        T_FLOAT T = temp.compute( system );
-        T_FLOAT PE = pote.compute( system, force ) / system->N;
-        T_FLOAT KE = kine.compute( system ) / system->N;
+        auto T = temp.compute( system );
+        auto PE = pote.compute( system, force, neighbor ) / system->N;
+        auto KE = kine.compute( system ) / system->N;
         if ( system->do_print )
         {
             if ( !system->print_lammps )
@@ -197,14 +250,14 @@ void CbnMD<t_System>::init( InputCL commandline )
     }
 }
 
-template <class t_System>
-void CbnMD<t_System>::run()
+template <class t_System, class t_Neighbor>
+void CbnMD<t_System, t_Neighbor>::run()
 {
-    T_F_FLOAT neigh_cutoff = input->force_cutoff + input->neighbor_skin;
+    auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
     Temperature<t_System> temp( comm );
-    PotE<t_System> pote( comm );
+    PotE<t_System, t_Neighbor> pote( comm );
     KinE<t_System> kine( comm );
 
     double force_time = 0;
@@ -245,7 +298,7 @@ void CbnMD<t_System>::run()
 
             // Compute atom neighbors
             neigh_timer.reset();
-            force->create_neigh_list( system );
+            neighbor->create( system );
             neigh_time += neigh_timer.seconds();
         }
         else
@@ -263,7 +316,7 @@ void CbnMD<t_System>::run()
         Cabana::deep_copy( f, 0.0 );
 
         // Compute short range force
-        force->compute( system );
+        force->compute( system, neighbor );
         force_time += force_timer.seconds();
 
         // This is where Bonds, Angles, and KSpace should go eventually
@@ -287,9 +340,9 @@ void CbnMD<t_System>::run()
         // Print output
         if ( step % input->thermo_rate == 0 )
         {
-            T_FLOAT T = temp.compute( system );
-            T_FLOAT PE = pote.compute( system, force ) / system->N;
-            T_FLOAT KE = kine.compute( system ) / system->N;
+            auto T = temp.compute( system );
+            auto PE = pote.compute( system, force, neighbor ) / system->N;
+            auto KE = kine.compute( system ) / system->N;
             if ( system->do_print )
             {
                 if ( !system->print_lammps )
@@ -348,8 +401,8 @@ void CbnMD<t_System>::run()
     }
 }
 
-template <class t_System>
-void CbnMD<t_System>::dump_binary( int step )
+template <class t_System, class t_Neighbor>
+void CbnMD<t_System, t_Neighbor>::dump_binary( int step )
 {
 
     // On dump steps print configuration
@@ -398,8 +451,8 @@ void CbnMD<t_System>::dump_binary( int step )
 //     5. basis_offset [DONE]
 //     6. correctness output to file [DONE]
 
-template <class t_System>
-void CbnMD<t_System>::check_correctness( int step )
+template <class t_System, class t_Neighbor>
+void CbnMD<t_System, t_Neighbor>::check_correctness( int step )
 {
 
     if ( step % input->correctness_rate )

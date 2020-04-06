@@ -55,6 +55,7 @@
 #include <inputCL.h>
 #include <inputFile.h>
 #include <integrator_nve.h>
+#include <neighbor.h>
 #include <system.h>
 #include <types.h>
 
@@ -75,16 +76,17 @@ class CabanaMD
     virtual void check_correctness( int ) = 0;
 };
 
-template <class t_System>
+template <class t_System, class t_Neighbor>
 class CbnMD : public CabanaMD
 {
   public:
     t_System *system;
+    t_Neighbor *neighbor;
+    Force<t_System, t_Neighbor> *force;
     Integrator<t_System> *integrator;
-    Force<t_System> *force;
     Comm<t_System> *comm;
-    InputFile<t_System> *input;
     Binning<t_System> *binning;
+    InputFile<t_System> *input;
 
     void init( InputCL cl ) override;
     void run() override;

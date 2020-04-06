@@ -46,25 +46,29 @@
 //
 //************************************************************************
 
-#ifndef PROPERTY_POTE_H
-#define PROPERTY_POTE_H
-
-#include <comm_mpi.h>
+#ifndef NEIGHBOR_H
+#define NEIGHBOR_H
 #include <system.h>
 #include <types.h>
 
-template <class t_System, class t_Neighbor>
-class PotE
+template <class t_System, class t_iteration, class t_layout>
+class Neighbor
 {
-  private:
-    Comm<t_System> *comm;
-
   public:
-    PotE( Comm<t_System> *comm_ );
+    T_X_FLOAT neigh_cut;
+    bool half_neigh;
 
-    T_F_FLOAT compute( t_System *, Force<t_System, t_Neighbor> *,
-                       t_Neighbor * );
+    Neighbor( T_X_FLOAT neigh_cut_, bool half_neigh_ )
+        : neigh_cut( neigh_cut_ )
+        , half_neigh( half_neigh_ )
+    {
+    }
+    virtual ~Neighbor() {}
+
+    virtual void create( t_System *system ) = 0;
+
+    virtual const char *name() { return "Neighbor:None"; };
 };
 
-#include <property_pote_impl.h>
+#include <modules_neighbor.h>
 #endif
