@@ -102,7 +102,45 @@ class MDfactory
                                        Cabana::VerletLayoutCSR>>;
             }
         }
-
+        if ( neigh == NEIGH_TREE )
+        {
+            if ( half_neigh )
+            {
+                if ( layout == AOSOA_1 )
+                    return new CbnMD<
+                        System<AoSoA1>,
+                        NeighborTree<System<AoSoA1>, Cabana::HalfNeighborTag,
+                                     Cabana::VerletLayoutCSR>>;
+                else if ( layout == AOSOA_2 )
+                    return new CbnMD<
+                        System<AoSoA2>,
+                        NeighborTree<System<AoSoA2>, Cabana::HalfNeighborTag,
+                                     Cabana::VerletLayoutCSR>>;
+                else if ( layout == AOSOA_6 )
+                    return new CbnMD<
+                        System<AoSoA6>,
+                        NeighborTree<System<AoSoA6>, Cabana::HalfNeighborTag,
+                                     Cabana::VerletLayoutCSR>>;
+            }
+            else
+            {
+                if ( layout == AOSOA_1 )
+                    return new CbnMD<
+                        System<AoSoA1>,
+                        NeighborTree<System<AoSoA1>, Cabana::FullNeighborTag,
+                                     Cabana::VerletLayoutCSR>>;
+                else if ( layout == AOSOA_2 )
+                    return new CbnMD<
+                        System<AoSoA2>,
+                        NeighborTree<System<AoSoA2>, Cabana::FullNeighborTag,
+                                     Cabana::VerletLayoutCSR>>;
+                else if ( layout == AOSOA_6 )
+                    return new CbnMD<
+                        System<AoSoA6>,
+                        NeighborTree<System<AoSoA6>, Cabana::FullNeighborTag,
+                                     Cabana::VerletLayoutCSR>>;
+            }
+        }
         return nullptr;
     }
 };

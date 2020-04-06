@@ -10,4 +10,5 @@
  ****************************************************************************/
 
 // Include module header files for Neighbor
+#include <neighbor_tree.h>
 #include <neighbor_verlet.h>
