@@ -33,11 +33,16 @@ foreach(_device ${CABANAMD_SUPPORTED_DEVICES})
 endforeach()
 
 ##---------------------------------------------------------------------------##
-# Set up neural network options
+# Set up optional libraries
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
+endif()
+
+option(CabanaMD_ENABLE_ARBORX "Build CabanaMD with ArborX" OFF)
+if(CabanaMD_ENABLE_ARBORX)
+  find_package(ArborX REQUIRED)
 endif()
 
 ##---------------------------------------------------------------------------##

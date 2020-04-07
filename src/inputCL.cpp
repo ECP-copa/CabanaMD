@@ -101,8 +101,8 @@ void InputCL::read_args( int argc, char *argv[] )
                         "TEAM_VECTOR)\n" );
                 printf( "  --neigh-type [TYPE]:        Specify Neighbor "
                         "Routines implementation \n" );
-                printf(
-                    "                              (VERLET_2D, VERLET_CSR)\n" );
+                printf( "                              (VERLET_2D, VERLET_CSR, "
+                        "TREE)\n" );
                 printf( "  --comm-type [TYPE]:         Specify Communication "
                         "Routines implementation \n" );
                 printf( "                              (MPI, SERIAL)\n" );
@@ -180,7 +180,20 @@ void InputCL::read_args( int argc, char *argv[] )
                 neighbor_type = NEIGH_VERLET_2D;
             if ( ( strcmp( argv[i + 1], "VERLET_CSR" ) == 0 ) )
                 neighbor_type = NEIGH_VERLET_CSR;
+            if ( ( strcmp( argv[i + 1], "TREE" ) == 0 ) )
+                neighbor_type = NEIGH_TREE;
             ++i;
+#ifndef CabanaMD_ENABLE_ARBORX
+            if ( neighbor_type == NEIGH_TREE )
+            {
+                if ( do_print )
+                {
+                    std::cout << "ArborX requested, but not compiled!"
+                              << std::endl;
+                }
+                std::exit( 1 );
+            }
+#endif
         }
 
         // Neighbor parallel

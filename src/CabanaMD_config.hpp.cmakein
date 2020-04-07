@@ -10,6 +10,7 @@
 #cmakedefine CabanaMD_ENABLE_Cuda
 
 #cmakedefine CabanaMD_ENABLE_NNP
+#cmakedefine CabanaMD_ENABLE_ARBORX
 
 #cmakedefine CabanaMD_LAYOUT_1AoSoA
 #cmakedefine CabanaMD_LAYOUT_2AoSoA
