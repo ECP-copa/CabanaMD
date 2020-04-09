@@ -64,6 +64,7 @@ env:
     - BACKENDS="Serial" NNP=ON
 
 script:
+  - export CXXFLAGS="-Wall -Wextra -pedantic -Werror"
   - mkdir build && pushd build &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DCMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos"
