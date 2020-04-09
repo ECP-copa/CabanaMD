@@ -335,20 +335,25 @@ class Mode
     KOKKOS_INLINE_FUNCTION
     double scale( int attype, double value, int k, d_t_SFscaling SFscaling );
 
-    template <class t_System, class t_System_NNP, class t_neigh_list,
-              class t_neigh_parallel, class t_angle_parallel>
-    void calculateForces( t_System *s, t_System_NNP *system_nnp,
-                          t_neigh_list neigh_list );
+    template <class t_slice_x, class t_slice_f, class t_slice_type,
+              class t_slice_dEdG, class t_neigh_list, class t_neigh_parallel,
+              class t_angle_parallel>
+    void calculateForces( t_slice_x x, t_slice_f f, t_slice_type type,
+                          t_slice_dEdG dEdG, t_neigh_list neigh_list,
+                          int N_local );
 
-    template <class t_System, class t_System_NNP, class t_neigh_list,
-              class t_neigh_parallel, class t_angle_parallel>
-    void calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *system_nnp,
-                                        t_mass numSFperElem );
+    template <class t_slice_type, class t_slice_G, class t_slice_dEdG,
+              class t_slice_E>
+    void calculateAtomicNeuralNetworks( t_slice_type type, t_slice_G G,
+                                        t_slice_dEdG dEdG, t_slice_E E,
+                                        t_mass numSFperElem, int N_local );
 
-    template <class t_System, class t_System_NNP, class t_neigh_list,
-              class t_neigh_parallel, class t_angle_parallel>
-    void calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *system_nnp,
-                                          t_neigh_list neigh_list );
+    template <class t_slice_x, class t_slice_type, class t_slice_G,
+              class t_neigh_list, class t_neigh_parallel,
+              class t_angle_parallel>
+    void calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
+                                          t_slice_G G, t_neigh_list neigh_list,
+                                          int N_local );
 
     /// Global log file.
     nnp::Log log;

@@ -69,20 +69,34 @@ template <class t_System, class t_System_NNP, class t_Neighbor,
 void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
               t_angle_parallel>::compute( t_System *s, t_Neighbor *neighbor )
 {
+    N_local = s->N_local;
+
     auto neigh_list = neighbor->get();
 
-    system_nnp->resize( s->N_local );
+    system_nnp->resize( N_local );
+
+    s->slice_force();
+    auto x = s->x;
+    // Atomic force slice
+    auto f_a = s->f;
+    auto type = s->type;
+
+    system_nnp->slice_G();
+    system_nnp->slice_dEdG();
+    system_nnp->slice_E();
+    auto G = system_nnp->G;
+    auto dEdG = system_nnp->dEdG;
+    auto E = system_nnp->E;
 
     Kokkos::deep_copy( d_numSFperElem, h_numSFperElem );
-    mode->calculateSymmetryFunctionGroups<t_System, t_System_NNP, t_neigh_list,
+    mode->calculateSymmetryFunctionGroups<t_x, t_type, t_G, t_neigh_list,
                                           t_neigh_parallel, t_angle_parallel>(
-        s, system_nnp, neigh_list );
-    mode->calculateAtomicNeuralNetworks<t_System, t_System_NNP, t_neigh_list,
-                                        t_neigh_parallel, t_angle_parallel>(
-        s, system_nnp, d_numSFperElem );
-    mode->calculateForces<t_System, t_System_NNP, t_neigh_list,
-                          t_neigh_parallel, t_angle_parallel>( s, system_nnp,
-                                                               neigh_list );
+        x, type, G, neigh_list, N_local );
+    mode->calculateAtomicNeuralNetworks<t_type, t_G, t_dEdG, t_E>(
+        type, G, dEdG, E, d_numSFperElem, N_local );
+    mode->calculateForces<t_x, t_f, t_type, t_dEdG, t_neigh_list,
+                          t_neigh_parallel, t_angle_parallel>(
+        x, f_a, type, dEdG, neigh_list, N_local );
 }
 
 template <class t_System, class t_System_NNP, class t_Neighbor,

@@ -36,22 +36,16 @@
 using namespace std;
 using namespace nnpCbn;
 
-template <class t_System, class t_System_NNP, class t_neigh_list,
-          class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
-                                            t_neigh_list neigh_list )
+template <class t_slice_x, class t_slice_type, class t_slice_G,
+          class t_neigh_list, class t_neigh_parallel, class t_angle_parallel>
+void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
+                                            t_slice_G G,
+                                            t_neigh_list neigh_list,
+                                            int N_local )
 {
-    s->slice_x();
-    auto x = s->x;
-    s->slice_type();
-    auto type = s->type;
-
-    s_nnp->slice_G();
-    typename t_System_NNP::t_G::atomic_access_slice G;
-    G = s_nnp->G;
     Cabana::deep_copy( G, 0.0 );
 
-    Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
+    Kokkos::RangePolicy<ExecutionSpace> policy( 0, N_local );
     t_neigh_parallel neigh_op_tag;
     t_angle_parallel angle_op_tag;
 
@@ -257,25 +251,16 @@ void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
     Kokkos::fence();
 }
 
-template <class t_System, class t_System_NNP, class t_neigh_list,
-          class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
-                                          t_mass numSFperElem )
+template <class t_slice_type, class t_slice_G, class t_slice_dEdG,
+          class t_slice_E>
+void Mode::calculateAtomicNeuralNetworks( t_slice_type type, t_slice_G G,
+                                          t_slice_dEdG dEdG, t_slice_E E,
+                                          t_mass numSFperElem, int N_local )
 {
-    s->slice_type();
-    auto type = s->type;
-
-    s_nnp->slice_G();
-    s_nnp->slice_dEdG();
-    s_nnp->slice_E();
-    auto G = s_nnp->G;
-    auto dEdG = s_nnp->dEdG;
-    auto energy = s_nnp->E;
-
-    NN = d_t_NN( "Mode::NN", s->N, numLayers, maxNeurons );
-    dfdx = d_t_NN( "Mode::dfdx", s->N, numLayers, maxNeurons );
-    inner = d_t_NN( "Mode::inner", s->N, numHiddenLayers, maxNeurons );
-    outer = d_t_NN( "Mode::outer", s->N, numHiddenLayers, maxNeurons );
+    NN = d_t_NN( "Mode::NN", N_local, numLayers, maxNeurons );
+    dfdx = d_t_NN( "Mode::dfdx", N_local, numLayers, maxNeurons );
+    inner = d_t_NN( "Mode::inner", N_local, numHiddenLayers, maxNeurons );
+    outer = d_t_NN( "Mode::outer", N_local, numHiddenLayers, maxNeurons );
 
     auto calc_nn_op = KOKKOS_LAMBDA( const int atomindex )
     {
@@ -315,7 +300,7 @@ void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
             }
         }
 
-        energy( atomindex ) = NN( atomindex, numLayers - 1, 0 );
+        E( atomindex ) = NN( atomindex, numLayers - 1, 0 );
 
         // derivative of network w.r.t NN inputs
         for ( int k = 0; k < numNeuronsPerLayer[0]; k++ )
@@ -345,30 +330,21 @@ void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
             dEdG( atomindex, k ) = outer( atomindex, numHiddenLayers - 1, 0 );
         }
     };
-    Kokkos::parallel_for( "Mode::calculateAtomicNeuralNetworks", s->N_local,
+    Kokkos::parallel_for( "Mode::calculateAtomicNeuralNetworks", N_local,
                           calc_nn_op );
     Kokkos::fence();
 }
 
-template <class t_System, class t_System_NNP, class t_neigh_list,
-          class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateForces( t_System *s, t_System_NNP *s_nnp,
-                            t_neigh_list neigh_list )
+template <class t_slice_x, class t_slice_f, class t_slice_type,
+          class t_slice_dEdG, class t_neigh_list, class t_neigh_parallel,
+          class t_angle_parallel>
+void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
+                            t_slice_dEdG dEdG, t_neigh_list neigh_list,
+                            int N_local )
 {
-    // Calculate Forces
-    s->slice_force();
-    auto x = s->x;
-    auto f = s->f;
-    typename t_System::t_f::atomic_access_slice f_a;
-    f_a = f;
-    auto type = s->type;
-
-    s_nnp->slice_dEdG();
-    auto dEdG = s_nnp->dEdG;
-
     double convForce = convLength / convEnergy;
 
-    Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
+    Kokkos::RangePolicy<ExecutionSpace> policy( 0, N_local );
     t_neigh_parallel neigh_op_tag;
     t_angle_parallel angle_op_tag;
 
