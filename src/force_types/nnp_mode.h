@@ -119,7 +119,7 @@ class Mode
      * Uses keywords `number_of_elements` and `atom_energy`. This function
      * should follow immediately after setupElementMap().
      */
-    h_t_mass setupElements( h_t_mass atomicEnergyOffset );
+    void setupElements();
     /** Set up cutoff function for all symmetry functions.
      *
      * Uses keyword `cutoff_type`. Cutoff parameters are read from settings
@@ -133,7 +133,7 @@ class Mode
      * Uses keyword `symfunction_short`. Reads all symmetry functions from
      * settings and automatically assigns them to the correct element.
      */
-    h_t_mass setupSymmetryFunctions( h_t_mass h_numSFperElem );
+    void setupSymmetryFunctions();
     /** Set up symmetry function scaling from file.
      *
      * @param[in] fileName Scaling file name.
@@ -346,7 +346,7 @@ class Mode
               class t_slice_E>
     void calculateAtomicNeuralNetworks( t_slice_type type, t_slice_G G,
                                         t_slice_dEdG dEdG, t_slice_E E,
-                                        t_mass numSFperElem, int N_local );
+                                        int N_local );
 
     template <class t_slice_x, class t_slice_type, class t_slice_G,
               class t_neigh_list, class t_neigh_parallel,
@@ -389,6 +389,12 @@ class Mode
     int AF[4];
     // int* numNeuronsPerLayer = new int[numLayers];
     // int* AF = new int[numLayers];
+
+    // Not ever used in a device kernel
+    h_t_mass atomicEnergyOffset;
+
+    h_t_mass h_numSFperElem;
+    t_mass numSFperElem;
 
     int countertotal[2] = {0, 0};
     int countergtotal[2] = {0, 0};

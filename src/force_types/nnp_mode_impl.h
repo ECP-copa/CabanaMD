@@ -28,11 +28,6 @@
 #include <stdexcept> // std::runtime_error
 #include <string>
 
-#define NNP_VERSION "2.0.0"
-#define NNP_GIT_REV "7b73a36a9acfdcc80e44265bac92b055f41a1d07"
-#define NNP_GIT_REV_SHORT "7b73a36"
-#define NNP_GIT_BRANCH "master"
-
 using namespace std;
 using namespace nnpCbn;
 
@@ -255,7 +250,7 @@ template <class t_slice_type, class t_slice_G, class t_slice_dEdG,
           class t_slice_E>
 void Mode::calculateAtomicNeuralNetworks( t_slice_type type, t_slice_G G,
                                           t_slice_dEdG dEdG, t_slice_E E,
-                                          t_mass numSFperElem, int N_local )
+                                          int N_local )
 {
     NN = d_t_NN( "Mode::NN", N_local, numLayers, maxNeurons );
     dfdx = d_t_NN( "Mode::dfdx", N_local, numLayers, maxNeurons );

@@ -169,7 +169,7 @@ void Mode::setupElementMap()
     return;
 }
 
-h_t_mass Mode::setupElements( h_t_mass atomicEnergyOffset )
+void Mode::setupElements()
 {
     log << "\n";
     log << "*** SETUP: ELEMENTS *********************"
@@ -218,7 +218,8 @@ h_t_mass Mode::setupElements( h_t_mass atomicEnergyOffset )
            "energies.\n";
     log << "*****************************************"
            "**************************************\n";
-    return atomicEnergyOffset;
+
+    return;
 }
 
 void Mode::setupCutoff()
@@ -316,7 +317,7 @@ void Mode::setupCutoff()
     return;
 }
 
-h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
+void Mode::setupSymmetryFunctions()
 {
     h_numSFperElem =
         h_t_mass( "ForceNNP::numSymmetryFunctionsPerElement", numElements );
@@ -406,7 +407,11 @@ h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
     log << "*****************************************"
            "**************************************\n";
 
-    return h_numSFperElem;
+    numSFperElem =
+        t_mass( "ForceNNP::numSymmetryFunctionsPerElement", numElements );
+    Kokkos::deep_copy( numSFperElem, h_numSFperElem );
+
+    return;
 }
 
 void Mode::setupSymmetryFunctionScaling( string const &fileName )
