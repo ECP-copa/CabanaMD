@@ -664,6 +664,9 @@ void Mode::setupNeuralNetwork()
     numLayers = 2 + atoi( settings["global_hidden_layers_short"].c_str() );
     numHiddenLayers = numLayers - 2;
 
+    h_numNeuronsPerLayer = h_t_int( "numNeuronsPerLayer", numLayers );
+    h_AF = h_t_int( "ActivationFunctions", numLayers );
+
     vector<string> numNeuronsPerHiddenLayer =
         nnp::split( nnp::reduce( settings["global_nodes_short"] ) );
     vector<string> activationFunctions =
@@ -672,17 +675,17 @@ void Mode::setupNeuralNetwork()
     for ( int i = 0; i < numLayers; i++ )
     {
         if ( i == 0 )
-            AF[i] = 0;
+            h_AF( i ) = 0;
         else if ( i == numLayers - 1 )
         {
-            numNeuronsPerLayer[i] = 1;
-            AF[i] = 0;
+            h_numNeuronsPerLayer( i ) = 1;
+            h_AF( i ) = 0;
         }
         else
         {
-            numNeuronsPerLayer[i] =
+            h_numNeuronsPerLayer( i ) =
                 atoi( numNeuronsPerHiddenLayer.at( i - 1 ).c_str() );
-            AF[i] = 1; // TODO: hardcoded atoi(activationFunctions.at(i-1));
+            h_AF( i ) = 1; // TODO: hardcoded atoi(activationFunctions.at(i-1));
         }
     }
 
@@ -697,7 +700,7 @@ void Mode::setupNeuralNetwork()
           ++it )
     {
         int attype = it->getIndex();
-        numNeuronsPerLayer[0] =
+        h_numNeuronsPerLayer( 0 ) =
             it->numSymmetryFunctions( attype, countertotal );
         log << nnp::strpr( "Atomic short range NN for "
                            "element %2s :\n",
@@ -706,31 +709,29 @@ void Mode::setupNeuralNetwork()
         int numWeights = 0, numBiases = 0, numConnections = 0;
         for ( int j = 1; j < numLayers; ++j )
         {
-            numWeights += numNeuronsPerLayer[j - 1] * numNeuronsPerLayer[j];
-            numBiases += numNeuronsPerLayer[j];
+            numWeights +=
+                h_numNeuronsPerLayer( j - 1 ) * h_numNeuronsPerLayer( j );
+            numBiases += h_numNeuronsPerLayer( j );
         }
         numConnections = numWeights + numBiases;
         log << nnp::strpr( "Number of weights    : %6zu\n", numWeights );
         log << nnp::strpr( "Number of biases     : %6zu\n", numBiases );
         log << nnp::strpr( "Number of connections: %6zu\n", numConnections );
-        log << nnp::strpr( "Architecture    %6zu    %6zu    %6zu    %6zu\n",
-                           numNeuronsPerLayer[0], numNeuronsPerLayer[1],
-                           numNeuronsPerLayer[2], numNeuronsPerLayer[3] );
-        log << "-----------------------------------------"
+        log << nnp::strpr( "Architecture    " );
+        for ( int j = 0; j < numLayers; ++j )
+            log << nnp::strpr( " %4d", h_numNeuronsPerLayer( j ) );
+
+        log << "\n-----------------------------------------"
                "--------------------------------------\n";
     }
 
     // initialize Views
     maxNeurons = 0;
     for ( int j = 0; j < numLayers; ++j )
-        maxNeurons = max( maxNeurons, numNeuronsPerLayer[j] );
+        maxNeurons = max( maxNeurons, h_numNeuronsPerLayer( j ) );
 
     h_bias = t_bias( "ForceNNP::biases", numElements, numLayers, maxNeurons );
     h_weights = t_weights( "ForceNNP::weights", numElements, numLayers,
-                           maxNeurons, maxNeurons );
-
-    bias = d_t_bias( "ForceNNP::biases", numElements, numLayers, maxNeurons );
-    weights = d_t_weights( "ForceNNP::weights", numElements, numLayers,
                            maxNeurons, maxNeurons );
 
     log << "*****************************************"
@@ -805,8 +806,16 @@ void Mode::setupNeuralNetworkWeights( string const &fileNameFormat )
     log << "*****************************************"
            "**************************************\n";
 
+    bias = d_t_bias( "ForceNNP::biases", numElements, numLayers, maxNeurons );
+    weights = d_t_weights( "ForceNNP::weights", numElements, numLayers,
+                           maxNeurons, maxNeurons );
+    AF = d_t_int( "ActivationFunctions", numLayers );
+    numNeuronsPerLayer = d_t_int( "numNeuronsPerLayer", numLayers );
+
     Kokkos::deep_copy( bias, h_bias );
     Kokkos::deep_copy( weights, h_weights );
+    Kokkos::deep_copy( AF, h_AF );
+    Kokkos::deep_copy( numNeuronsPerLayer, h_numNeuronsPerLayer );
 
     return;
 }

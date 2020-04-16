@@ -385,12 +385,11 @@ class Mode
     t_bias h_bias;
     t_weights h_weights;
     int numLayers, numHiddenLayers, maxNeurons;
-    int numNeuronsPerLayer[4];
-    int AF[4];
-    // int* numNeuronsPerLayer = new int[numLayers];
-    // int* AF = new int[numLayers];
+    d_t_int numNeuronsPerLayer;
+    h_t_int h_numNeuronsPerLayer;
+    d_t_int AF;
+    h_t_int h_AF;
 
-    // Not ever used in a device kernel
     h_t_mass atomicEnergyOffset;
 
     h_t_mass h_numSFperElem;

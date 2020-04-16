@@ -76,6 +76,9 @@ enum {
 
 typedef ExecutionSpace::array_layout array_layout; // TODO: check this
 using h_t_mass = Kokkos::View<T_V_FLOAT *, array_layout, Kokkos::HostSpace>;
+using d_t_int = Kokkos::View<T_INT *>;
+using h_t_int = Kokkos::View<T_INT *, array_layout, Kokkos::HostSpace>;
+
 using d_t_SF = Kokkos::View<T_FLOAT * * [15]>;
 using t_SF = Kokkos::View<T_FLOAT * * [15], array_layout, Kokkos::HostSpace>;
 using d_t_SFscaling = Kokkos::View<T_FLOAT * * [8]>;

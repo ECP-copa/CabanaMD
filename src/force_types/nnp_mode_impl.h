@@ -281,12 +281,12 @@ void Mode::calculateAtomicNeuralNetworks( t_slice_type type, t_slice_G G,
                     dtmp += weights( attype, l - 1, i, j ) *
                             NN( atomindex, l - 1, j );
                 dtmp += bias( attype, l - 1, i );
-                if ( AF[l] == 0 )
+                if ( AF( l ) == 0 )
                 {
                     NN( atomindex, l, i ) = dtmp;
                     dfdx( atomindex, l, i ) = 1.0;
                 }
-                else if ( AF[l] == 1 )
+                else if ( AF( l ) == 1 )
                 {
                     dtmp = tanh( dtmp );
                     NN( atomindex, l, i ) = dtmp;
@@ -306,11 +306,11 @@ void Mode::calculateAtomicNeuralNetworks( t_slice_type type, t_slice_G G,
 
             for ( int l = 1; l < numHiddenLayers + 1; l++ )
             {
-                for ( int i2 = 0; i2 < numNeuronsPerLayer[l + 1]; i2++ )
+                for ( int i2 = 0; i2 < numNeuronsPerLayer( l + 1 ); i2++ )
                 {
                     outer( atomindex, l - 1, i2 ) = 0.0;
 
-                    for ( int i1 = 0; i1 < numNeuronsPerLayer[l]; i1++ )
+                    for ( int i1 = 0; i1 < numNeuronsPerLayer( l ); i1++ )
                         outer( atomindex, l - 1, i2 ) +=
                             weights( attype, l, i2, i1 ) *
                             inner( atomindex, l - 1, i1 );
