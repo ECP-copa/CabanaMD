@@ -50,9 +50,9 @@ template <class t_System>
 Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     : neighbors_halo( 6 )
     , neighbors_dist( 6 )
+    , halo_all( 6 )
     , system( s )
     , comm_depth( comm_depth_ )
-    , halo_all( 6 )
 {
     pack_count = Kokkos::View<int>( "CommMPI::pack_count" );
     pack_indicies_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType>(

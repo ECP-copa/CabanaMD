@@ -66,6 +66,7 @@ env:
 script:
   - mkdir build && pushd build &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Werror"
           -DCMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos"
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
