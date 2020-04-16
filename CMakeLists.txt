@@ -14,6 +14,25 @@ include(GNUInstallDirs)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ##---------------------------------------------------------------------------##
+# Download and unpack googletest
+##---------------------------------------------------------------------------##
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        release-1.10.0
+)
+FetchContent_GetProperties(googletest)
+if(NOT googletest_POPULATED)
+  FetchContent_Populate(googletest)
+  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
+endif()
+
+# Prevent GoogleTest from overriding our compiler/linker options
+# when building with Visual Studio
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+##---------------------------------------------------------------------------##
 # Set up main options (inherit from Kokkos and Cabana CMake)
 ##---------------------------------------------------------------------------##
 find_package(Cabana REQUIRED)
@@ -67,7 +86,7 @@ add_subdirectory(src)
 add_subdirectory(bin)
 
 ##---------------------------------------------------------------------------##
-## Enable Tests?
+## Unit tests
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_TESTING "Build tests" OFF)
 if(CabanaMD_ENABLE_TESTING)
@@ -80,7 +99,7 @@ endif()
 ##---------------------------------------------------------------------------##
 find_package(CLANG_FORMAT)
 if(CLANG_FORMAT_FOUND)
-  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h bin/*.cpp)
+  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h bin/*.cpp unit_test/*.cpp unit_test/*.hpp)
   add_custom_target(format
     COMMAND ${CLANG_FORMAT_EXECUTABLE} -i -style=file ${FORMAT_SOURCES}
     DEPENDS ${FORMAT_SOURCES})
