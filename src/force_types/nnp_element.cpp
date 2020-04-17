@@ -307,7 +307,8 @@ Element::infoSymmetryFunctionScaling( ScalingType scalingType, t_SF SF,
 void Element::setupSymmetryFunctionGroups( t_SF SF,
                                            t_SFGmemberlist SFGmemberlist,
                                            int attype, int ( &countertotal )[2],
-                                           int ( &countergtotal )[2] )
+                                           int ( &countergtotal )[2],
+                                           int maxSFperElem )
 {
     int *countergR = new int[countergtotal[attype]];
     int *countergAN = new int[countergtotal[attype]];
@@ -342,7 +343,7 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
                 {
                     SFGmemberlist( attype, l, countergR[l] ) = SFindex;
                     countergR[l]++;
-                    SFGmemberlist( attype, l, MAX_SF )++;
+                    SFGmemberlist( attype, l, maxSFperElem )++;
                     break;
                 }
 
@@ -350,7 +351,7 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
                 {
                     SFGmemberlist( attype, l, countergAN[l] ) = SFindex;
                     countergAN[l]++;
-                    SFGmemberlist( attype, l, MAX_SF )++;
+                    SFGmemberlist( attype, l, maxSFperElem )++;
                     break;
                 }
             }
@@ -365,14 +366,14 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
                 countergR[l] = 0;
                 SFGmemberlist( attype, l, countergR[l] ) = SFindex;
                 countergR[l]++;
-                SFGmemberlist( attype, l, MAX_SF )++;
+                SFGmemberlist( attype, l, maxSFperElem )++;
             }
             else if ( SF( attype, SFindex, 1 ) == 3 )
             {
                 countergAN[l] = 0;
                 SFGmemberlist( attype, l, countergAN[l] ) = SFindex;
                 countergAN[l]++;
-                SFGmemberlist( attype, l, MAX_SF )++;
+                SFGmemberlist( attype, l, maxSFperElem )++;
             }
         }
     }

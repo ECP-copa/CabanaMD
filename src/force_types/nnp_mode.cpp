@@ -151,12 +151,6 @@ void Mode::setupElementMap()
     // resize to match number of element types
     numElements = elementStrings.size();
 
-    // setup SF host views
-    // create device mirrors if needed below
-    SF = t_SF( "ForceNNP::SF", numElements, MAX_SF );
-    SFscaling = t_SFscaling( "ForceNNP::SFscaling", numElements, MAX_SF );
-    SFGmemberlist = t_SFGmemberlist( "ForceNNP::SFGmemberlist", numElements );
-
     log << "*****************************************"
            "**************************************\n";
 
@@ -320,7 +314,38 @@ void Mode::setupSymmetryFunctions()
            "**************************************\n";
     log << "\n";
 
+    // Only count SF per element; parse and add later
     nnp::Settings::KeyRange r = settings.getValues( "symfunction_short" );
+    for ( nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second;
+          ++it )
+    {
+        vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
+        int type = 0;
+        const char *estring = args.at( 0 ).c_str();
+        // np.where element symbol == symbol encountered during parsing
+        for ( size_t i = 0; i < elementStrings.size(); ++i )
+        {
+            if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
+                type = i;
+        }
+        countertotal[type]++;
+
+        h_numSFperElem( type ) = countertotal[type];
+        if ( h_numSFperElem( type ) > maxSFperElem )
+            maxSFperElem = h_numSFperElem( type );
+    }
+    for ( size_t i = 0; i < numElements; ++i )
+        countertotal[i] = 0;
+
+    // setup SF host views
+    // create device mirrors if needed below
+    SF = t_SF( "SymmetryFunctions", numElements, maxSFperElem );
+    SFscaling = t_SFscaling( "SFscaling", numElements, maxSFperElem );
+    // +1 to store size of memberlist
+    SFGmemberlist = t_SFGmemberlist( "SFGmemberlist", numElements,
+                                     maxSFperElem + 1, maxSFperElem + 1 );
+
+    r = settings.getValues( "symfunction_short" );
     for ( nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second;
           ++it )
     {
@@ -336,8 +361,6 @@ void Mode::setupSymmetryFunctions()
         elements.at( type ).addSymmetryFunction( it->second.first,
                                                  elementStrings, type, SF,
                                                  convLength, countertotal );
-        // set numSFperElem to number of symmetry functions from reading
-        h_numSFperElem( type ) = countertotal[type];
     }
 
     log << "Abbreviations:\n";
@@ -542,8 +565,10 @@ void Mode::setupSymmetryFunctionScaling( string const &fileName )
            "**************************************\n";
 
     d_SF = Kokkos::create_mirror_view_and_copy( MemorySpace(), SF );
-    d_SFscaling = Kokkos::create_mirror_view_and_copy( MemorySpace(), SFscaling );
-    d_SFGmemberlist = Kokkos::create_mirror_view_and_copy( MemorySpace(), SFGmemberlist );
+    d_SFscaling =
+        Kokkos::create_mirror_view_and_copy( MemorySpace(), SFscaling );
+    d_SFGmemberlist =
+        Kokkos::create_mirror_view_and_copy( MemorySpace(), SFGmemberlist );
 
     return;
 }
@@ -579,7 +604,8 @@ void Mode::setupSymmetryFunctionGroups()
     {
         int attype = it->getIndex();
         it->setupSymmetryFunctionGroups( SF, SFGmemberlist, attype,
-                                         countertotal, countergtotal );
+                                         countertotal, countergtotal,
+                                         maxSFperElem );
         log << nnp::strpr( "Short range atomic symmetry function groups "
                            "element %2s :\n",
                            it->getSymbol().c_str() );
@@ -802,7 +828,8 @@ void Mode::setupNeuralNetworkWeights( string const &fileNameFormat )
     bias = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_bias );
     weights = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_weights );
     AF = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_AF );
-    numNeuronsPerLayer = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_numNeuronsPerLayer );
+    numNeuronsPerLayer = Kokkos::create_mirror_view_and_copy(
+        MemorySpace(), h_numNeuronsPerLayer );
 
     return;
 }

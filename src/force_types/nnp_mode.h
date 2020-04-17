@@ -394,6 +394,7 @@ class Mode
 
     h_t_mass h_numSFperElem;
     t_mass numSFperElem;
+    int maxSFperElem;
 
     int countertotal[2] = {0, 0};
     int countergtotal[2] = {0, 0};

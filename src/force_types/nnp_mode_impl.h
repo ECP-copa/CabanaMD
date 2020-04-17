@@ -56,7 +56,8 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
                 size_t memberindex0 = d_SFGmemberlist( attype, groupIndex, 0 );
                 size_t e1 = d_SF( attype, memberindex0, 2 );
                 double rc = d_SF( attype, memberindex0, 7 );
-                size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+                size_t size =
+                    d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
                 double pfcij, pdfcij, eta, rs;
                 size_t nej;
@@ -104,7 +105,8 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
                 size_t e1 = d_SF( attype, memberindex0, 2 );
                 size_t e2 = d_SF( attype, memberindex0, 3 );
                 double rc = d_SF( attype, memberindex0, 7 );
-                size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+                size_t size =
+                    d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
                 // Prevent problematic condition in loop test below (j <
                 // numNeighbors - 1).
@@ -222,7 +224,7 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
         {
             memberindex0 = d_SFGmemberlist( attype, groupIndex, 0 );
 
-            size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+            size_t size = d_SFGmemberlist( attype, groupIndex, maxSFperElem );
             for ( size_t k = 0; k < size; ++k )
             {
                 globalIndex = d_SF(
@@ -356,7 +358,8 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
                 size_t memberindex0 = d_SFGmemberlist( attype, groupIndex, 0 );
                 size_t e1 = d_SF( attype, memberindex0, 2 );
                 double rc = d_SF( attype, memberindex0, 7 );
-                size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+                size_t size =
+                    d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
                 double pfcij, pdfcij;
                 double rij, r2ij;
@@ -425,7 +428,8 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
                 size_t e1 = d_SF( attype, memberindex0, 2 );
                 size_t e2 = d_SF( attype, memberindex0, 3 );
                 double rc = d_SF( attype, memberindex0, 7 );
-                size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+                size_t size =
+                    d_SFGmemberlist( attype, groupIndex, maxSFperElem );
                 // Prevent problematic condition in loop test below (j <
                 // numNeighbors - 1).
                 // if (num_neighs == 0) num_neighs = 1;

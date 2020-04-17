@@ -96,7 +96,8 @@ class Element
      */
     void setupSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
                                       int attype, int ( &countertotal )[2],
-                                      int ( &countergtotal )[2] );
+                                      int ( &countergtotal )[2],
+                                      int maxSFperElem );
     /** Print symmetry function group info.
      */
     vector<string>
