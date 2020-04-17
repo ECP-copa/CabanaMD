@@ -46,6 +46,14 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
 
     auto calc_radial_symm_op = KOKKOS_LAMBDA( const int i, const int j )
     {
+        double pfcij = 0.0;
+        double pdfcij = 0.0;
+        double eta, rs;
+        size_t nej;
+        int memberindex, globalIndex;
+        double rij, r2ij;
+        T_F_FLOAT dxij, dyij, dzij;
+
         int attype = type( i );
         for ( int groupIndex = 0; groupIndex < countergtotal[attype];
               ++groupIndex )
@@ -59,11 +67,6 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
                 size_t size =
                     d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
-                double pfcij, pdfcij, eta, rs;
-                size_t nej;
-                int memberindex, globalIndex;
-                double rij, r2ij;
-                T_F_FLOAT dxij, dyij, dzij;
                 nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;
@@ -94,6 +97,15 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
     auto calc_angular_symm_op =
         KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
+        double pfcij = 0.0;
+        double pdfcij = 0.0;
+        double pfcik, pdfcik, pfcjk, pdfcjk;
+        size_t nej, nek;
+        int memberindex, globalIndex;
+        double rij, r2ij, rik, r2ik, rjk, r2jk;
+        T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
+        double eta, rs, lambda, zeta;
+
         int attype = type( i );
         for ( int groupIndex = 0; groupIndex < countergtotal[attype];
               ++groupIndex )
@@ -112,12 +124,6 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
                 // numNeighbors - 1).
                 // if (num_neighs == 0) num_neighs = 1;
 
-                double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
-                size_t nej, nek;
-                int memberindex, globalIndex;
-                double rij, r2ij, rik, r2ik, rjk, r2jk;
-                T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
-                double eta, rs, lambda, zeta;
                 nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;
@@ -347,6 +353,13 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
 
     auto calc_radial_force_op = KOKKOS_LAMBDA( const int i, const int j )
     {
+        double pfcij = 0.0;
+        double pdfcij = 0.0;
+        double rij, r2ij;
+        T_F_FLOAT dxij, dyij, dzij;
+        double eta, rs;
+        int memberindex, globalIndex;
+
         int attype = type( i );
 
         for ( int groupIndex = 0; groupIndex < countergtotal[attype];
@@ -361,11 +374,6 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
                 size_t size =
                     d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
-                double pfcij, pdfcij;
-                double rij, r2ij;
-                T_F_FLOAT dxij, dyij, dzij;
-                double eta, rs;
-                int memberindex, globalIndex;
                 size_t nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;
@@ -417,6 +425,15 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
     auto calc_angular_force_op =
         KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
+        double pfcij = 0.0;
+        double pdfcij = 0.0;
+        double pfcik, pdfcik, pfcjk, pdfcjk;
+        size_t nej, nek;
+        double rij, r2ij, rik, r2ik, rjk, r2jk;
+        T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
+        double eta, rs, lambda, zeta;
+        int memberindex, globalIndex;
+
         int attype = type( i );
         for ( int groupIndex = 0; groupIndex < countergtotal[attype];
               ++groupIndex )
@@ -434,12 +451,6 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
                 // numNeighbors - 1).
                 // if (num_neighs == 0) num_neighs = 1;
 
-                double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
-                size_t nej, nek;
-                double rij, r2ij, rik, r2ik, rjk, r2jk;
-                T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
-                double eta, rs, lambda, zeta;
-                int memberindex, globalIndex;
                 nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;
