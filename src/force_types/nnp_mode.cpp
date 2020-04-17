@@ -151,17 +151,11 @@ void Mode::setupElementMap()
     // resize to match number of element types
     numElements = elementStrings.size();
 
-    // setup device and host views
-    // deep copy back when needed for calculations
-    // setup SF info storage
+    // setup SF host views
+    // create device mirrors if needed below
     SF = t_SF( "ForceNNP::SF", numElements, MAX_SF );
     SFscaling = t_SFscaling( "ForceNNP::SFscaling", numElements, MAX_SF );
     SFGmemberlist = t_SFGmemberlist( "ForceNNP::SFGmemberlist", numElements );
-
-    d_SF = d_t_SF( "ForceNNP::SF", numElements, MAX_SF );
-    d_SFscaling = d_t_SFscaling( "ForceNNP::SFscaling", numElements, MAX_SF );
-    d_SFGmemberlist =
-        d_t_SFGmemberlist( "ForceNNP::SFGmemberlist", numElements );
 
     log << "*****************************************"
            "**************************************\n";
@@ -408,8 +402,7 @@ void Mode::setupSymmetryFunctions()
            "**************************************\n";
 
     numSFperElem =
-        t_mass( "ForceNNP::numSymmetryFunctionsPerElement", numElements );
-    Kokkos::deep_copy( numSFperElem, h_numSFperElem );
+        Kokkos::create_mirror_view_and_copy( MemorySpace(), h_numSFperElem );
 
     return;
 }
@@ -548,9 +541,9 @@ void Mode::setupSymmetryFunctionScaling( string const &fileName )
     log << "*****************************************"
            "**************************************\n";
 
-    Kokkos::deep_copy( d_SF, SF );
-    Kokkos::deep_copy( d_SFscaling, SFscaling );
-    Kokkos::deep_copy( d_SFGmemberlist, SFGmemberlist );
+    d_SF = Kokkos::create_mirror_view_and_copy( MemorySpace(), SF );
+    d_SFscaling = Kokkos::create_mirror_view_and_copy( MemorySpace(), SFscaling );
+    d_SFGmemberlist = Kokkos::create_mirror_view_and_copy( MemorySpace(), SFGmemberlist );
 
     return;
 }
@@ -806,16 +799,10 @@ void Mode::setupNeuralNetworkWeights( string const &fileNameFormat )
     log << "*****************************************"
            "**************************************\n";
 
-    bias = d_t_bias( "ForceNNP::biases", numElements, numLayers, maxNeurons );
-    weights = d_t_weights( "ForceNNP::weights", numElements, numLayers,
-                           maxNeurons, maxNeurons );
-    AF = d_t_int( "ActivationFunctions", numLayers );
-    numNeuronsPerLayer = d_t_int( "numNeuronsPerLayer", numLayers );
-
-    Kokkos::deep_copy( bias, h_bias );
-    Kokkos::deep_copy( weights, h_weights );
-    Kokkos::deep_copy( AF, h_AF );
-    Kokkos::deep_copy( numNeuronsPerLayer, h_numNeuronsPerLayer );
+    bias = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_bias );
+    weights = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_weights );
+    AF = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_AF );
+    numNeuronsPerLayer = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_numNeuronsPerLayer );
 
     return;
 }
