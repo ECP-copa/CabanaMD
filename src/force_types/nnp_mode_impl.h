@@ -120,10 +120,6 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
                 size_t size =
                     d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
-                // Prevent problematic condition in loop test below (j <
-                // numNeighbors - 1).
-                // if (num_neighs == 0) num_neighs = 1;
-
                 nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;
@@ -447,9 +443,6 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
                 double rc = d_SF( attype, memberindex0, 7 );
                 size_t size =
                     d_SFGmemberlist( attype, groupIndex, maxSFperElem );
-                // Prevent problematic condition in loop test below (j <
-                // numNeighbors - 1).
-                // if (num_neighs == 0) num_neighs = 1;
 
                 nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;

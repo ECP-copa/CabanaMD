@@ -186,7 +186,6 @@ void Mode::setupElements()
         {
             vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
             const char *estring = args.at( 0 ).c_str();
-            // np.where element symbol == symbol encountered during parsing
             for ( size_t i = 0; i < elementStrings.size(); ++i )
             {
                 if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -322,7 +321,6 @@ void Mode::setupSymmetryFunctions()
         vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
         int type = 0;
         const char *estring = args.at( 0 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -351,7 +349,6 @@ void Mode::setupSymmetryFunctions()
         vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
         int type = 0;
         const char *estring = args.at( 0 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -780,7 +777,6 @@ void Mode::setupNeuralNetworkWeights( string const &fileNameFormat )
           ++it )
     {
         const char *estring = elementStrings[count].c_str();
-        // np.where element symbol == symbol encountered in knownElements
         for ( size_t i = 0; i < knownElements.size(); ++i )
         {
             if ( strcmp( knownElements[i].c_str(), estring ) == 0 )

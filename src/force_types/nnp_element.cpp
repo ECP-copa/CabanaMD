@@ -52,7 +52,6 @@ void Element::addSymmetryFunction( string const &parameters,
     if ( type == 2 )
     {
         estring = splitLine.at( 0 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -62,7 +61,6 @@ void Element::addSymmetryFunction( string const &parameters,
         SF( attype, h_numSFperElem( attype ), 1 ) = type; // type
 
         estring = splitLine.at( 2 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -89,7 +87,6 @@ void Element::addSymmetryFunction( string const &parameters,
         if ( type != (size_t)atoi( splitLine.at( 1 ).c_str() ) )
             throw runtime_error( "ERROR: Incorrect symmetry function type.\n" );
         estring = splitLine.at( 0 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -99,7 +96,6 @@ void Element::addSymmetryFunction( string const &parameters,
         SF( attype, h_numSFperElem( attype ), 1 ) = type; // type
 
         estring = splitLine.at( 2 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -108,7 +104,6 @@ void Element::addSymmetryFunction( string const &parameters,
         SF( attype, h_numSFperElem( attype ), 2 ) = el; // e1
 
         estring = splitLine.at( 3 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -173,9 +168,9 @@ void Element::sortSymmetryFunctions( t_SF SF, h_t_int h_numSFperElem,
                                      int attype )
 {
     int size = h_numSFperElem( attype );
-    int *SFvector = new int[size];
+    h_t_int h_SFsort( "SortSort", size );
     for ( int i = 0; i < size; ++i )
-        SFvector[i] = i;
+        h_SFsort( i ) = i;
 
     // naive insertion sort
     int i, j, tmp;
@@ -183,11 +178,12 @@ void Element::sortSymmetryFunctions( t_SF SF, h_t_int h_numSFperElem,
     {
         j = i;
         // explicit condition for sort
-        while ( j > 0 && compareSF( SF, attype, SFvector[j - 1], SFvector[j] ) )
+        while ( j > 0 &&
+                compareSF( SF, attype, h_SFsort( j - 1 ), h_SFsort( j ) ) )
         {
-            tmp = SFvector[j];
-            SFvector[j] = SFvector[j - 1];
-            SFvector[j - 1] = tmp;
+            tmp = h_SFsort( j );
+            h_SFsort( j ) = h_SFsort( j - 1 );
+            h_SFsort( j - 1 ) = tmp;
             --j;
         }
     }
@@ -195,12 +191,11 @@ void Element::sortSymmetryFunctions( t_SF SF, h_t_int h_numSFperElem,
     int tmpindex;
     for ( int i = 0; i < size; ++i )
     {
-        SF( attype, i, 13 ) = SFvector[i];
+        SF( attype, i, 13 ) = h_SFsort( i );
         tmpindex = SF( attype, i, 13 );
         SF( attype, tmpindex, 14 ) = i;
     }
 
-    delete[] SFvector;
     return;
 }
 
