@@ -394,9 +394,9 @@ class Mode
 
     h_t_int h_numSFperElem;
     d_t_int numSFperElem;
+    h_t_int h_numSFGperElem;
+    d_t_int numSFGperElem;
     int maxSFperElem;
-
-    int countergtotal[2] = {0, 0};
 
     bool normalize;
     bool checkExtrapolationWarnings;

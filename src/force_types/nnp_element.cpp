@@ -307,17 +307,17 @@ Element::infoSymmetryFunctionScaling( ScalingType scalingType, t_SF SF,
 void Element::setupSymmetryFunctionGroups( t_SF SF,
                                            t_SFGmemberlist SFGmemberlist,
                                            int attype, h_t_int h_numSFperElem,
-                                           int ( &countergtotal )[2],
+                                           h_t_int h_numSFGperElem,
                                            int maxSFperElem )
 {
-    int *countergR = new int[countergtotal[attype]];
-    int *countergAN = new int[countergtotal[attype]];
+    h_t_int h_numGR( "RadialCounter", h_numSFGperElem.extent( 0 ) );
+    h_t_int h_numGA( "AngularCounter", h_numSFGperElem.extent( 0 ) );
     int SFindex;
     for ( int k = 0; k < h_numSFperElem( attype ); ++k )
     {
         bool createNewGroup = true;
         SFindex = SF( attype, k, 13 );
-        for ( int l = 0; l < countergtotal[attype]; ++l )
+        for ( int l = 0; l < h_numSFGperElem( attype ); ++l )
         {
             if ( ( SF( attype, SFindex, 0 ) ==
                    SF( attype, SFGmemberlist( attype, l, 0 ),
@@ -341,16 +341,16 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
                 createNewGroup = false;
                 if ( SF( attype, SFindex, 1 ) == 2 )
                 {
-                    SFGmemberlist( attype, l, countergR[l] ) = SFindex;
-                    countergR[l]++;
+                    SFGmemberlist( attype, l, h_numGR( l ) ) = SFindex;
+                    h_numGR( l )++;
                     SFGmemberlist( attype, l, maxSFperElem )++;
                     break;
                 }
 
                 else if ( SF( attype, SFindex, 1 ) == 3 )
                 {
-                    SFGmemberlist( attype, l, countergAN[l] ) = SFindex;
-                    countergAN[l]++;
+                    SFGmemberlist( attype, l, h_numGA( l ) ) = SFindex;
+                    h_numGA( l )++;
                     SFGmemberlist( attype, l, maxSFperElem )++;
                     break;
                 }
@@ -359,20 +359,20 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
 
         if ( createNewGroup )
         {
-            int l = countergtotal[attype];
-            countergtotal[attype]++;
+            int l = h_numSFGperElem( attype );
+            h_numSFGperElem( attype )++;
             if ( SF( attype, SFindex, 1 ) == 2 )
             {
-                countergR[l] = 0;
-                SFGmemberlist( attype, l, countergR[l] ) = SFindex;
-                countergR[l]++;
+                h_numGR( l ) = 0;
+                SFGmemberlist( attype, l, h_numGR( l ) ) = SFindex;
+                h_numGR( l )++;
                 SFGmemberlist( attype, l, maxSFperElem )++;
             }
             else if ( SF( attype, SFindex, 1 ) == 3 )
             {
-                countergAN[l] = 0;
-                SFGmemberlist( attype, l, countergAN[l] ) = SFindex;
-                countergAN[l]++;
+                h_numGA( l ) = 0;
+                SFGmemberlist( attype, l, h_numGA( l ) ) = SFindex;
+                h_numGA( l )++;
                 SFGmemberlist( attype, l, maxSFperElem )++;
             }
         }
@@ -383,12 +383,12 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
 
 vector<string>
 Element::infoSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
-                                     int attype,
-                                     int ( &countergtotal )[2] ) const
+                                     int attype, h_t_int h_numSFGperElem ) const
 {
     vector<string> v;
     string pushstring = "";
-    for ( int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex )
+    for ( int groupIndex = 0; groupIndex < h_numSFGperElem( attype );
+          ++groupIndex )
     {
         // TODO: improve function
         for ( int j = 0; j < 8; ++j )

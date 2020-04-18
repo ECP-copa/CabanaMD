@@ -598,12 +598,16 @@ void Mode::setupSymmetryFunctionGroups()
     log << "sfi .... Symmetry function index.\n";
     log << "e ...... Recalculate exponential term.\n";
     log << "\n";
+
+    h_numSFGperElem =
+        h_t_int( "numSymmetryFunctionGroupsPerElement", numElements );
+
     for ( vector<Element>::iterator it = elements.begin(); it != elements.end();
           ++it )
     {
         int attype = it->getIndex();
         it->setupSymmetryFunctionGroups( SF, SFGmemberlist, attype,
-                                         h_numSFperElem, countergtotal,
+                                         h_numSFperElem, h_numSFGperElem,
                                          maxSFperElem );
         log << nnp::strpr( "Short range atomic symmetry function groups "
                            "element %2s :\n",
@@ -615,13 +619,16 @@ void Mode::setupSymmetryFunctionGroups()
         log << "-----------------------------------------"
                "--------------------------------------\n";
         log << it->infoSymmetryFunctionGroups( SF, SFGmemberlist, attype,
-                                               countergtotal );
+                                               h_numSFGperElem );
         log << "-----------------------------------------"
                "--------------------------------------\n";
     }
 
     log << "*****************************************"
            "**************************************\n";
+
+    numSFGperElem =
+        Kokkos::create_mirror_view_and_copy( MemorySpace(), h_numSFGperElem );
 
     return;
 }

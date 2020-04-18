@@ -96,13 +96,14 @@ class Element
      */
     void setupSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
                                       int attype, h_t_int h_numSFperElem,
-                                      int ( &countergtotal )[2],
+                                      h_t_int h_numSFGperElem,
                                       int maxSFperElem );
     /** Print symmetry function group info.
      */
-    vector<string>
-    infoSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
-                                int attype, int ( &countergtotal )[2] ) const;
+    vector<string> infoSymmetryFunctionGroups( t_SF SF,
+                                               t_SFGmemberlist SFGmemberlist,
+                                               int attype,
+                                               h_t_int h_numSFGperElem ) const;
     /** Set cutoff function for all symmetry functions.
      *
      * @param[in] cutoffType Type of cutoff function.

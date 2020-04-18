@@ -55,7 +55,7 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
         T_F_FLOAT dxij, dyij, dzij;
 
         int attype = type( i );
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             if ( d_SF( attype, d_SFGmemberlist( attype, groupIndex, 0 ), 1 ) ==
@@ -107,7 +107,7 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
         double eta, rs, lambda, zeta;
 
         int attype = type( i );
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             if ( d_SF( attype, d_SFGmemberlist( attype, groupIndex, 0 ), 1 ) ==
@@ -225,7 +225,7 @@ void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
         int memberindex0;
         int memberindex, globalIndex;
         double raw_value = 0.0;
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             memberindex0 = d_SFGmemberlist( attype, groupIndex, 0 );
@@ -362,7 +362,7 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
 
         int attype = type( i );
 
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             if ( d_SF( attype, d_SFGmemberlist( attype, groupIndex, 0 ), 1 ) ==
@@ -435,7 +435,7 @@ void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
         int memberindex, globalIndex;
 
         int attype = type( i );
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             if ( d_SF( attype, d_SFGmemberlist( attype, groupIndex, 0 ), 1 ) ==
