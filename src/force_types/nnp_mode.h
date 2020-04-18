@@ -392,11 +392,10 @@ class Mode
 
     h_t_mass atomicEnergyOffset;
 
-    h_t_mass h_numSFperElem;
-    t_mass numSFperElem;
+    h_t_int h_numSFperElem;
+    d_t_int numSFperElem;
     int maxSFperElem;
 
-    int countertotal[2] = {0, 0};
     int countergtotal[2] = {0, 0};
 
     bool normalize;

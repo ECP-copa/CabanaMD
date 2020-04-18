@@ -308,7 +308,7 @@ void Mode::setupCutoff()
 void Mode::setupSymmetryFunctions()
 {
     h_numSFperElem =
-        h_t_mass( "ForceNNP::numSymmetryFunctionsPerElement", numElements );
+        h_t_int( "ForceNNP::numSymmetryFunctionsPerElement", numElements );
     log << "\n";
     log << "*** SETUP: SYMMETRY FUNCTIONS ***********"
            "**************************************\n";
@@ -328,14 +328,13 @@ void Mode::setupSymmetryFunctions()
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
                 type = i;
         }
-        countertotal[type]++;
+        h_numSFperElem( type )++;
 
-        h_numSFperElem( type ) = countertotal[type];
         if ( h_numSFperElem( type ) > maxSFperElem )
             maxSFperElem = h_numSFperElem( type );
     }
     for ( size_t i = 0; i < numElements; ++i )
-        countertotal[i] = 0;
+        h_numSFperElem( i ) = 0;
 
     // setup SF host views
     // create device mirrors if needed below
@@ -360,7 +359,7 @@ void Mode::setupSymmetryFunctions()
         }
         elements.at( type ).addSymmetryFunction( it->second.first,
                                                  elementStrings, type, SF,
-                                                 convLength, countertotal );
+                                                 convLength, h_numSFperElem );
     }
 
     log << "Abbreviations:\n";
@@ -387,10 +386,10 @@ void Mode::setupSymmetryFunctions()
         int attype = it->getIndex();
         it->sortSymmetryFunctions( SF, h_numSFperElem, attype );
         maxCutoffRadius =
-            max( it->getMaxCutoffRadius( SF, attype, countertotal ),
+            max( it->getMaxCutoffRadius( SF, attype, h_numSFperElem ),
                  maxCutoffRadius );
         it->setCutoffFunction( cutoffType, cutoffAlpha, SF, attype,
-                               countertotal );
+                               h_numSFperElem );
         log << nnp::strpr(
             "Short range atomic symmetry functions element %2s :\n",
             it->getSymbol().c_str() );
@@ -400,7 +399,7 @@ void Mode::setupSymmetryFunctions()
                "zeta        rc ct   ca    ln\n";
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        log << it->infoSymmetryFunctionParameters( SF, attype, countertotal );
+        log << it->infoSymmetryFunctionParameters( SF, attype, h_numSFperElem );
         log << "-----------------------------------------"
                "--------------------------------------\n";
     }
@@ -413,7 +412,7 @@ void Mode::setupSymmetryFunctions()
         minNeighbors.at( i ) =
             elements.at( i ).getMinNeighbors( attype, SF, nSF );
         minCutoffRadius.at( i ) =
-            elements.at( i ).getMinCutoffRadius( SF, attype, countertotal );
+            elements.at( i ).getMinCutoffRadius( SF, attype, h_numSFperElem );
         log << nnp::strpr( "Minimum cutoff radius for element %2s: %f\n",
                            elements.at( i ).getSymbol().c_str(),
                            minCutoffRadius.at( i ) / convLength );
@@ -542,7 +541,7 @@ void Mode::setupSymmetryFunctionScaling( string const &fileName )
     {
         int attype = it->getIndex();
         it->setScaling( scalingType, lines, Smin, Smax, SF, SFscaling, attype,
-                        countertotal );
+                        h_numSFperElem );
         log << nnp::strpr(
             "Scaling data for symmetry functions element %2s :\n",
             it->getSymbol().c_str() );
@@ -553,12 +552,12 @@ void Mode::setupSymmetryFunctionScaling( string const &fileName )
         log << "-----------------------------------------"
                "--------------------------------------\n";
         log << it->infoSymmetryFunctionScaling( scalingType, SF, SFscaling,
-                                                attype, countertotal );
+                                                attype, h_numSFperElem );
         log << "-----------------------------------------"
                "--------------------------------------\n";
         lines.erase( lines.begin(),
                      lines.begin() +
-                         it->numSymmetryFunctions( attype, countertotal ) );
+                         it->numSymmetryFunctions( attype, h_numSFperElem ) );
     }
 
     log << "*****************************************"
@@ -604,7 +603,7 @@ void Mode::setupSymmetryFunctionGroups()
     {
         int attype = it->getIndex();
         it->setupSymmetryFunctionGroups( SF, SFGmemberlist, attype,
-                                         countertotal, countergtotal,
+                                         h_numSFperElem, countergtotal,
                                          maxSFperElem );
         log << nnp::strpr( "Short range atomic symmetry function groups "
                            "element %2s :\n",
@@ -720,7 +719,7 @@ void Mode::setupNeuralNetwork()
     {
         int attype = it->getIndex();
         h_numNeuronsPerLayer( 0 ) =
-            it->numSymmetryFunctions( attype, countertotal );
+            it->numSymmetryFunctions( attype, h_numSFperElem );
         log << nnp::strpr( "Atomic short range NN for "
                            "element %2s :\n",
                            it->getSymbol().c_str() );
