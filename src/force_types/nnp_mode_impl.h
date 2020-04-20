@@ -28,37 +28,34 @@
 #include <stdexcept> // std::runtime_error
 #include <string>
 
-#define NNP_VERSION "2.0.0"
-#define NNP_GIT_REV "7b73a36a9acfdcc80e44265bac92b055f41a1d07"
-#define NNP_GIT_REV_SHORT "7b73a36"
-#define NNP_GIT_BRANCH "master"
-
 using namespace std;
 using namespace nnpCbn;
 
-template <class t_System, class t_System_NNP, class t_neigh_list,
-          class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
-                                            t_neigh_list neigh_list )
+template <class t_slice_x, class t_slice_type, class t_slice_G,
+          class t_neigh_list, class t_neigh_parallel, class t_angle_parallel>
+void Mode::calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
+                                            t_slice_G G,
+                                            t_neigh_list neigh_list,
+                                            int N_local )
 {
-    s->slice_x();
-    auto x = s->x;
-    s->slice_type();
-    auto type = s->type;
-
-    s_nnp->slice_G();
-    typename t_System_NNP::t_G::atomic_access_slice G;
-    G = s_nnp->G;
     Cabana::deep_copy( G, 0.0 );
 
-    Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
+    Kokkos::RangePolicy<ExecutionSpace> policy( 0, N_local );
     t_neigh_parallel neigh_op_tag;
     t_angle_parallel angle_op_tag;
 
     auto calc_radial_symm_op = KOKKOS_LAMBDA( const int i, const int j )
     {
+        double pfcij = 0.0;
+        double pdfcij = 0.0;
+        double eta, rs;
+        size_t nej;
+        int memberindex, globalIndex;
+        double rij, r2ij;
+        T_F_FLOAT dxij, dyij, dzij;
+
         int attype = type( i );
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             if ( d_SF( attype, d_SFGmemberlist( attype, groupIndex, 0 ), 1 ) ==
@@ -67,13 +64,9 @@ void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
                 size_t memberindex0 = d_SFGmemberlist( attype, groupIndex, 0 );
                 size_t e1 = d_SF( attype, memberindex0, 2 );
                 double rc = d_SF( attype, memberindex0, 7 );
-                size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+                size_t size =
+                    d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
-                double pfcij, pdfcij, eta, rs;
-                size_t nej;
-                int memberindex, globalIndex;
-                double rij, r2ij;
-                T_F_FLOAT dxij, dyij, dzij;
                 nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;
@@ -104,8 +97,17 @@ void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
     auto calc_angular_symm_op =
         KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
+        double pfcij = 0.0;
+        double pdfcij = 0.0;
+        double pfcik, pdfcik, pfcjk, pdfcjk;
+        size_t nej, nek;
+        int memberindex, globalIndex;
+        double rij, r2ij, rik, r2ik, rjk, r2jk;
+        T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
+        double eta, rs, lambda, zeta;
+
         int attype = type( i );
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             if ( d_SF( attype, d_SFGmemberlist( attype, groupIndex, 0 ), 1 ) ==
@@ -115,18 +117,9 @@ void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
                 size_t e1 = d_SF( attype, memberindex0, 2 );
                 size_t e2 = d_SF( attype, memberindex0, 3 );
                 double rc = d_SF( attype, memberindex0, 7 );
-                size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+                size_t size =
+                    d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
-                // Prevent problematic condition in loop test below (j <
-                // numNeighbors - 1).
-                // if (num_neighs == 0) num_neighs = 1;
-
-                double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
-                size_t nej, nek;
-                int memberindex, globalIndex;
-                double rij, r2ij, rik, r2ik, rjk, r2jk;
-                T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
-                double eta, rs, lambda, zeta;
                 nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;
@@ -228,12 +221,12 @@ void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
         int memberindex0;
         int memberindex, globalIndex;
         double raw_value = 0.0;
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             memberindex0 = d_SFGmemberlist( attype, groupIndex, 0 );
 
-            size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+            size_t size = d_SFGmemberlist( attype, groupIndex, maxSFperElem );
             for ( size_t k = 0; k < size; ++k )
             {
                 globalIndex = d_SF(
@@ -257,25 +250,16 @@ void Mode::calculateSymmetryFunctionGroups( t_System *s, t_System_NNP *s_nnp,
     Kokkos::fence();
 }
 
-template <class t_System, class t_System_NNP, class t_neigh_list,
-          class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
-                                          t_mass numSFperElem )
+template <class t_slice_type, class t_slice_G, class t_slice_dEdG,
+          class t_slice_E>
+void Mode::calculateAtomicNeuralNetworks( t_slice_type type, t_slice_G G,
+                                          t_slice_dEdG dEdG, t_slice_E E,
+                                          int N_local )
 {
-    s->slice_type();
-    auto type = s->type;
-
-    s_nnp->slice_G();
-    s_nnp->slice_dEdG();
-    s_nnp->slice_E();
-    auto G = s_nnp->G;
-    auto dEdG = s_nnp->dEdG;
-    auto energy = s_nnp->E;
-
-    NN = d_t_NN( "Mode::NN", s->N, numLayers, maxNeurons );
-    dfdx = d_t_NN( "Mode::dfdx", s->N, numLayers, maxNeurons );
-    inner = d_t_NN( "Mode::inner", s->N, numHiddenLayers, maxNeurons );
-    outer = d_t_NN( "Mode::outer", s->N, numHiddenLayers, maxNeurons );
+    NN = d_t_NN( "Mode::NN", N_local, numLayers, maxNeurons );
+    dfdx = d_t_NN( "Mode::dfdx", N_local, numLayers, maxNeurons );
+    inner = d_t_NN( "Mode::inner", N_local, numHiddenLayers, maxNeurons );
+    outer = d_t_NN( "Mode::outer", N_local, numHiddenLayers, maxNeurons );
 
     auto calc_nn_op = KOKKOS_LAMBDA( const int atomindex )
     {
@@ -301,12 +285,12 @@ void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
                     dtmp += weights( attype, l - 1, i, j ) *
                             NN( atomindex, l - 1, j );
                 dtmp += bias( attype, l - 1, i );
-                if ( AF[l] == 0 )
+                if ( AF( l ) == 0 )
                 {
                     NN( atomindex, l, i ) = dtmp;
                     dfdx( atomindex, l, i ) = 1.0;
                 }
-                else if ( AF[l] == 1 )
+                else if ( AF( l ) == 1 )
                 {
                     dtmp = tanh( dtmp );
                     NN( atomindex, l, i ) = dtmp;
@@ -315,7 +299,7 @@ void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
             }
         }
 
-        energy( atomindex ) = NN( atomindex, numLayers - 1, 0 );
+        E( atomindex ) = NN( atomindex, numLayers - 1, 0 );
 
         // derivative of network w.r.t NN inputs
         for ( int k = 0; k < numNeuronsPerLayer[0]; k++ )
@@ -326,11 +310,11 @@ void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
 
             for ( int l = 1; l < numHiddenLayers + 1; l++ )
             {
-                for ( int i2 = 0; i2 < numNeuronsPerLayer[l + 1]; i2++ )
+                for ( int i2 = 0; i2 < numNeuronsPerLayer( l + 1 ); i2++ )
                 {
                     outer( atomindex, l - 1, i2 ) = 0.0;
 
-                    for ( int i1 = 0; i1 < numNeuronsPerLayer[l]; i1++ )
+                    for ( int i1 = 0; i1 < numNeuronsPerLayer( l ); i1++ )
                         outer( atomindex, l - 1, i2 ) +=
                             weights( attype, l, i2, i1 ) *
                             inner( atomindex, l - 1, i1 );
@@ -345,38 +329,36 @@ void Mode::calculateAtomicNeuralNetworks( t_System *s, t_System_NNP *s_nnp,
             dEdG( atomindex, k ) = outer( atomindex, numHiddenLayers - 1, 0 );
         }
     };
-    Kokkos::parallel_for( "Mode::calculateAtomicNeuralNetworks", s->N_local,
+    Kokkos::parallel_for( "Mode::calculateAtomicNeuralNetworks", N_local,
                           calc_nn_op );
     Kokkos::fence();
 }
 
-template <class t_System, class t_System_NNP, class t_neigh_list,
-          class t_neigh_parallel, class t_angle_parallel>
-void Mode::calculateForces( t_System *s, t_System_NNP *s_nnp,
-                            t_neigh_list neigh_list )
+template <class t_slice_x, class t_slice_f, class t_slice_type,
+          class t_slice_dEdG, class t_neigh_list, class t_neigh_parallel,
+          class t_angle_parallel>
+void Mode::calculateForces( t_slice_x x, t_slice_f f_a, t_slice_type type,
+                            t_slice_dEdG dEdG, t_neigh_list neigh_list,
+                            int N_local )
 {
-    // Calculate Forces
-    s->slice_force();
-    auto x = s->x;
-    auto f = s->f;
-    typename t_System::t_f::atomic_access_slice f_a;
-    f_a = f;
-    auto type = s->type;
-
-    s_nnp->slice_dEdG();
-    auto dEdG = s_nnp->dEdG;
-
     double convForce = convLength / convEnergy;
 
-    Kokkos::RangePolicy<ExecutionSpace> policy( 0, s->N_local );
+    Kokkos::RangePolicy<ExecutionSpace> policy( 0, N_local );
     t_neigh_parallel neigh_op_tag;
     t_angle_parallel angle_op_tag;
 
     auto calc_radial_force_op = KOKKOS_LAMBDA( const int i, const int j )
     {
+        double pfcij = 0.0;
+        double pdfcij = 0.0;
+        double rij, r2ij;
+        T_F_FLOAT dxij, dyij, dzij;
+        double eta, rs;
+        int memberindex, globalIndex;
+
         int attype = type( i );
 
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             if ( d_SF( attype, d_SFGmemberlist( attype, groupIndex, 0 ), 1 ) ==
@@ -385,13 +367,9 @@ void Mode::calculateForces( t_System *s, t_System_NNP *s_nnp,
                 size_t memberindex0 = d_SFGmemberlist( attype, groupIndex, 0 );
                 size_t e1 = d_SF( attype, memberindex0, 2 );
                 double rc = d_SF( attype, memberindex0, 7 );
-                size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
+                size_t size =
+                    d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
-                double pfcij, pdfcij;
-                double rij, r2ij;
-                T_F_FLOAT dxij, dyij, dzij;
-                double eta, rs;
-                int memberindex, globalIndex;
                 size_t nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;
@@ -443,8 +421,17 @@ void Mode::calculateForces( t_System *s, t_System_NNP *s_nnp,
     auto calc_angular_force_op =
         KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
+        double pfcij = 0.0;
+        double pdfcij = 0.0;
+        double pfcik, pdfcik, pfcjk, pdfcjk;
+        size_t nej, nek;
+        double rij, r2ij, rik, r2ik, rjk, r2jk;
+        T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
+        double eta, rs, lambda, zeta;
+        int memberindex, globalIndex;
+
         int attype = type( i );
-        for ( int groupIndex = 0; groupIndex < countergtotal[attype];
+        for ( int groupIndex = 0; groupIndex < numSFGperElem( attype );
               ++groupIndex )
         {
             if ( d_SF( attype, d_SFGmemberlist( attype, groupIndex, 0 ), 1 ) ==
@@ -454,17 +441,9 @@ void Mode::calculateForces( t_System *s, t_System_NNP *s_nnp,
                 size_t e1 = d_SF( attype, memberindex0, 2 );
                 size_t e2 = d_SF( attype, memberindex0, 3 );
                 double rc = d_SF( attype, memberindex0, 7 );
-                size_t size = d_SFGmemberlist( attype, groupIndex, MAX_SF );
-                // Prevent problematic condition in loop test below (j <
-                // numNeighbors - 1).
-                // if (num_neighs == 0) num_neighs = 1;
+                size_t size =
+                    d_SFGmemberlist( attype, groupIndex, maxSFperElem );
 
-                double pfcij, pdfcij, pfcik, pdfcik, pfcjk, pdfcjk;
-                size_t nej, nek;
-                double rij, r2ij, rik, r2ik, rjk, r2jk;
-                T_F_FLOAT dxij, dyij, dzij, dxik, dyik, dzik, dxjk, dyjk, dzjk;
-                double eta, rs, lambda, zeta;
-                int memberindex, globalIndex;
                 nej = type( j );
                 dxij = ( x( i, 0 ) - x( j, 0 ) ) * CFLENGTH * convLength;
                 dyij = ( x( i, 1 ) - x( j, 1 ) ) * CFLENGTH * convLength;

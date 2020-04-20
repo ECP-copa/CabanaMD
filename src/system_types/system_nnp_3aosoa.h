@@ -24,7 +24,8 @@
 template <>
 class System_NNP<AoSoA3>
 {
-    using t_tuple_NNP_SF = Cabana::MemberTypes<T_FLOAT[MAX_SF]>;
+    using t_tuple_NNP_SF =
+        Cabana::MemberTypes<T_FLOAT[CabanaMD_MAXSYMMFUNC_NNP]>;
     using t_tuple_NNP_fl = Cabana::MemberTypes<T_FLOAT>;
     using AoSoA_NNP_SF =
         Cabana::AoSoA<t_tuple_NNP_SF, MemorySpace, CabanaMD_VECTORLENGTH_NNP>;

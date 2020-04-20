@@ -50,11 +50,9 @@ void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
     mode->loadSettingsFile( settingsfile );
     mode->setupNormalization();
     mode->setupElementMap();
-    atomicEnergyOffset = mode->setupElements( atomicEnergyOffset );
+    mode->setupElements();
     mode->setupCutoff();
-    h_numSFperElem = mode->setupSymmetryFunctions( h_numSFperElem );
-    d_numSFperElem =
-        t_mass( "ForceNNP::numSymmetryFunctionsPerElement", mode->numElements );
+    mode->setupSymmetryFunctions();
     mode->setupSymmetryFunctionGroups();
     mode->setupNeuralNetwork();
     std::string scalingfile = std::string( args[3] ) + "/scaling.data";
@@ -69,20 +67,33 @@ template <class t_System, class t_System_NNP, class t_Neighbor,
 void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
               t_angle_parallel>::compute( t_System *s, t_Neighbor *neighbor )
 {
+    N_local = s->N_local;
+
     auto neigh_list = neighbor->get();
 
-    system_nnp->resize( s->N_local );
+    system_nnp->resize( N_local );
 
-    Kokkos::deep_copy( d_numSFperElem, h_numSFperElem );
-    mode->calculateSymmetryFunctionGroups<t_System, t_System_NNP, t_neigh_list,
+    s->slice_force();
+    auto x = s->x;
+    // Atomic force slice
+    auto f_a = s->f;
+    auto type = s->type;
+
+    system_nnp->slice_G();
+    system_nnp->slice_dEdG();
+    system_nnp->slice_E();
+    auto G = system_nnp->G;
+    auto dEdG = system_nnp->dEdG;
+    auto E = system_nnp->E;
+
+    mode->calculateSymmetryFunctionGroups<t_x, t_type, t_G, t_neigh_list,
                                           t_neigh_parallel, t_angle_parallel>(
-        s, system_nnp, neigh_list );
-    mode->calculateAtomicNeuralNetworks<t_System, t_System_NNP, t_neigh_list,
-                                        t_neigh_parallel, t_angle_parallel>(
-        s, system_nnp, d_numSFperElem );
-    mode->calculateForces<t_System, t_System_NNP, t_neigh_list,
-                          t_neigh_parallel, t_angle_parallel>( s, system_nnp,
-                                                               neigh_list );
+        x, type, G, neigh_list, N_local );
+    mode->calculateAtomicNeuralNetworks<t_type, t_G, t_dEdG, t_E>(
+        type, G, dEdG, E, N_local );
+    mode->calculateForces<t_x, t_f, t_type, t_dEdG, t_neigh_list,
+                          t_neigh_parallel, t_angle_parallel>(
+        x, f_a, type, dEdG, neigh_list, N_local );
 }
 
 template <class t_System, class t_System_NNP, class t_Neighbor,
@@ -105,16 +116,12 @@ T_V_FLOAT ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
 
     Kokkos::fence();
 
-    int proc_rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
-    if ( proc_rank == 0 ) // only add offset once
-        system_energy +=
-            s->N * atomicEnergyOffset( 0 ); // TODO: replace hardcoded
-
+    // TODO: replace ( 0 ): hardcoded
+    system_energy += s->N_local * mode->atomicEnergyOffset( 0 );
     system_energy /= mode->convEnergy;
     system_energy += s->N * mode->meanEnergy;
-    system_energy *=
-        27.211384021355236; // hartree to eV conversion (TODO: look into this)
+    // TODO: generalize (hartree to eV conversion)
+    system_energy *= 27.211384021355236;
     step++;
     return system_energy;
 }

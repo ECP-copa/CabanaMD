@@ -19,6 +19,11 @@ if(CabanaMD_ENABLE_NNP)
     endif()
   endif()
   message( STATUS "Using vector length: ${CabanaMD_VECTORLENGTH_NNP} (NNP)" )
+
+  if(NOT CabanaMD_MAXSYMMFUNC_NNP)
+    set(CabanaMD_MAXSYMMFUNC_NNP 30)
+  endif()
+  message( STATUS "Maximum symmetry functions: ${CabanaMD_MAXSYMMFUNC_NNP} (NNP)" )
 endif()
 
 #------------------------------------------------------------

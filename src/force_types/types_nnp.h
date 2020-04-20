@@ -54,8 +54,6 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-// TODO: hardcoded
-#define MAX_SF 30
 constexpr double CFLENGTH = 1.889726;
 constexpr double CFENERGY = 0.036749;
 constexpr double CFFORCE = CFLENGTH / CFENERGY;
@@ -76,16 +74,17 @@ enum {
 
 typedef ExecutionSpace::array_layout array_layout; // TODO: check this
 using h_t_mass = Kokkos::View<T_V_FLOAT *, array_layout, Kokkos::HostSpace>;
+using d_t_int = Kokkos::View<T_INT *>;
+using h_t_int = Kokkos::View<T_INT *, array_layout, Kokkos::HostSpace>;
+
 using d_t_SF = Kokkos::View<T_FLOAT * * [15]>;
 using t_SF = Kokkos::View<T_FLOAT * * [15], array_layout, Kokkos::HostSpace>;
 using d_t_SFscaling = Kokkos::View<T_FLOAT * * [8]>;
 using t_SFscaling =
     Kokkos::View<T_FLOAT * * [8], array_layout, Kokkos::HostSpace>;
-using d_t_SFGmemberlist =
-    Kokkos::View<T_INT *
-                 [MAX_SF + 1][MAX_SF + 1]>; //+1 to store size of memberlist
-using t_SFGmemberlist = Kokkos::View<T_INT * [MAX_SF + 1][MAX_SF + 1],
-                                     array_layout, Kokkos::HostSpace>;
+using d_t_SFGmemberlist = Kokkos::View<T_INT ***>;
+using t_SFGmemberlist =
+    Kokkos::View<T_INT ***, array_layout, Kokkos::HostSpace>;
 
 using d_t_bias = Kokkos::View<T_FLOAT ***>;
 using t_bias = Kokkos::View<T_FLOAT ***, array_layout, Kokkos::HostSpace>;

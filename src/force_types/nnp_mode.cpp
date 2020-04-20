@@ -151,25 +151,13 @@ void Mode::setupElementMap()
     // resize to match number of element types
     numElements = elementStrings.size();
 
-    // setup device and host views
-    // deep copy back when needed for calculations
-    // setup SF info storage
-    SF = t_SF( "ForceNNP::SF", numElements, MAX_SF );
-    SFscaling = t_SFscaling( "ForceNNP::SFscaling", numElements, MAX_SF );
-    SFGmemberlist = t_SFGmemberlist( "ForceNNP::SFGmemberlist", numElements );
-
-    d_SF = d_t_SF( "ForceNNP::SF", numElements, MAX_SF );
-    d_SFscaling = d_t_SFscaling( "ForceNNP::SFscaling", numElements, MAX_SF );
-    d_SFGmemberlist =
-        d_t_SFGmemberlist( "ForceNNP::SFGmemberlist", numElements );
-
     log << "*****************************************"
            "**************************************\n";
 
     return;
 }
 
-h_t_mass Mode::setupElements( h_t_mass atomicEnergyOffset )
+void Mode::setupElements()
 {
     log << "\n";
     log << "*** SETUP: ELEMENTS *********************"
@@ -198,7 +186,6 @@ h_t_mass Mode::setupElements( h_t_mass atomicEnergyOffset )
         {
             vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
             const char *estring = args.at( 0 ).c_str();
-            // np.where element symbol == symbol encountered during parsing
             for ( size_t i = 0; i < elementStrings.size(); ++i )
             {
                 if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -218,7 +205,8 @@ h_t_mass Mode::setupElements( h_t_mass atomicEnergyOffset )
            "energies.\n";
     log << "*****************************************"
            "**************************************\n";
-    return atomicEnergyOffset;
+
+    return;
 }
 
 void Mode::setupCutoff()
@@ -316,15 +304,16 @@ void Mode::setupCutoff()
     return;
 }
 
-h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
+void Mode::setupSymmetryFunctions()
 {
     h_numSFperElem =
-        h_t_mass( "ForceNNP::numSymmetryFunctionsPerElement", numElements );
+        h_t_int( "ForceNNP::numSymmetryFunctionsPerElement", numElements );
     log << "\n";
     log << "*** SETUP: SYMMETRY FUNCTIONS ***********"
            "**************************************\n";
     log << "\n";
 
+    // Only count SF per element; parse and add later
     nnp::Settings::KeyRange r = settings.getValues( "symfunction_short" );
     for ( nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second;
           ++it )
@@ -332,7 +321,34 @@ h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
         vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
         int type = 0;
         const char *estring = args.at( 0 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
+        for ( size_t i = 0; i < elementStrings.size(); ++i )
+        {
+            if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
+                type = i;
+        }
+        h_numSFperElem( type )++;
+
+        if ( h_numSFperElem( type ) > maxSFperElem )
+            maxSFperElem = h_numSFperElem( type );
+    }
+    for ( size_t i = 0; i < numElements; ++i )
+        h_numSFperElem( i ) = 0;
+
+    // setup SF host views
+    // create device mirrors if needed below
+    SF = t_SF( "SymmetryFunctions", numElements, maxSFperElem );
+    SFscaling = t_SFscaling( "SFscaling", numElements, maxSFperElem );
+    // +1 to store size of memberlist
+    SFGmemberlist = t_SFGmemberlist( "SFGmemberlist", numElements,
+                                     maxSFperElem + 1, maxSFperElem + 1 );
+
+    r = settings.getValues( "symfunction_short" );
+    for ( nnp::Settings::KeyMap::const_iterator it = r.first; it != r.second;
+          ++it )
+    {
+        vector<string> args = nnp::split( nnp::reduce( it->second.first ) );
+        int type = 0;
+        const char *estring = args.at( 0 ).c_str();
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
@@ -340,9 +356,7 @@ h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
         }
         elements.at( type ).addSymmetryFunction( it->second.first,
                                                  elementStrings, type, SF,
-                                                 convLength, countertotal );
-        // set numSFperElem to number of symmetry functions from reading
-        h_numSFperElem( type ) = countertotal[type];
+                                                 convLength, h_numSFperElem );
     }
 
     log << "Abbreviations:\n";
@@ -369,10 +383,10 @@ h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
         int attype = it->getIndex();
         it->sortSymmetryFunctions( SF, h_numSFperElem, attype );
         maxCutoffRadius =
-            max( it->getMaxCutoffRadius( SF, attype, countertotal ),
+            max( it->getMaxCutoffRadius( SF, attype, h_numSFperElem ),
                  maxCutoffRadius );
         it->setCutoffFunction( cutoffType, cutoffAlpha, SF, attype,
-                               countertotal );
+                               h_numSFperElem );
         log << nnp::strpr(
             "Short range atomic symmetry functions element %2s :\n",
             it->getSymbol().c_str() );
@@ -382,7 +396,7 @@ h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
                "zeta        rc ct   ca    ln\n";
         log << "-----------------------------------------"
                "--------------------------------------\n";
-        log << it->infoSymmetryFunctionParameters( SF, attype, countertotal );
+        log << it->infoSymmetryFunctionParameters( SF, attype, h_numSFperElem );
         log << "-----------------------------------------"
                "--------------------------------------\n";
     }
@@ -395,7 +409,7 @@ h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
         minNeighbors.at( i ) =
             elements.at( i ).getMinNeighbors( attype, SF, nSF );
         minCutoffRadius.at( i ) =
-            elements.at( i ).getMinCutoffRadius( SF, attype, countertotal );
+            elements.at( i ).getMinCutoffRadius( SF, attype, h_numSFperElem );
         log << nnp::strpr( "Minimum cutoff radius for element %2s: %f\n",
                            elements.at( i ).getSymbol().c_str(),
                            minCutoffRadius.at( i ) / convLength );
@@ -406,7 +420,10 @@ h_t_mass Mode::setupSymmetryFunctions( h_t_mass h_numSFperElem )
     log << "*****************************************"
            "**************************************\n";
 
-    return h_numSFperElem;
+    numSFperElem =
+        Kokkos::create_mirror_view_and_copy( MemorySpace(), h_numSFperElem );
+
+    return;
 }
 
 void Mode::setupSymmetryFunctionScaling( string const &fileName )
@@ -521,7 +538,7 @@ void Mode::setupSymmetryFunctionScaling( string const &fileName )
     {
         int attype = it->getIndex();
         it->setScaling( scalingType, lines, Smin, Smax, SF, SFscaling, attype,
-                        countertotal );
+                        h_numSFperElem );
         log << nnp::strpr(
             "Scaling data for symmetry functions element %2s :\n",
             it->getSymbol().c_str() );
@@ -532,20 +549,22 @@ void Mode::setupSymmetryFunctionScaling( string const &fileName )
         log << "-----------------------------------------"
                "--------------------------------------\n";
         log << it->infoSymmetryFunctionScaling( scalingType, SF, SFscaling,
-                                                attype, countertotal );
+                                                attype, h_numSFperElem );
         log << "-----------------------------------------"
                "--------------------------------------\n";
         lines.erase( lines.begin(),
                      lines.begin() +
-                         it->numSymmetryFunctions( attype, countertotal ) );
+                         it->numSymmetryFunctions( attype, h_numSFperElem ) );
     }
 
     log << "*****************************************"
            "**************************************\n";
 
-    Kokkos::deep_copy( d_SF, SF );
-    Kokkos::deep_copy( d_SFscaling, SFscaling );
-    Kokkos::deep_copy( d_SFGmemberlist, SFGmemberlist );
+    d_SF = Kokkos::create_mirror_view_and_copy( MemorySpace(), SF );
+    d_SFscaling =
+        Kokkos::create_mirror_view_and_copy( MemorySpace(), SFscaling );
+    d_SFGmemberlist =
+        Kokkos::create_mirror_view_and_copy( MemorySpace(), SFGmemberlist );
 
     return;
 }
@@ -576,12 +595,17 @@ void Mode::setupSymmetryFunctionGroups()
     log << "sfi .... Symmetry function index.\n";
     log << "e ...... Recalculate exponential term.\n";
     log << "\n";
+
+    h_numSFGperElem =
+        h_t_int( "numSymmetryFunctionGroupsPerElement", numElements );
+
     for ( vector<Element>::iterator it = elements.begin(); it != elements.end();
           ++it )
     {
         int attype = it->getIndex();
         it->setupSymmetryFunctionGroups( SF, SFGmemberlist, attype,
-                                         countertotal, countergtotal );
+                                         h_numSFperElem, h_numSFGperElem,
+                                         maxSFperElem );
         log << nnp::strpr( "Short range atomic symmetry function groups "
                            "element %2s :\n",
                            it->getSymbol().c_str() );
@@ -592,13 +616,16 @@ void Mode::setupSymmetryFunctionGroups()
         log << "-----------------------------------------"
                "--------------------------------------\n";
         log << it->infoSymmetryFunctionGroups( SF, SFGmemberlist, attype,
-                                               countergtotal );
+                                               h_numSFGperElem );
         log << "-----------------------------------------"
                "--------------------------------------\n";
     }
 
     log << "*****************************************"
            "**************************************\n";
+
+    numSFGperElem =
+        Kokkos::create_mirror_view_and_copy( MemorySpace(), h_numSFGperElem );
 
     return;
 }
@@ -659,6 +686,9 @@ void Mode::setupNeuralNetwork()
     numLayers = 2 + atoi( settings["global_hidden_layers_short"].c_str() );
     numHiddenLayers = numLayers - 2;
 
+    h_numNeuronsPerLayer = h_t_int( "numNeuronsPerLayer", numLayers );
+    h_AF = h_t_int( "ActivationFunctions", numLayers );
+
     vector<string> numNeuronsPerHiddenLayer =
         nnp::split( nnp::reduce( settings["global_nodes_short"] ) );
     vector<string> activationFunctions =
@@ -667,17 +697,17 @@ void Mode::setupNeuralNetwork()
     for ( int i = 0; i < numLayers; i++ )
     {
         if ( i == 0 )
-            AF[i] = 0;
+            h_AF( i ) = 0;
         else if ( i == numLayers - 1 )
         {
-            numNeuronsPerLayer[i] = 1;
-            AF[i] = 0;
+            h_numNeuronsPerLayer( i ) = 1;
+            h_AF( i ) = 0;
         }
         else
         {
-            numNeuronsPerLayer[i] =
+            h_numNeuronsPerLayer( i ) =
                 atoi( numNeuronsPerHiddenLayer.at( i - 1 ).c_str() );
-            AF[i] = 1; // TODO: hardcoded atoi(activationFunctions.at(i-1));
+            h_AF( i ) = 1; // TODO: hardcoded atoi(activationFunctions.at(i-1));
         }
     }
 
@@ -692,8 +722,8 @@ void Mode::setupNeuralNetwork()
           ++it )
     {
         int attype = it->getIndex();
-        numNeuronsPerLayer[0] =
-            it->numSymmetryFunctions( attype, countertotal );
+        h_numNeuronsPerLayer( 0 ) =
+            it->numSymmetryFunctions( attype, h_numSFperElem );
         log << nnp::strpr( "Atomic short range NN for "
                            "element %2s :\n",
                            it->getSymbol().c_str() );
@@ -701,31 +731,29 @@ void Mode::setupNeuralNetwork()
         int numWeights = 0, numBiases = 0, numConnections = 0;
         for ( int j = 1; j < numLayers; ++j )
         {
-            numWeights += numNeuronsPerLayer[j - 1] * numNeuronsPerLayer[j];
-            numBiases += numNeuronsPerLayer[j];
+            numWeights +=
+                h_numNeuronsPerLayer( j - 1 ) * h_numNeuronsPerLayer( j );
+            numBiases += h_numNeuronsPerLayer( j );
         }
         numConnections = numWeights + numBiases;
         log << nnp::strpr( "Number of weights    : %6zu\n", numWeights );
         log << nnp::strpr( "Number of biases     : %6zu\n", numBiases );
         log << nnp::strpr( "Number of connections: %6zu\n", numConnections );
-        log << nnp::strpr( "Architecture    %6zu    %6zu    %6zu    %6zu\n",
-                           numNeuronsPerLayer[0], numNeuronsPerLayer[1],
-                           numNeuronsPerLayer[2], numNeuronsPerLayer[3] );
-        log << "-----------------------------------------"
+        log << nnp::strpr( "Architecture    " );
+        for ( int j = 0; j < numLayers; ++j )
+            log << nnp::strpr( " %4d", h_numNeuronsPerLayer( j ) );
+
+        log << "\n-----------------------------------------"
                "--------------------------------------\n";
     }
 
     // initialize Views
     maxNeurons = 0;
     for ( int j = 0; j < numLayers; ++j )
-        maxNeurons = max( maxNeurons, numNeuronsPerLayer[j] );
+        maxNeurons = max( maxNeurons, h_numNeuronsPerLayer( j ) );
 
     h_bias = t_bias( "ForceNNP::biases", numElements, numLayers, maxNeurons );
     h_weights = t_weights( "ForceNNP::weights", numElements, numLayers,
-                           maxNeurons, maxNeurons );
-
-    bias = d_t_bias( "ForceNNP::biases", numElements, numLayers, maxNeurons );
-    weights = d_t_weights( "ForceNNP::weights", numElements, numLayers,
                            maxNeurons, maxNeurons );
 
     log << "*****************************************"
@@ -749,7 +777,6 @@ void Mode::setupNeuralNetworkWeights( string const &fileNameFormat )
           ++it )
     {
         const char *estring = elementStrings[count].c_str();
-        // np.where element symbol == symbol encountered in knownElements
         for ( size_t i = 0; i < knownElements.size(); ++i )
         {
             if ( strcmp( knownElements[i].c_str(), estring ) == 0 )
@@ -800,8 +827,11 @@ void Mode::setupNeuralNetworkWeights( string const &fileNameFormat )
     log << "*****************************************"
            "**************************************\n";
 
-    Kokkos::deep_copy( bias, h_bias );
-    Kokkos::deep_copy( weights, h_weights );
+    bias = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_bias );
+    weights = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_weights );
+    AF = Kokkos::create_mirror_view_and_copy( MemorySpace(), h_AF );
+    numNeuronsPerLayer = Kokkos::create_mirror_view_and_copy(
+        MemorySpace(), h_numNeuronsPerLayer );
 
     return;
 }

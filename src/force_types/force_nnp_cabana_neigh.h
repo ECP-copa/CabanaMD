@@ -30,6 +30,15 @@ class ForceNNP : public Force<t_System, t_Neighbor>
     int N_local, ntypes;
     int step;
 
+    typedef typename t_System::t_x t_x;
+    // Must be atomic
+    typedef typename t_System::t_f::atomic_access_slice t_f;
+    typedef typename t_System::t_type t_type;
+
+    typedef typename t_System_NNP::t_G t_G;
+    typedef typename t_System_NNP::t_dEdG t_dEdG;
+    typedef typename t_System_NNP::t_E t_E;
+
     typedef typename t_Neighbor::t_neigh_list t_neigh_list;
 
     // NNP-specific System class for AoSoAs

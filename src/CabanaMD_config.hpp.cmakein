@@ -20,5 +20,6 @@
 #cmakedefine CabanaMD_LAYOUT_NNP_1AoSoA
 #cmakedefine CabanaMD_LAYOUT_NNP_3AoSoA
 #cmakedefine CabanaMD_VECTORLENGTH_NNP @CabanaMD_VECTORLENGTH_NNP@
+#cmakedefine CabanaMD_MAXSYMMFUNC_NNP @CabanaMD_MAXSYMMFUNC_NNP@
 
 #endif
