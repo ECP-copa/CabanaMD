@@ -174,14 +174,14 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
           line++ )
     {
         force->init_coeff(
-            system,
-            input->input_data.words[input->force_coeff_lines( line )] );
+            system, input->input_data.words[input->force_coeff_lines( line )] );
     }
 
     // Create atoms - from LAMMPS data file or create FCC/SC lattice
     if ( system->N == 0 && input->read_data_flag == true )
     {
-        read_lammps_data_file<t_System>( input->lammps_data_file, system, comm );
+        read_lammps_data_file<t_System>( input->lammps_data_file, system,
+                                         comm );
     }
     else if ( system->N == 0 )
     {
@@ -206,8 +206,9 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     // Delay because tuning (within init) uses atom count, domain size
     if ( input->lrforce_type != FORCE_NONE )
     {
-        bool half_neigh = input->lrforce_iteration_type == FORCE_ITER_NEIGH_HALF;
-        if ( ! half_neigh )
+        bool half_neigh =
+            input->lrforce_iteration_type == FORCE_ITER_NEIGH_HALF;
+        if ( !half_neigh )
             comm->error( "Full neighbor list not implemented "
                          "for the SPME longrange solver." );
 
@@ -219,8 +220,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
             comm->error( "Invalid LongRangeForceType" );
 
         lrforce->init_coeff(
-            system,
-            input->input_data.words[input->lrforce_coeff_lines( 0 )] );
+            system, input->input_data.words[input->lrforce_coeff_lines( 0 )] );
     }
 
     // Output settings
@@ -453,12 +453,11 @@ void CbnMD<t_System, t_Neighbor>::run()
                     comm->num_processes(), system->N, time, force_time,
                     neigh_time, comm_time, integrate_time, other_time,
                     1.0 * nsteps / time, 1.0 * system->N * nsteps / time,
-                    1.0 * system->N * nsteps / time /
-                        comm->num_processes() );
+                    1.0 * system->N * nsteps / time / comm->num_processes() );
             printf( "%i %i | %lf %lf %lf %lf %lf %lf | FRACTION\n",
-                    comm->num_processes(), system->N, 1.0,
-                    force_time / time, neigh_time / time, comm_time / time,
-                    integrate_time / time, other_time / time );
+                    comm->num_processes(), system->N, 1.0, force_time / time,
+                    neigh_time / time, comm_time / time, integrate_time / time,
+                    other_time / time );
         }
         else
         {

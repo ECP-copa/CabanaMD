@@ -41,7 +41,7 @@ const char *ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
 template <class t_System, class t_System_NNP, class t_Neighbor,
           class t_neigh_parallel, class t_angle_parallel>
 void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
-    t_angle_parallel>::init_coeff( t_System *, char **args )
+              t_angle_parallel>::init_coeff( t_System *, char **args )
 {
     mode = new ( nnpCbn::Mode );
     mode->initialize();

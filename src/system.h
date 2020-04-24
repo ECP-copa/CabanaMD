@@ -60,10 +60,10 @@
 class SystemCommon
 {
   public:
-    T_INT N;         // Number of Global Particles
-    T_INT N_max;    // Number of Particles I could have in available storage
-    T_INT N_local;  // Number of owned Particles
-    T_INT N_ghost;  // Number of non-owned Particles
+    T_INT N;       // Number of Global Particles
+    T_INT N_max;   // Number of Particles I could have in available storage
+    T_INT N_local; // Number of owned Particles
+    T_INT N_ghost; // Number of non-owned Particles
 
     int ntypes;
     std::string atom_style;

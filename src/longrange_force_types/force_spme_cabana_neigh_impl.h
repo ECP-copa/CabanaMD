@@ -26,7 +26,7 @@
  */
 
 template <class t_System, class t_Neighbor>
-    ForceSPME<t_System, t_Neighbor>::ForceSPME( t_System *system )
+ForceSPME<t_System, t_Neighbor>::ForceSPME( t_System *system )
     : Force<t_System, t_Neighbor>( system )
 {
     _alpha = 0.0;
@@ -36,7 +36,8 @@ template <class t_System, class t_Neighbor>
 
 // TODO: allow user to specify parameters
 template <class t_System, class t_Neighbor>
-void ForceSPME<t_System, t_Neighbor>::init_coeff( t_System *system, char **args )
+void ForceSPME<t_System, t_Neighbor>::init_coeff( t_System *system,
+                                                  char **args )
 {
     double accuracy = atof( args[2] );
     tune( system, accuracy );
@@ -75,7 +76,8 @@ void ForceSPME<t_System, t_Neighbor>::tune( t_System *system, double accuracy )
 //   defined piecewise
 // TODO: replace use of this with Cajita functions
 template <class t_System, class t_Neighbor>
-KOKKOS_INLINE_FUNCTION double ForceSPME<t_System, t_Neighbor>::oneDspline( double x )
+KOKKOS_INLINE_FUNCTION double
+ForceSPME<t_System, t_Neighbor>::oneDspline( double x )
 {
     if ( x >= 0.0 and x < 1.0 )
     {
@@ -128,8 +130,8 @@ ForceSPME<t_System, t_Neighbor>::oneDsplinederiv( double origx )
 //   charge spread, where meshwidth is the number of mesh points in that
 //   dimension and k is the scaled fractional coordinate
 template <class t_System, class t_Neighbor>
-KOKKOS_INLINE_FUNCTION double ForceSPME<t_System, t_Neighbor>::oneDeuler( int k,
-                                                                int meshwidth )
+KOKKOS_INLINE_FUNCTION double
+ForceSPME<t_System, t_Neighbor>::oneDeuler( int k, int meshwidth )
 {
     double denomreal = 0.0;
     double denomimag = 0.0;
@@ -184,7 +186,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
     // Create a local grid.
     const int halo_width = 1;
     local_grid = Cajita::createLocalGrid( global_grid, halo_width );
-    //auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
+    // auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
 
     // Create a scalar field for charge on the grid.
     // Using uppercase for grid/mesh variables and lowercase for particles
@@ -261,7 +263,8 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
 
 // Compute the energy and forces
 template <class t_System, class t_Neighbor>
-    void ForceSPME<t_System, t_Neighbor>::compute( t_System *system, t_Neighbor *neighbor )
+void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
+                                               t_Neighbor *neighbor )
 {
     // For now, force symmetry
     if ( system->domain_x != system->domain_y or
@@ -294,7 +297,7 @@ template <class t_System, class t_Neighbor>
     // Copy mesh charge into complex view for FFT work
     auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
                                                Cajita::Local() );
-    //const int num_meshpoints = owned_space.size();
+    // const int num_meshpoints = owned_space.size();
     // const int num_points = x.size();
     // Kokkos::View<Kokkos::complex<double>*> Qr("complexQ", num_meshpoints);
 
@@ -319,12 +322,13 @@ template <class t_System, class t_Neighbor>
     // The plan here is to perform an inverse FFT on the mesh charge, then
     // multiply the norm of that result (in reciprocal space) by the BC array
 
-    auto fft = Cajita::Experimental::createFastFourierTransform<double, DeviceType>(
-                                                                                    *vector_layout, Cajita::Experimental::FastFourierTransformParams{}
-                            .setCollectiveType( 2 )
-                            .setExchangeType( 0 )
-                            .setPackType( 2 )
-                            .setScalingType( 1 ) );
+    auto fft =
+        Cajita::Experimental::createFastFourierTransform<double, DeviceType>(
+            *vector_layout, Cajita::Experimental::FastFourierTransformParams{}
+                                .setCollectiveType( 2 )
+                                .setExchangeType( 0 )
+                                .setPackType( 2 )
+                                .setScalingType( 1 ) );
 
     fft->reverse( *Qcomplex );
 
@@ -386,7 +390,7 @@ template <class t_System, class t_Neighbor>
         for ( int ij = 0; ij < num_n; ++ij )
         {
             int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
-                                                                   idx, ij );
+                                                                     idx, ij );
             double dx = x( j, 0 ) - rx;
             double dy = x( j, 1 ) - ry;
             double dz = x( j, 2 ) - rz;
@@ -411,7 +415,9 @@ template <class t_System, class t_Neighbor>
 }
 
 template <class t_System, class t_Neighbor>
-    T_V_FLOAT ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system, t_Neighbor *neighbor )
+T_V_FLOAT
+ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system,
+                                                 t_Neighbor *neighbor )
 {
     N_local = system->N_local;
     double alpha = _alpha;
@@ -434,10 +440,13 @@ template <class t_System, class t_Neighbor>
         "Qcomplex", vector_layout );
     auto Qcomplex_view = Qcomplex->view();
 
-    const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
-    const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
-    const double ENERGY_CONVERSION_FACTOR = ELECTRON_CHARGE/(4.0*PI*EPS_0);
-    
+    const double ELECTRON_CHARGE = 1.60217662E-19; // electron charge in
+                                                   // Coulombs
+    const double EPS_0 =
+        8.8541878128E-22; // permittivity of free space in Farads/Angstrom
+    const double ENERGY_CONVERSION_FACTOR =
+        ELECTRON_CHARGE / ( 4.0 * PI * EPS_0 );
+
     T_V_FLOAT energy_k = 0.0;
     auto kspace_potential =
         KOKKOS_LAMBDA( const int i, const int j, const int k, T_V_FLOAT &PE )
@@ -468,7 +477,7 @@ template <class t_System, class t_Neighbor>
         for ( int ij = 0; ij < num_n; ++ij )
         {
             int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
-                                                                   idx, ij );
+                                                                     idx, ij );
             double dx = x( j, 0 ) - rx;
             double dy = x( j, 1 ) - ry;
             double dz = x( j, 2 ) - rz;

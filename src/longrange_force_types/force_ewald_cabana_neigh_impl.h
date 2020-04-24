@@ -12,7 +12,7 @@
 /* Ewald solver */
 
 template <class t_System, class t_Neighbor>
-    ForceEwald<t_System, t_Neighbor>::ForceEwald( t_System *system )
+ForceEwald<t_System, t_Neighbor>::ForceEwald( t_System *system )
     : Force<t_System, t_Neighbor>( system )
 {
     _alpha = 0.0;
@@ -51,8 +51,8 @@ template <class t_System, class t_Neighbor>
 
 // TODO: allow user to specify parameters
 template <class t_System, class t_Neighbor>
-void ForceEwald<t_System, t_Neighbor>::init_coeff( t_System *system, 
-                                         char **args )
+void ForceEwald<t_System, t_Neighbor>::init_coeff( t_System *system,
+                                                   char **args )
 {
     double accuracy = atof( args[2] );
     tune( system, accuracy );
@@ -77,7 +77,7 @@ void ForceEwald<t_System, t_Neighbor>::tune( t_System *system, double accuracy )
         pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI );
 
     _r_max = tune_factor / pow( N, 1.0 / 6.0 ) * lx;
-    //TODO: make the maximum cut_off dependent on the domain size
+    // TODO: make the maximum cut_off dependent on the domain size
     double comp_size =
         ( 5.0 > 0.75 * system->domain_x ) ? 0.75 * system->domain_x : 5.0;
     comp_size = 20.0;
@@ -92,7 +92,8 @@ void ForceEwald<t_System, t_Neighbor>::tune( t_System *system, double accuracy )
 }
 
 template <class t_System, class t_Neighbor>
-    void ForceEwald<t_System, t_Neighbor>::compute( t_System *system, t_Neighbor *neighbor )
+void ForceEwald<t_System, t_Neighbor>::compute( t_System *system,
+                                                t_Neighbor *neighbor )
 {
     // Per-atom slices
     system->slice_force();
@@ -171,10 +172,13 @@ template <class t_System, class t_Neighbor>
     MPI_Allreduce( MPI_IN_PLACE, U_trigonometric.data(), 2 * n_kvec, MPI_DOUBLE,
                    MPI_SUM, cart_comm );
 
-    const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
-    const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
-    const double ANGSTROMS = 1E-10;//convert meters to Angstroms
-    const double FORCE_CONVERSION_FACTOR = ANGSTROMS*ELECTRON_CHARGE/(4.0*PI*EPS_0);
+    const double ELECTRON_CHARGE = 1.60217662E-19; // electron charge in
+                                                   // Coulombs
+    const double EPS_0 =
+        8.8541878128E-22; // permittivity of free space in Farads/Angstrom
+    const double ANGSTROMS = 1E-10; // convert meters to Angstroms
+    const double FORCE_CONVERSION_FACTOR =
+        ANGSTROMS * ELECTRON_CHARGE / ( 4.0 * PI * EPS_0 );
 
     auto kspace_force = KOKKOS_LAMBDA( const int idx )
     {
@@ -214,7 +218,8 @@ template <class t_System, class t_Neighbor>
 
                     for ( int dim = 0; dim < 3; ++dim )
                         f( idx, dim ) +=
-                            k_coeff * 2.0 * qi * k[dim] * FORCE_CONVERSION_FACTOR * 
+                            k_coeff * 2.0 * qi * k[dim] *
+                            FORCE_CONVERSION_FACTOR *
                             ( U_trigonometric( 2 * kidx + 1 ) * cos( kr ) -
                               U_trigonometric( 2 * kidx ) * sin( kr ) );
                 }
@@ -237,7 +242,7 @@ template <class t_System, class t_Neighbor>
         for ( int ij = 0; ij < num_n; ++ij )
         {
             int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
-                                                                   idx, ij );
+                                                                     idx, ij );
             double dx = x( j, 0 ) - rx;
             double dy = x( j, 1 ) - ry;
             double dz = x( j, 2 ) - rz;
@@ -245,7 +250,7 @@ template <class t_System, class t_Neighbor>
             double qj = q( j );
 
             // force computation
-            double f_fact = qi * qj * FORCE_CONVERSION_FACTOR * 
+            double f_fact = qi * qj * FORCE_CONVERSION_FACTOR *
                             ( 2.0 * sqrt( alpha / PI ) * exp( -alpha * d * d ) +
                               erfc( sqrt( alpha ) * d ) ) /
                             ( d * d );
@@ -262,7 +267,9 @@ template <class t_System, class t_Neighbor>
 }
 
 template <class t_System, class t_Neighbor>
-    T_V_FLOAT ForceEwald<t_System, t_Neighbor>::compute_energy( t_System *system, t_Neighbor *neighbor )
+T_V_FLOAT
+ForceEwald<t_System, t_Neighbor>::compute_energy( t_System *system,
+                                                  t_Neighbor *neighbor )
 {
     auto N_local = system->N_local;
     double alpha = _alpha;
@@ -277,9 +284,12 @@ template <class t_System, class t_Neighbor>
     // Neighbor list
     auto neigh_list = neighbor->get();
 
-    const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
-    const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
-    const double ENERGY_CONVERSION_FACTOR = ELECTRON_CHARGE/(4.0*PI*EPS_0);
+    const double ELECTRON_CHARGE = 1.60217662E-19; // electron charge in
+                                                   // Coulombs
+    const double EPS_0 =
+        8.8541878128E-22; // permittivity of free space in Farads/Angstrom
+    const double ENERGY_CONVERSION_FACTOR =
+        ELECTRON_CHARGE / ( 4.0 * PI * EPS_0 );
 
     int k_int = std::ceil( k_max ) + 1;
 
@@ -319,7 +329,8 @@ template <class t_System, class t_Neighbor>
                           ( U_trigonometric( 2 * kidx ) *
                                 U_trigonometric( 2 * kidx ) +
                             U_trigonometric( 2 * kidx + 1 ) *
-                                U_trigonometric( 2 * kidx + 1 ) ) * ENERGY_CONVERSION_FACTOR;
+                                U_trigonometric( 2 * kidx + 1 ) ) *
+                          ENERGY_CONVERSION_FACTOR;
                 }
             }
         }
@@ -341,7 +352,7 @@ template <class t_System, class t_Neighbor>
         for ( int ij = 0; ij < num_n; ++ij )
         {
             int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
-                                                                   idx, ij );
+                                                                     idx, ij );
             double dx = x( j, 0 ) - rx;
             double dy = x( j, 1 ) - ry;
             double dz = x( j, 2 ) - rz;
@@ -350,7 +361,7 @@ template <class t_System, class t_Neighbor>
 
             PE += ENERGY_CONVERSION_FACTOR * qi * qj * erfc( alpha * d ) / d;
         }
-        
+
         // self-energy contribution
         PE += -alpha / PI_SQRT * qi * qi * ENERGY_CONVERSION_FACTOR;
     };

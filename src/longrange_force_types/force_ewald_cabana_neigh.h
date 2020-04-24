@@ -21,7 +21,7 @@
 #include <types.h>
 
 template <class t_System, class t_Neighbor>
-    class ForceEwald : public Force<t_System, t_Neighbor>
+class ForceEwald : public Force<t_System, t_Neighbor>
 {
   private:
     int N_local, ntypes;
