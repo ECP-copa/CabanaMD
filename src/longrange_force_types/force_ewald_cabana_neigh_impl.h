@@ -294,50 +294,46 @@ ForceEwald<t_System, t_Neighbor>::compute_energy( t_System *system,
     int k_int = std::ceil( k_max ) + 1;
 
     T_V_FLOAT energy_k = 0.0;
-    auto kspace_potential = KOKKOS_LAMBDA( const int idx, T_V_FLOAT &PE )
-    {
-        double coeff = 4.0 * PI / ( lx * ly * lz );
-        double k[3];
 
-        for ( int kz = -k_int; kz <= k_int; ++kz )
+    double coeff = 4.0 * PI / ( lx * ly * lz );
+    double k[3];
+
+    for ( int kz = -k_int; kz <= k_int; ++kz )
+    {
+        // compute wave vector component
+        k[2] = 2.0 * PI / lz * (double)kz;
+        for ( int ky = -k_int; ky <= k_int; ++ky )
         {
             // compute wave vector component
-            k[2] = 2.0 * PI / lz * (double)kz;
-            for ( int ky = -k_int; ky <= k_int; ++ky )
+            k[1] = 2.0 * PI / ly * (double)ky;
+            for ( int kx = -k_int; kx <= k_int; ++kx )
             {
+                // no values required for the central box
+                if ( kx == 0 && ky == 0 && kz == 0 )
+                    continue;
+                // compute index in contribution array
+                int kidx =
+                    ( kz + k_int ) * ( 2 * k_int + 1 ) * ( 2 * k_int + 1 ) +
+                    ( ky + k_int ) * ( 2 * k_int + 1 ) + ( kx + k_int );
                 // compute wave vector component
-                k[1] = 2.0 * PI / ly * (double)ky;
-                for ( int kx = -k_int; kx <= k_int; ++kx )
-                {
-                    // no values required for the central box
-                    if ( kx == 0 && ky == 0 && kz == 0 )
-                        continue;
-                    // compute index in contribution array
-                    int kidx =
-                        ( kz + k_int ) * ( 2 * k_int + 1 ) * ( 2 * k_int + 1 ) +
-                        ( ky + k_int ) * ( 2 * k_int + 1 ) + ( kx + k_int );
-                    // compute wave vector component
-                    k[0] = 2.0 * PI / lx * (double)kx;
-                    // compute dot product of wave vector with itself
-                    double kk = k[0] * k[0] + k[1] * k[1] + k[2] * k[2];
+                k[0] = 2.0 * PI / lx * (double)kx;
+                // compute dot product of wave vector with itself
+                double kk = k[0] * k[0] + k[1] * k[1] + k[2] * k[2];
 
-                    // coefficient dependent on wave vector
-                    double k_coeff = exp( -kk / ( 4 * alpha * alpha ) ) / kk;
+                // coefficient dependent on wave vector
+                double k_coeff = exp( -kk / ( 4 * alpha * alpha ) ) / kk;
 
-                    // contribution to potential energy
-                    PE += coeff * k_coeff *
-                          ( U_trigonometric( 2 * kidx ) *
-                                U_trigonometric( 2 * kidx ) +
-                            U_trigonometric( 2 * kidx + 1 ) *
-                                U_trigonometric( 2 * kidx + 1 ) ) *
-                          ENERGY_CONVERSION_FACTOR;
-                }
+                // contribution to potential energy
+                energy_k += coeff * k_coeff *
+                            ( U_trigonometric( 2 * kidx ) *
+                                  U_trigonometric( 2 * kidx ) +
+                              U_trigonometric( 2 * kidx + 1 ) *
+                                  U_trigonometric( 2 * kidx + 1 ) ) *
+                            ENERGY_CONVERSION_FACTOR;
             }
         }
-    };
-    Kokkos::parallel_reduce( "ForceEwald::KspacePE", N_local, kspace_potential,
-                             energy_k );
-    Kokkos::fence();
+    }
+    energy_k *= N_local;
 
     T_V_FLOAT energy_r = 0.0;
     auto realspace_potential = KOKKOS_LAMBDA( const int idx, T_V_FLOAT &PE )
