@@ -184,7 +184,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
     // Create a local grid.
     const int halo_width = 1;
     local_grid = Cajita::createLocalGrid( global_grid, halo_width );
-    auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
+    //auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
 
     // Create a scalar field for charge on the grid.
     // Using uppercase for grid/mesh variables and lowercase for particles
@@ -272,8 +272,6 @@ template <class t_System, class t_Neighbor>
 
     auto N_local = system->N_local;
     double alpha = _alpha;
-    double r_max = _r_max;
-    double eps_r = _eps_r;
 
     // Per-atom properties
     system->slice_force();
@@ -296,7 +294,7 @@ template <class t_System, class t_Neighbor>
     // Copy mesh charge into complex view for FFT work
     auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
                                                Cajita::Local() );
-    const int num_meshpoints = owned_space.size();
+    //const int num_meshpoints = owned_space.size();
     // const int num_points = x.size();
     // Kokkos::View<Kokkos::complex<double>*> Qr("complexQ", num_meshpoints);
 
