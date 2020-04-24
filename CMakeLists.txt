@@ -55,12 +55,6 @@ endforeach()
 # Set up optional libraries
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_LongRange "Build CabanaMD with longrange forces (Ewald)" OFF)
-#if(NOT DEFINED CAJITA_DIR)
-#  set(CAJITA_DIR ~/Cajita/)
-#endif()
-#if(NOT DEFINED HEFFTE_DIR)
-#  set(HEFFTE_DIR ~/heffte/)
-#endif()
 if(CabanaMD_ENABLE_LongRange)
   find_package(Cajita REQUIRED)
   find_package(Heffte REQUIRED)

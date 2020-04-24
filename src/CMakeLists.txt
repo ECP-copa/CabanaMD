@@ -80,18 +80,6 @@ if(CabanaMD_ENABLE_NNP AND N2P2_DIR)
 endif()
 
 if( CabanaMD_ENABLE_LongRange )
-  #target_include_directories(CabanaMD PUBLIC ${CAJITA_DIR}/include)
-  #find_library(CAJITA_LIB Cajita PATHS ${CAJITA_DIR}/lib NO_DEFAULT_PATH)
-
-  #target_include_directories(CabanaMD PUBLIC ${HEFFTE_DIR}/include)
-  #find_library(HEFFTE_LIB heffte PATHS ${HEFFTE_DIR}/lib NO_DEFAULT_PATH)
-
-  #find_package(FFTW)
-  #if(FFTW_FOUND)
-  #  target_link_libraries(CabanaMD ${CAJITA_LIB} ${HEFFTE_LIB} ${FFTW_LIB} ${FFTWF_LIB})
-  #else()
-  #  message(FATAL_ERROR "FFTW not found! Set CabanaMD_ENABLE_Longrange=OFF or install FFTW")
-  #endif()
   target_link_libraries(CabanaMD Cajita::Cajita Heffte::Heffte)
 endif()
 

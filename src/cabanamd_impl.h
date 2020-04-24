@@ -204,6 +204,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 
     // Create long range Force class: options in longrangeforce_types/ folder
     // Delay because tuning (within init) uses atom count, domain size
+#ifdef CabanaMD_ENABLE_LongRange
     if ( input->lrforce_type != FORCE_NONE )
     {
         bool half_neigh =
@@ -213,7 +214,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
                          "for the SPME longrange solver." );
 
         if ( input->lrforce_type == FORCE_EWALD )
-            lrforce = new ForceSPME<t_System, t_Neighbor>( system );
+            lrforce = new ForceEwald<t_System, t_Neighbor>( system );
         else if ( input->lrforce_type == FORCE_SPME )
             lrforce = new ForceSPME<t_System, t_Neighbor>( system );
         else
@@ -222,6 +223,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         lrforce->init_coeff(
             system, input->input_data.words[input->lrforce_coeff_lines( 0 )] );
     }
+#endif
 
     // Output settings
     if ( system->do_print )
