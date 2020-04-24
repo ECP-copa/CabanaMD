@@ -9,49 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifdef MODULES_OPTION_CHECK
-if ( ( strcmp( argv[i], "--force-iteration" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "NEIGH_FULL" ) == 0 ) )
-        lrforce_iteration_type = FORCE_ITER_NEIGH_FULL;
-    if ( ( strcmp( argv[i + 1], "NEIGH_HALF" ) == 0 ) )
-        lrforce_iteration_type = FORCE_ITER_NEIGH_HALF;
-}
-if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "NEIGH_2D" ) == 0 ) )
-        neighbor_type = NEIGH_2D;
-    if ( ( strcmp( argv[i + 1], "NEIGH_CSR" ) == 0 ) )
-        neighbor_type = NEIGH_CSR;
-}
-#endif
-#ifdef LONGRANGE_FORCE_MODULES_INSTANTIATION
-else if ( input->lrforce_type == FORCE_SPME )
-{
-    bool half_neigh = input->lrforce_iteration_type == FORCE_ITER_NEIGH_HALF;
-    if ( input->neighbor_type == NEIGH_2D )
-    {
-        if ( half_neigh )
-            lrforce = new ForceSPME<t_verletlist_half_2D>( system, half_neigh );
-        else
-            throw std::runtime_error( "Full neighbor list not implemented "
-                                      "for the SPME longrange solver." );
-    }
-    else if ( input->neighbor_type == NEIGH_CSR )
-    {
-        if ( half_neigh )
-            lrforce =
-                new ForceSPME<t_verletlist_half_CSR>( system, half_neigh );
-        else
-            throw std::runtime_error( "Full neighbor list not implemented "
-                                      "for the SPME longrange solver." );
-    }
-#undef FORCETYPE_ALLOCATION_MACRO
-}
-#endif
-
-#if !defined( MODULES_OPTION_CHECK ) && !defined( FORCE_MODULES_INSTANTIATION )
-
 #ifndef FORCE_SPME_CABANA_NEIGH_H
 #define FORCE_SPME_CABANA_NEIGH_H
 #include <Cabana_Core.hpp>
@@ -61,17 +18,17 @@ else if ( input->lrforce_type == FORCE_SPME )
 #include <system.h>
 #include <types.h>
 
-template <class t_neighbor>
-class ForceSPME : public Force
+template <class t_System, class t_Neighbor>
+class ForceSPME : public Force<t_System, t_Neighbor>
 {
   private:
     int N_local, ntypes;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-    typename AoSoA::member_slice_type<IDs> id;
-    typename AoSoA::member_slice_type<Types> type;
-    typename AoSoA::member_slice_type<Charges> q;
+    typename t_System::t_x x;
+    typename t_System::t_f f;
+    typename t_System::t_f::atomic_access_slice f_a;
+    typename t_System::t_type type;
+
+    typedef typename t_Neighbor::t_neigh_list t_neigh_list;
 
     double _alpha;
     double _r_max;
@@ -81,9 +38,6 @@ class ForceSPME : public Force
     double _eps_r = 1.0; // Assume 1 for now (vacuum)
 
   public:
-    bool half_neigh;
-
-    t_neighbor neigh_list;
     std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> local_grid;
     std::shared_ptr<Cajita::Array<double, Cajita::Node,
                                   Cajita::UniformMesh<double>, DeviceType>>
@@ -93,22 +47,21 @@ class ForceSPME : public Force
                                   Cajita::UniformMesh<double>, DeviceType>>
         BC_array;
 
-    ForceSPME( System *system, bool half_neigh );
+    ForceSPME( t_System *system );
 
-    void init_coeff( System *system, T_X_FLOAT cut, char **args );
-    void tune( System *system, T_F_FLOAT accuracy );
-    void create_mesh( System *system );
+    void init_coeff( t_System *system, char **args );
+    void tune( t_System *system, T_F_FLOAT accuracy );
+    void create_mesh( t_System *system );
 
     double oneDspline( double x );
     double oneDsplinederiv( double x );
     double oneDeuler( int k, int meshwidth );
-    void create_neigh_list( System *system );
 
-    void compute( System *system );
-    T_F_FLOAT compute_energy( System *system );
+    void compute( t_System *system, t_Neighbor *neighbor );
+    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor );
 
     const char *name();
 };
 
-#endif
+#include <force_spme_cabana_neigh_impl.h>
 #endif

@@ -10,7 +10,6 @@
  ****************************************************************************/
 
 #include <Cajita.hpp>
-#include <force_spme_cabana_neigh.h>
 #ifdef Cabana_ENABLE_Cuda
 #include <cufft.h>
 #include <cufftw.h>
@@ -26,31 +25,27 @@
  *   reciprocal space part of the Ewald sum.
  */
 
-template <class t_neighbor>
-ForceSPME<t_neighbor>::ForceSPME( System *system, bool half_neigh_ )
-    : Force( system, half_neigh_ )
+template <class t_System, class t_Neighbor>
+    ForceSPME<t_System, t_Neighbor>::ForceSPME( t_System *system )
+    : Force<t_System, t_Neighbor>( system )
 {
-    half_neigh = half_neigh_;
-    assert( half_neigh == true );
-
     _alpha = 0.0;
     _k_max = 0.0;
     _r_max = 0.0;
 }
 
 // TODO: allow user to specify parameters
-template <class t_neighbor>
-void ForceSPME<t_neighbor>::init_coeff( System *system, T_X_FLOAT, char **args )
+template <class t_System, class t_Neighbor>
+void ForceSPME<t_System, t_Neighbor>::init_coeff( t_System *system, char **args )
 {
-
     double accuracy = atof( args[2] );
     tune( system, accuracy );
     create_mesh( system );
 }
 
 // Tune to a given accuracy
-template <class t_neighbor>
-void ForceSPME<t_neighbor>::tune( System *system, double accuracy )
+template <class t_System, class t_Neighbor>
+void ForceSPME<t_System, t_Neighbor>::tune( t_System *system, double accuracy )
 {
     if ( system->domain_x != system->domain_y or
          system->domain_x != system->domain_z )
@@ -79,8 +74,8 @@ void ForceSPME<t_neighbor>::tune( System *system, double accuracy )
 //   zero All cubic B-splines are smooth functions that go to zero and are
 //   defined piecewise
 // TODO: replace use of this with Cajita functions
-template <class t_neighbor>
-KOKKOS_INLINE_FUNCTION double ForceSPME<t_neighbor>::oneDspline( double x )
+template <class t_System, class t_Neighbor>
+KOKKOS_INLINE_FUNCTION double ForceSPME<t_System, t_Neighbor>::oneDspline( double x )
 {
     if ( x >= 0.0 and x < 1.0 )
     {
@@ -100,9 +95,9 @@ KOKKOS_INLINE_FUNCTION double ForceSPME<t_neighbor>::oneDspline( double x )
 
 // Compute derivative of 1D cubic cardinal B-spline
 // TODO: replace use of this with Cajita functions
-template <class t_neighbor>
+template <class t_System, class t_Neighbor>
 KOKKOS_INLINE_FUNCTION double
-ForceSPME<t_neighbor>::oneDsplinederiv( double origx )
+ForceSPME<t_System, t_Neighbor>::oneDsplinederiv( double origx )
 {
     double x = 2.0 - std::abs( origx );
     double forcedir = 1.0;
@@ -132,8 +127,8 @@ ForceSPME<t_neighbor>::oneDsplinederiv( double origx )
 //   exp(2*PI*i*k*l/meshwidth)) when using a non-shifted cubic B-spline in the
 //   charge spread, where meshwidth is the number of mesh points in that
 //   dimension and k is the scaled fractional coordinate
-template <class t_neighbor>
-KOKKOS_INLINE_FUNCTION double ForceSPME<t_neighbor>::oneDeuler( int k,
+template <class t_System, class t_Neighbor>
+KOKKOS_INLINE_FUNCTION double ForceSPME<t_System, t_Neighbor>::oneDeuler( int k,
                                                                 int meshwidth )
 {
     double denomreal = 0.0;
@@ -158,8 +153,8 @@ KOKKOS_INLINE_FUNCTION double ForceSPME<t_neighbor>::oneDeuler( int k,
 }
 
 // Create uniform mesh for SPME method
-template <class t_neighbor>
-void ForceSPME<t_neighbor>::create_mesh( System *system )
+template <class t_System, class t_Neighbor>
+void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
 {
     // TODO: Is ~1 angstrom reasonable?
     T_INT num_cell_x = system->domain_x / 10.0;
@@ -190,8 +185,6 @@ void ForceSPME<t_neighbor>::create_mesh( System *system )
     const int halo_width = 1;
     local_grid = Cajita::createLocalGrid( global_grid, halo_width );
     auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
-
-    auto x = Cabana::slice<Positions>( system->xvf );
 
     // Create a scalar field for charge on the grid.
     // Using uppercase for grid/mesh variables and lowercase for particles
@@ -266,27 +259,9 @@ void ForceSPME<t_neighbor>::create_mesh( System *system )
     // TODO: check these indices
 }
 
-template <class t_neighbor>
-void ForceSPME<t_neighbor>::create_neigh_list( System *system )
-{
-    N_local = system->N_local;
-
-    double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
-                          system->sub_domain_lo_y - system->sub_domain_y,
-                          system->sub_domain_lo_z - system->sub_domain_z};
-    double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
-                          system->sub_domain_hi_y + system->sub_domain_y,
-                          system->sub_domain_hi_z + system->sub_domain_z};
-
-    auto x = Cabana::slice<Positions>( system->xvf );
-
-    t_neighbor list( x, 0, N_local, _r_max, 1.0, grid_min, grid_max );
-    neigh_list = list;
-}
-
 // Compute the energy and forces
-template <class t_neighbor>
-void ForceSPME<t_neighbor>::compute( System *system )
+template <class t_System, class t_Neighbor>
+    void ForceSPME<t_System, t_Neighbor>::compute( t_System *system, t_Neighbor *neighbor )
 {
     // For now, force symmetry
     if ( system->domain_x != system->domain_y or
@@ -295,17 +270,21 @@ void ForceSPME<t_neighbor>::compute( System *system )
         throw std::runtime_error( "SPME needs symmetric system size for now." );
     }
 
-    // Particle slices
-    auto x = Cabana::slice<Positions>( system->xvf );
-    auto q = Cabana::slice<Charges>( system->xvf );
-    auto f = Cabana::slice<Forces>( system->xvf );
-
-    // Number of particles
-    T_INT N_local = system->N_local;
-
+    auto N_local = system->N_local;
     double alpha = _alpha;
     double r_max = _r_max;
     double eps_r = _eps_r;
+
+    // Per-atom properties
+    system->slice_force();
+    auto x = system->x;
+    auto f = system->f;
+    auto type = system->type;
+    system->slice_q();
+    auto q = system->q;
+
+    // Neighbor list
+    auto neigh_list = neighbor->get();
 
     // reciprocal-space contribution
 
@@ -342,8 +321,8 @@ void ForceSPME<t_neighbor>::compute( System *system )
     // The plan here is to perform an inverse FFT on the mesh charge, then
     // multiply the norm of that result (in reciprocal space) by the BC array
 
-    auto fft = Cajita::createFastFourierTransform<double, DeviceType>(
-        *vector_layout, Cajita::FastFourierTransformParams{}
+    auto fft = Cajita::Experimental::createFastFourierTransform<double, DeviceType>(
+                                                                                    *vector_layout, Cajita::Experimental::FastFourierTransformParams{}
                             .setCollectiveType( 2 )
                             .setExchangeType( 0 )
                             .setPackType( 2 )
@@ -399,7 +378,7 @@ void ForceSPME<t_neighbor>::compute( System *system )
     auto realspace_force = KOKKOS_LAMBDA( const int idx )
     {
         int num_n =
-            Cabana::NeighborList<t_neighbor>::numNeighbor( neigh_list, idx );
+            Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, idx );
 
         double rx = x( idx, 0 );
         double ry = x( idx, 1 );
@@ -408,7 +387,7 @@ void ForceSPME<t_neighbor>::compute( System *system )
 
         for ( int ij = 0; ij < num_n; ++ij )
         {
-            int j = Cabana::NeighborList<t_neighbor>::getNeighbor( neigh_list,
+            int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
                                                                    idx, ij );
             double dx = x( j, 0 ) - rx;
             double dy = x( j, 1 ) - ry;
@@ -433,14 +412,20 @@ void ForceSPME<t_neighbor>::compute( System *system )
     Kokkos::fence();
 }
 
-template <class t_neighbor>
-T_V_FLOAT ForceSPME<t_neighbor>::compute_energy( System *system )
+template <class t_System, class t_Neighbor>
+    T_V_FLOAT ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system, t_Neighbor *neighbor )
 {
     N_local = system->N_local;
     double alpha = _alpha;
 
-    auto x = Cabana::slice<Positions>( system->xvf );
-    auto q = Cabana::slice<Charges>( system->xvf );
+    // Per-atom properties
+    system->slice_x();
+    auto x = system->x;
+    system->slice_q();
+    auto q = system->q;
+
+    // Neighbor list
+    auto neigh_list = neighbor->get();
 
     auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
                                                Cajita::Local() );
@@ -475,7 +460,7 @@ T_V_FLOAT ForceSPME<t_neighbor>::compute_energy( System *system )
     auto realspace_potential = KOKKOS_LAMBDA( const int idx, T_V_FLOAT &PE )
     {
         int num_n =
-            Cabana::NeighborList<t_neighbor>::numNeighbor( neigh_list, idx );
+            Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, idx );
 
         double rx = x( idx, 0 );
         double ry = x( idx, 1 );
@@ -484,7 +469,7 @@ T_V_FLOAT ForceSPME<t_neighbor>::compute_energy( System *system )
 
         for ( int ij = 0; ij < num_n; ++ij )
         {
-            int j = Cabana::NeighborList<t_neighbor>::getNeighbor( neigh_list,
+            int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
                                                                    idx, ij );
             double dx = x( j, 0 ) - rx;
             double dy = x( j, 1 ) - ry;
@@ -506,8 +491,8 @@ T_V_FLOAT ForceSPME<t_neighbor>::compute_energy( System *system )
     return energy;
 }
 
-template <class t_neighbor>
-const char *ForceSPME<t_neighbor>::name()
+template <class t_System, class t_Neighbor>
+const char *ForceSPME<t_System, t_Neighbor>::name()
 {
-    return "LongRangeForce:SPMECabanaVerletHalf";
+    return "LongRangeForce:SPME";
 }

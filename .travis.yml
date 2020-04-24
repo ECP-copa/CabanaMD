@@ -15,7 +15,7 @@ jobs:
 addons:
   apt:
     sources:
-      - ubuntu-toolchain-r-test
+      - sourceline: 'ppa:ubuntu-toolchain-r/test'
     packages:
       - ccache
       - libhwloc-dev
@@ -53,21 +53,21 @@ before_script:
     make -k -j2 VERBOSE=1 && make install &&
     popd && popd
   - if [[ ${LongRange} ]]; then
+    git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
+    pushd heffte && mkdir build && pushd build &&
+    cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"
+          -DCMAKE_CXX_STANDARD="11"
+          -DBUILD_SHARED_LIBS=ON
+          -DHeffte_ENABLE_FFTW=ON .. &&
+    make -j2 VERBOSE=1 && make install &&
+    popd && popd;
     git clone --depth=1 https://github.com/ECP-copa/Cajita.git &&
     pushd Cajita && mkdir build && pushd build &&
-    cmake -DCMAKE_PREFIX_PATH=$HOME/kokkos
+    cmake -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte"
           -DCMAKE_INSTALL_PREFIX=$HOME/Cajita
           -DCajita_ENABLE_TESTING=OFF
           -DCajita_ENABLE_COVERAGE_BUILD=OFF .. &&
     make -k -j2 VERBOSE=1 && make install &&
-    popd && popd;
-    git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
-    pushd heffte && mkdir build && pushd build &&
-    cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"
-          -DCMAKE_CXX_FLAGS="-std=c++11"
-          -DFFTW_USE_STATIC_LIBS=ON
-          -DBUILD_GPU=OFF -DBUILD_SHARED=OFF .. &&
-    make -j2 VERBOSE=1 && make install &&
     popd && popd;
     fi
   - if [[ ${NNP} ]]; then
@@ -98,16 +98,17 @@ env:
 script:
   - mkdir build && pushd build &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-          -DCMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos"
+          -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Werror"
+          -DCMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos;$HOME/Cajita;$HOME/heffte"
+          -DCabanaMD_ENABLE_TESTING=ON
           -DCabanaMD_ENABLE_Serial=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
           -DCabanaMD_ENABLE_LongRange=${LongRange}
-          -DCAJITA_DIR=$HOME/Cajita
           -DN2P2_DIR=$HOME/build/n2p2
-          -DHEFFTE_DIR=$HOME/heffte
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
+    make test CTEST_OUTPUT_ON_FAILURE=1 &&
     make format && git diff --exit-code &&
     popd
 

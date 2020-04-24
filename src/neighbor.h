@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -46,9 +46,29 @@
 //
 //************************************************************************
 
-#include <force_lj_cabana_neigh_impl.h>
+#ifndef NEIGHBOR_H
+#define NEIGHBOR_H
+#include <system.h>
+#include <types.h>
 
-template class ForceLJ<t_verletlist_half_2D>;
-template class ForceLJ<t_verletlist_full_2D>;
-template class ForceLJ<t_verletlist_half_CSR>;
-template class ForceLJ<t_verletlist_full_CSR>;
+template <class t_System, class t_iteration, class t_layout>
+class Neighbor
+{
+  public:
+    T_X_FLOAT neigh_cut;
+    bool half_neigh;
+
+    Neighbor( T_X_FLOAT neigh_cut_, bool half_neigh_ )
+        : neigh_cut( neigh_cut_ )
+        , half_neigh( half_neigh_ )
+    {
+    }
+    virtual ~Neighbor() {}
+
+    virtual void create( t_System *system ) = 0;
+
+    virtual const char *name() { return "Neighbor:None"; };
+};
+
+#include <modules_neighbor.h>
+#endif

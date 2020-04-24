@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -46,31 +46,37 @@
 //
 //************************************************************************
 
-#include <property_temperature.h>
+#ifndef INPUTCL_H
+#define INPUTCL_H
 
-Temperature::Temperature( Comm *comm_ )
-    : comm( comm_ )
+#include <types.h>
+
+#include <CabanaMD_config.hpp>
+
+#include <iostream>
+
+class InputCL
 {
-}
+  public:
+    bool do_print;
 
-T_V_FLOAT Temperature::compute( System *system )
-{
-    v = Cabana::slice<Velocities>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
-    mass = system->mass;
+    int input_file_type;
 
-    T_V_FLOAT T;
-    Kokkos::parallel_reduce(
-        Kokkos::RangePolicy<Kokkos::IndexType<T_INT>>( 0, system->N_local ),
-        *this, T );
+    int neighbor_type;
+    int force_iteration_type;
+    bool set_force_iteration;
+    int force_neigh_parallel_type;
+    int layout_type;
+    int nnp_layout_type;
 
-    // Make sure I don't carry around references to data
-    mass = t_mass();
+    int dumpbinary_rate, correctness_rate;
+    bool dumpbinaryflag, correctnessflag;
+    char *dumpbinary_path, *reference_path, *correctness_file;
+    char *input_file = NULL;
 
-    // Multiply by scaling factor (units based) to get to temperature
-    T_INT dof = 3 * system->N_global - 3;
-    T_V_FLOAT factor = system->mvv2e / ( 1.0 * dof * system->boltz );
+    InputCL();
+    ~InputCL();
+    void read_args( int argc, char *argv[] );
+};
 
-    comm->reduce_float( &T, 1 );
-    return T * factor;
-}
+#endif

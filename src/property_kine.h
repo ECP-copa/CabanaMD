@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -46,6 +46,9 @@
 //
 //************************************************************************
 
+#ifndef PROPERTY_KINE_H
+#define PROPERTY_KINE_H
+
 #include <comm_mpi.h>
 #include <system.h>
 #include <types.h>
@@ -53,19 +56,20 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+template <class t_System>
 class KinE
 {
   private:
-    typename AoSoA::member_slice_type<Velocities> v;
-    typename AoSoA::member_slice_type<Types> type;
+    typename t_System::t_v v;
+    typename t_System::t_type type;
     t_mass mass;
 
-    Comm *comm;
+    Comm<t_System> *comm;
 
   public:
-    KinE( Comm *comm_ );
+    KinE( Comm<t_System> *comm_ );
 
-    T_V_FLOAT compute( System * );
+    T_V_FLOAT compute( t_System * );
 
     KOKKOS_INLINE_FUNCTION
     void operator()( const T_INT &i, T_V_FLOAT &KE ) const
@@ -75,3 +79,6 @@ class KinE
               mass( type( i ) );
     }
 };
+
+#include <property_kine_impl.h>
+#endif

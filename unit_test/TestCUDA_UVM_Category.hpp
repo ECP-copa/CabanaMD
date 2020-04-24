@@ -9,9 +9,15 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <force_spme_cabana_neigh_impl.h>
+#ifndef CABANA_TEST_CUDAUVM_CATEGORY_HPP
+#define CABANA_TEST_CUDAUVM_CATEGORY_HPP
 
-template class ForceSPME<t_verletlist_half_2D>;
-template class ForceSPME<t_verletlist_full_2D>;
-template class ForceSPME<t_verletlist_half_CSR>;
-template class ForceSPME<t_verletlist_full_CSR>;
+#include <Kokkos_Cuda.hpp>
+
+#include <gtest/gtest.h>
+
+#define TEST_CATEGORY cuda_uvm
+#define TEST_EXECSPACE Kokkos::Cuda
+#define TEST_MEMSPACE Kokkos::CudaUVMSpace
+
+#endif // end CABANA_TEST_CUDAUVM_CATEGORY_HPP

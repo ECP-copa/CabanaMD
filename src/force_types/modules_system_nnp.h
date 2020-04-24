@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -9,9 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <force_ewald_cabana_neigh_impl.h>
-
-template class ForceEwald<t_verletlist_half_2D>;
-template class ForceEwald<t_verletlist_full_2D>;
-template class ForceEwald<t_verletlist_half_CSR>;
-template class ForceEwald<t_verletlist_full_CSR>;
+// Include Module header files for NNP system
+#include <system_nnp_1aosoa.h>
+#include <system_nnp_3aosoa.h>

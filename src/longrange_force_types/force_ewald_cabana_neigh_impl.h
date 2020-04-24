@@ -9,17 +9,12 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <force_ewald_cabana_neigh.h>
-
 /* Ewald solver */
 
-template <class t_neighbor>
-ForceEwald<t_neighbor>::ForceEwald( System *system, bool half_neigh_ )
-    : Force( system, half_neigh_ )
+template <class t_System, class t_Neighbor>
+    ForceEwald<t_System, t_Neighbor>::ForceEwald( t_System *system )
+    : Force<t_System, t_Neighbor>( system )
 {
-    half_neigh = half_neigh_;
-    assert( half_neigh == true );
-
     _alpha = 0.0;
     _k_max = 0.0;
     _r_max = 0.0;
@@ -55,17 +50,16 @@ ForceEwald<t_neighbor>::ForceEwald( System *system, bool half_neigh_ )
 }
 
 // TODO: allow user to specify parameters
-template <class t_neighbor>
-void ForceEwald<t_neighbor>::init_coeff( System *system, T_X_FLOAT,
+template <class t_System, class t_Neighbor>
+void ForceEwald<t_System, t_Neighbor>::init_coeff( t_System *system, 
                                          char **args )
 {
-
     double accuracy = atof( args[2] );
     tune( system, accuracy );
 }
 
-template <class t_neighbor>
-void ForceEwald<t_neighbor>::tune( System *system, double accuracy )
+template <class t_System, class t_Neighbor>
+void ForceEwald<t_System, t_Neighbor>::tune( t_System *system, double accuracy )
 {
     if ( system->domain_x != system->domain_y or
          system->domain_x != system->domain_z )
@@ -97,43 +91,21 @@ void ForceEwald<t_neighbor>::tune( System *system, double accuracy )
     _k_max = 2.0 * sqrt( p ) * _alpha;
 }
 
-template <class t_neighbor>
-void ForceEwald<t_neighbor>::create_neigh_list( System *system )
+template <class t_System, class t_Neighbor>
+    void ForceEwald<t_System, t_Neighbor>::compute( t_System *system, t_Neighbor *neighbor )
 {
-    N_local = system->N_local;
-    int N_ghost = system->N_ghost;
+    // Per-atom slices
+    system->slice_force();
+    auto x = system->x;
+    auto f = system->f;
+    auto type = system->type;
+    system->slice_q();
+    auto q = system->q;
 
-    double grid_min[3] = {system->sub_domain_lo_x - _r_max,
-                          system->sub_domain_lo_y - _r_max,
-                          system->sub_domain_lo_z - _r_max};
-    double grid_max[3] = {system->sub_domain_hi_x + _r_max,
-                          system->sub_domain_hi_y + _r_max,
-                          system->sub_domain_hi_z + _r_max};
+    // Neighbor list
+    auto neigh_list = neighbor->get();
 
-    double cell_size;
-    cell_size =
-        std::max( std::min( ( grid_max[0] - grid_min[0] ) / 20.0,
-                            std::min( ( grid_max[1] - grid_min[1] ) / 20.0,
-                                      ( grid_max[2] - grid_min[2] ) / 20.0 ) ),
-                  1.0 );
-    auto x = Cabana::slice<Positions>( system->xvf );
-
-    t_neighbor list( x, 0, N_local+N_ghost, _r_max, cell_size, grid_min, grid_max );
-    neigh_list = list;
-}
-
-template <class t_neighbor>
-void ForceEwald<t_neighbor>::compute( System *system )
-{
-
-    N_local = system->N_local;
-
-    x = Cabana::slice<Positions>( system->xvf );
-    f = Cabana::slice<Forces>( system->xvf );
-    q = Cabana::slice<Charges>( system->xvf );
-
-
-    // get the solver parameters
+    auto N_local = system->N_local;
     double alpha = _alpha;
     double k_max = _k_max;
 
@@ -255,7 +227,7 @@ void ForceEwald<t_neighbor>::compute( System *system )
     auto realspace_force = KOKKOS_LAMBDA( const int idx )
     {
         int num_n =
-            Cabana::NeighborList<t_neighbor>::numNeighbor( neigh_list, idx );
+            Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, idx );
 
         double rx = x( idx, 0 );
         double ry = x( idx, 1 );
@@ -264,7 +236,7 @@ void ForceEwald<t_neighbor>::compute( System *system )
 
         for ( int ij = 0; ij < num_n; ++ij )
         {
-            int j = Cabana::NeighborList<t_neighbor>::getNeighbor( neigh_list,
+            int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
                                                                    idx, ij );
             double dx = x( j, 0 ) - rx;
             double dy = x( j, 1 ) - ry;
@@ -289,17 +261,21 @@ void ForceEwald<t_neighbor>::compute( System *system )
     Kokkos::fence();
 }
 
-template <class t_neighbor>
-T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
+template <class t_System, class t_Neighbor>
+    T_V_FLOAT ForceEwald<t_System, t_Neighbor>::compute_energy( t_System *system, t_Neighbor *neighbor )
 {
-    N_local = system->N_local;
-
-    // get the solver parameters
+    auto N_local = system->N_local;
     double alpha = _alpha;
     double k_max = _k_max;
 
-    x = Cabana::slice<Positions>( system->xvf );
-    q = Cabana::slice<Charges>( system->xvf );
+    // Per-atom slices
+    system->slice_x();
+    auto x = system->x;
+    system->slice_q();
+    auto q = system->q;
+
+    // Neighbor list
+    auto neigh_list = neighbor->get();
 
     const double ELECTRON_CHARGE = 1.60217662E-19;//electron charge in Coulombs
     const double EPS_0 = 8.8541878128E-22;//permittivity of free space in Farads/Angstrom
@@ -356,7 +332,7 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
     auto realspace_potential = KOKKOS_LAMBDA( const int idx, T_V_FLOAT &PE )
     {
         int num_n =
-            Cabana::NeighborList<t_neighbor>::numNeighbor( neigh_list, idx );
+            Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, idx );
         double rx = x( idx, 0 );
         double ry = x( idx, 1 );
         double rz = x( idx, 2 );
@@ -364,7 +340,7 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
 
         for ( int ij = 0; ij < num_n; ++ij )
         {
-            int j = Cabana::NeighborList<t_neighbor>::getNeighbor( neigh_list,
+            int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
                                                                    idx, ij );
             double dx = x( j, 0 ) - rx;
             double dy = x( j, 1 ) - ry;
@@ -386,8 +362,8 @@ T_V_FLOAT ForceEwald<t_neighbor>::compute_energy( System *system )
     return energy;
 }
 
-template <class t_neighbor>
-const char *ForceEwald<t_neighbor>::name()
+template <class t_System, class t_Neighbor>
+const char *ForceEwald<t_System, t_Neighbor>::name()
 {
-    return "LongRangeForce:EwaldCabanaVerletHalf";
+    return "LongRangeForce:Ewald";
 }

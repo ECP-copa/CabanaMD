@@ -1,13 +1,5 @@
-/****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
- * All rights reserved.                                                     *
- *                                                                          *
- * This file is part of the Cabana library. Cabana is distributed under a   *
- * BSD 3-clause license. For the licensing terms see the LICENSE file in    *
- * the top-level directory.                                                 *
- *                                                                          *
- * SPDX-License-Identifier: BSD-3-Clause                                    *
- ****************************************************************************/
+// This file will soon be removed.
+// See https://github.com/ECP-copa/CabanaMD/issues/37
 
 // n2p2 - A neural network potential package
 // Copyright (C) 2018 Andreas Singraber (University of Vienna)
@@ -81,7 +73,7 @@ class Element
     void addSymmetryFunction( string const &parameters,
                               vector<string> elementStrings, int attype,
                               t_SF SF, double convLength,
-                              int ( &countertotal )[2] );
+                              h_t_int h_numSFperElem );
     /** Change length unit for all symmetry functions.
      *
      * @param[in] convLength Length unit conversion factor.
@@ -89,27 +81,29 @@ class Element
     void changeLengthUnitSymmetryFunctions( double convLength );
     /** Sort all symmetry function.
      */
-    void sortSymmetryFunctions( t_SF SF, h_t_mass h_numSFperElem, int attype );
+    void sortSymmetryFunctions( t_SF SF, h_t_int h_numSFperElem, int attype );
     /** Print symmetry function parameter value information.
      */
     bool compareSF( t_SF SF, int attype, int index1, int index2 );
     vector<string>
     infoSymmetryFunctionParameters( t_SF SF, int attype,
-                                    int ( &countertotal )[2] ) const;
-    vector<string>
-    infoSymmetryFunctionScaling( ScalingType scalingType, t_SF SF,
-                                 t_SFscaling SFscaling, int attype,
-                                 int ( &countertotal )[2] ) const;
+                                    h_t_int h_numSFperElem ) const;
+    vector<string> infoSymmetryFunctionScaling( ScalingType scalingType,
+                                                t_SF SF, t_SFscaling SFscaling,
+                                                int attype,
+                                                h_t_int h_numSFperElem ) const;
     /** Set up symmetry function groups.
      */
     void setupSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
-                                      int attype, int ( &countertotal )[2],
-                                      int ( &countergtotal )[2] );
+                                      int attype, h_t_int h_numSFperElem,
+                                      h_t_int h_numSFGperElem,
+                                      int maxSFperElem );
     /** Print symmetry function group info.
      */
-    vector<string>
-    infoSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
-                                int attype, int ( &countergtotal )[2] ) const;
+    vector<string> infoSymmetryFunctionGroups( t_SF SF,
+                                               t_SFGmemberlist SFGmemberlist,
+                                               int attype,
+                                               h_t_int h_numSFGperElem ) const;
     /** Set cutoff function for all symmetry functions.
      *
      * @param[in] cutoffType Type of cutoff function.
@@ -117,7 +111,7 @@ class Element
      */
     void setCutoffFunction( CutoffFunction::CutoffType const cutoffType,
                             double const cutoffAlpha, t_SF SF, int attype,
-                            int ( &countertotal )[2] );
+                            h_t_int h_numSFperElem );
     /** Set scaling of all symmetry functions.
      *
      * @param[in] scalingType Type of scaling, see
@@ -130,12 +124,12 @@ class Element
     void setScaling( ScalingType scalingType,
                      vector<string> const &statisticsLine, double minS,
                      double maxS, t_SF SF, t_SFscaling SFscaling, int attype,
-                     int ( &countertotal )[2] ) const;
+                     h_t_int h_numSFperElem ) const;
     /** Get number of symmetry functions.
      *
      * @return Number of symmetry functions.
      */
-    size_t numSymmetryFunctions( int attype, int ( &countertotal )[2] ) const;
+    size_t numSymmetryFunctions( int attype, h_t_int h_numSFperElem ) const;
     /** Get maximum of required minimum number of neighbors for all symmetry
      * functions for this element.
      *
@@ -147,13 +141,13 @@ class Element
      * @return Minimum cutoff radius.
      */
     double getMinCutoffRadius( t_SF SF, int attype,
-                               int ( &countertotal )[2] ) const;
+                               h_t_int h_numSFperElem ) const;
     /** Get maximum cutoff radius of all symmetry functions.
      *
      * @return Maximum cutoff radius.
      */
     double getMaxCutoffRadius( t_SF SF, int attype,
-                               int ( &countertotal )[2] ) const;
+                               h_t_int h_numSFperElem ) const;
     /** Update symmetry function statistics.
      *
      * @param[in] atom Atom with symmetry function values.
@@ -162,7 +156,7 @@ class Element
      */
     // void                     updateSymmetryFunctionStatistics(
     //                                                         System* s,
-    //                                                         AoSoA_NNP
+    //                                                         AoSoA_NNP_all
     //                                                         nnp_data,...);
 
     /** Get symmetry function instance.
@@ -219,9 +213,9 @@ inline double Element::getAtomicEnergyOffset() const
 inline string Element::getSymbol() const { return symbol; }
 
 inline size_t Element::numSymmetryFunctions( int attype,
-                                             int ( &countertotal )[2] ) const
+                                             h_t_int h_numSFperElem ) const
 {
-    return countertotal[attype];
+    return h_numSFperElem( attype );
 }
 
 inline void Element::setScalingType( ScalingType scalingType,

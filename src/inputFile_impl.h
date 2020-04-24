@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -46,7 +46,7 @@
 //
 //************************************************************************
 
-#include <input.h>
+#include <inputFile.h>
 #include <property_temperature.h>
 
 #include <fstream>
@@ -147,22 +147,26 @@ void ItemizedFile::add_line( const char *const line )
     nlines++;
 }
 
-Input::Input( System *p )
-    : system( p )
+template <class t_System>
+InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
+    : commandline( commandline_ )
+    , system( system_ )
     , input_data( ItemizedFile() )
     , data_file_data( ItemizedFile() )
 {
-
-    binning_type = BINNING_LINKEDCELL;
     comm_type = COMM_MPI;
     integrator_type = INTEGRATOR_NVE;
-    neighbor_type = NEIGH_2D;
+    neighbor_type = NEIGH_VERLET_2D;
     force_type = FORCE_LJ;
-    force_iteration_type = FORCE_ITER_NEIGH_FULL;
     lrforce_type = FORCE_NONE;
-    lrforce_iteration_type = force_iteration_type;
+    binning_type = BINNING_LINKEDCELL;
 
-    force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
+    layout_type = commandline.layout_type;
+    nnp_layout_type = commandline.nnp_layout_type;
+    neighbor_type = commandline.neighbor_type;
+    force_iteration_type = commandline.force_iteration_type;
+    force_neigh_parallel_type = commandline.force_neigh_parallel_type;
+    lrforce_iteration_type = force_iteration_type;
 
     // set defaults (matches ExaMiniMD LJ example)
 
@@ -172,7 +176,6 @@ Input::Input( System *p )
     lrforce_coeff_lines = Kokkos::View<int *, Kokkos::HostSpace>(
         "Input::LRforce_coeff_lines", 0 );
 
-    input_file_type = -1;
     data_file_type = -1;
 
     thermo_rate = 0;
@@ -210,126 +213,18 @@ Input::Input( System *p )
     neighbor_skin = 0.3;
     neighbor_skin = 0.0; // for metal and real units
     comm_exchange_rate = 20;
-    comm_newton = 0;
 
     force_cutoff = 2.5;
 }
 
-void Input::read_command_line_args( int argc, char *argv[] )
-{
-#define MODULES_OPTION_CHECK
-    for ( int i = 1; i < argc; i++ )
-    {
-        // Help command
-        if ( ( strcmp( argv[i], "-h" ) == 0 ) ||
-             ( strcmp( argv[i], "--help" ) == 0 ) )
-        {
-            if ( system->do_print )
-            {
-                printf( "CabanaMD 0.1 \n\n" );
-                printf( "Options:\n" );
-                printf( "  -il [file] / --input-lammps [FILE]: Provide LAMMPS "
-                        "input "
-                        "file\n" );
-                printf(
-                    "  --force-iteration [TYPE]:   Specify iteration style for "
-                    "force calculations\n" );
-                printf( "                              (NEIGH_FULL, "
-                        "NEIGH_HALF)\n" );
-                printf( "  --neigh-parallel [TYPE]:    Specify neighbor "
-                        "parallelism "
-                        "and, if applicable, angular neighbor parallelism\n" );
-                printf( "                              (SERIAL, TEAM, "
-                        "TEAM_VECTOR)\n" );
-                printf(
-                    "  --neigh-type [TYPE]:        Specify Neighbor Routines "
-                    "implementation \n" );
-                printf(
-                    "                              (NEIGH_2D, NEIGH_CSR)\n" );
-                printf( "  --comm-type [TYPE]:         Specify Communication "
-                        "Routines "
-                        "implementation \n" );
-                printf( "                              (MPI, SERIAL)\n" );
-                printf( "  --dumpbinary [N] [PATH]:    Request that binary "
-                        "output files "
-                        "PATH/output* be generated every N steps\n" );
-                printf(
-                    "                              (N = positive integer)\n" );
-                printf( "                              (PATH = location of "
-                        "directory)\n" );
-                printf( "  --correctness [N] [PATH] [FILE]:   Request that "
-                        "correctness "
-                        "check against files PATH/output* be performed every N "
-                        "steps, "
-                        "correctness data written to FILE\n" );
-                printf(
-                    "                              (N = positive integer)\n" );
-                printf( "                              (PATH = location of "
-                        "directory)\n" );
-            }
-        }
-        // Read Lammps input deck
-        else if ( ( strcmp( argv[i], "-il" ) == 0 ) ||
-                  ( strcmp( argv[i], "--input-lammps" ) == 0 ) )
-        {
-            input_file = argv[++i];
-            input_file_type = INPUT_LAMMPS;
-        }
-
-        // Force Iteration Type Related
-        else if ( ( strcmp( argv[i], "--force-iteration" ) == 0 ) )
-        {
-#include <modules_force.h>
-            ++i;
-        }
-
-        // Neighbor Type
-        else if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
-        {
-#include <modules_force.h>
-            ++i;
-        }
-
-        else if ( ( strcmp( argv[i], "--neigh-parallel" ) == 0 ) )
-        {
-#include <modules_force.h>
-            ++i;
-        }
-
-        // Dump Binary
-        else if ( ( strcmp( argv[i], "--dumpbinary" ) == 0 ) )
-        {
-            dumpbinary_rate = atoi( argv[i + 1] );
-            dumpbinary_path = argv[i + 2];
-            dumpbinaryflag = true;
-            i += 2;
-        }
-
-        // Correctness Check
-        else if ( ( strcmp( argv[i], "--correctness" ) == 0 ) )
-        {
-            correctness_rate = atoi( argv[i + 1] );
-            reference_path = argv[i + 2];
-            correctness_file = argv[i + 3];
-            correctnessflag = true;
-            i += 3;
-        }
-
-        else if ( ( strstr( argv[i], "--kokkos-" ) == NULL ) )
-        {
-            if ( system->do_print )
-                printf( "ERROR: Unknown command line argument: %s\n", argv[i] );
-            exit( 1 );
-        }
-    }
-#undef MODULES_OPTION_CHECK
-}
-
-void Input::read_file( const char *filename )
+template <class t_System>
+void InputFile<t_System>::read_file( const char *filename )
 {
     if ( filename == NULL )
-        filename = input_file;
-    if ( input_file_type == INPUT_LAMMPS )
+    {
+        filename = commandline.input_file;
+    }
+    if ( commandline.input_file_type == INPUT_LAMMPS )
     {
         read_lammps_file( filename );
         return;
@@ -339,7 +234,8 @@ void Input::read_file( const char *filename )
     exit( 1 );
 }
 
-void Input::read_lammps_file( const char *filename )
+template <class t_System>
+void InputFile<t_System>::read_lammps_file( const char *filename )
 {
     input_data.allocate_words( 100 );
 
@@ -383,7 +279,8 @@ void Input::read_lammps_file( const char *filename )
     }
 }
 
-void Input::check_lammps_command( int line )
+template <class t_System>
+void InputFile<t_System>::check_lammps_command( int line )
 {
     bool known = false;
 
@@ -717,19 +614,30 @@ void Input::check_lammps_command( int line )
     if ( strcmp( input_data.words[line][0], "newton" ) == 0 )
     {
         known = true;
-        if ( strcmp( input_data.words[line][1], "on" ) == 0 )
+        // File setting overriden by commandline
+        if ( !commandline.set_force_iteration )
         {
-            comm_newton = 1;
-        }
-        else if ( strcmp( input_data.words[line][1], "off" ) == 0 )
-        {
-            comm_newton = 0;
+            if ( strcmp( input_data.words[line][1], "on" ) == 0 )
+            {
+                force_iteration_type = FORCE_ITER_NEIGH_HALF;
+            }
+            else if ( strcmp( input_data.words[line][1], "off" ) == 0 )
+            {
+                force_iteration_type = FORCE_ITER_NEIGH_FULL;
+            }
+            else
+            {
+                if ( system->do_print )
+                    printf(
+                        "LAMMPS-Command: 'newton' must be followed by 'on' or "
+                        "'off'\n" );
+            }
         }
         else
         {
             if ( system->do_print )
-                printf( "LAMMPS-Command: 'newton' must be followed by 'on' or "
-                        "'off'\n" );
+                printf( "Overriding LAMMPS-Command: 'newton' replaced by "
+                        "commandline --force-iteration " );
         }
     }
     if ( input_data.words[line][0][0] == '#' )
@@ -743,10 +651,10 @@ void Input::check_lammps_command( int line )
     }
 }
 
-void Input::create_lattice( Comm *comm )
+template <class t_System>
+void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
 {
-
-    System s = *system;
+    t_System s = *system;
 
     t_mass::HostMirror h_charge = Kokkos::create_mirror_view( s.charge );
     Kokkos::deep_copy( h_charge, s.charge );
@@ -799,13 +707,16 @@ void Input::create_lattice( Comm *comm )
                 }
             }
         }
-        system->resize( system->N_local + n );
-
+        system->N_local = n;
+        system->N = n;
+        system->resize( n );
+        system->slice_all();
         s = *system;
-        auto x = Cabana::slice<Positions>( s.xvf );
-        auto id = Cabana::slice<IDs>( s.xvf );
-        auto type = Cabana::slice<Types>( s.xvf );
-        auto q = Cabana::slice<Charges>( s.xvf );
+        auto x = s.x;
+        auto v = s.v;
+        auto id = s.id;
+        auto type = s.type;
+        auto q = s.q;
 
         n = system->N_local;
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
@@ -836,8 +747,8 @@ void Input::create_lattice( Comm *comm )
             }
         }
         system->N_local = n;
-        system->N_global = n;
-        comm->reduce_int( &system->N_global, 1 );
+        system->N = n;
+        comm->reduce_int( &system->N, 1 );
 
         // Make ids unique over all processes
         T_INT N_local_offset = n;
@@ -846,7 +757,7 @@ void Input::create_lattice( Comm *comm )
             id( i ) += N_local_offset - n;
 
         if ( system->do_print )
-            printf( "Atoms: %i %i\n", system->N_global, system->N_local );
+            printf( "Atoms: %i %i\n", system->N, system->N_local );
     }
 
     // Create Face Centered Cubic (FCC) Lattice
@@ -925,12 +836,16 @@ void Input::create_lattice( Comm *comm )
             }
         }
         system->resize( system->N_local + n );
-
+        system->N_local = n;
+        system->N = n;
+        system->resize( n );
+        system->slice_all();
         s = *system;
-        auto x = Cabana::slice<Positions>( s.xvf );
-        auto id = Cabana::slice<IDs>( s.xvf );
-        auto type = Cabana::slice<Types>( s.xvf );
-        auto q = Cabana::slice<Charges>( s.xvf );
+        auto x = s.x;
+        auto v = s.v;
+        auto id = s.id;
+        auto type = s.type;
+        auto q = s.q;
 
         n = system->N_local;
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
@@ -974,28 +889,31 @@ void Input::create_lattice( Comm *comm )
             id( i ) += N_local_offset - n;
 
         system->N_local = n;
-        system->N_global = n;
-        comm->reduce_int( &system->N_global, 1 );
+        system->N = n;
+        comm->reduce_int( &system->N, 1 );
 
         if ( system->do_print )
-            printf( "Atoms: %i %i\n", system->N_global, system->N_local );
+            printf( "Atoms: %i %i\n", system->N, system->N_local );
     }
 }
 
-void Input::create_velocities( Comm *comm )
+template <class t_System>
+void InputFile<t_System>::create_velocities( Comm<t_System> *comm )
 {
     // Initialize velocity using the equivalent of the LAMMPS
     // velocity geom option, i.e. uniform random kinetic energies.
     // zero out momentum of the whole system afterwards, to eliminate
     // drift (bad for energy statistics)
 
-    System s = *system;
+    t_System s = *system;
+
     t_mass::HostMirror h_mass = Kokkos::create_mirror_view( s.mass );
     Kokkos::deep_copy( h_mass, s.mass );
 
-    auto x = Cabana::slice<Positions>( s.xvf );
-    auto v = Cabana::slice<Velocities>( s.xvf );
-    auto type = Cabana::slice<Types>( s.xvf );
+    s.slice_all();
+    auto x = s.x;
+    auto v = s.v;
+    auto type = s.type;
 
     T_FLOAT total_mass = 0.0;
     T_FLOAT total_momentum_x = 0.0;
@@ -1038,7 +956,7 @@ void Input::create_velocities( Comm *comm )
         v( i, 2 ) -= system_vz;
     }
 
-    Temperature temp( comm );
+    Temperature<t_System> temp( comm );
     T_V_FLOAT T = temp.compute( system );
 
     T_V_FLOAT T_init_scale = sqrt( temperature_target / T );

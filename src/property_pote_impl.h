@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -46,14 +46,21 @@
 //
 //************************************************************************
 
-#include <force.h>
+#include <cabanamd.h>
+#include <property_pote.h>
 
-Force::Force( System *, bool half_neigh_ )
-    : half_neigh( half_neigh_ )
+template <class t_System, class t_Neighbor>
+PotE<t_System, t_Neighbor>::PotE( Comm<t_System> *comm_ )
+    : comm( comm_ )
 {
 }
 
-void Force::init_coeff( System *, T_X_FLOAT, char ** ) {}
-void Force::create_neigh_list( System * ) {}
-void Force::compute( System * ) {}
-const char *Force::name() { return "ForceNone"; }
+template <class t_System, class t_Neighbor>
+T_F_FLOAT PotE<t_System, t_Neighbor>::compute(
+    t_System *system, Force<t_System, t_Neighbor> *force, t_Neighbor *neighbor )
+{
+    T_F_FLOAT PE;
+    PE = force->compute_energy( system, neighbor );
+    comm->reduce_float( &PE, 1 );
+    return PE;
+}

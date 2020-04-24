@@ -1,13 +1,5 @@
-/****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
- * All rights reserved.                                                     *
- *                                                                          *
- * This file is part of the Cabana library. Cabana is distributed under a   *
- * BSD 3-clause license. For the licensing terms see the LICENSE file in    *
- * the top-level directory.                                                 *
- *                                                                          *
- * SPDX-License-Identifier: BSD-3-Clause                                    *
- ****************************************************************************/
+// This file will soon be removed.
+// See https://github.com/ECP-copa/CabanaMD/issues/37
 
 // n2p2 - A neural network potential package
 // Copyright (C) 2018 Andreas Singraber (University of Vienna)
@@ -49,7 +41,7 @@ Element::~Element() {}
 void Element::addSymmetryFunction( string const &parameters,
                                    vector<string> elementStrings, int attype,
                                    t_SF SF, double convLength,
-                                   int ( &countertotal )[2] )
+                                   h_t_int h_numSFperElem )
 {
     vector<string> args = nnp::split( nnp::reduce( parameters ) );
     size_t type = (size_t)atoi( args.at( 1 ).c_str() );
@@ -60,36 +52,34 @@ void Element::addSymmetryFunction( string const &parameters,
     if ( type == 2 )
     {
         estring = splitLine.at( 0 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
                 el = i;
         }
-        SF( attype, countertotal[attype], 0 ) = el;   // ec
-        SF( attype, countertotal[attype], 1 ) = type; // type
+        SF( attype, h_numSFperElem( attype ), 0 ) = el;   // ec
+        SF( attype, h_numSFperElem( attype ), 1 ) = type; // type
 
         estring = splitLine.at( 2 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
                 el = i;
         }
-        SF( attype, countertotal[attype], 2 ) = el; // e1
+        SF( attype, h_numSFperElem( attype ), 2 ) = el; // e1
         // set e2 to arbit high number for ease in creating groups
-        SF( attype, countertotal[attype], 3 ) = 100000; // e2
+        SF( attype, h_numSFperElem( attype ), 3 ) = 100000; // e2
 
-        SF( attype, countertotal[attype], 4 ) =
+        SF( attype, h_numSFperElem( attype ), 4 ) =
             atof( splitLine.at( 3 ).c_str() ) /
             ( convLength * convLength ); // eta
-        SF( attype, countertotal[attype], 8 ) =
+        SF( attype, h_numSFperElem( attype ), 8 ) =
             atof( splitLine.at( 4 ).c_str() ) * convLength; // rs
-        SF( attype, countertotal[attype], 7 ) =
+        SF( attype, h_numSFperElem( attype ), 7 ) =
             atof( splitLine.at( 5 ).c_str() ) * convLength; // rc
 
-        SF( attype, countertotal[attype], 13 ) = countertotal[attype];
-        countertotal[attype]++;
+        SF( attype, h_numSFperElem( attype ), 13 ) = h_numSFperElem( attype );
+        h_numSFperElem( attype )++;
     }
 
     else if ( type == 3 )
@@ -97,67 +87,64 @@ void Element::addSymmetryFunction( string const &parameters,
         if ( type != (size_t)atoi( splitLine.at( 1 ).c_str() ) )
             throw runtime_error( "ERROR: Incorrect symmetry function type.\n" );
         estring = splitLine.at( 0 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
                 el = i;
         }
-        SF( attype, countertotal[attype], 0 ) = el;   // ec
-        SF( attype, countertotal[attype], 1 ) = type; // type
+        SF( attype, h_numSFperElem( attype ), 0 ) = el;   // ec
+        SF( attype, h_numSFperElem( attype ), 1 ) = type; // type
 
         estring = splitLine.at( 2 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
                 el = i;
         }
-        SF( attype, countertotal[attype], 2 ) = el; // e1
+        SF( attype, h_numSFperElem( attype ), 2 ) = el; // e1
 
         estring = splitLine.at( 3 ).c_str();
-        // np.where element symbol == symbol encountered during parsing
         for ( size_t i = 0; i < elementStrings.size(); ++i )
         {
             if ( strcmp( elementStrings[i].c_str(), estring ) == 0 )
                 el = i;
         }
 
-        SF( attype, countertotal[attype], 3 ) = el; // e2
-        SF( attype, countertotal[attype], 4 ) =
+        SF( attype, h_numSFperElem( attype ), 3 ) = el; // e2
+        SF( attype, h_numSFperElem( attype ), 4 ) =
             atof( splitLine.at( 4 ).c_str() ) /
             ( convLength * convLength ); // eta
-        SF( attype, countertotal[attype], 5 ) =
+        SF( attype, h_numSFperElem( attype ), 5 ) =
             atof( splitLine.at( 5 ).c_str() ); // lambda
-        SF( attype, countertotal[attype], 6 ) =
+        SF( attype, h_numSFperElem( attype ), 6 ) =
             atof( splitLine.at( 6 ).c_str() ); // zeta
-        SF( attype, countertotal[attype], 7 ) =
+        SF( attype, h_numSFperElem( attype ), 7 ) =
             atof( splitLine.at( 7 ).c_str() ) * convLength; // rc
         // Shift parameter is optional.
         if ( splitLine.size() > 8 )
-            SF( attype, countertotal[attype], 8 ) =
+            SF( attype, h_numSFperElem( attype ), 8 ) =
                 atof( splitLine.at( 8 ).c_str() ) * convLength; // rs
 
-        T_INT e1 = SF( attype, countertotal[attype], 2 );
-        T_INT e2 = SF( attype, countertotal[attype], 3 );
+        T_INT e1 = SF( attype, h_numSFperElem( attype ), 2 );
+        T_INT e2 = SF( attype, h_numSFperElem( attype ), 3 );
         if ( e1 > e2 )
         {
             size_t tmp = e1;
             e1 = e2;
             e2 = tmp;
         }
-        SF( attype, countertotal[attype], 2 ) = e1;
-        SF( attype, countertotal[attype], 3 ) = e2;
+        SF( attype, h_numSFperElem( attype ), 2 ) = e1;
+        SF( attype, h_numSFperElem( attype ), 3 ) = e2;
 
-        T_FLOAT zeta = SF( attype, countertotal[attype], 6 );
+        T_FLOAT zeta = SF( attype, h_numSFperElem( attype ), 6 );
         T_INT zetaInt = round( zeta );
         if ( fabs( zeta - zetaInt ) <= numeric_limits<double>::min() )
-            SF( attype, countertotal[attype], 9 ) = 1;
+            SF( attype, h_numSFperElem( attype ), 9 ) = 1;
         else
-            SF( attype, countertotal[attype], 9 ) = 0;
+            SF( attype, h_numSFperElem( attype ), 9 ) = 0;
 
-        SF( attype, countertotal[attype], 13 ) = countertotal[attype];
-        countertotal[attype]++;
+        SF( attype, h_numSFperElem( attype ), 13 ) = h_numSFperElem( attype );
+        h_numSFperElem( attype )++;
     }
     // TODO: Add this later
     else if ( type == 9 )
@@ -177,13 +164,13 @@ void Element::addSymmetryFunction( string const &parameters,
     return;
 }
 
-void Element::sortSymmetryFunctions( t_SF SF, h_t_mass h_numSFperElem,
+void Element::sortSymmetryFunctions( t_SF SF, h_t_int h_numSFperElem,
                                      int attype )
 {
     int size = h_numSFperElem( attype );
-    int *SFvector = new int[size];
+    h_t_int h_SFsort( "SortSort", size );
     for ( int i = 0; i < size; ++i )
-        SFvector[i] = i;
+        h_SFsort( i ) = i;
 
     // naive insertion sort
     int i, j, tmp;
@@ -191,11 +178,12 @@ void Element::sortSymmetryFunctions( t_SF SF, h_t_mass h_numSFperElem,
     {
         j = i;
         // explicit condition for sort
-        while ( j > 0 && compareSF( SF, attype, SFvector[j - 1], SFvector[j] ) )
+        while ( j > 0 &&
+                compareSF( SF, attype, h_SFsort( j - 1 ), h_SFsort( j ) ) )
         {
-            tmp = SFvector[j];
-            SFvector[j] = SFvector[j - 1];
-            SFvector[j - 1] = tmp;
+            tmp = h_SFsort( j );
+            h_SFsort( j ) = h_SFsort( j - 1 );
+            h_SFsort( j - 1 ) = tmp;
             --j;
         }
     }
@@ -203,12 +191,11 @@ void Element::sortSymmetryFunctions( t_SF SF, h_t_mass h_numSFperElem,
     int tmpindex;
     for ( int i = 0; i < size; ++i )
     {
-        SF( attype, i, 13 ) = SFvector[i];
+        SF( attype, i, 13 ) = h_SFsort( i );
         tmpindex = SF( attype, i, 13 );
         SF( attype, tmpindex, 14 ) = i;
     }
 
-    delete[] SFvector;
     return;
 }
 
@@ -275,13 +262,13 @@ bool Element::compareSF( t_SF SF, int attype, int index1, int index2 )
 
 vector<string>
 Element::infoSymmetryFunctionParameters( t_SF SF, int attype,
-                                         int ( &countertotal )[2] ) const
+                                         h_t_int h_numSFperElem ) const
 {
     vector<string> v;
     string pushstring = "";
     int index;
     float writestring;
-    for ( int i = 0; i < countertotal[attype]; ++i )
+    for ( int i = 0; i < h_numSFperElem( attype ); ++i )
     {
         index = SF( attype, i, 13 );
         // TODO: improve function
@@ -300,11 +287,11 @@ Element::infoSymmetryFunctionParameters( t_SF SF, int attype,
 vector<string>
 Element::infoSymmetryFunctionScaling( ScalingType scalingType, t_SF SF,
                                       t_SFscaling SFscaling, int attype,
-                                      int ( &countertotal )[2] ) const
+                                      h_t_int h_numSFperElem ) const
 {
     vector<string> v;
     int index;
-    for ( int k = 0; k < countertotal[attype]; ++k )
+    for ( int k = 0; k < h_numSFperElem( attype ); ++k )
     {
         index = SF( attype, k, 13 );
         v.push_back( scalingLine( scalingType, SFscaling, attype, index ) );
@@ -314,17 +301,18 @@ Element::infoSymmetryFunctionScaling( ScalingType scalingType, t_SF SF,
 
 void Element::setupSymmetryFunctionGroups( t_SF SF,
                                            t_SFGmemberlist SFGmemberlist,
-                                           int attype, int ( &countertotal )[2],
-                                           int ( &countergtotal )[2] )
+                                           int attype, h_t_int h_numSFperElem,
+                                           h_t_int h_numSFGperElem,
+                                           int maxSFperElem )
 {
-    int *countergR = new int[countergtotal[attype]];
-    int *countergAN = new int[countergtotal[attype]];
+    h_t_int h_numGR( "RadialCounter", h_numSFGperElem.extent( 0 ) );
+    h_t_int h_numGA( "AngularCounter", h_numSFGperElem.extent( 0 ) );
     int SFindex;
-    for ( int k = 0; k < countertotal[attype]; ++k )
+    for ( int k = 0; k < h_numSFperElem( attype ); ++k )
     {
         bool createNewGroup = true;
         SFindex = SF( attype, k, 13 );
-        for ( int l = 0; l < countergtotal[attype]; ++l )
+        for ( int l = 0; l < h_numSFGperElem( attype ); ++l )
         {
             if ( ( SF( attype, SFindex, 0 ) ==
                    SF( attype, SFGmemberlist( attype, l, 0 ),
@@ -348,17 +336,17 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
                 createNewGroup = false;
                 if ( SF( attype, SFindex, 1 ) == 2 )
                 {
-                    SFGmemberlist( attype, l, countergR[l] ) = SFindex;
-                    countergR[l]++;
-                    SFGmemberlist( attype, l, MAX_SF )++;
+                    SFGmemberlist( attype, l, h_numGR( l ) ) = SFindex;
+                    h_numGR( l )++;
+                    SFGmemberlist( attype, l, maxSFperElem )++;
                     break;
                 }
 
                 else if ( SF( attype, SFindex, 1 ) == 3 )
                 {
-                    SFGmemberlist( attype, l, countergAN[l] ) = SFindex;
-                    countergAN[l]++;
-                    SFGmemberlist( attype, l, MAX_SF )++;
+                    SFGmemberlist( attype, l, h_numGA( l ) ) = SFindex;
+                    h_numGA( l )++;
+                    SFGmemberlist( attype, l, maxSFperElem )++;
                     break;
                 }
             }
@@ -366,21 +354,21 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
 
         if ( createNewGroup )
         {
-            int l = countergtotal[attype];
-            countergtotal[attype]++;
+            int l = h_numSFGperElem( attype );
+            h_numSFGperElem( attype )++;
             if ( SF( attype, SFindex, 1 ) == 2 )
             {
-                countergR[l] = 0;
-                SFGmemberlist( attype, l, countergR[l] ) = SFindex;
-                countergR[l]++;
-                SFGmemberlist( attype, l, MAX_SF )++;
+                h_numGR( l ) = 0;
+                SFGmemberlist( attype, l, h_numGR( l ) ) = SFindex;
+                h_numGR( l )++;
+                SFGmemberlist( attype, l, maxSFperElem )++;
             }
             else if ( SF( attype, SFindex, 1 ) == 3 )
             {
-                countergAN[l] = 0;
-                SFGmemberlist( attype, l, countergAN[l] ) = SFindex;
-                countergAN[l]++;
-                SFGmemberlist( attype, l, MAX_SF )++;
+                h_numGA( l ) = 0;
+                SFGmemberlist( attype, l, h_numGA( l ) ) = SFindex;
+                h_numGA( l )++;
+                SFGmemberlist( attype, l, maxSFperElem )++;
             }
         }
     }
@@ -390,12 +378,12 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
 
 vector<string>
 Element::infoSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
-                                     int attype,
-                                     int ( &countergtotal )[2] ) const
+                                     int attype, h_t_int h_numSFGperElem ) const
 {
     vector<string> v;
     string pushstring = "";
-    for ( int groupIndex = 0; groupIndex < countergtotal[attype]; ++groupIndex )
+    for ( int groupIndex = 0; groupIndex < h_numSFGperElem( attype );
+          ++groupIndex )
     {
         // TODO: improve function
         for ( int j = 0; j < 8; ++j )
@@ -412,9 +400,9 @@ Element::infoSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
 
 void Element::setCutoffFunction( CutoffFunction::CutoffType const cutoffType,
                                  double const cutoffAlpha, t_SF SF, int attype,
-                                 int ( &countertotal )[2] )
+                                 h_t_int h_numSFperElem )
 {
-    for ( int k = 0; k < countertotal[attype]; ++k )
+    for ( int k = 0; k < h_numSFperElem( attype ); ++k )
     {
         SF( attype, k, 10 ) = cutoffType;
         SF( attype, k, 11 ) = cutoffAlpha;
@@ -425,17 +413,17 @@ void Element::setCutoffFunction( CutoffFunction::CutoffType const cutoffType,
 void Element::setScaling( ScalingType scalingType,
                           vector<string> const &statisticsLine, double Smin,
                           double Smax, t_SF SF, t_SFscaling SFscaling,
-                          int attype, int ( &countertotal )[2] ) const
+                          int attype, h_t_int h_numSFperElem ) const
 {
     int index;
-    for ( int k = 0; k < countertotal[attype]; ++k )
+    for ( int k = 0; k < h_numSFperElem( attype ); ++k )
     {
         index = SF( attype, k, 13 );
         setScalingType( scalingType, statisticsLine.at( k ), Smin, Smax,
                         SFscaling, attype, index );
     }
     // TODO: groups
-    // for (int k = 0; k < countertotal[attype]; ++k)
+    // for (int k = 0; k < h_numSFperElem(attype); ++k)
     //    setScalingFactors(SF,attype,k);
 
     return;
@@ -461,22 +449,22 @@ size_t Element::getMinNeighbors( int attype, t_SF SF, int nSF ) const
 }
 
 double Element::getMinCutoffRadius( t_SF SF, int attype,
-                                    int ( &countertotal )[2] ) const
+                                    h_t_int h_numSFperElem ) const
 {
     double minCutoffRadius = numeric_limits<double>::max();
 
-    for ( int k = 0; k < countertotal[attype]; ++k )
+    for ( int k = 0; k < h_numSFperElem( attype ); ++k )
         minCutoffRadius = min( SF( attype, k, 7 ), minCutoffRadius );
 
     return minCutoffRadius;
 }
 
 double Element::getMaxCutoffRadius( t_SF SF, int attype,
-                                    int ( &countertotal )[2] ) const
+                                    h_t_int h_numSFperElem ) const
 {
     double maxCutoffRadius = 0.0;
 
-    for ( int k = 0; k < countertotal[attype]; ++k )
+    for ( int k = 0; k < h_numSFperElem( attype ); ++k )
         maxCutoffRadius = max( SF( attype, k, 7 ), maxCutoffRadius );
 
     return maxCutoffRadius;
@@ -484,7 +472,8 @@ double Element::getMaxCutoffRadius( t_SF SF, int attype,
 
 // TODO:add functionality
 /*
-void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP nnp_data,
+void Element::updateSymmetryFunctionStatistics(System* s, AoSoA_NNP_all
+nnp_data,
 ...)
 {
     return;

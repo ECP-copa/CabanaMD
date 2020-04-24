@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -46,9 +46,8 @@
 //
 //************************************************************************
 
-#include <comm_mpi.h>
-
-Comm::Comm( System *s, T_X_FLOAT comm_depth_ )
+template <class t_System>
+Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     : neighbors_halo( 6 )
     , neighbors_dist( 6 )
     , halo_all( 6 )
@@ -62,9 +61,13 @@ Comm::Comm( System *s, T_X_FLOAT comm_depth_ )
         "CommMPI::pack_ranks_all", 6, 200 );
 }
 
-void Comm::init() {}
+template <class t_System>
+void Comm<t_System>::init()
+{
+}
 
-void Comm::create_domain_decomposition()
+template <class t_System>
+void Comm<t_System>::create_domain_decomposition()
 {
 
     MPI_Comm_size( MPI_COMM_WORLD, &proc_size );
@@ -205,7 +208,8 @@ void Comm::create_domain_decomposition()
     }
 }
 
-void Comm::scan_int( T_INT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::scan_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )
     {
@@ -213,7 +217,8 @@ void Comm::scan_int( T_INT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_int( T_INT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )
     {
@@ -222,7 +227,8 @@ void Comm::reduce_int( T_INT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_float( T_FLOAT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_float( T_FLOAT *vals, T_INT count )
 {
     if ( std::is_same<T_FLOAT, double>::value )
     {
@@ -232,7 +238,8 @@ void Comm::reduce_float( T_FLOAT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_max_int( T_INT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_max_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )
     {
@@ -241,7 +248,8 @@ void Comm::reduce_max_int( T_INT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_max_float( T_FLOAT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_max_float( T_FLOAT *vals, T_INT count )
 {
     if ( std::is_same<T_FLOAT, double>::value )
     {
@@ -250,7 +258,8 @@ void Comm::reduce_max_float( T_FLOAT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_min_int( T_INT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_min_int( T_INT *vals, T_INT count )
 {
     if ( std::is_same<T_INT, int>::value )
     {
@@ -259,7 +268,8 @@ void Comm::reduce_min_int( T_INT *vals, T_INT count )
     }
 }
 
-void Comm::reduce_min_float( T_FLOAT *vals, T_INT count )
+template <class t_System>
+void Comm<t_System>::reduce_min_float( T_FLOAT *vals, T_INT count )
 {
     if ( std::is_same<T_FLOAT, double>::value )
     {
@@ -268,15 +278,17 @@ void Comm::reduce_min_float( T_FLOAT *vals, T_INT count )
     }
 }
 
-void Comm::exchange()
+template <class t_System>
+void Comm<t_System>::exchange()
 {
 
     Kokkos::Profiling::pushRegion( "Comm::exchange" );
 
     N_local = system->N_local;
     system->resize( N_local );
+    system->slice_x();
     s = *system;
-    x = Cabana::slice<Positions>( s.xvf );
+    x = s.x;
 
     max_local = x.size() * 1.1;
 
@@ -327,12 +339,13 @@ void Comm::exchange()
 
             distributor = std::make_shared<Cabana::Distributor<DeviceType>>(
                 MPI_COMM_WORLD, pack_ranks_migrate, neighbors_dist[phase] );
-            Cabana::migrate( *distributor, s.xvf );
+            system->migrate( distributor );
             system->resize(
                 distributor->totalNumImport() ); // Resized by migrate, but not
                                                  // within System
+            system->slice_x();
             s = *system;
-            x = Cabana::slice<Positions>( s.xvf );
+            x = s.x;
 
             proc_num_recv[phase] = distributor->totalNumImport() + count -
                                    distributor->totalNumExport();
@@ -351,7 +364,8 @@ void Comm::exchange()
     Kokkos::Profiling::popRegion();
 }
 
-void Comm::exchange_halo()
+template <class t_System>
+void Comm<t_System>::exchange_halo()
 {
 
     Kokkos::Profiling::pushRegion( "Comm::exchange_halo" );
@@ -359,8 +373,9 @@ void Comm::exchange_halo()
     N_local = system->N_local;
     N_ghost = 0;
 
+    system->slice_x();
     s = *system;
-    x = Cabana::slice<Positions>( s.xvf );
+    x = s.x;
 
     for ( phase = 0; phase < 6; phase++ )
     {
@@ -410,9 +425,14 @@ void Comm::exchange_halo()
             neighbors_halo[phase] );
         system->resize( halo_all[phase]->numLocal() +
                         halo_all[phase]->numGhost() );
+        system->slice_x();
+        system->slice_type();
         s = *system;
-        x = Cabana::slice<Positions>( s.xvf );
-        Cabana::gather( *halo_all[phase], s.xvf );
+        x = s.x;
+        type = s.type;
+
+        Cabana::gather( *halo_all[phase], x );
+        Cabana::gather( *halo_all[phase], type );
 
         proc_num_recv[phase] = halo_all[phase]->numGhost();
         count = proc_num_recv[phase];
@@ -433,15 +453,17 @@ void Comm::exchange_halo()
     Kokkos::Profiling::popRegion();
 }
 
-void Comm::update_halo()
+template <class t_System>
+void Comm<t_System>::update_halo()
 {
 
     Kokkos::Profiling::pushRegion( "Comm::update_halo" );
 
     N_local = system->N_local;
     N_ghost = 0;
+    system->slice_x();
     s = *system;
-    x = Cabana::slice<Positions>( s.xvf );
+    x = s.x;
 
     for ( phase = 0; phase < 6; phase++ )
     {
@@ -454,8 +476,9 @@ void Comm::update_halo()
 
         system->resize( halo_all[phase]->numLocal() +
                         halo_all[phase]->numGhost() );
+        system->slice_x();
         s = *system;
-        x = Cabana::slice<Positions>( s.xvf );
+        x = s.x;
         Cabana::gather( *halo_all[phase], x );
 
         Kokkos::parallel_for(
@@ -471,15 +494,17 @@ void Comm::update_halo()
     Kokkos::Profiling::popRegion();
 }
 
-void Comm::update_force()
+template <class t_System>
+void Comm<t_System>::update_force()
 {
 
     Kokkos::Profiling::pushRegion( "Comm::update_force" );
 
     N_local = system->N_local;
     N_ghost = 0;
+    system->slice_f();
     s = *system;
-    f = Cabana::slice<Forces>( s.xvf );
+    f = s.f;
 
     for ( phase = 5; phase >= 0; phase-- )
     {
@@ -492,8 +517,9 @@ void Comm::update_force()
 
         system->resize( halo_all[phase]->numLocal() +
                         halo_all[phase]->numGhost() );
+        system->slice_f();
         s = *system;
-        f = Cabana::slice<Forces>( s.xvf );
+        f = s.f;
         Cabana::scatter( *halo_all[phase], f );
 
         N_ghost += proc_num_recv[phase];
@@ -502,11 +528,26 @@ void Comm::update_force()
     Kokkos::Profiling::popRegion();
 }
 
-const char *Comm::name() { return "Comm:CabanaMPI"; }
+template <class t_System>
+const char *Comm<t_System>::name()
+{
+    return "Comm:CabanaMPI";
+}
 
-int Comm::process_rank() { return proc_rank; }
-int Comm::num_processes() { return proc_size; }
-void Comm::error( const char *errormsg )
+template <class t_System>
+int Comm<t_System>::process_rank()
+{
+    return proc_rank;
+}
+
+template <class t_System>
+int Comm<t_System>::num_processes()
+{
+    return proc_size;
+}
+
+template <class t_System>
+void Comm<t_System>::error( const char *errormsg )
 {
     if ( proc_rank == 0 )
         printf( "%s\n", errormsg );

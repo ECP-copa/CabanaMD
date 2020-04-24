@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -49,10 +49,10 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <CabanaMD_config.hpp>
+
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
-
-#define VECLEN 16
 
 // Module Types etc
 // Units to be used
@@ -62,6 +62,28 @@ enum
     UNITS_LJ,
     UNITS_METAL
 };
+
+// AoSoA layout type
+enum
+{
+    AOSOA_1,
+    AOSOA_2,
+    AOSOA_3,
+    AOSOA_6
+};
+struct AoSoA1
+{
+};
+struct AoSoA2
+{
+};
+struct AoSoA3
+{
+};
+struct AoSoA6
+{
+};
+
 // Lattice Type
 enum
 {
@@ -106,11 +128,13 @@ enum
     FORCE_PARALLEL_NEIGH_TEAM,
     FORCE_PARALLEL_NEIGH_VECTOR
 };
+
 // Neighbor Type
 enum
 {
-    NEIGH_2D,
-    NEIGH_CSR
+    NEIGH_VERLET_2D,
+    NEIGH_VERLET_CSR,
+    NEIGH_TREE
 };
 // Input File Type
 enum
@@ -151,17 +175,6 @@ typedef Kokkos::View<T_V_FLOAT *> t_mass;             // Mass
 typedef Kokkos::View<const T_V_FLOAT *> t_mass_const; // Mass
 
 // Cabana
-using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3], T_INT,
-                                    T_INT, T_FLOAT>;
-enum TypeNames
-{
-    Positions = 0,
-    Velocities = 1,
-    Forces = 2,
-    Types = 3,
-    IDs = 4,
-    Charges = 5,
-};
 
 #ifdef CabanaMD_ENABLE_Cuda
 using MemorySpace = Kokkos::CudaUVMSpace;
@@ -180,25 +193,9 @@ using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
 
 using MemoryAccess = Cabana::DefaultAccessMemory;
 using AtomicAccess = Cabana::AtomicAccessMemory;
-using AoSoA = Cabana::AoSoA<t_tuple, DeviceType, VECLEN>;
-using t_particle = Cabana::Tuple<t_tuple>;
 
 using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
-using t_verletlist_full_2D =
-    Cabana::VerletList<DeviceType, Cabana::FullNeighborTag,
-                       Cabana::VerletLayout2D>;
-using t_verletlist_half_2D =
-    Cabana::VerletList<DeviceType, Cabana::HalfNeighborTag,
-                       Cabana::VerletLayout2D>;
-using t_verletlist_full_CSR =
-    Cabana::VerletList<DeviceType, Cabana::FullNeighborTag,
-                       Cabana::VerletLayoutCSR>;
-using t_verletlist_half_CSR =
-    Cabana::VerletList<DeviceType, Cabana::HalfNeighborTag,
-                       Cabana::VerletLayoutCSR>;
+using t_distributor = Cabana::Distributor<DeviceType>;
+using t_halo = Cabana::Halo<DeviceType>;
 
-using t_neighborop_serial = Cabana::SerialOpTag;
-using t_neighborop_team = Cabana::TeamOpTag;
-using t_neighborop_vector = Cabana::TeamVectorOpTag;
-
-#endif
+#endif // TYPES_H

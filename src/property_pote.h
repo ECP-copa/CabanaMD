@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -46,17 +46,25 @@
 //
 //************************************************************************
 
+#ifndef PROPERTY_POTE_H
+#define PROPERTY_POTE_H
+
 #include <comm_mpi.h>
 #include <system.h>
 #include <types.h>
 
+template <class t_System, class t_Neighbor>
 class PotE
 {
   private:
-    Comm *comm;
+    Comm<t_System> *comm;
 
   public:
-    PotE( Comm *comm_ );
+    PotE( Comm<t_System> *comm_ );
 
-    T_F_FLOAT compute( System *, Force * );
+    T_F_FLOAT compute( t_System *, Force<t_System, t_Neighbor> *,
+                       t_Neighbor * );
 };
+
+#include <property_pote_impl.h>
+#endif

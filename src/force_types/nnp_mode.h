@@ -1,13 +1,5 @@
-/****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
- * All rights reserved.                                                     *
- *                                                                          *
- * This file is part of the Cabana library. Cabana is distributed under a   *
- * BSD 3-clause license. For the licensing terms see the LICENSE file in    *
- * the top-level directory.                                                 *
- *                                                                          *
- * SPDX-License-Identifier: BSD-3-Clause                                    *
- ****************************************************************************/
+// This file will soon be removed.
+// See https://github.com/ECP-copa/CabanaMD/issues/37
 
 // n2p2 - A neural network potential package
 // Copyright (C) 2018 Andreas Singraber (University of Vienna)
@@ -30,6 +22,7 @@
 
 #include <nnp_cutoff.h>
 #include <nnp_element.h>
+#include <system_nnp.h>
 #include <types_nnp.h>
 
 #include <system.h>
@@ -127,7 +120,7 @@ class Mode
      * Uses keywords `number_of_elements` and `atom_energy`. This function
      * should follow immediately after setupElementMap().
      */
-    h_t_mass setupElements( h_t_mass atomicEnergyOffset );
+    void setupElements();
     /** Set up cutoff function for all symmetry functions.
      *
      * Uses keyword `cutoff_type`. Cutoff parameters are read from settings
@@ -141,7 +134,7 @@ class Mode
      * Uses keyword `symfunction_short`. Reads all symmetry functions from
      * settings and automatically assigns them to the correct element.
      */
-    h_t_mass setupSymmetryFunctions( h_t_mass h_numSFperElem );
+    void setupSymmetryFunctions();
     /** Set up symmetry function scaling from file.
      *
      * @param[in] fileName Scaling file name.
@@ -333,7 +326,8 @@ class Mode
      *
      * Warning: #numSymmetryFunctions needs to be set first!
      */
-    void allocate( System *s, T_INT numSymmetryFunctions, bool all );
+    template <class t_System>
+    void allocate( t_System *s, T_INT numSymmetryFunctions, bool all );
 
     KOKKOS_INLINE_FUNCTION
     void compute_cutoff( CutoffFunction::CutoffType cutoffType, double &fc,
@@ -342,17 +336,25 @@ class Mode
     KOKKOS_INLINE_FUNCTION
     double scale( int attype, double value, int k, d_t_SFscaling SFscaling );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateForces( System *s, AoSoA_NNP nnp_data,
-                          t_neighbor neigh_list );
+    template <class t_slice_x, class t_slice_f, class t_slice_type,
+              class t_slice_dEdG, class t_neigh_list, class t_neigh_parallel,
+              class t_angle_parallel>
+    void calculateForces( t_slice_x x, t_slice_f f, t_slice_type type,
+                          t_slice_dEdG dEdG, t_neigh_list neigh_list,
+                          int N_local );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateAtomicNeuralNetworks( System *s, AoSoA_NNP nnp_data,
-                                        t_mass numSFperElem );
+    template <class t_slice_type, class t_slice_G, class t_slice_dEdG,
+              class t_slice_E>
+    void calculateAtomicNeuralNetworks( t_slice_type type, t_slice_G G,
+                                        t_slice_dEdG dEdG, t_slice_E E,
+                                        int N_local );
 
-    template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-    void calculateSymmetryFunctionGroups( System *s, AoSoA_NNP nnp_data,
-                                          t_neighbor neigh_list );
+    template <class t_slice_x, class t_slice_type, class t_slice_G,
+              class t_neigh_list, class t_neigh_parallel,
+              class t_angle_parallel>
+    void calculateSymmetryFunctionGroups( t_slice_x x, t_slice_type type,
+                                          t_slice_G G, t_neigh_list neigh_list,
+                                          int N_local );
 
     /// Global log file.
     nnp::Log log;
@@ -384,13 +386,18 @@ class Mode
     t_bias h_bias;
     t_weights h_weights;
     int numLayers, numHiddenLayers, maxNeurons;
-    int numNeuronsPerLayer[4];
-    int AF[4];
-    // int* numNeuronsPerLayer = new int[numLayers];
-    // int* AF = new int[numLayers];
+    d_t_int numNeuronsPerLayer;
+    h_t_int h_numNeuronsPerLayer;
+    d_t_int AF;
+    h_t_int h_AF;
 
-    int countertotal[2] = {0, 0};
-    int countergtotal[2] = {0, 0};
+    h_t_mass atomicEnergyOffset;
+
+    h_t_int h_numSFperElem;
+    d_t_int numSFperElem;
+    h_t_int h_numSFGperElem;
+    d_t_int numSFGperElem;
+    int maxSFperElem;
 
     bool normalize;
     bool checkExtrapolationWarnings;

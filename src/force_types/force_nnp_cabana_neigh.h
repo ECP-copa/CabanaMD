@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -9,106 +9,41 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifdef MODULES_OPTION_CHECK
-if ( ( strcmp( argv[i], "--force-iteration" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "NEIGH_FULL" ) == 0 ) )
-        force_iteration_type = FORCE_ITER_NEIGH_FULL;
-    if ( ( strcmp( argv[i + 1], "NEIGH_HALF" ) == 0 ) )
-        force_iteration_type = FORCE_ITER_NEIGH_HALF;
-}
-if ( ( strcmp( argv[i], "--neigh-parallel" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "SERIAL" ) == 0 ) )
-        force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
-    if ( ( strcmp( argv[i + 1], "TEAM" ) == 0 ) )
-        force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_TEAM;
-    if ( ( strcmp( argv[i + 1], "TEAM_VECTOR" ) == 0 ) )
-        force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_VECTOR;
-}
-if ( ( strcmp( argv[i], "--neigh-type" ) == 0 ) )
-{
-    if ( ( strcmp( argv[i + 1], "NEIGH_2D" ) == 0 ) )
-        neighbor_type = NEIGH_2D;
-    if ( ( strcmp( argv[i + 1], "NEIGH_CSR" ) == 0 ) )
-        neighbor_type = NEIGH_CSR;
-}
-#endif
-#ifdef FORCE_MODULES_INSTANTIATION
-else if ( input->force_type == FORCE_NNP )
-{
-    bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
-    bool serial_neigh =
-        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_SERIAL;
-    bool team_neigh =
-        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_TEAM;
-    bool vector_angle =
-        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_VECTOR;
-    if ( input->neighbor_type == NEIGH_2D )
-    {
-        if ( half_neigh )
-            throw std::runtime_error( "Half neighbor list not implemented "
-                                      "for the neural network potential." );
-        else
-        {
-            if ( serial_neigh )
-                force = new ForceNNP<t_verletlist_full_2D, t_neighborop_serial,
-                                     t_neighborop_serial>( system, half_neigh );
-            if ( team_neigh )
-                force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
-                                     t_neighborop_team>( system, half_neigh );
-            if ( vector_angle )
-                force = new ForceNNP<t_verletlist_full_2D, t_neighborop_team,
-                                     t_neighborop_vector>( system, half_neigh );
-        }
-    }
-    else if ( input->neighbor_type == NEIGH_CSR )
-    {
-        if ( half_neigh )
-            throw std::runtime_error( "Half neighbor list not implemented "
-                                      "for the neural network potential." );
-        else
-        {
-            if ( serial_neigh )
-                force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_serial,
-                                     t_neighborop_serial>( system, half_neigh );
-            if ( team_neigh )
-                force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
-                                     t_neighborop_team>( system, half_neigh );
-            if ( vector_angle )
-                force = new ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
-                                     t_neighborop_vector>( system, half_neigh );
-        }
-    }
-#undef FORCETYPE_ALLOCATION_MACRO
-}
-#endif
-
-#if !defined( MODULES_OPTION_CHECK ) && !defined( FORCE_MODULES_INSTANTIATION )
-
 #ifndef FORCE_NNP_CABANA_NEIGH_H
 #define FORCE_NNP_CABANA_NEIGH_H
 
 #include <nnp_mode_impl.h>
+#include <system_nnp.h>
 
 #include <force.h>
+#include <neighbor.h>
 #include <system.h>
 #include <types.h>
 
 #include <Cabana_Core.hpp>
 
-template <class t_neighbor, class t_neigh_parallel, class t_angle_parallel>
-class ForceNNP : public Force
+template <class t_System, class t_System_NNP, class t_Neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+class ForceNNP : public Force<t_System, t_Neighbor>
 {
   private:
     int N_local, ntypes;
-    typename AoSoA::member_slice_type<Positions> x;
-    typename AoSoA::member_slice_type<Forces> f;
-    typename AoSoA::member_slice_type<Forces>::atomic_access_slice f_a;
-    typename AoSoA::member_slice_type<IDs> id;
-    typename AoSoA::member_slice_type<Types> type;
-
     int step;
+
+    typedef typename t_System::t_x t_x;
+    // Must be atomic
+    typedef typename t_System::t_f::atomic_access_slice t_f;
+    typedef typename t_System::t_type t_type;
+
+    typedef typename t_System_NNP::t_G t_G;
+    typedef typename t_System_NNP::t_dEdG t_dEdG;
+    typedef typename t_System_NNP::t_E t_E;
+
+    typedef typename t_Neighbor::t_neigh_list t_neigh_list;
+
+    // NNP-specific System class for AoSoAs
+    // Storage of G, dEdG and energy (per atom properties)
+    t_System_NNP *system_nnp;
 
   public:
     struct TagFullNeigh
@@ -136,28 +71,17 @@ class ForceNNP : public Force
     typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_pe_stackparams;
 
-    bool half_neigh, comm_newton;
-    T_X_FLOAT neigh_cut;
-
     nnpCbn::Mode *mode;
-    t_neighbor neigh_list;
 
-    /// AoSoAs of use to compute energy and force
-    /// Allow storage of G, dEdG and energy (per atom properties)
-    AoSoA_NNP nnp_data;
     // numSymmetryFunctionsPerElement (per type property)
     t_mass d_numSFperElem;
     h_t_mass h_numSFperElem, atomicEnergyOffset;
 
-    ForceNNP( System *system, bool half_neigh_ );
-    void init_coeff( System *system, T_X_FLOAT neigh_cutoff, char **args );
+    void init_coeff( t_System *system, char **args ) override;
+    void compute( t_System *system, t_Neighbor *neighbor ) override;
+    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
-    void create_neigh_list( System *system );
-
-    void compute( System *system );
-    T_F_FLOAT compute_energy( System *system );
-
-    const char *name();
+    const char *name() override;
 
     bool do_print;
     bool showew;
@@ -170,5 +94,5 @@ class ForceNNP : public Force
     char *directory;
 };
 
-#endif
+#include <force_nnp_cabana_neigh_impl.h>
 #endif

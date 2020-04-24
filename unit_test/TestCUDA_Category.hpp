@@ -9,17 +9,11 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <force_nnp_cabana_neigh_impl.h>
+#ifndef CABANA_TEST_CUDA_CATEGORY_HPP
+#define CABANA_TEST_CUDA_CATEGORY_HPP
 
-template class ForceNNP<t_verletlist_full_2D, t_neighborop_serial,
-                        t_neighborop_serial>;
-template class ForceNNP<t_verletlist_full_CSR, t_neighborop_serial,
-                        t_neighborop_serial>;
-template class ForceNNP<t_verletlist_full_2D, t_neighborop_team,
-                        t_neighborop_team>;
-template class ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
-                        t_neighborop_team>;
-template class ForceNNP<t_verletlist_full_2D, t_neighborop_team,
-                        t_neighborop_vector>;
-template class ForceNNP<t_verletlist_full_CSR, t_neighborop_team,
-                        t_neighborop_vector>;
+#define TEST_CATEGORY cuda
+#define TEST_EXECSPACE Kokkos::Cuda
+#define TEST_MEMSPACE Kokkos::CudaSpace
+
+#endif // end CABANA_TEST_CUDA_CATEGORY_HPP

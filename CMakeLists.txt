@@ -14,6 +14,25 @@ include(GNUInstallDirs)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 ##---------------------------------------------------------------------------##
+# Download and unpack googletest
+##---------------------------------------------------------------------------##
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        release-1.10.0
+)
+FetchContent_GetProperties(googletest)
+if(NOT googletest_POPULATED)
+  FetchContent_Populate(googletest)
+  add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR})
+endif()
+
+# Prevent GoogleTest from overriding our compiler/linker options
+# when building with Visual Studio
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+##---------------------------------------------------------------------------##
 # Set up main options (inherit from Kokkos and Cabana CMake)
 ##---------------------------------------------------------------------------##
 find_package(Cabana REQUIRED)
@@ -29,35 +48,36 @@ foreach(_device ${CABANAMD_SUPPORTED_DEVICES})
   if(CabanaMD_ENABLE_${_device})
     string(TOUPPER ${_device} _uppercase_device)
     kokkos_check( DEVICES ${_uppercase_device} )
-    add_definitions(-DCabanaMD_ENABLE_${_device}=ON)
   endif()
 endforeach()
-
 
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_LongRange "Build CabanaMD with longrange forces (Ewald)" OFF)
-if( CabanaMD_ENABLE_LongRange )
-  add_definitions(-DCabanaMD_ENABLE_LongRange=ON)
-endif()
-if(NOT DEFINED CAJITA_DIR)
-  set(CAJITA_DIR ~/Cajita/)
-endif()
-if(NOT DEFINED HEFFTE_DIR)
-  set(HEFFTE_DIR ~/heffte/)
+#if(NOT DEFINED CAJITA_DIR)
+#  set(CAJITA_DIR ~/Cajita/)
+#endif()
+#if(NOT DEFINED HEFFTE_DIR)
+#  set(HEFFTE_DIR ~/heffte/)
+#endif()
+if(CabanaMD_ENABLE_LongRange)
+  find_package(Cajita REQUIRED)
+  find_package(Heffte REQUIRED)
 endif()
 
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
-if( CabanaMD_ENABLE_NNP )
-  add_definitions(-DCabanaMD_ENABLE_NNP=ON)
-endif()
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
 endif()
 
+option(CabanaMD_ENABLE_ARBORX "Build CabanaMD with ArborX" OFF)
+if(CabanaMD_ENABLE_ARBORX)
+  find_package(ArborX REQUIRED)
+endif()
+
 ##---------------------------------------------------------------------------##
-## Print the revision number to stdout
+## Print the Git revision number to stdout
 ##---------------------------------------------------------------------------##
 FIND_PACKAGE(Git)
 IF(GIT_FOUND AND IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/.git)
@@ -78,7 +98,7 @@ add_subdirectory(src)
 add_subdirectory(bin)
 
 ##---------------------------------------------------------------------------##
-## Enable Tests?
+## Unit tests
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_TESTING "Build tests" OFF)
 if(CabanaMD_ENABLE_TESTING)
@@ -87,11 +107,11 @@ if(CabanaMD_ENABLE_TESTING)
 endif()
 
 ##---------------------------------------------------------------------------##
-## Pretty-printing wizardry:
+## Clang format
 ##---------------------------------------------------------------------------##
 find_package(CLANG_FORMAT)
 if(CLANG_FORMAT_FOUND)
-  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h)
+  file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h bin/*.cpp unit_test/*.cpp unit_test/*.hpp)
   add_custom_target(format
     COMMAND ${CLANG_FORMAT_EXECUTABLE} -i -style=file ${FORMAT_SOURCES}
     DEPENDS ${FORMAT_SOURCES})

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -46,17 +46,19 @@
 //
 //************************************************************************
 
-#include <property_kine.h>
-
-KinE::KinE( Comm *comm_ )
+template <class t_System>
+KinE<t_System>::KinE( Comm<t_System> *comm_ )
     : comm( comm_ )
 {
 }
 
-T_V_FLOAT KinE::compute( System *system )
+template <class t_System>
+T_V_FLOAT KinE<t_System>::compute( t_System *system )
 {
-    v = Cabana::slice<Velocities>( system->xvf );
-    type = Cabana::slice<Types>( system->xvf );
+    system->slice_properties();
+    v = system->v;
+    type = system->type;
+
     mass = system->mass;
 
     T_V_FLOAT KE;
