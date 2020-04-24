@@ -77,13 +77,14 @@ class ForceNNP : public Force<t_System, t_Neighbor>
     t_mass d_numSFperElem;
     h_t_mass h_numSFperElem, atomicEnergyOffset;
 
+    ForceNNP( t_System *system );
+
     void init_coeff( t_System *system, char **args ) override;
     void compute( t_System *system, t_Neighbor *neighbor ) override;
     T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
     const char *name() override;
 
-    bool do_print;
     bool showew;
     bool resetew;
     T_INT showewsum;

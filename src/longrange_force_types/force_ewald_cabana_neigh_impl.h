@@ -65,7 +65,7 @@ void ForceEwald<t_System, t_Neighbor>::tune( t_System *system, double accuracy )
          system->domain_x != system->domain_z )
         throw std::runtime_error(
             "Ewald needs symmetric system size for now." );
-    const int N = system->N_global;
+    const int N = system->N_local;
     lx = system->domain_x;
     ly = system->domain_y;
     lz = system->domain_z;
