@@ -223,8 +223,9 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         printf( "Using: SystemVectorLength:%i %s\n", CabanaMD_VECTORLENGTH,
                 system->name() );
         if ( input->lrforce_type != FORCE_NONE )
-            printf( "Using: %s %s %s %s %s %s\n", force->name(), lrforce->name(),
-                    neighbor->name(), comm->name(), binning->name(), integrator->name() );
+            printf( "Using: %s %s %s %s %s %s\n", force->name(),
+                    lrforce->name(), neighbor->name(), comm->name(),
+                    binning->name(), integrator->name() );
         else
             printf( "Using: %s %s %s %s %s\n", force->name(), neighbor->name(),
                     comm->name(), binning->name(), integrator->name() );
@@ -439,26 +440,45 @@ void CbnMD<t_System, t_Neighbor>::run()
     // Final output and timings
     if ( system->do_print )
     {
+        auto np = comm->num_processes();
         if ( !system->print_lammps )
         {
             printf( "\n" );
-            printf( "#Procs Particles | Time T_Force T_Neigh T_Comm T_Int "
-                    "T_Other | "
-                    "Steps/s Atomsteps/s Atomsteps/(proc*s)\n" );
-            printf( "%i %i | %lf %lf %lf %lf %lf %lf | %lf %e %e PERFORMANCE\n",
-                    comm->num_processes(), system->N, time, force_time,
-                    neigh_time, comm_time, integrate_time, other_time,
-                    1.0 * nsteps / time, 1.0 * system->N * nsteps / time,
-                    1.0 * system->N * nsteps / time / comm->num_processes() );
-            printf( "%i %i | %lf %lf %lf %lf %lf %lf | FRACTION\n",
-                    comm->num_processes(), system->N, 1.0, force_time / time,
-                    neigh_time / time, comm_time / time, integrate_time / time,
-                    other_time / time );
+            if ( input->lrforce_type == FORCE_NONE )
+                std::cout
+                    << "#Procs Particles | Time T_Force T_Neigh T_Comm T_Int "
+                       "T_Other | Steps/s Atomsteps/s Atomsteps/(proc*s)"
+                    << std::endl;
+            else
+                std::cout << "#Procs Particles | Time T_Force T_ForceLong "
+                             "T_Neigh T_Comm T_Int T_Other | Steps/s "
+                             "Atomsteps/s Atomsteps/(proc*s)"
+                          << std::endl;
+
+            std::cout << np << " " << system->N << " | " << time << " "
+                      << force_time;
+            if ( input->lrforce_type != FORCE_NONE )
+                std::cout << " " << lrforce_time;
+            std::cout << " " << neigh_time << " " << comm_time << " "
+                      << integrate_time << " " << other_time << " "
+                      << 1.0 * nsteps / time << " "
+                      << 1.0 * system->N * nsteps / time << " "
+                      << 1.0 * system->N * nsteps / time / np
+                      << " | PERFORMANCE";
+
+            std::cout << np << " " << system->N << " | " << 1.0 << " "
+                      << force_time / time;
+            if ( input->lrforce_type != FORCE_NONE )
+                std::cout << " " << lrforce_time / time;
+            std::cout << " " << neigh_time / time << " " << comm_time / time
+                      << " " << integrate_time / time << " "
+                      << other_time / time << " | FRACTION" << std::endl;
         }
         else
         {
-            printf( "Loop time of %f on %i procs for %i steps with %i atoms\n",
-                    time, comm->num_processes(), nsteps, system->N );
+            std::cout << "Loop time of " << time << " on " << np
+                      << " procs for " << nsteps << " steps with " << system->N
+                      << " atoms" << std::endl;
         }
     }
 }

@@ -237,6 +237,9 @@ void InputFile<t_System>::read_file( const char *filename )
 template <class t_System>
 void InputFile<t_System>::read_lammps_file( const char *filename )
 {
+    // Only print on one rank and one time reading
+    do_print = system->do_print and num_lattice == -1;
+
     input_data.allocate_words( 100 );
 
     std::ifstream file( filename );
@@ -249,7 +252,7 @@ void InputFile<t_System>::read_lammps_file( const char *filename )
         line[0] = 0;
         file.getline( line, 511 );
     }
-    if ( system->do_print and num_lattice == -1 )
+    if ( do_print )
     {
         printf( "\n" );
         printf( "#InputFile:\n" );
@@ -294,7 +297,7 @@ void InputFile<t_System>::check_lammps_command( int line )
     }
     if ( strcmp( input_data.words[line][0], "variable" ) == 0 )
     {
-        if ( system->do_print )
+        if ( do_print )
             printf( "LAMMPS-Command: 'variable' keyword is not supported in "
                     "CabanaMD\n" );
     }
@@ -331,7 +334,7 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf( "LAMMPS-Command: 'units' command only supports "
                         "'metal', 'real', "
                         "and 'lj' in CabanaMD\n" );
@@ -350,7 +353,7 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf( "LAMMPS-Command: 'atom_style' command only supports "
                         "'atomic' "
                         "and 'charge' in CabanaMD\n" );
@@ -379,7 +382,7 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf( "LAMMPS-Command: 'lattice' command only supports 'sc' "
                         "and 'fcc' "
                         "in CabanaMD\n" );
@@ -410,7 +413,7 @@ void InputFile<t_System>::check_lammps_command( int line )
             box[4] = atoi( input_data.words[line][7] );
             box[5] = atoi( input_data.words[line][8] );
             if ( ( box[0] != 0 ) || ( box[2] != 0 ) || ( box[4] != 0 ) )
-                if ( system->do_print )
+                if ( do_print )
                     printf( "LAMMPS-Command: region only allows for boxes with "
                             "0,0,0 "
                             "offset in CabanaMD\n" );
@@ -420,7 +423,7 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf( "LAMMPS-Command: 'region' command only supports "
                         "'block' option "
                         "in CabanaMD\n" );
@@ -464,7 +467,7 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf( "LAMMPS-Command: 'set' command only allows for setting "
                         "charges "
                         "by type CabanaMD\n" );
@@ -507,7 +510,7 @@ void InputFile<t_System>::check_lammps_command( int line )
             Kokkos::resize( force_coeff_lines, 1 );
             force_coeff_lines( 0 ) = line;
         }
-        if ( system->do_print && !known )
+        if ( do_print && !known )
             printf( "LAMMPS-Command: 'pair_style' command only supports "
                     "'lj/cut' or "
                     "'lj/cut/coul/long' or 'nnp' styles in CabanaMD\n" );
@@ -541,7 +544,7 @@ void InputFile<t_System>::check_lammps_command( int line )
             Kokkos::resize( lrforce_coeff_lines, 1 );
             lrforce_coeff_lines( 0 ) = line;
         }
-        if ( system->do_print && !known )
+        if ( do_print && !known )
             printf( "LAMMPS-Command: 'kspace_style' command only supports "
                     "'ewald' or "
                     "'spme' in CabanaMD\n" );
@@ -551,14 +554,14 @@ void InputFile<t_System>::check_lammps_command( int line )
         known = true;
         if ( strcmp( input_data.words[line][1], "all" ) != 0 )
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf(
                     "LAMMPS-Command: 'velocity' command can only be applied to "
                     "'all' in CabanaMD\n" );
         }
         if ( strcmp( input_data.words[line][2], "create" ) != 0 )
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf(
                     "LAMMPS-Command: 'velocity' command can only be used with "
                     "option 'create' in CabanaMD\n" );
@@ -589,7 +592,7 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf( "LAMMPS-Command: 'fix' command only supports 'nve' "
                         "style in "
                         "CabanaMD\n" );
@@ -627,7 +630,7 @@ void InputFile<t_System>::check_lammps_command( int line )
             }
             else
             {
-                if ( system->do_print )
+                if ( do_print )
                     printf(
                         "LAMMPS-Command: 'newton' must be followed by 'on' or "
                         "'off'\n" );
@@ -635,7 +638,7 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
+            if ( do_print )
                 printf( "Overriding LAMMPS-Command: 'newton' replaced by "
                         "commandline --force-iteration\n" );
         }
@@ -644,7 +647,7 @@ void InputFile<t_System>::check_lammps_command( int line )
     {
         known = true;
     }
-    if ( !known && system->do_print )
+    if ( !known && do_print )
     {
         printf( "ERROR: unknown keyword\n" );
         input_data.print_line( line );
