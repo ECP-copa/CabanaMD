@@ -194,14 +194,6 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         input->create_velocities( comm );
     }
 
-    if ( system->do_print )
-    {
-        printf( "Using: SystemVectorLength:%i %s\n", CabanaMD_VECTORLENGTH,
-                system->name() );
-        printf( "Using: %s %s %s %s %s\n", force->name(), neighbor->name(),
-                comm->name(), binning->name(), integrator->name() );
-    }
-
     // Create long range Force class: options in longrangeforce_types/ folder
     // Delay because tuning (within init) uses atom count, domain size
 #ifdef CabanaMD_ENABLE_LongRange
@@ -228,12 +220,14 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     // Output settings
     if ( system->do_print )
     {
+        printf( "Using: SystemVectorLength:%i %s\n", CabanaMD_VECTORLENGTH,
+                system->name() );
         if ( input->lrforce_type != FORCE_NONE )
-            printf( "Using: %s %s %s %s %s\n", force->name(), lrforce->name(),
-                    comm->name(), binning->name(), integrator->name() );
+            printf( "Using: %s %s %s %s %s %s\n", force->name(), lrforce->name(),
+                    neighbor->name(), comm->name(), binning->name(), integrator->name() );
         else
-            printf( "Using: %s %s %s %s\n", force->name(), comm->name(),
-                    binning->name(), integrator->name() );
+            printf( "Using: %s %s %s %s %s\n", force->name(), neighbor->name(),
+                    comm->name(), binning->name(), integrator->name() );
     }
 
     // Run step 0

@@ -637,7 +637,7 @@ void InputFile<t_System>::check_lammps_command( int line )
         {
             if ( system->do_print )
                 printf( "Overriding LAMMPS-Command: 'newton' replaced by "
-                        "commandline --force-iteration " );
+                        "commandline --force-iteration\n" );
         }
     }
     if ( input_data.words[line][0][0] == '#' )
@@ -707,9 +707,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                 }
             }
         }
-        system->N_local = n;
-        system->N = n;
-        system->resize( n );
+        system->resize( system->N_local + n );
         system->slice_all();
         s = *system;
         auto x = s.x;
@@ -836,9 +834,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
             }
         }
         system->resize( system->N_local + n );
-        system->N_local = n;
-        system->N = n;
-        system->resize( n );
         system->slice_all();
         s = *system;
         auto x = s.x;
