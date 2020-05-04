@@ -34,27 +34,30 @@ class ForceEwald : public Force<t_System, t_Neighbor>
 
     Kokkos::View<T_F_FLOAT *, DeviceType> U_trigonometric;
 
-    double _alpha;
-    double _r_max;
-    double _k_max;
-
-    double lx, ly, lz;
+    T_F_FLOAT _alpha;
+    T_X_FLOAT _r_max;
+    T_X_FLOAT _k_max;
+    T_F_FLOAT accuracy;
+    T_INT _k_int;
+    T_INT n_kvec;
+    T_X_FLOAT lx, ly, lz;
 
     // dielectric constant
-    double _eps_r = 1.0; // Assume 1 for now (vacuum)
+    T_F_FLOAT _eps_r = 1.0; // Assume 1 for now (vacuum)
 
     MPI_Comm cart_comm;
 
   public:
     ForceEwald( t_System *system );
 
-    void init_coeff( t_System *system, char **args );
-    void tune( t_System *system, T_F_FLOAT accuracy );
+    void init_coeff( char **args ) override;
+    void init_longrange( t_System *system, T_X_FLOAT r_max ) override;
+    void tune( t_System *system );
 
-    void compute( t_System *system, t_Neighbor *neighbor );
-    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor );
+    void compute( t_System *system, t_Neighbor *neighbor ) override;
+    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
-    const char *name();
+    const char *name() override;
 };
 
 #include <force_ewald_cabana_neigh_impl.h>

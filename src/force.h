@@ -60,7 +60,8 @@ class Force
     Force( t_System * ) {}
     virtual ~Force() {}
 
-    virtual void init_coeff( t_System *system, char **args ) = 0;
+    virtual void init_coeff( char **args ) = 0;
+    virtual void init_longrange( t_System *, T_X_FLOAT ){};
     virtual void compute( t_System *system, t_Neighbor *neighbor ) = 0;
     virtual T_F_FLOAT compute_energy( t_System *, t_Neighbor * )
     {

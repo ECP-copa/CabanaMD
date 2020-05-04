@@ -61,7 +61,7 @@ ForceLJ<t_System, t_Neighbor>::ForceLJ( t_System *system )
 }
 
 template <class t_System, class t_Neighbor>
-void ForceLJ<t_System, t_Neighbor>::init_coeff( t_System *, char **args )
+void ForceLJ<t_System, t_Neighbor>::init_coeff( char **args )
 {
     step = 0;
 

@@ -174,7 +174,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
           line++ )
     {
         force->init_coeff(
-            system, input->input_data.words[input->force_coeff_lines( line )] );
+            input->input_data.words[input->force_coeff_lines( line )] );
     }
 
     // Create atoms - from LAMMPS data file or create FCC/SC lattice
@@ -213,7 +213,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
             comm->error( "Invalid LongRangeForceType" );
 
         lrforce->init_coeff(
-            system, input->input_data.words[input->lrforce_coeff_lines( 0 )] );
+            input->input_data.words[input->lrforce_coeff_lines( 0 )] );
+        lrforce->init_longrange( system, neigh_cutoff );
     }
 #endif
 
@@ -464,7 +465,7 @@ void CbnMD<t_System, t_Neighbor>::run()
                       << 1.0 * nsteps / time << " "
                       << 1.0 * system->N * nsteps / time << " "
                       << 1.0 * system->N * nsteps / time / np
-                      << " | PERFORMANCE";
+                      << " | PERFORMANCE" << std::endl;
 
             std::cout << np << " " << system->N << " | " << 1.0 << " "
                       << force_time / time;

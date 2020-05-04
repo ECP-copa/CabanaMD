@@ -36,36 +36,33 @@ ForceSPME<t_System, t_Neighbor>::ForceSPME( t_System *system )
 
 // TODO: allow user to specify parameters
 template <class t_System, class t_Neighbor>
-void ForceSPME<t_System, t_Neighbor>::init_coeff( t_System *system,
-                                                  char **args )
+void ForceSPME<t_System, t_Neighbor>::init_coeff( char **args )
 {
-    double accuracy = atof( args[2] );
-    tune( system, accuracy );
+    accuracy = atof( args[2] );
+}
+
+template <class t_System, class t_Neighbor>
+void ForceSPME<t_System, t_Neighbor>::init_longrange( t_System *system,
+                                                      double r_max )
+{
+    _r_max = r_max;
+    tune( system );
     create_mesh( system );
 }
 
 // Tune to a given accuracy
 template <class t_System, class t_Neighbor>
-void ForceSPME<t_System, t_Neighbor>::tune( t_System *system, double accuracy )
+void ForceSPME<t_System, t_Neighbor>::tune( t_System *system )
 {
     if ( system->domain_x != system->domain_y or
          system->domain_x != system->domain_z )
         throw std::runtime_error( "SPME needs symmetric system size for now." );
 
-    const int N = system->N_local;
-
     // Fincham 1994, Optimisation of the Ewald Sum for Large Systems
     // only valid for cubic systems (needs adjustement for non-cubic systems)
-    constexpr double EXECUTION_TIME_RATIO_K_R = 0.1;
-    double p = -log( accuracy );
-    _alpha = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) *
-             pow( N, 1.0 / 6.0 ) / system->domain_x;
-    _k_max = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) *
-             pow( N, 1.0 / 6.0 ) / system->domain_x * 2.0 * PI;
-    _r_max = pow( EXECUTION_TIME_RATIO_K_R, 1.0 / 6.0 ) * sqrt( p / PI ) /
-             pow( N, 1.0 / 6.0 ) * system->domain_x;
+    auto p = -log( accuracy );
+    _k_max = 2 * p / _r_max;
     _alpha = sqrt( p ) / _r_max;
-    _k_max = 2.0 * sqrt( p ) * _alpha;
 }
 
 // Compute a 1D cubic cardinal B-spline value, used in spreading charge to mesh
@@ -237,7 +234,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
             {
                 mz = kz - meshwidth_z;
             }
-            double m2 = ( mx * mx + my * my + mz * mz );
+            auto m2 = ( mx * mx + my * my + mz * mz );
             // Calculate BC.
             BC_view( kx, ky, kz, 0 )
                 .real( ForceSPME::oneDeuler( kx, meshwidth_x ) *
@@ -269,12 +266,10 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     // For now, force symmetry
     if ( system->domain_x != system->domain_y or
          system->domain_x != system->domain_z )
-    {
         throw std::runtime_error( "SPME needs symmetric system size for now." );
-    }
 
     auto N_local = system->N_local;
-    double alpha = _alpha;
+    auto alpha = _alpha;
 
     // Per-atom properties
     system->slice_force();
@@ -382,26 +377,26 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
         int num_n =
             Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, idx );
 
-        double rx = x( idx, 0 );
-        double ry = x( idx, 1 );
-        double rz = x( idx, 2 );
-        double qi = q( idx );
+        auto rx = x( idx, 0 );
+        auto ry = x( idx, 1 );
+        auto rz = x( idx, 2 );
+        auto qi = q( idx );
 
         for ( int ij = 0; ij < num_n; ++ij )
         {
             int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
                                                                      idx, ij );
-            double dx = x( j, 0 ) - rx;
-            double dy = x( j, 1 ) - ry;
-            double dz = x( j, 2 ) - rz;
-            double d = sqrt( dx * dx + dy * dy + dz * dz );
-            double qj = q( j );
+            auto dx = x( j, 0 ) - rx;
+            auto dy = x( j, 1 ) - ry;
+            auto dz = x( j, 2 ) - rz;
+            auto d = sqrt( dx * dx + dy * dy + dz * dz );
+            auto qj = q( j );
 
             // force computation
-            double f_fact = qi * qj *
-                            ( 2.0 * sqrt( alpha / PI ) * exp( -alpha * d * d ) +
-                              erfc( sqrt( alpha ) * d ) ) /
-                            ( d * d );
+            auto f_fact = qi * qj *
+                          ( 2.0 * sqrt( alpha / PI ) * exp( -alpha * d * d ) +
+                            erfc( sqrt( alpha ) * d ) ) /
+                          ( d * d );
             Kokkos::atomic_add( &f( idx, 0 ), f_fact * dx );
             Kokkos::atomic_add( &f( idx, 1 ), f_fact * dy );
             Kokkos::atomic_add( &f( idx, 2 ), f_fact * dz );
@@ -420,7 +415,7 @@ ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system,
                                                  t_Neighbor *neighbor )
 {
     N_local = system->N_local;
-    double alpha = _alpha;
+    auto alpha = _alpha;
 
     // Per-atom properties
     system->slice_x();
@@ -469,20 +464,20 @@ ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system,
         int num_n =
             Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, idx );
 
-        double rx = x( idx, 0 );
-        double ry = x( idx, 1 );
-        double rz = x( idx, 2 );
-        double qi = q( idx );
+        auto rx = x( idx, 0 );
+        auto ry = x( idx, 1 );
+        auto rz = x( idx, 2 );
+        auto qi = q( idx );
 
         for ( int ij = 0; ij < num_n; ++ij )
         {
             int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list,
                                                                      idx, ij );
-            double dx = x( j, 0 ) - rx;
-            double dy = x( j, 1 ) - ry;
-            double dz = x( j, 2 ) - rz;
-            double d = sqrt( dx * dx + dy * dy + dz * dz );
-            double qj = q( j );
+            auto dx = x( j, 0 ) - rx;
+            auto dy = x( j, 1 ) - ry;
+            auto dz = x( j, 2 ) - rz;
+            auto d = sqrt( dx * dx + dy * dy + dz * dz );
+            auto qj = q( j );
 
             PE += ENERGY_CONVERSION_FACTOR * qi * qj * erfc( alpha * d ) / d;
         }

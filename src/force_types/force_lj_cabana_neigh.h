@@ -115,7 +115,7 @@ class ForceLJ : public Force<t_System, t_Neighbor>
 
     ForceLJ( t_System *system );
 
-    void init_coeff( t_System *system, char **args ) override;
+    void init_coeff( char **args ) override;
     void compute( t_System *system, t_Neighbor *neighbor ) override;
     T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 

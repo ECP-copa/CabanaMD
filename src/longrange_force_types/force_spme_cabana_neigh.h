@@ -30,12 +30,15 @@ class ForceSPME : public Force<t_System, t_Neighbor>
 
     typedef typename t_Neighbor::t_neigh_list t_neigh_list;
 
-    double _alpha;
-    double _r_max;
-    double _k_max;
+    T_F_FLOAT _alpha;
+    T_X_FLOAT _r_max;
+    T_X_FLOAT _k_max;
+    T_F_FLOAT accuracy;
+    T_INT _k_int;
+    T_INT n_kvec;
 
     // dielectric constant
-    double _eps_r = 1.0; // Assume 1 for now (vacuum)
+    T_X_FLOAT _eps_r = 1.0; // Assume 1 for now (vacuum)
 
   public:
     std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> local_grid;
@@ -49,18 +52,19 @@ class ForceSPME : public Force<t_System, t_Neighbor>
 
     ForceSPME( t_System *system );
 
-    void init_coeff( t_System *system, char **args );
-    void tune( t_System *system, T_F_FLOAT accuracy );
+    void init_coeff( char **args ) override;
+    void init_longrange( t_System *system, T_X_FLOAT r_max ) override;
+    void tune( t_System *system );
     void create_mesh( t_System *system );
 
     double oneDspline( double x );
     double oneDsplinederiv( double x );
     double oneDeuler( int k, int meshwidth );
 
-    void compute( t_System *system, t_Neighbor *neighbor );
-    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor );
+    void compute( t_System *system, t_Neighbor *neighbor ) override;
+    T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
-    const char *name();
+    const char *name() override;
 };
 
 #include <force_spme_cabana_neigh_impl.h>
