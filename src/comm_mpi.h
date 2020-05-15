@@ -66,6 +66,8 @@ class Comm
 {
     // Variables Comm doesn't own but requires for computations
 
+    typedef typename t_System::device_type device_type;
+
     T_INT N_local;
     T_INT N_ghost;
 
@@ -87,18 +89,22 @@ class Comm
     int proc_size;              // Number of processes
     int max_local;
 
-    Kokkos::View<int, Kokkos::MemoryTraits<Kokkos::Atomic>> pack_count;
+    Kokkos::View<int, Kokkos::LayoutRight, device_type,
+                 Kokkos::MemoryTraits<Kokkos::Atomic>>
+        pack_count;
 
-    Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType> pack_indicies_all;
-    Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType> pack_indicies;
-    Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType> pack_ranks_all;
-    Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType> pack_ranks;
-    Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType>
+    Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type> pack_indicies_all;
+    Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type> pack_indicies;
+    Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type> pack_ranks_all;
+    Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type> pack_ranks;
+    Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type>
         pack_ranks_migrate_all;
-    Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType> pack_ranks_migrate;
+    Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type> pack_ranks_migrate;
     std::vector<std::vector<int>> neighbors_halo, neighbors_dist;
 
-    std::vector<std::shared_ptr<Cabana::Halo<DeviceType>>> halo_all;
+    std::vector<std::shared_ptr<Cabana::Halo<device_type>>> halo_all;
+
+    using exe_space = typename t_System::execution_space;
 
   protected:
     t_System *system;

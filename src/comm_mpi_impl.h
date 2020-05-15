@@ -54,10 +54,12 @@ Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     , system( s )
     , comm_depth( comm_depth_ )
 {
-    pack_count = Kokkos::View<int>( "CommMPI::pack_count" );
-    pack_indicies_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType>(
-        "CommMPI::pack_indicies_all", 6, 200 );
-    pack_ranks_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType>(
+    pack_count = Kokkos::View<int, Kokkos::LayoutRight, device_type>(
+        "CommMPI::pack_count" );
+    pack_indicies_all =
+        Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type>(
+            "CommMPI::pack_indicies_all", 6, 200 );
+    pack_ranks_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type>(
         "CommMPI::pack_ranks_all", 6, 200 );
 }
 
@@ -292,15 +294,15 @@ void Comm<t_System>::exchange()
 
     max_local = x.size() * 1.1;
 
-    std::shared_ptr<Cabana::Distributor<DeviceType>> distributor;
+    std::shared_ptr<Cabana::Distributor<device_type>> distributor;
 
     pack_ranks_migrate_all =
-        Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType>(
+        Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type>(
             "pack_ranks_migrate", max_local );
     Kokkos::parallel_for(
         "CommMPI::exchange_self",
-        Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT>>(
-            0, N_local ),
+        Kokkos::RangePolicy<exe_space, TagExchangeSelf,
+                            Kokkos::IndexType<T_INT>>( 0, N_local ),
         *this );
 
     T_INT N_total_recv = 0;
@@ -330,14 +332,14 @@ void Comm<t_System>::exchange()
 
             Kokkos::parallel_for(
                 "CommMPI::exchange_pack",
-                Kokkos::RangePolicy<TagExchangePack, Kokkos::IndexType<T_INT>>(
-                    0, x.size() ),
+                Kokkos::RangePolicy<exe_space, TagExchangePack,
+                                    Kokkos::IndexType<T_INT>>( 0, x.size() ),
                 *this );
 
             Kokkos::deep_copy( count, pack_count );
             proc_num_send[phase] = count;
 
-            distributor = std::make_shared<Cabana::Distributor<DeviceType>>(
+            distributor = std::make_shared<Cabana::Distributor<device_type>>(
                 MPI_COMM_WORLD, pack_ranks_migrate, neighbors_dist[phase] );
             system->migrate( distributor );
             system->resize(
@@ -391,8 +393,8 @@ void Comm<t_System>::exchange_halo()
             ( ( phase % 2 == 1 ) ? proc_num_recv[phase - 1] : 0 );
         Kokkos::parallel_for(
             "CommMPI::halo_exchange_pack",
-            Kokkos::RangePolicy<TagHaloPack, Kokkos::IndexType<T_INT>>(
-                0, nparticles ),
+            Kokkos::RangePolicy<exe_space, TagHaloPack,
+                                Kokkos::IndexType<T_INT>>( 0, nparticles ),
             *this );
 
         Kokkos::deep_copy( count, pack_count );
@@ -408,8 +410,8 @@ void Comm<t_System>::exchange_halo()
             Kokkos::deep_copy( pack_count, 0 );
             Kokkos::parallel_for(
                 "CommMPI::halo_exchange_pack",
-                Kokkos::RangePolicy<TagHaloPack, Kokkos::IndexType<T_INT>>(
-                    0, nparticles ),
+                Kokkos::RangePolicy<exe_space, TagHaloPack,
+                                    Kokkos::IndexType<T_INT>>( 0, nparticles ),
                 *this );
         }
         proc_num_send[phase] = count;
@@ -420,7 +422,7 @@ void Comm<t_System>::exchange_halo()
         pack_ranks = Kokkos::subview(
             pack_ranks, std::pair<size_t, size_t>( 0, proc_num_send[phase] ) );
 
-        halo_all[phase] = std::make_shared<Cabana::Halo<DeviceType>>(
+        halo_all[phase] = std::make_shared<Cabana::Halo<device_type>>(
             MPI_COMM_WORLD, N_local + N_ghost, pack_indicies, pack_ranks,
             neighbors_halo[phase] );
         system->resize( halo_all[phase]->numLocal() +
@@ -440,7 +442,8 @@ void Comm<t_System>::exchange_halo()
         Kokkos::deep_copy( pack_count, 0 );
         Kokkos::parallel_for(
             "CommMPI::halo_exchange_pack_wrap",
-            Kokkos::RangePolicy<TagHaloPBC, Kokkos::IndexType<T_INT>>(
+            Kokkos::RangePolicy<exe_space, TagHaloPBC,
+                                Kokkos::IndexType<T_INT>>(
                 halo_all[phase]->numLocal(),
                 halo_all[phase]->numLocal() + halo_all[phase]->numGhost() ),
             *this );
@@ -483,7 +486,8 @@ void Comm<t_System>::update_halo()
 
         Kokkos::parallel_for(
             "CommMPI::halo_update_PBC",
-            Kokkos::RangePolicy<TagHaloPBC, Kokkos::IndexType<T_INT>>(
+            Kokkos::RangePolicy<exe_space, TagHaloPBC,
+                                Kokkos::IndexType<T_INT>>(
                 halo_all[phase]->numLocal(),
                 halo_all[phase]->numLocal() + halo_all[phase]->numGhost() ),
             *this );

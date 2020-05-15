@@ -17,16 +17,20 @@
 #include <types.h>
 
 template <class t_System, class t_iteration, class t_layout>
-class NeighborVerlet : public Neighbor<t_System, t_iteration, t_layout>
+class NeighborVerlet : public Neighbor<t_System>
 {
+    using memory_space = typename t_System::memory_space;
+
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
 
-    using t_neigh_list = Cabana::VerletList<MemorySpace, t_iteration, t_layout>;
+    using t_build = Cabana::TeamVectorOpTag;
+    using t_neigh_list =
+        Cabana::VerletList<memory_space, t_iteration, t_layout, t_build>;
 
     NeighborVerlet( T_X_FLOAT neigh_cut_, bool half_neigh_ )
-        : Neighbor<t_System, t_iteration, t_layout>( neigh_cut_, half_neigh_ )
+        : Neighbor<t_System>( neigh_cut_, half_neigh_ )
         , neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
     {

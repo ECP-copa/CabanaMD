@@ -62,7 +62,7 @@ class Temperature
   private:
     typename t_System::t_v v;
     typename t_System::t_type type;
-    t_mass mass;
+    typename t_System::t_mass mass;
 
     Comm<t_System> *comm;
 

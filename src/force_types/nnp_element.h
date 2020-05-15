@@ -70,6 +70,7 @@ class Element
      * @param[in] parameters String containing settings for symmetry function.
      * @param[in] lineNumber Line number of symmetry function in settings file.
      */
+    template <class t_SF, class h_t_int>
     void addSymmetryFunction( string const &parameters,
                               vector<string> elementStrings, int attype,
                               t_SF SF, double convLength,
@@ -81,34 +82,40 @@ class Element
     void changeLengthUnitSymmetryFunctions( double convLength );
     /** Sort all symmetry function.
      */
+    template <class t_SF, class h_t_int>
     void sortSymmetryFunctions( t_SF SF, h_t_int h_numSFperElem, int attype );
     /** Print symmetry function parameter value information.
      */
+    template <class t_SF>
     bool compareSF( t_SF SF, int attype, int index1, int index2 );
+    template <class t_SF, class h_t_int>
     vector<string>
     infoSymmetryFunctionParameters( t_SF SF, int attype,
                                     h_t_int h_numSFperElem ) const;
+    template <class t_SF, class t_SFscaling, class h_t_int>
     vector<string> infoSymmetryFunctionScaling( ScalingType scalingType,
                                                 t_SF SF, t_SFscaling SFscaling,
                                                 int attype,
                                                 h_t_int h_numSFperElem ) const;
     /** Set up symmetry function groups.
      */
+    template <class t_SF, class t_SFGmemberlist, class h_t_int>
     void setupSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
                                       int attype, h_t_int h_numSFperElem,
                                       h_t_int h_numSFGperElem,
                                       int maxSFperElem );
     /** Print symmetry function group info.
      */
-    vector<string> infoSymmetryFunctionGroups( t_SF SF,
-                                               t_SFGmemberlist SFGmemberlist,
-                                               int attype,
-                                               h_t_int h_numSFGperElem ) const;
+    template <class t_SF, class t_SFGmemberlist, class h_t_int>
+    vector<string>
+    infoSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
+                                int attype, h_t_int h_numSFGperElem ) const;
     /** Set cutoff function for all symmetry functions.
      *
      * @param[in] cutoffType Type of cutoff function.
      * @param[in] cutoffAlpha Cutoff parameter for all functions.
      */
+    template <class t_SF, class h_t_int>
     void setCutoffFunction( CutoffFunction::CutoffType const cutoffType,
                             double const cutoffAlpha, t_SF SF, int attype,
                             h_t_int h_numSFperElem );
@@ -121,6 +128,7 @@ class Element
      * @param[in] minS Minimum for scaling range.
      * @param[in] maxS Minimum for scaling range.
      */
+    template <class t_SF, class t_SFscaling, class h_t_int>
     void setScaling( ScalingType scalingType,
                      vector<string> const &statisticsLine, double minS,
                      double maxS, t_SF SF, t_SFscaling SFscaling, int attype,
@@ -129,23 +137,27 @@ class Element
      *
      * @return Number of symmetry functions.
      */
+    template <class h_t_int>
     size_t numSymmetryFunctions( int attype, h_t_int h_numSFperElem ) const;
     /** Get maximum of required minimum number of neighbors for all symmetry
      * functions for this element.
      *
      * @return Minimum number of neighbors required.
      */
+    template <class t_SF>
     size_t getMinNeighbors( int attype, t_SF SF, int nSF ) const;
     /** Get minimum cutoff radius of all symmetry functions.
      *
      * @return Minimum cutoff radius.
      */
+    template <class t_SF, class h_t_int>
     double getMinCutoffRadius( t_SF SF, int attype,
                                h_t_int h_numSFperElem ) const;
     /** Get maximum cutoff radius of all symmetry functions.
      *
      * @return Maximum cutoff radius.
      */
+    template <class t_SF, class h_t_int>
     double getMaxCutoffRadius( t_SF SF, int attype,
                                h_t_int h_numSFperElem ) const;
     /** Update symmetry function statistics.
@@ -170,11 +182,14 @@ class Element
     /// Symmetry function statistics.
     // SymmetryFunctionStatistics statistics;
 
+    template <class t_SFscaling>
     inline void setScalingType( ScalingType scalingType, string statisticsLine,
                                 double Smin, double Smax, t_SFscaling SFscaling,
                                 int attype, int k ) const;
+    template <class t_SFscaling>
     inline string scalingLine( ScalingType scalingType, t_SFscaling SFscaling,
                                int attype, int k ) const;
+    template <class t_SFscaling>
     inline double unscale( int attype, double value, int k,
                            t_SFscaling SFscaling );
 
@@ -212,12 +227,14 @@ inline double Element::getAtomicEnergyOffset() const
 
 inline string Element::getSymbol() const { return symbol; }
 
+template <class h_t_int>
 inline size_t Element::numSymmetryFunctions( int attype,
                                              h_t_int h_numSFperElem ) const
 {
     return h_numSFperElem( attype );
 }
 
+template <class t_SFscaling>
 inline void Element::setScalingType( ScalingType scalingType,
                                      string statisticsLine, double Smin,
                                      double Smax, t_SFscaling SFscaling,
@@ -257,6 +274,7 @@ inline void Element::setScalingType( ScalingType scalingType,
     return;
 }
 
+template <class t_SFscaling>
 inline string Element::scalingLine( ScalingType scalingType,
                                     t_SFscaling SFscaling, int attype,
                                     int k ) const
@@ -269,6 +287,7 @@ inline string Element::scalingLine( ScalingType scalingType,
                        scalingType );
 }
 
+template <class t_SFscaling>
 inline double Element::unscale( int attype, double value, int k,
                                 t_SFscaling SFscaling )
 {
@@ -308,5 +327,7 @@ inline double Element::unscale( int attype, double value, int k,
 }
 
 } // namespace nnpCbn
+
+#include <nnp_element_impl.h>
 
 #endif

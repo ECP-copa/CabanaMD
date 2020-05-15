@@ -51,13 +51,14 @@
 #include <system.h>
 #include <types.h>
 
-template <class t_System, class t_iteration, class t_layout>
+template <class t_System>
 class Neighbor
 {
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
 
+    Neighbor();
     Neighbor( T_X_FLOAT neigh_cut_, bool half_neigh_ )
         : neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
