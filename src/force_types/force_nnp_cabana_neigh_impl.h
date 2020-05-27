@@ -76,22 +76,23 @@ void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
     s->slice_force();
     auto x = s->x;
     // Atomic force slice
-    auto f_a = s->f;
+    t_f_a f_a = s->f;
     auto type = s->type;
 
     system_nnp->slice_G();
     system_nnp->slice_dEdG();
     system_nnp->slice_E();
-    auto G = system_nnp->G;
+    t_G G = system_nnp->G;
+    t_G_a G_a = G;
     auto dEdG = system_nnp->dEdG;
     auto E = system_nnp->E;
 
-    mode->calculateSymmetryFunctionGroups<t_x, t_type, t_G, t_neigh_list,
+    mode->calculateSymmetryFunctionGroups<t_x, t_type, t_G_a, t_neigh_list,
                                           t_neigh_parallel, t_angle_parallel>(
-        x, type, G, neigh_list, N_local );
+        x, type, G_a, neigh_list, N_local );
     mode->calculateAtomicNeuralNetworks<t_type, t_G, t_dEdG, t_E>(
         type, G, dEdG, E, N_local );
-    mode->calculateForces<t_x, t_f, t_type, t_dEdG, t_neigh_list,
+    mode->calculateForces<t_x, t_f_a, t_type, t_dEdG, t_neigh_list,
                           t_neigh_parallel, t_angle_parallel>(
         x, f_a, type, dEdG, neigh_list, N_local );
 }
