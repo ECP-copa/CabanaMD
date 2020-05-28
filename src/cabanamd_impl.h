@@ -109,18 +109,23 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     neighbor = new t_Neighbor( neigh_cutoff, half_neigh );
 
     // Create Force class: potential options in force_types/ folder
+    bool serial_neigh =
+        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_SERIAL;
+    bool team_neigh =
+        input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_TEAM;
     if ( input->force_type == FORCE_LJ )
     {
-        force = new ForceLJ<t_System, t_Neighbor>( system );
+        if ( serial_neigh )
+            force = new ForceLJ<t_System, t_Neighbor, Cabana::SerialOpTag>(
+                system );
+        else if ( team_neigh )
+            force =
+                new ForceLJ<t_System, t_Neighbor, Cabana::TeamOpTag>( system );
     }
 #ifdef CabanaMD_ENABLE_NNP
 #include <system_nnp.h>
     else if ( input->force_type == FORCE_NNP )
     {
-        bool serial_neigh =
-            input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_SERIAL;
-        bool team_neigh =
-            input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_TEAM;
         bool vector_angle =
             input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_VECTOR;
         if ( half_neigh )
