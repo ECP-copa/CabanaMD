@@ -16,7 +16,7 @@ addons:
 
 before_script:
   - ccache -z
-  - KOKKOS_OPTS=( -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DKokkos_ENABLE_HWLOC=ON )
+  - KOKKOS_OPTS=( -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DKokkos_ENABLE_HWLOC=ON -DKokkos_CXX_STANDARD=14 )
   - for i in ${BACKENDS}; do KOKKOS_OPTS+=( -DKokkos_ENABLE_${i^^}=ON ); done
   - for i in ${BACKENDS}; do CABANA_OPTS+=( -DCabana_ENABLE_${i}=ON ); done
   - for i in ${BACKENDS}; do CABANAMD_OPTS+=( -DCabanaMD_ENABLE_${i}=ON ); done
