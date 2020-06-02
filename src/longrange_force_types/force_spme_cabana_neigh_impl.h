@@ -155,9 +155,8 @@ ForceSPME<t_System, t_Neighbor>::oneDeuler( int k, int meshwidth )
 template <class t_System, class t_Neighbor>
 void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
 {
-    // TODO: Is ~1 angstrom reasonable?
-    T_INT num_cell_x = system->domain_x / 10.0;
-    std::array<int, 3> num_cell = {num_cell_x, num_cell_x, num_cell_x};
+    // TODO: This should be configurable
+    double cell_size = system->domain_x / 100.0;
     std::array<bool, 3> is_dim_periodic = {true, true, true};
     std::array<double, 3> global_low_corner = {
         system->domain_lo_x, system->domain_lo_y, system->domain_lo_z};
@@ -165,7 +164,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
         system->domain_hi_x, system->domain_hi_y, system->domain_hi_z};
     // Create the global mesh.
     auto uniform_global_mesh = Cajita::createUniformGlobalMesh(
-        global_low_corner, global_high_corner, num_cell );
+        global_low_corner, global_high_corner, cell_size );
 
     // Compute what proc_grid must be
     const int proc_grid_x = system->domain_x / system->sub_domain_x;
@@ -181,21 +180,15 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
         MPI_COMM_WORLD, uniform_global_mesh, is_dim_periodic, partitioner );
 
     // Create a local grid.
-    const int halo_width = 1;
+    const int halo_width = 3;
     local_grid = Cajita::createLocalGrid( global_grid, halo_width );
-    // auto local_mesh = Cajita::createLocalMesh<DeviceType>( *local_grid );
 
     // Create a scalar field for charge on the grid.
     // Using uppercase for grid/mesh variables and lowercase for particles
     auto scalar_layout =
         Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
     Q = Cajita::createArray<double, DeviceType>( "meshq", scalar_layout );
-    // auto meshq_complex =
-    // Cajita::createArray<Kokkos::complex<double>, DeviceType>( "complexmeshq",
-    // scalar_layout );
     Q_halo = Cajita::createHalo( *Q, Cajita::FullHaloPattern() );
-    // auto q_halo_complex = Cajita::createHalo( *meshq_complex,
-    // Cajita::FullHaloPattern() );
 
     auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
                                                Cajita::Local() );
@@ -209,8 +202,8 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
     // fractional coords then compute the B and C arrays as described in the
     // paper This can be done once at the start of a run if the mesh stays
     // constant
-    BC_array = Cajita::createArray<Kokkos::complex<double>, DeviceType>(
-        "BC_array", scalar_layout );
+    BC_array =
+        Cajita::createArray<double, DeviceType>( "BC_array", scalar_layout );
     auto BC_view = BC_array->view();
 
     auto BC_functor = KOKKOS_LAMBDA( const int kx, const int ky, const int kz )
@@ -236,19 +229,17 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
             }
             auto m2 = ( mx * mx + my * my + mz * mz );
             // Calculate BC.
-            BC_view( kx, ky, kz, 0 )
-                .real( ForceSPME::oneDeuler( kx, meshwidth_x ) *
-                       ForceSPME::oneDeuler( ky, meshwidth_y ) *
-                       ForceSPME::oneDeuler( kz, meshwidth_z ) *
-                       exp( -PI * PI * m2 / ( alpha * alpha ) ) /
-                       ( PI * system->domain_x * system->domain_y *
-                         system->domain_z * m2 ) );
-            BC_view( kx, ky, kz, 0 ).imag( 0.0 ); // imag part
+            BC_view( kx, ky, kz, 0 ) =
+                ForceSPME::oneDeuler( kx, meshwidth_x ) *
+                ForceSPME::oneDeuler( ky, meshwidth_y ) *
+                ForceSPME::oneDeuler( kz, meshwidth_z ) *
+                exp( -PI * PI * m2 / ( alpha * alpha ) ) /
+                ( PI * system->domain_x * system->domain_y * system->domain_z *
+                  m2 );
         }
         else
         {
-            BC_view( kx, ky, kz, 0 ).real( 0.0 );
-            BC_view( kx, ky, kz, 0 ).imag( 0.0 ); // set origin element to zero
+            BC_view( kx, ky, kz, 0 ) = 0.0;
         }
     };
     Kokkos::parallel_for(
@@ -258,7 +249,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
     // TODO: check these indices
 }
 
-// Compute the energy and forces
+// Compute the forces
 template <class t_System, class t_Neighbor>
 void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
                                                t_Neighbor *neighbor )
@@ -282,23 +273,21 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     // Neighbor list
     auto neigh_list = neighbor->get();
 
-    // reciprocal-space contribution
+    /* reciprocal-space contribution */
+    auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
+                                               Cajita::Local() );
+    auto grid_policy =
+        Cajita::createExecutionPolicy( owned_space, ExecutionSpace() );
 
     // First, spread the charges onto the mesh
-    auto scalar_p2g = Cajita::createScalarValueP2G( q, 1.0 );
     Cajita::ArrayOp::assign( *Q, 0.0, Cajita::Ghost() );
+    auto scalar_p2g = Cajita::createScalarValueP2G( q, 1.0 );
     Cajita::p2g( scalar_p2g, x, N_local, Cajita::Spline<3>(), *Q_halo, *Q );
 
     // Copy mesh charge into complex view for FFT work
-    auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
-                                               Cajita::Local() );
-    // const int num_meshpoints = owned_space.size();
-    // const int num_points = x.size();
-    // Kokkos::View<Kokkos::complex<double>*> Qr("complexQ", num_meshpoints);
-
     auto vector_layout =
         Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
-    auto Qcomplex = Cajita::createArray<Kokkos::complex<double>, DeviceType>(
+    Qcomplex = Cajita::createArray<Kokkos::complex<double>, DeviceType>(
         "Qcomplex", vector_layout );
     auto Qcomplex_view = Qcomplex->view();
     auto Q_view = Q->view();
@@ -308,37 +297,27 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
         Qcomplex_view( i, j, k, 0 ).real( Q_view( i, j, k, 0 ) );
         Qcomplex_view( i, j, k, 0 ).imag( 0.0 );
     };
-    Kokkos::parallel_for(
-        Cajita::createExecutionPolicy( owned_space, ExecutionSpace() ),
-        copy_charge );
+    Kokkos::parallel_for( grid_policy, copy_charge );
     Kokkos::fence();
 
     // Next, solve Poisson's equation taking some FFTs of charges on mesh grid
-    // The plan here is to perform an inverse FFT on the mesh charge, then
-    // multiply the norm of that result (in reciprocal space) by the BC array
 
+    // Using default FastFourierTransformParams
     auto fft =
         Cajita::Experimental::createFastFourierTransform<double, DeviceType>(
-            *vector_layout, Cajita::Experimental::FastFourierTransformParams{}
-                                .setCollectiveType( 2 )
-                                .setExchangeType( 0 )
-                                .setPackType( 2 )
-                                .setScalingType( 1 ) );
+            *vector_layout,
+            Cajita::Experimental::FastFourierTransformParams() );
 
     fft->reverse( *Qcomplex );
 
     // update Q for later force calcs
     auto BC_view = BC_array->view();
-
     auto mult_BC_Qr = KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
-        Qcomplex_view( i, j, k, 0 ) *= BC_view( i, j, k, 0 ).real();
+        Qcomplex_view( i, j, k, 0 ) *= BC_view( i, j, k, 0 );
     };
-    Kokkos::parallel_for(
-        Cajita::createExecutionPolicy( owned_space, ExecutionSpace() ),
-        mult_BC_Qr );
+    Kokkos::parallel_for( grid_policy, mult_BC_Qr );
     Kokkos::fence();
-    // TODO: Make sure this multiplication of Qr_view is copied to Qr?
 
     fft->forward( *Qcomplex );
 
@@ -348,15 +327,12 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     {
         Q_view( i, j, k, 0 ) = Qcomplex_view( i, j, k, 0 ).real();
     };
-    Kokkos::parallel_for(
-        Cajita::createExecutionPolicy( owned_space, ExecutionSpace() ),
-        copy_back_charge );
+    Kokkos::parallel_for( grid_policy, copy_back_charge );
     Kokkos::fence();
-    // TODO: Make sure this copying into Q_view goes into Q?
 
     // Now, compute forces on each particle
     auto scalar_gradient_g2p = Cajita::createScalarGradientG2P( f, 1.0 );
-    Cajita::g2p( *Q, *Q_halo, x, system->N_local, Cajita::Spline<3>(),
+    Cajita::g2p( *Q, *Q_halo, x, N_local, Cajita::Spline<3>(),
                  scalar_gradient_g2p );
 
     // Now, multiply each value by particle's charge to get force
@@ -371,7 +347,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
                           mult_q );
     Kokkos::fence();
 
-    // real-space contribution
+    /* real-space contribution */
     auto realspace_force = KOKKOS_LAMBDA( const int idx )
     {
         int num_n =
@@ -429,10 +405,6 @@ ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system,
     auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
                                                Cajita::Local() );
     auto BC_view = BC_array->view();
-    auto vector_layout =
-        Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
-    auto Qcomplex = Cajita::createArray<Kokkos::complex<double>, DeviceType>(
-        "Qcomplex", vector_layout );
     auto Qcomplex_view = Qcomplex->view();
 
     const double ELECTRON_CHARGE = 1.60217662E-19; // electron charge in
@@ -446,7 +418,7 @@ ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system,
     auto kspace_potential =
         KOKKOS_LAMBDA( const int i, const int j, const int k, T_V_FLOAT &PE )
     {
-        PE += ENERGY_CONVERSION_FACTOR * BC_view( i, j, k, 0 ).real() *
+        PE += ENERGY_CONVERSION_FACTOR * BC_view( i, j, k, 0 ) *
               ( ( Qcomplex_view( i, j, k, 0 ).real() *
                   Qcomplex_view( i, j, k, 0 ).real() ) +
                 ( Qcomplex_view( i, j, k, 0 ).imag() *
