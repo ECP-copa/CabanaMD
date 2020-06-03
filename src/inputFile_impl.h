@@ -166,6 +166,9 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     force_iteration_type = commandline.force_iteration_type;
     force_neigh_parallel_type = commandline.force_neigh_parallel_type;
 
+    output_file = commandline.output_file;
+    error_file = commandline.error_file;
+
     // set defaults (matches ExaMiniMD LJ example)
 
     nsteps = 0;
@@ -210,26 +213,32 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
 template <class t_System>
 void InputFile<t_System>::read_file( const char *filename )
 {
+    // This is the first time the streams are used - overwrite any previous
+    // output
+    std::ofstream out( output_file, std::ofstream::out );
+    std::ofstream err( error_file, std::ofstream::out );
+
     if ( filename == NULL )
     {
         filename = commandline.input_file;
     }
     if ( commandline.input_file_type == INPUT_LAMMPS )
     {
-        read_lammps_file( filename );
+        std::ifstream in( filename );
+        read_lammps_file( in, out, err );
         return;
     }
-    if ( system->do_print )
-        printf( "ERROR: Unknown input file type\n" );
-    exit( 1 );
+    log_err( err, "Unknown input file type: ", filename );
+    err.close();
 }
 
 template <class t_System>
-void InputFile<t_System>::read_lammps_file( const char *filename )
+void InputFile<t_System>::read_lammps_file( std::ifstream &file,
+                                            std::ofstream &out,
+                                            std::ofstream &err )
 {
     input_data.allocate_words( 100 );
 
-    std::ifstream file( filename );
     char *line = new char[512];
     line[0] = 0;
     file.getline( line, std::streamsize( 511 ) );
@@ -239,25 +248,23 @@ void InputFile<t_System>::read_lammps_file( const char *filename )
         line[0] = 0;
         file.getline( line, 511 );
     }
-    if ( system->do_print )
-    {
-        printf( "\n" );
-        printf( "#InputFile:\n" );
-        printf(
-            "#=========================================================\n" );
+    log( out, "\n#InputFile:\n",
+         "#=========================================================" );
 
+    if ( print_rank() )
         input_data.print();
+    // log( out, input_data );
 
-        printf(
-            "#=========================================================\n" );
-        printf( "\n" );
-    }
+    log( out, "#=========================================================\n" );
+
     for ( int l = 0; l < input_data.nlines; l++ )
-        check_lammps_command( l );
+        check_lammps_command( l, err );
+
+    out.close();
 }
 
 template <class t_System>
-void InputFile<t_System>::check_lammps_command( int line )
+void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
 {
     bool known = false;
 
@@ -271,9 +278,8 @@ void InputFile<t_System>::check_lammps_command( int line )
     }
     if ( strcmp( input_data.words[line][0], "variable" ) == 0 )
     {
-        if ( system->do_print )
-            printf( "LAMMPS-Command: 'variable' keyword is not supported in "
-                    "CabanaMD\n" );
+        log_err( err, "LAMMPS-Command: 'variable' keyword is not supported in "
+                      "CabanaMD" );
     }
     if ( strcmp( input_data.words[line][0], "units" ) == 0 )
     {
@@ -308,9 +314,8 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
-                printf( "LAMMPS-Command: 'units' command only supports "
-                        "'metal', 'real', and 'lj' in CabanaMD\n" );
+            log_err( err, "LAMMPS-Command: 'units' command only supports "
+                          "'metal', 'real', and 'lj' in CabanaMD" );
         }
     }
     if ( strcmp( input_data.words[line][0], "atom_style" ) == 0 )
@@ -326,9 +331,8 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
-                printf( "LAMMPS-Command: 'atom_style' command only supports "
-                        "'atomic' and 'charge' in CabanaMD\n" );
+            log_err( err, "LAMMPS-Command: 'atom_style' command only supports "
+                          "'atomic' and 'charge' in CabanaMD" );
         }
     }
     if ( strcmp( input_data.words[line][0], "lattice" ) == 0 )
@@ -352,9 +356,9 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
-                printf( "LAMMPS-Command: 'lattice' command only supports 'sc' "
-                        "and 'fcc' in CabanaMD\n" );
+            log_err( err,
+                     "LAMMPS-Command: 'lattice' command only supports 'sc' "
+                     "and 'fcc' in CabanaMD" );
         }
         if ( strcmp( input_data.words[line][3], "origin" ) == 0 )
         {
@@ -376,18 +380,16 @@ void InputFile<t_System>::check_lammps_command( int line )
             box[4] = atoi( input_data.words[line][7] );
             box[5] = atoi( input_data.words[line][8] );
             if ( ( box[0] != 0 ) || ( box[2] != 0 ) || ( box[4] != 0 ) )
-                if ( system->do_print )
-                    printf( "LAMMPS-Command: region only allows for boxes with "
-                            "0,0,0 offset in CabanaMD\n" );
+                log_err( err, "LAMMPS-Command: region only allows for boxes "
+                              "with 0,0,0 offset in CabanaMD" );
             lattice_nx = box[1];
             lattice_ny = box[3];
             lattice_nz = box[5];
         }
         else
         {
-            if ( system->do_print )
-                printf( "LAMMPS-Command: 'region' command only supports "
-                        "'block' option in CabanaMD\n" );
+            log_err( err, "LAMMPS-Command: 'region' command only supports "
+                          "'block' option in CabanaMD" );
         }
     }
     if ( strcmp( input_data.words[line][0], "create_box" ) == 0 )
@@ -442,9 +444,9 @@ void InputFile<t_System>::check_lammps_command( int line )
             Kokkos::resize( force_coeff_lines, 1 );
             force_coeff_lines( 0 ) = line;
         }
-        if ( system->do_print && !known )
-            printf( "LAMMPS-Command: 'pair_style' command only supports "
-                    "'lj/cut' and 'nnp' style in CabanaMD\n" );
+        if ( !known )
+            log_err( err, "LAMMPS-Command: 'pair_style' command only supports "
+                          "'lj/cut' and 'nnp' style in CabanaMD" );
     }
     if ( strcmp( input_data.words[line][0], "pair_coeff" ) == 0 )
     {
@@ -464,15 +466,13 @@ void InputFile<t_System>::check_lammps_command( int line )
         known = true;
         if ( strcmp( input_data.words[line][1], "all" ) != 0 )
         {
-            if ( system->do_print )
-                printf( "LAMMPS-Command: 'velocity' command can only be "
-                        "applied to 'all' in CabanaMD\n" );
+            log_err( err, "LAMMPS-Command: 'velocity' command can only be "
+                          "applied to 'all' in CabanaMD" );
         }
         if ( strcmp( input_data.words[line][2], "create" ) != 0 )
         {
-            if ( system->do_print )
-                printf( "LAMMPS-Command: 'velocity' command can only be used "
-                        "with option 'create' in CabanaMD\n" );
+            log_err( err, "LAMMPS-Command: 'velocity' command can only be used "
+                          "with option 'create' in CabanaMD" );
         }
         temperature_target = atof( input_data.words[line][3] );
         temperature_seed = atoi( input_data.words[line][4] );
@@ -500,9 +500,8 @@ void InputFile<t_System>::check_lammps_command( int line )
         }
         else
         {
-            if ( system->do_print )
-                printf( "LAMMPS-Command: 'fix' command only supports 'nve' "
-                        "style in CabanaMD\n" );
+            log_err( err, "LAMMPS-Command: 'fix' command only supports 'nve' "
+                          "style in CabanaMD" );
         }
     }
     if ( strcmp( input_data.words[line][0], "run" ) == 0 )
@@ -537,33 +536,33 @@ void InputFile<t_System>::check_lammps_command( int line )
             }
             else
             {
-                if ( system->do_print )
-                    printf(
-                        "LAMMPS-Command: 'newton' must be followed by 'on' or "
-                        "'off'\n" );
+                log_err( err, "LAMMPS-Command: 'newton' must be followed by "
+                              "'on' or 'off'" );
             }
         }
         else
         {
-            if ( system->do_print )
-                printf( "Overriding LAMMPS-Command: 'newton' replaced by "
-                        "commandline --force-iteration " );
+            log( err,
+                 "Warning: Overriding LAMMPS-Command: 'newton' replaced by "
+                 "commandline --force-iteration" );
         }
     }
     if ( input_data.words[line][0][0] == '#' )
     {
         known = true;
     }
-    if ( !known && system->do_print )
+    if ( !known )
     {
-        printf( "ERROR: unknown keyword\n" );
-        input_data.print_line( line );
+        log_err( err, "Unknown input file keyword: ", line );
     }
+    err.close();
 }
 
 template <class t_System>
 void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
 {
+    std::ofstream out( output_file, std::ofstream::app );
+
     t_System s = *system;
     using t_layout = typename t_System::layout_type;
     System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
@@ -663,9 +662,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
         comm->scan_int( &N_local_offset, 1 );
         for ( T_INT i = 0; i < n; i++ )
             id( i ) += N_local_offset - n;
-
-        if ( system->do_print )
-            printf( "Atoms: %i %i\n", system->N, system->N_local );
     }
 
     // Create Face Centered Cubic (FCC) Lattice
@@ -798,10 +794,9 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
         auto id = s.id;
         auto type = s.type;
         system->deep_copy( host_system );
-
-        if ( system->do_print )
-            printf( "Atoms: %i %i\n", system->N, system->N_local );
     }
+    log( out, "Atoms: ", system->N, " ", system->N_local );
+
     // Initialize velocity using the equivalent of the LAMMPS
     // velocity geom option, i.e. uniform random kinetic energies.
     // zero out momentum of the whole system afterwards, to eliminate
@@ -870,4 +865,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
         h_v( i, 2 ) *= T_init_scale;
     }
     system->deep_copy( host_system );
+
+    out.close();
 }

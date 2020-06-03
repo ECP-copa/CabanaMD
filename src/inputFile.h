@@ -171,7 +171,7 @@ class InputFile
     InputCL commandline;
     t_System *system;
 
-    bool do_print;
+    bool _print_rank;
     int units_style;
     int lattice_style;
     double lattice_constant, lattice_offset_x, lattice_offset_y,
@@ -184,6 +184,9 @@ class InputFile
     char *data_file;
     int data_file_type;
     ItemizedFile data_file_data;
+
+    std::string output_file;
+    std::string error_file;
 
     double temperature_target;
     int temperature_seed;
@@ -218,9 +221,9 @@ class InputFile
 
     InputFile( InputCL cl, t_System *s );
     void read_file( const char *filename = NULL );
-    void read_lammps_file( const char *filename );
-    void read_data_file( const char *filename );
-    void check_lammps_command( int line );
+    void read_lammps_file( std::ifstream &in, std::ofstream &out,
+                           std::ofstream &err );
+    void check_lammps_command( int line, std::ofstream &err );
     void create_lattice( Comm<t_System> *comm );
 };
 

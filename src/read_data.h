@@ -60,7 +60,7 @@ void skip_empty( std::ifstream &file, std::string &line )
     }
 }
 
-std::string read_lammps_parse_keyword( std::ifstream &file, bool do_print )
+std::string read_lammps_parse_keyword( std::ifstream &file, std::ofstream &err )
 {
     // Read up to first non-blank line plus 1 following
     std::string line;
@@ -88,9 +88,7 @@ std::string read_lammps_parse_keyword( std::ifstream &file, bool do_print )
                 return keyword;
             else
             {
-                if ( do_print )
-                    std::cout << "ERROR: Unknown identifier in data file: "
-                              << keyword.data() << std::endl;
+                log_err( err, "Unknown data file keyword: ", keyword.data() );
                 return keyword;
             }
         }
@@ -101,17 +99,15 @@ std::string read_lammps_parse_keyword( std::ifstream &file, bool do_print )
 }
 
 template <class t_System>
-void read_lammps_header( std::ifstream &file, t_System *s )
+void read_lammps_header( std::ifstream &file, std::ofstream &err, t_System *s )
 {
     std::string line;
     // skip 1st line of file
     if ( !std::getline( file, line ) )
-        if ( s->do_print )
-            std::cout
-                << "ERROR: could not read line from file. Please check for a "
-                   "valid file and ensure that file path is less than 32 "
-                   "characters."
-                << std::endl;
+        log_err(
+            err,
+            "Could not read from data file. Please check for a valid file and "
+            "ensure that file path is less than 32 characters." );
     while ( 1 )
     {
         std::getline( file, line );
@@ -309,15 +305,15 @@ void read_lammps_pair( std::ifstream &file, t_System *s )
 }
 
 template <class t_System>
-void read_lammps_data_file( std::string filename, t_System *s,
+void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
                             Comm<t_System> *comm )
 {
-
     int atomflag = 0;
     std::string keyword;
-    std::ifstream file( filename );
+    std::ifstream file( input->lammps_data_file );
+    std::ofstream err( input->error_file, std::ofstream::app );
 
-    read_lammps_header<t_System>( file, s );
+    read_lammps_header<t_System>( file, err, s );
 
     // perform domain decomposition and get access to subdomains
     comm->create_domain_decomposition();
@@ -326,7 +322,7 @@ void read_lammps_data_file( std::string filename, t_System *s,
     s->resize( s->N / comm->num_processes() );
 
     // check that the next string is a valid section keyword
-    keyword = read_lammps_parse_keyword( file, s->do_print );
+    keyword = read_lammps_parse_keyword( file, err );
     while ( keyword.length() )
     {
         if ( keyword.compare( "Atoms" ) == 0 )
@@ -336,9 +332,8 @@ void read_lammps_data_file( std::string filename, t_System *s,
         }
         else if ( keyword.compare( "Velocities" ) == 0 )
         {
-            if ( atomflag == 0 && s->do_print )
-                std::cout << "ERROR: Must read Atoms before Velocities"
-                          << std::endl;
+            if ( atomflag == 0 )
+                log_err( err, "Must read Atoms before Velocities" );
 
             read_lammps_velocities<t_System>( file, s );
         }
@@ -349,21 +344,16 @@ void read_lammps_data_file( std::string filename, t_System *s,
         else if ( keyword.compare( "Pair Coeffs" ) == 0 )
         {
             read_lammps_pair<t_System>( file, s );
-            if ( s->do_print )
-                std::cout
-                    << "WARNING: Ignoring potential parameters in data file. "
-                       "CabanaMD only reads pair_coeff in the input file."
-                    << std::endl;
+            log( err, "Warning: Ignoring potential parameters in data file. "
+                      "CabanaMD only reads pair_coeff in the input file." );
             read_lammps_pair<t_System>( file, s );
         }
         else
         {
-            if ( s->do_print )
-                std::cout << "ERROR: Unknown identifier in data file: "
-                          << keyword << std::endl;
+            log_err( err, "Unknown identifier in data file: ", keyword );
         }
 
-        keyword = read_lammps_parse_keyword( file, s->do_print );
+        keyword = read_lammps_parse_keyword( file, err );
     }
 
     // check that correct # of atoms were created
@@ -372,7 +362,6 @@ void read_lammps_data_file( std::string filename, t_System *s,
 
     if ( natoms != s->N )
     {
-        if ( s->do_print )
-            std::cout << "ERROR: Created incorrect # of atoms" << std::endl;
+        log_err( err, "Created incorrect # of atoms." );
     }
 }

@@ -65,6 +65,7 @@ class ForceNNP : public Force<t_System, t_Neighbor>
     T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
     const char *name() override;
+    const char *system_name() override;
 
     bool showew;
     bool resetew;

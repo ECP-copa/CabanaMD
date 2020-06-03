@@ -69,6 +69,7 @@ class Force
     } // Only needed for thermo output
 
     virtual const char *name() { return "ForceNone"; }
+    virtual const char *system_name() { return "ForceSystemNone"; }
 };
 
 #include <modules_force.h>

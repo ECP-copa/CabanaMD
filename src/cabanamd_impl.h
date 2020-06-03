@@ -46,10 +46,14 @@
 //
 //************************************************************************
 
+#include <output.h>
 #include <property_kine.h>
 #include <property_pote.h>
 #include <property_temperature.h>
 #include <read_data.h>
+
+#include <iomanip>
+#include <iostream>
 
 #define MAXPATHLEN 1024
 
@@ -62,35 +66,29 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 
     // Create the Input class: Command line and LAMMPS input file
     input = new InputFile<t_System>( commandline, system );
-
-    if ( system->do_print )
-    {
-        if ( commandline.device_type != HIP )
-        {
-            using exe_space = typename t_System::execution_space;
-            exe_space::print_configuration( std::cout );
-        }
-        else
-        {
-            std::cout << "Using Kokkos::Experimental::HIP" << std::endl;
-        }
-    }
     // Read input file
     input->read_file();
     nsteps = input->nsteps;
-    if ( system->do_print )
+    std::ofstream out( input->output_file, std::ofstream::app );
+    std::ofstream err( input->error_file, std::ofstream::app );
+    log( out, "Read input file." );
+
+    if ( commandline.device_type != HIP )
     {
-        printf( "Read input file\n" );
+        using exe_space = typename t_System::execution_space;
+        if ( print_rank() )
+            exe_space::print_configuration( out );
     }
+    else
+    {
+        log( out, "Using Kokkos::Experimental::HIP" );
+    }
+
     // Check that the requested pair_style was compiled
 #ifndef CabanaMD_ENABLE_NNP
     if ( input->force_type == FORCE_NNP )
     {
-        if ( system->do_print )
-        {
-            std::cout << "NNP requested, but not compiled!" << std::endl;
-        }
-        std::exit( 1 );
+        log_err( err, "NNP requested, but not compiled!" );
     }
 #endif
     auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
@@ -129,8 +127,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         bool vector_angle =
             input->force_neigh_parallel_type == FORCE_PARALLEL_NEIGH_VECTOR;
         if ( half_neigh )
-            throw std::runtime_error( "Half neighbor list not implemented "
-                                      "for the neural network potential." );
+            log_err( err, "Half neighbor list not implemented "
+                          "for the neural network potential." );
         else
         {
             using t_device = typename t_System::device_type;
@@ -168,7 +166,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     }
 #endif
     else
-        comm->error( "Invalid ForceType" );
+        log_err( err, "Invalid ForceType" );
 
     for ( std::size_t line = 0; line < input->force_coeff_lines.extent( 0 );
           line++ )
@@ -177,24 +175,26 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
             input->input_data.words[input->force_coeff_lines( line )] );
     }
 
-    if ( system->do_print )
-    {
-        printf( "Using: SystemVectorLength:%i %s\n", CabanaMD_VECTORLENGTH,
-                system->name() );
-        printf( "Using: %s %s %s %s %s\n", force->name(), neighbor->name(),
-                comm->name(), binning->name(), integrator->name() );
-    }
+    log( out, "Using: SystemVectorLength: ", CabanaMD_VECTORLENGTH, " ",
+         system->name() );
+#ifdef CabanaMD_ENABLE_NNP
+    if ( input->force_type == FORCE_NNP )
+        log( out, "Using: SystemNNPVectorLength: ", CabanaMD_VECTORLENGTH_NNP,
+             " ", force->system_name() );
+#endif
+    log( out, "Using: ", force->name(), " ", neighbor->name(), " ",
+         comm->name(), " ", binning->name(), " ", integrator->name() );
 
     // Create atoms - from LAMMPS data file or create FCC/SC lattice
     if ( system->N == 0 && input->read_data_flag == true )
     {
-        read_lammps_data_file<t_System>( input->lammps_data_file, system,
-                                         comm );
+        read_lammps_data_file<t_System>( input, system, comm );
     }
     else if ( system->N == 0 )
     {
         input->create_lattice( comm );
     }
+    log( out, "Created atoms." );
 
     // Exchange atoms across MPI ranks
     comm->exchange();
@@ -232,21 +232,17 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         auto T = temp.compute( system );
         auto PE = pote.compute( system, force, neighbor ) / system->N;
         auto KE = kine.compute( system ) / system->N;
-        if ( system->do_print )
+        if ( !_print_lammps )
         {
-            if ( !system->print_lammps )
-            {
-                printf( "\n" );
-                printf( "#Timestep Temperature PotE ETot Time Atomsteps/s\n" );
-                printf( "%i %lf %lf %lf %lf %e\n", step, T, PE, PE + KE, 0.0,
-                        0.0 );
-            }
-            else
-            {
-                printf( "\n" );
-                printf( "Step Temp E_pair TotEng CPU\n" );
-                printf( "     %i %lf %lf %lf %e\n", step, T, PE, PE + KE, 0.0 );
-            }
+            log( out, "\n", std::fixed, std::setprecision( 6 ),
+                 "#Timestep Temperature PotE ETot Time Atomsteps/s\n", step,
+                 " ", T, " ", PE, " ", PE + KE, " ", std::setprecision( 2 ),
+                 0.0, " ", std::scientific, 0.0 );
+        }
+        else
+        {
+            log( out, "\nStep Temp E_pair TotEng CPU\n", step, " ", T, " ", PE,
+                 " ", PE + KE, " ", 0.0 );
         }
     }
 
@@ -258,11 +254,15 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     {
         check_correctness( step );
     }
+    out.close();
+    err.close();
 }
 
 template <class t_System, class t_Neighbor>
 void CbnMD<t_System, t_Neighbor>::run()
 {
+    std::ofstream out( input->output_file, std::ofstream::app );
+
     auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
@@ -353,24 +353,23 @@ void CbnMD<t_System, t_Neighbor>::run()
             auto T = temp.compute( system );
             auto PE = pote.compute( system, force, neighbor ) / system->N;
             auto KE = kine.compute( system ) / system->N;
-            if ( system->do_print )
+
+            if ( !_print_lammps )
             {
-                if ( !system->print_lammps )
-                {
-                    double time = timer.seconds();
-                    printf( "%i %lf %lf %lf %lf %e\n", step, T, PE, PE + KE,
-                            timer.seconds(),
-                            1.0 * system->N * input->thermo_rate /
-                                ( time - last_time ) );
-                    last_time = time;
-                }
-                else
-                {
-                    double time = timer.seconds();
-                    printf( "     %i %lf %lf %lf %lf\n", step, T, PE, PE + KE,
-                            timer.seconds() );
-                    last_time = time;
-                }
+                double time = timer.seconds();
+                double rate =
+                    1.0 * system->N * input->thermo_rate / ( time - last_time );
+                log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
+                     PE, " ", PE + KE, " ", std::setprecision( 2 ), time, " ",
+                     std::scientific, rate );
+                last_time = time;
+            }
+            else
+            {
+                double time = timer.seconds();
+                log( out, std::fixed, std::setprecision( 6 ), "     ", step,
+                     " ", T, " ", PE, " ", PE + KE, " ", time );
+                last_time = time;
             }
         }
 
@@ -386,34 +385,34 @@ void CbnMD<t_System, t_Neighbor>::run()
     double time = timer.seconds();
 
     // Final output and timings
-    if ( system->do_print )
+    if ( !_print_lammps )
     {
-        if ( !system->print_lammps )
-        {
-            printf( "\n" );
-            printf( "#Procs Particles | Time T_Force T_Neigh T_Comm T_Int "
-                    "T_Other | Steps/s Atomsteps/s Atomsteps/(proc*s)\n" );
-            printf( "%i %i | %lf %lf %lf %lf %lf %lf | %lf %e %e PERFORMANCE\n",
-                    comm->num_processes(), system->N, time, force_time,
-                    neigh_time, comm_time, integrate_time, other_time,
-                    1.0 * nsteps / time, 1.0 * system->N * nsteps / time,
-                    1.0 * system->N * nsteps / time / comm->num_processes() );
-            printf( "%i %i | %lf %lf %lf %lf %lf %lf | FRACTION\n",
-                    comm->num_processes(), system->N, 1.0, force_time / time,
-                    neigh_time / time, comm_time / time, integrate_time / time,
-                    other_time / time );
-        }
-        else
-        {
-            printf( "Loop time of %f on %i procs for %i steps with %i atoms\n",
-                    time, comm->num_processes(), nsteps, system->N );
-        }
+        double steps_per_sec = 1.0 * nsteps / time;
+        double atom_steps_per_sec = system->N * steps_per_sec;
+        log( out, std::fixed, std::setprecision( 2 ),
+             "\n#Procs Atoms | Time T_Force T_Neigh T_Comm T_Int ",
+             "T_Other |\n", comm->num_processes(), " ", system->N, " | ", time,
+             " ", force_time, " ", neigh_time, " ", comm_time, " ",
+             integrate_time, " ", other_time, " | PERFORMANCE\n", std::fixed,
+             comm->num_processes(), " ", system->N, " | ", 1.0, " ",
+             force_time / time, " ", neigh_time / time, " ", comm_time / time,
+             " ", integrate_time / time, " ", other_time / time,
+             " | FRACTION\n\n", "#Steps/s Atomsteps/s Atomsteps/(proc*s)\n",
+             std::scientific, steps_per_sec, " ", atom_steps_per_sec, " ",
+             atom_steps_per_sec / comm->num_processes() );
     }
+    else
+    {
+        log( out, "Loop time of ", time, " on ", comm->num_processes(),
+             " procs for ", nsteps, " steps with ", system->N, " atoms" );
+    }
+    out.close();
 }
 
 template <class t_System, class t_Neighbor>
 void CbnMD<t_System, t_Neighbor>::dump_binary( int step )
 {
+    std::ofstream err( input->error_file, std::ofstream::app );
 
     // On dump steps print configuration
 
@@ -429,9 +428,7 @@ void CbnMD<t_System, t_Neighbor>::dump_binary( int step )
     fp = fopen( filename, "wb" );
     if ( fp == NULL )
     {
-        char str[MAXPATHLEN];
-        sprintf( str, "Cannot open dump file %s", filename );
-        // comm->error(str);
+        log_err( err, "Cannot open dump file: ", filename );
     }
 
     system->slice_all();
@@ -452,6 +449,7 @@ void CbnMD<t_System, t_Neighbor>::dump_binary( int step )
     fwrite( h_f.data(), sizeof( T_F_FLOAT ), 3 * n, fp );
 
     fclose( fp );
+    err.close();
 }
 
 // TODO: 1. Add path to Reference [DONE]
@@ -464,6 +462,7 @@ void CbnMD<t_System, t_Neighbor>::dump_binary( int step )
 template <class t_System, class t_Neighbor>
 void CbnMD<t_System, t_Neighbor>::check_correctness( int step )
 {
+    std::ofstream err( input->error_file, std::ofstream::app );
 
     if ( step % input->correctness_rate )
         return;
@@ -487,16 +486,13 @@ void CbnMD<t_System, t_Neighbor>::check_correctness( int step )
     fpref = fopen( filename, "rb" );
     if ( fpref == NULL )
     {
-        char str[MAXPATHLEN];
-        sprintf( str, "Cannot open input file %s", filename );
-        // comm->error(str);
+        log_err( err, "Cannot open input file: ", filename );
     }
 
     fread( &ntmp, sizeof( T_INT ), 1, fpref );
     if ( ntmp != n )
     {
-        // comm->error("Mismatch in current and reference atom counts");
-        printf( "Mismatch in current and reference atom counts\n" );
+        log_err( err, "Mismatch in current and reference atom counts" );
     }
 
     Kokkos::View<T_INT *, Kokkos::LayoutRight> idref( "Correctness::id", n );
@@ -539,8 +535,8 @@ void CbnMD<t_System, t_Neighbor>::check_correctness( int step )
             ii = i;
 
         if ( ii == -1 )
-            printf( "Unable to find current id matchinf reference id %d \n",
-                    idref( i ) );
+            log_err( err, "Unable to find current id matchinf reference id: ",
+                     idref( i ) );
         else
         {
             T_FLOAT delx, dely, delz, delrsq;
@@ -599,25 +595,23 @@ void CbnMD<t_System, t_Neighbor>::check_correctness( int step )
     comm->reduce_max_float( &maxdelv, 1 );
     comm->reduce_max_float( &maxdelf, 1 );
 
-    if ( system->do_print )
+    if ( step == 0 )
     {
-        if ( step == 0 )
-        {
-            FILE *fpout = fopen( input->correctness_file, "w" );
-            fprintf( fpout, "# timestep deltarnorm maxdelr deltavnorm maxdelv "
-                            "deltafnorm maxdelf\n" );
-            fprintf( fpout, "%d %g %g %g %g %g %g\n", step, sqrt( sumdelrsq ),
-                     maxdelr, sqrt( sumdelvsq ), maxdelv, sqrt( sumdelfsq ),
-                     maxdelf );
-            fclose( fpout );
-        }
-        else
-        {
-            FILE *fpout = fopen( input->correctness_file, "a" );
-            fprintf( fpout, "%d %g %g %g %g %g %g\n", step, sqrt( sumdelrsq ),
-                     maxdelr, sqrt( sumdelvsq ), maxdelv, sqrt( sumdelfsq ),
-                     maxdelf );
-            fclose( fpout );
-        }
+        FILE *fpout = fopen( input->correctness_file, "w" );
+        fprintf( fpout, "# timestep deltarnorm maxdelr deltavnorm maxdelv "
+                        "deltafnorm maxdelf\n" );
+        fprintf( fpout, "%d %g %g %g %g %g %g\n", step, sqrt( sumdelrsq ),
+                 maxdelr, sqrt( sumdelvsq ), maxdelv, sqrt( sumdelfsq ),
+                 maxdelf );
+        fclose( fpout );
     }
+    else
+    {
+        FILE *fpout = fopen( input->correctness_file, "a" );
+        fprintf( fpout, "%d %g %g %g %g %g %g\n", step, sqrt( sumdelrsq ),
+                 maxdelr, sqrt( sumdelvsq ), maxdelv, sqrt( sumdelfsq ),
+                 maxdelf );
+        fclose( fpout );
+    }
+    err.close();
 }

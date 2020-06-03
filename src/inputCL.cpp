@@ -52,14 +52,8 @@
 #include <fstream>
 #include <iostream>
 
-#include <mpi.h>
-
 InputCL::InputCL()
 {
-    int proc_rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
-    do_print = proc_rank == 0;
-
     device_type = SERIAL;
     layout_type = AOSOA_6;
     nnp_layout_type = AOSOA_3;
@@ -79,58 +73,73 @@ void InputCL::read_args( int argc, char *argv[] )
         if ( ( strcmp( argv[i], "-h" ) == 0 ) ||
              ( strcmp( argv[i], "--help" ) == 0 ) )
         {
-            if ( do_print )
-            {
-                printf( "CabanaMD 0.1 \n\n" );
-                printf( "Options:\n" );
-                printf( "  -il [file] / --input-lammps [FILE]: Provide LAMMPS "
-                        "input file\n" );
-                printf( "  --device-type [TYPE]:       Kokkos device type to "
-                        "run with\n                              (SERIAL, "
-                        "OPENMP, CUDA, HIP)\n" );
-                printf( "  --layout-type [TYPE]:       Number of AoSoA for "
-                        "particle properties\n                              "
-                        "(1AOSOA, 2AOSOA, 6AOSOA)\n" );
-                printf( "  --nnp-layout-type [TYPE]:   Number of AoSoA for "
-                        "neural network potential particle properties\n        "
-                        "                      "
-                        "(1AOSOA, 3AOSOA)\n" );
-                printf( "  --force-iteration [TYPE]:   Specify iteration style "
-                        "for force calculations\n" );
-                printf( "                              (NEIGH_FULL, "
-                        "NEIGH_HALF)\n" );
-                printf( "  --neigh-parallel [TYPE]:    Specify neighbor "
-                        "parallelism and, if applicable, angular neighbor "
-                        "parallelism\n" );
-                printf( "                              (SERIAL, TEAM, "
-                        "TEAM_VECTOR)\n" );
-                printf( "  --neigh-type [TYPE]:        Specify Neighbor "
-                        "Routines implementation \n" );
-                printf( "                              (VERLET_2D, VERLET_CSR, "
-                        "TREE)\n" );
-                printf(
-                    "  --dumpbinary [N] [PATH]:    Request that binary output "
-                    "files PATH/output* be generated every N steps\n" );
-                printf(
-                    "                              (N = positive integer)\n" );
-                printf( "                              (PATH = location of "
-                        "directory)\n" );
-                printf(
-                    "  --correctness [N] [PATH] [FILE]:   Request that "
-                    "correctness check against files PATH/output* be performed "
-                    "every N steps, correctness data written to FILE\n" );
-                printf(
-                    "                              (N = positive integer)\n" );
-                printf( "                              (PATH = location of "
-                        "directory)\n" );
-            }
+            log( std::cout, "CabanaMD 0.1\n", "Options:" );
+            log( std::cout,
+                 "  -il [FILE] (OR)\n"
+                 "  --input-lammps [FILE]:    Provide LAMMPS input file\n" );
+            log(
+                std::cout,
+                "  --device-type [TYPE]:     Kokkos device type to run ",
+                "with\n",
+                "                                (SERIAL, OPENMP, CUDA, HIP)" );
+            log( std::cout,
+                 "  --layout-type [TYPE]:     Number of AoSoA for particle ",
+                 "properties\n",
+                 "                                (1AOSOA, 2AOSOA, 6AOSOA)" );
+            log( std::cout,
+                 "  --nnp-layout-type [TYPE]: Number of AoSoA for neural ",
+                 "network potential particle properties\n",
+                 "                                (1AOSOA, 3AOSOA)" );
+            log( std::cout,
+                 "  --force-iteration [TYPE]: Specify iteration style for ",
+                 "force calculations\n",
+                 "                                (NEIGH_FULL, NEIGH_HALF)" );
+            log(
+                std::cout,
+                "  --neigh-parallel [TYPE]:  Specify neighbor parallelism ",
+                "and, if applicable, angular neighbor parallelism\n",
+                "                                (SERIAL, TEAM, TEAM_VECTOR)" );
+            log( std::cout,
+                 "  --neigh-type [TYPE]:      Specify Neighbor Routines ",
+                 "implementation\n",
+                 "                                (VERLET_2D, VERLET_CSR, "
+                 "TREE)" );
+            log( std::cout,
+                 "  --dumpbinary [N] [PATH]:  Request that binary output ",
+                 "files PATH/output* be generated every N steps\n",
+                 "                                (N = positive integer)\n",
+                 "                                (PATH = location of ",
+                 "directory)" );
+            log( std::cout,
+                 "  --correctness [N] [PATH] [FILE]: Request that "
+                 "correctness check against files PATH/output* be performed "
+                 "every N "
+                 "steps, correctness data written to FILE\n",
+                 "                                (N = positive integer)\n",
+                 "                                (PATH = location of ",
+                 "directory)\n" );
         }
+
         // Read Lammps input deck
         else if ( ( strcmp( argv[i], "-il" ) == 0 ) ||
                   ( strcmp( argv[i], "--input-lammps" ) == 0 ) )
         {
             input_file = argv[i + 1];
             input_file_type = INPUT_LAMMPS;
+            ++i;
+        }
+
+        // Output file names
+        else if ( ( strcmp( argv[i], "-o" ) == 0 ) ||
+                  ( strcmp( argv[i], "--output-file" ) == 0 ) )
+        {
+            output_file = argv[i + 1];
+            ++i;
+        }
+        else if ( ( strcmp( argv[i], "-e" ) == 0 ) ||
+                  ( strcmp( argv[i], "--error-file" ) == 0 ) )
+        {
+            error_file = argv[i + 1];
             ++i;
         }
 
@@ -145,6 +154,9 @@ void InputCL::read_args( int argc, char *argv[] )
                 device_type = CUDA;
             else if ( ( strcmp( argv[i + 1], "HIP" ) == 0 ) )
                 device_type = HIP;
+            else
+                log_err( std::cout, "Unknown commandline option: ", argv[i],
+                         " ", argv[i + 1] );
             ++i;
         }
 
@@ -157,6 +169,9 @@ void InputCL::read_args( int argc, char *argv[] )
                 layout_type = AOSOA_2;
             else if ( ( strcmp( argv[i + 1], "6AOSOA" ) == 0 ) )
                 layout_type = AOSOA_6;
+            else
+                log_err( std::cout, "Unknown commandline option: ", argv[i],
+                         " ", argv[i + 1] );
             ++i;
         }
         else if ( ( strcmp( argv[i], "--nnp-layout-type" ) == 0 ) )
@@ -165,6 +180,9 @@ void InputCL::read_args( int argc, char *argv[] )
                 layout_type = AOSOA_1;
             else if ( ( strcmp( argv[i + 1], "3AOSOA" ) == 0 ) )
                 layout_type = AOSOA_3;
+            else
+                log_err( std::cout, "Unknown commandline option: ", argv[i],
+                         " ", argv[i + 1] );
             ++i;
         }
 
@@ -176,6 +194,9 @@ void InputCL::read_args( int argc, char *argv[] )
                 force_iteration_type = FORCE_ITER_NEIGH_FULL;
             else if ( ( strcmp( argv[i + 1], "NEIGH_HALF" ) == 0 ) )
                 force_iteration_type = FORCE_ITER_NEIGH_HALF;
+            else
+                log_err( std::cout, "Unknown commandline option: ", argv[i],
+                         " ", argv[i + 1] );
             ++i;
         }
 
@@ -188,17 +209,15 @@ void InputCL::read_args( int argc, char *argv[] )
                 neighbor_type = NEIGH_VERLET_CSR;
             else if ( ( strcmp( argv[i + 1], "TREE" ) == 0 ) )
                 neighbor_type = NEIGH_TREE;
+            else
+                log_err( std::cout, "Unknown commandline option: ", argv[i],
+                         " ", argv[i + 1] );
             ++i;
 #ifndef Cabana_ENABLE_ARBORX
             if ( neighbor_type == NEIGH_TREE )
             {
-                if ( do_print )
-                {
-                    std::cout
-                        << "ArborX requested, but not compiled with Cabana!"
-                        << std::endl;
-                }
-                std::exit( 1 );
+                log_err( std::cout,
+                         "ArborX requested, but not compiled with Cabana!" );
             }
 #endif
         }
@@ -212,6 +231,9 @@ void InputCL::read_args( int argc, char *argv[] )
                 force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_TEAM;
             else if ( ( strcmp( argv[i + 1], "TEAM_VECTOR" ) == 0 ) )
                 force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_VECTOR;
+            else
+                log_err( std::cout, "Unknown commandline option: ", argv[i],
+                         " ", argv[i + 1] );
             ++i;
         }
 
@@ -236,9 +258,7 @@ void InputCL::read_args( int argc, char *argv[] )
 
         else if ( ( strstr( argv[i], "--kokkos-" ) == NULL ) )
         {
-            if ( do_print )
-                printf( "ERROR: Unknown command line argument: %s\n", argv[i] );
-            exit( 1 );
+            log_err( std::cout, "Unknown command line argument: ", argv[i] );
         }
     }
 }

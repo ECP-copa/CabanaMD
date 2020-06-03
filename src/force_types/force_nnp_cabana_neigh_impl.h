@@ -24,10 +24,14 @@ ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
     step = 0;
 
     system_nnp = new t_System_NNP;
+}
 
-    if ( system->do_print )
-        printf( "Using: NNPVectorLength:%i %s\n", CabanaMD_VECTORLENGTH_NNP,
-                system_nnp->name() );
+template <class t_System, class t_System_NNP, class t_Neighbor,
+          class t_neigh_parallel, class t_angle_parallel>
+const char *ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
+                     t_angle_parallel>::system_name()
+{
+    return system_nnp->name();
 }
 
 template <class t_System, class t_System_NNP, class t_Neighbor,
