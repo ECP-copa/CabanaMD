@@ -67,6 +67,7 @@ enum
 enum
 {
     CUDA,
+    HIP,
     OPENMP,
     SERIAL
 };

@@ -25,7 +25,11 @@ class NeighborVerlet : public Neighbor<t_System>
     T_X_FLOAT neigh_cut;
     bool half_neigh;
 
+#ifdef KOKKOS_ENABLE_HIP
+    using t_build = Cabana::TeamOpTag;
+#else
     using t_build = Cabana::TeamVectorOpTag;
+#endif
     using t_neigh_list =
         Cabana::VerletList<memory_space, t_iteration, t_layout, t_build>;
 

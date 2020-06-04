@@ -86,7 +86,7 @@ void InputCL::read_args( int argc, char *argv[] )
                         "input file\n" );
                 printf( "  --device-type [TYPE]:       Kokkos device type to "
                         "run with\n                              (SERIAL, "
-                        "OPENMP, CUDA)\n" );
+                        "OPENMP, CUDA, HIP)\n" );
                 printf( "  --layout-type [TYPE]:       Number of AoSoA for "
                         "particle properties\n                              "
                         "(1AOSOA, 2AOSOA, 6AOSOA)\n" );
@@ -142,6 +142,8 @@ void InputCL::read_args( int argc, char *argv[] )
                 device_type = OPENMP;
             else if ( ( strcmp( argv[i + 1], "CUDA" ) == 0 ) )
                 device_type = CUDA;
+            else if ( ( strcmp( argv[i + 1], "HIP" ) == 0 ) )
+                device_type = HIP;
             ++i;
         }
 
