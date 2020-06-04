@@ -186,13 +186,14 @@ void InputCL::read_args( int argc, char *argv[] )
             else if ( ( strcmp( argv[i + 1], "TREE" ) == 0 ) )
                 neighbor_type = NEIGH_TREE;
             ++i;
-#ifndef CabanaMD_ENABLE_ARBORX
+#ifndef Cabana_ENABLE_ARBORX
             if ( neighbor_type == NEIGH_TREE )
             {
                 if ( do_print )
                 {
-                    std::cout << "ArborX requested, but not compiled!"
-                              << std::endl;
+                    std::cout
+                        << "ArborX requested, but not compiled with Cabana!"
+                        << std::endl;
                 }
                 std::exit( 1 );
             }

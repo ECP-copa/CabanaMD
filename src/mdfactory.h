@@ -66,7 +66,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -120,7 +120,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -174,7 +174,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -237,7 +237,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -291,7 +291,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -345,7 +345,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -408,7 +408,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -462,7 +462,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -516,7 +516,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
