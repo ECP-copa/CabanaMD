@@ -394,6 +394,7 @@ void InputFile<t_System>::check_lammps_command( int line )
     {
         known = true;
         system->ntypes = atoi( input_data.words[line][1] );
+        using t_mass = typename t_System::t_mass;
         system->mass = t_mass( "System::mass", system->ntypes );
     }
     if ( strcmp( input_data.words[line][0], "create_atoms" ) == 0 )
@@ -404,7 +405,8 @@ void InputFile<t_System>::check_lammps_command( int line )
     {
         known = true;
         int type = atoi( input_data.words[line][1] ) - 1;
-        Kokkos::View<T_V_FLOAT> mass_one( system->mass, type );
+        using exe_space = typename t_System::execution_space;
+        Kokkos::View<T_V_FLOAT, exe_space> mass_one( system->mass, type );
         T_V_FLOAT mass = atof( input_data.words[line][2] );
         Kokkos::deep_copy( mass_one, mass );
     }
@@ -563,8 +565,13 @@ template <class t_System>
 void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
 {
     t_System s = *system;
+    using t_layout = typename t_System::layout_type;
+    System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
+           t_layout>
+        host_system;
 
-    t_mass::HostMirror h_mass = Kokkos::create_mirror_view( s.mass );
+    using h_t_mass = typename t_System::h_t_mass;
+    h_t_mass h_mass = Kokkos::create_mirror_view( s.mass );
     Kokkos::deep_copy( h_mass, s.mass );
 
     // Create Simple Cubic Lattice
@@ -737,15 +744,14 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
         system->N = n;
         system->resize( n );
         system->slice_all();
-        s = *system;
-        auto x = s.x;
-        auto v = s.v;
-        auto id = s.id;
-        auto type = s.type;
-        auto q = s.q;
+
+        host_system.resize( n );
+        host_system.slice_all();
+        auto h_x = host_system.x;
+        auto h_id = host_system.id;
+        auto h_type = host_system.type;
 
         n = 0;
-
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
         {
             for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
@@ -767,25 +773,31 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                              ( ytmp < s.sub_domain_hi_y ) &&
                              ( ztmp < s.sub_domain_hi_z ) )
                         {
-                            x( n, 0 ) = xtmp;
-                            x( n, 1 ) = ytmp;
-                            x( n, 2 ) = ztmp;
-                            type( n ) = rand() % s.ntypes;
-                            id( n ) = n + 1;
+                            h_x( n, 0 ) = xtmp;
+                            h_x( n, 1 ) = ytmp;
+                            h_x( n, 2 ) = ztmp;
+                            h_type( n ) = rand() % s.ntypes;
+                            h_id( n ) = n + 1;
                             n++;
                         }
                     }
                 }
             }
         }
+        comm->reduce_int( &system->N, 1 );
 
         // Make ids unique over all processes
         T_INT N_local_offset = n;
         comm->scan_int( &N_local_offset, 1 );
         for ( T_INT i = 0; i < n; i++ )
-            id( i ) += N_local_offset - n;
+            h_id( i ) += N_local_offset - n;
 
-        comm->reduce_int( &system->N, 1 );
+        // Already sliced
+        s = *system;
+        auto x = s.x;
+        auto id = s.id;
+        auto type = s.type;
+        system->deep_copy( host_system );
 
         if ( system->do_print )
             printf( "Atoms: %i %i\n", system->N, system->N_local );
@@ -795,67 +807,67 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     // zero out momentum of the whole system afterwards, to eliminate
     // drift (bad for energy statistics)
 
-    { // Scope s
-        system->slice_all();
-        t_System s = *system;
-        auto x = s.x;
-        auto v = s.v;
-        auto type = s.type;
-        auto q = s.q;
+    // already sliced
+    auto h_x = host_system.x;
+    auto h_v = host_system.v;
+    auto h_q = host_system.q;
+    auto h_type = host_system.type;
 
-        T_FLOAT total_mass = 0.0;
-        T_FLOAT total_momentum_x = 0.0;
-        T_FLOAT total_momentum_y = 0.0;
-        T_FLOAT total_momentum_z = 0.0;
+    T_FLOAT total_mass = 0.0;
+    T_FLOAT total_momentum_x = 0.0;
+    T_FLOAT total_momentum_y = 0.0;
+    T_FLOAT total_momentum_z = 0.0;
 
-        for ( T_INT i = 0; i < system->N_local; i++ )
-        {
-            LAMMPS_RandomVelocityGeom random;
-            double x_i[3] = {x( i, 0 ), x( i, 1 ), x( i, 2 )};
-            random.reset( temperature_seed, x_i );
+    for ( T_INT i = 0; i < system->N_local; i++ )
+    {
+        LAMMPS_RandomVelocityGeom random;
+        double x_i[3] = {h_x( i, 0 ), h_x( i, 1 ), h_x( i, 2 )};
+        random.reset( temperature_seed, x_i );
 
-            T_FLOAT mass_i = h_mass( type( i ) );
-            T_FLOAT vx = random.uniform() - 0.5;
-            T_FLOAT vy = random.uniform() - 0.5;
-            T_FLOAT vz = random.uniform() - 0.5;
+        T_FLOAT mass_i = h_mass( h_type( i ) );
+        T_FLOAT vx = random.uniform() - 0.5;
+        T_FLOAT vy = random.uniform() - 0.5;
+        T_FLOAT vz = random.uniform() - 0.5;
 
-            v( i, 0 ) = vx / sqrt( mass_i );
-            v( i, 1 ) = vy / sqrt( mass_i );
-            v( i, 2 ) = vz / sqrt( mass_i );
+        h_v( i, 0 ) = vx / sqrt( mass_i );
+        h_v( i, 1 ) = vy / sqrt( mass_i );
+        h_v( i, 2 ) = vz / sqrt( mass_i );
 
-            q( i ) = 0.0;
+        h_q( i ) = 0.0;
 
-            total_mass += mass_i;
-            total_momentum_x += mass_i * v( i, 0 );
-            total_momentum_y += mass_i * v( i, 1 );
-            total_momentum_z += mass_i * v( i, 2 );
-        }
-        comm->reduce_float( &total_momentum_x, 1 );
-        comm->reduce_float( &total_momentum_y, 1 );
-        comm->reduce_float( &total_momentum_z, 1 );
-        comm->reduce_float( &total_mass, 1 );
-
-        T_FLOAT system_vx = total_momentum_x / total_mass;
-        T_FLOAT system_vy = total_momentum_y / total_mass;
-        T_FLOAT system_vz = total_momentum_z / total_mass;
-
-        for ( T_INT i = 0; i < system->N_local; i++ )
-        {
-            v( i, 0 ) -= system_vx;
-            v( i, 1 ) -= system_vy;
-            v( i, 2 ) -= system_vz;
-        }
-
-        Temperature<t_System> temp( comm );
-        T_V_FLOAT T = temp.compute( system );
-
-        T_V_FLOAT T_init_scale = sqrt( temperature_target / T );
-
-        for ( T_INT i = 0; i < system->N_local; i++ )
-        {
-            v( i, 0 ) *= T_init_scale;
-            v( i, 1 ) *= T_init_scale;
-            v( i, 2 ) *= T_init_scale;
-        }
+        total_mass += mass_i;
+        total_momentum_x += mass_i * h_v( i, 0 );
+        total_momentum_y += mass_i * h_v( i, 1 );
+        total_momentum_z += mass_i * h_v( i, 2 );
     }
+    comm->reduce_float( &total_momentum_x, 1 );
+    comm->reduce_float( &total_momentum_y, 1 );
+    comm->reduce_float( &total_momentum_z, 1 );
+    comm->reduce_float( &total_mass, 1 );
+
+    T_FLOAT system_vx = total_momentum_x / total_mass;
+    T_FLOAT system_vy = total_momentum_y / total_mass;
+    T_FLOAT system_vz = total_momentum_z / total_mass;
+
+    for ( T_INT i = 0; i < system->N_local; i++ )
+    {
+        h_v( i, 0 ) -= system_vx;
+        h_v( i, 1 ) -= system_vy;
+        h_v( i, 2 ) -= system_vz;
+    }
+    // temperature computed on the device
+    system->deep_copy( host_system );
+
+    Temperature<t_System> temp( comm );
+    T_V_FLOAT T = temp.compute( system );
+
+    T_V_FLOAT T_init_scale = sqrt( temperature_target / T );
+
+    for ( T_INT i = 0; i < system->N_local; i++ )
+    {
+        h_v( i, 0 ) *= T_init_scale;
+        h_v( i, 1 ) *= T_init_scale;
+        h_v( i, 2 ) *= T_init_scale;
+    }
+    system->deep_copy( host_system );
 }

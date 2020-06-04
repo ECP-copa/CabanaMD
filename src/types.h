@@ -63,6 +63,14 @@ enum
     UNITS_METAL
 };
 
+// Device type
+enum
+{
+    CUDA,
+    OPENMP,
+    SERIAL
+};
+
 // AoSoA layout type
 enum
 {
@@ -162,32 +170,5 @@ enum
 #ifndef T_F_FLOAT
 #define T_F_FLOAT T_FLOAT
 #endif
-
-typedef Kokkos::View<T_V_FLOAT *> t_mass;             // Mass
-typedef Kokkos::View<const T_V_FLOAT *> t_mass_const; // Mass
-
-// Cabana
-
-#ifdef CabanaMD_ENABLE_Cuda
-using MemorySpace = Kokkos::CudaUVMSpace;
-using ExecutionSpace = Kokkos::Cuda;
-#else
-using MemorySpace = Kokkos::HostSpace;
-#ifdef CabanaMD_ENABLE_Serial
-using ExecutionSpace = Kokkos::Serial;
-#elif defined( CabanaMD_ENABLE_Threads )
-using ExecutionSpace = Kokkos::Threads;
-#elif defined( CabanaMD_ENABLE_OpenMP )
-using ExecutionSpace = Kokkos::OpenMP;
-#endif
-#endif
-using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
-using MemoryAccess = Cabana::DefaultAccessMemory;
-using AtomicAccess = Cabana::AtomicAccessMemory;
-
-using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
-using t_distributor = Cabana::Distributor<DeviceType>;
-using t_halo = Cabana::Halo<DeviceType>;
 
 #endif // TYPES_H

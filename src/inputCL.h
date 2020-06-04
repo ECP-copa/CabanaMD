@@ -68,6 +68,7 @@ class InputCL
     int force_neigh_parallel_type;
     int layout_type;
     int nnp_layout_type;
+    int device_type;
 
     int dumpbinary_rate, correctness_rate;
     bool dumpbinaryflag, correctnessflag;

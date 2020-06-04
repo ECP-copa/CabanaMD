@@ -48,7 +48,7 @@
 
 #include <system.h>
 
-SystemCommon::SystemCommon()
+SystemCommon<t_device>::SystemCommon()
 {
     N = 0;
     N_max = 0;
@@ -75,9 +75,9 @@ SystemCommon::SystemCommon()
     do_print = proc_rank == 0;
 }
 
-const char *SystemCommon::name() { return "SystemNone"; }
+const char *SystemCommon<t_device>::name() { return "SystemNone"; }
 
-void SystemCommon::slice_all()
+void SystemCommon<t_device>::slice_all()
 {
     slice_x();
     slice_v();
@@ -87,7 +87,7 @@ void SystemCommon::slice_all()
     slice_q();
 }
 
-void SystemCommon::slice_integrate()
+void SystemCommon<t_device>::slice_integrate()
 {
     slice_x();
     slice_v();
@@ -95,14 +95,14 @@ void SystemCommon::slice_integrate()
     slice_type();
 }
 
-void SystemCommon::slice_force()
+void SystemCommon<t_device>::slice_force()
 {
     slice_x();
     slice_f();
     slice_type();
 }
 
-void SystemCommon::slice_properties()
+void SystemCommon<t_device>::slice_properties()
 {
     slice_v();
     slice_type();

@@ -28,7 +28,8 @@
 #include <stdexcept> // std::runtime_error
 
 using namespace std;
-using namespace nnpCbn;
+namespace nnpCbn
+{
 
 Element::Element( size_t const index )
     : index( index )
@@ -38,6 +39,7 @@ Element::Element( size_t const index )
 
 Element::~Element() {}
 
+template <class t_SF, class h_t_int>
 void Element::addSymmetryFunction( string const &parameters,
                                    vector<string> elementStrings, int attype,
                                    t_SF SF, double convLength,
@@ -164,6 +166,7 @@ void Element::addSymmetryFunction( string const &parameters,
     return;
 }
 
+template <class t_SF, class h_t_int>
 void Element::sortSymmetryFunctions( t_SF SF, h_t_int h_numSFperElem,
                                      int attype )
 {
@@ -199,6 +202,7 @@ void Element::sortSymmetryFunctions( t_SF SF, h_t_int h_numSFperElem,
     return;
 }
 
+template <class t_SF>
 bool Element::compareSF( t_SF SF, int attype, int index1, int index2 )
 {
     if ( SF( attype, index2, 0 ) < SF( attype, index1, 0 ) )
@@ -260,6 +264,7 @@ bool Element::compareSF( t_SF SF, int attype, int index1, int index2 )
         return false;
 }
 
+template <class t_SF, class h_t_int>
 vector<string>
 Element::infoSymmetryFunctionParameters( t_SF SF, int attype,
                                          h_t_int h_numSFperElem ) const
@@ -284,6 +289,7 @@ Element::infoSymmetryFunctionParameters( t_SF SF, int attype,
     return v;
 }
 
+template <class t_SF, class t_SFscaling, class h_t_int>
 vector<string>
 Element::infoSymmetryFunctionScaling( ScalingType scalingType, t_SF SF,
                                       t_SFscaling SFscaling, int attype,
@@ -299,6 +305,7 @@ Element::infoSymmetryFunctionScaling( ScalingType scalingType, t_SF SF,
     return v;
 }
 
+template <class t_SF, class t_SFGmemberlist, class h_t_int>
 void Element::setupSymmetryFunctionGroups( t_SF SF,
                                            t_SFGmemberlist SFGmemberlist,
                                            int attype, h_t_int h_numSFperElem,
@@ -376,6 +383,7 @@ void Element::setupSymmetryFunctionGroups( t_SF SF,
     return;
 }
 
+template <class t_SF, class t_SFGmemberlist, class h_t_int>
 vector<string>
 Element::infoSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
                                      int attype, h_t_int h_numSFGperElem ) const
@@ -398,6 +406,7 @@ Element::infoSymmetryFunctionGroups( t_SF SF, t_SFGmemberlist SFGmemberlist,
     return v;
 }
 
+template <class t_SF, class h_t_int>
 void Element::setCutoffFunction( CutoffFunction::CutoffType const cutoffType,
                                  double const cutoffAlpha, t_SF SF, int attype,
                                  h_t_int h_numSFperElem )
@@ -410,6 +419,7 @@ void Element::setCutoffFunction( CutoffFunction::CutoffType const cutoffType,
     return;
 }
 
+template <class t_SF, class t_SFscaling, class h_t_int>
 void Element::setScaling( ScalingType scalingType,
                           vector<string> const &statisticsLine, double Smin,
                           double Smax, t_SF SF, t_SFscaling SFscaling,
@@ -429,6 +439,7 @@ void Element::setScaling( ScalingType scalingType,
     return;
 }
 
+template <class t_SF>
 size_t Element::getMinNeighbors( int attype, t_SF SF, int nSF ) const
 {
     // get max number of minNeighbors
@@ -448,6 +459,7 @@ size_t Element::getMinNeighbors( int attype, t_SF SF, int nSF ) const
     return global_minNeighbors;
 }
 
+template <class t_SF, class h_t_int>
 double Element::getMinCutoffRadius( t_SF SF, int attype,
                                     h_t_int h_numSFperElem ) const
 {
@@ -459,6 +471,7 @@ double Element::getMinCutoffRadius( t_SF SF, int attype,
     return minCutoffRadius;
 }
 
+template <class t_SF, class h_t_int>
 double Element::getMaxCutoffRadius( t_SF SF, int attype,
                                     h_t_int h_numSFperElem ) const
 {
@@ -479,3 +492,5 @@ nnp_data,
     return;
 }
 */
+
+} // namespace nnpCbn

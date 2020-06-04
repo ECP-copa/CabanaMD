@@ -13,7 +13,7 @@ macro(CabanaMD_add_tests)
   set(CABANAMD_UNIT_TEST_MAIN unit_test_main.cpp)
 
   foreach(_device Serial OpenMP Cuda)
-    if(CabanaMD_ENABLE_${_device})
+    if(Kokkos_ENABLE_${_device})
       string(TOUPPER ${_device} _uppercase_device)
       set(_dir ${CMAKE_CURRENT_BINARY_DIR}/${_uppercase_device})
       file(MAKE_DIRECTORY ${_dir})

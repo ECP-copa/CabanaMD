@@ -59,6 +59,7 @@ InputCL::InputCL()
     MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
     do_print = proc_rank == 0;
 
+    device_type = SERIAL;
     layout_type = AOSOA_6;
     nnp_layout_type = AOSOA_3;
     neighbor_type = NEIGH_VERLET_2D;
@@ -83,6 +84,9 @@ void InputCL::read_args( int argc, char *argv[] )
                 printf( "Options:\n" );
                 printf( "  -il [file] / --input-lammps [FILE]: Provide LAMMPS "
                         "input file\n" );
+                printf( "  --device-type [TYPE]:       Kokkos device type to "
+                        "run with\n                              (SERIAL, "
+                        "OPENMP, CUDA)\n" );
                 printf( "  --layout-type [TYPE]:       Number of AoSoA for "
                         "particle properties\n                              "
                         "(1AOSOA, 2AOSOA, 6AOSOA)\n" );
@@ -103,9 +107,6 @@ void InputCL::read_args( int argc, char *argv[] )
                         "Routines implementation \n" );
                 printf( "                              (VERLET_2D, VERLET_CSR, "
                         "TREE)\n" );
-                printf( "  --comm-type [TYPE]:         Specify Communication "
-                        "Routines implementation \n" );
-                printf( "                              (MPI, SERIAL)\n" );
                 printf(
                     "  --dumpbinary [N] [PATH]:    Request that binary output "
                     "files PATH/output* be generated every N steps\n" );
@@ -132,33 +133,35 @@ void InputCL::read_args( int argc, char *argv[] )
             ++i;
         }
 
+        // Kokkos device type
+        else if ( ( strcmp( argv[i], "--device-type" ) == 0 ) )
+        {
+            if ( ( strcmp( argv[i + 1], "SERIAL" ) == 0 ) )
+                device_type = SERIAL;
+            else if ( ( strcmp( argv[i + 1], "OPENMP" ) == 0 ) )
+                device_type = OPENMP;
+            else if ( ( strcmp( argv[i + 1], "CUDA" ) == 0 ) )
+                device_type = CUDA;
+            ++i;
+        }
+
         // AoSoA layout type
         else if ( ( strcmp( argv[i], "--layout-type" ) == 0 ) )
         {
             if ( ( strcmp( argv[i + 1], "1AOSOA" ) == 0 ) )
-            {
                 layout_type = AOSOA_1;
-            }
-            if ( ( strcmp( argv[i + 1], "2AOSOA" ) == 0 ) )
-            {
+            else if ( ( strcmp( argv[i + 1], "2AOSOA" ) == 0 ) )
                 layout_type = AOSOA_2;
-            }
-            if ( ( strcmp( argv[i + 1], "6AOSOA" ) == 0 ) )
-            {
+            else if ( ( strcmp( argv[i + 1], "6AOSOA" ) == 0 ) )
                 layout_type = AOSOA_6;
-            }
             ++i;
         }
         else if ( ( strcmp( argv[i], "--nnp-layout-type" ) == 0 ) )
         {
             if ( ( strcmp( argv[i + 1], "1AOSOA" ) == 0 ) )
-            {
                 layout_type = AOSOA_1;
-            }
-            if ( ( strcmp( argv[i + 1], "3AOSOA" ) == 0 ) )
-            {
+            else if ( ( strcmp( argv[i + 1], "3AOSOA" ) == 0 ) )
                 layout_type = AOSOA_3;
-            }
             ++i;
         }
 
@@ -168,7 +171,7 @@ void InputCL::read_args( int argc, char *argv[] )
             set_force_iteration = true;
             if ( ( strcmp( argv[i + 1], "NEIGH_FULL" ) == 0 ) )
                 force_iteration_type = FORCE_ITER_NEIGH_FULL;
-            if ( ( strcmp( argv[i + 1], "NEIGH_HALF" ) == 0 ) )
+            else if ( ( strcmp( argv[i + 1], "NEIGH_HALF" ) == 0 ) )
                 force_iteration_type = FORCE_ITER_NEIGH_HALF;
             ++i;
         }
@@ -178,9 +181,9 @@ void InputCL::read_args( int argc, char *argv[] )
         {
             if ( ( strcmp( argv[i + 1], "VERLET_2D" ) == 0 ) )
                 neighbor_type = NEIGH_VERLET_2D;
-            if ( ( strcmp( argv[i + 1], "VERLET_CSR" ) == 0 ) )
+            else if ( ( strcmp( argv[i + 1], "VERLET_CSR" ) == 0 ) )
                 neighbor_type = NEIGH_VERLET_CSR;
-            if ( ( strcmp( argv[i + 1], "TREE" ) == 0 ) )
+            else if ( ( strcmp( argv[i + 1], "TREE" ) == 0 ) )
                 neighbor_type = NEIGH_TREE;
             ++i;
 #ifndef CabanaMD_ENABLE_ARBORX
@@ -201,9 +204,9 @@ void InputCL::read_args( int argc, char *argv[] )
         {
             if ( ( strcmp( argv[i + 1], "SERIAL" ) == 0 ) )
                 force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_SERIAL;
-            if ( ( strcmp( argv[i + 1], "TEAM" ) == 0 ) )
+            else if ( ( strcmp( argv[i + 1], "TEAM" ) == 0 ) )
                 force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_TEAM;
-            if ( ( strcmp( argv[i + 1], "TEAM_VECTOR" ) == 0 ) )
+            else if ( ( strcmp( argv[i + 1], "TEAM_VECTOR" ) == 0 ) )
                 force_neigh_parallel_type = FORCE_PARALLEL_NEIGH_VECTOR;
             ++i;
         }

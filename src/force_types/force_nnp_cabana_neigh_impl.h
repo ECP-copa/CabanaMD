@@ -43,7 +43,8 @@ template <class t_System, class t_System_NNP, class t_Neighbor,
 void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
               t_angle_parallel>::init_coeff( char **args )
 {
-    mode = new ( nnpCbn::Mode );
+    mode = new ( nnpCbn::Mode<device_type> );
+
     mode->initialize();
     std::string settingsfile =
         std::string( args[3] ) + "/input.nn"; // arg[3] gives directory path
@@ -87,14 +88,12 @@ void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
     auto dEdG = system_nnp->dEdG;
     auto E = system_nnp->E;
 
-    mode->calculateSymmetryFunctionGroups<t_x, t_type, t_G_a, t_neigh_list,
-                                          t_neigh_parallel, t_angle_parallel>(
-        x, type, G_a, neigh_list, N_local );
-    mode->calculateAtomicNeuralNetworks<t_type, t_G, t_dEdG, t_E>(
-        type, G, dEdG, E, N_local );
-    mode->calculateForces<t_x, t_f_a, t_type, t_dEdG, t_neigh_list,
-                          t_neigh_parallel, t_angle_parallel>(
-        x, f_a, type, dEdG, neigh_list, N_local );
+    mode->calculateSymmetryFunctionGroups( x, type, G_a, neigh_list, N_local,
+                                           t_neigh_parallel(),
+                                           t_angle_parallel() );
+    mode->calculateAtomicNeuralNetworks( type, G, dEdG, E, N_local );
+    mode->calculateForces( x, f_a, type, dEdG, neigh_list, N_local,
+                           t_neigh_parallel(), t_angle_parallel() );
 }
 
 template <class t_System, class t_System_NNP, class t_Neighbor,
@@ -108,8 +107,9 @@ T_V_FLOAT ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
 
     T_V_FLOAT system_energy = 0.0;
     // Loop over all atoms and add atomic contributions to total energy.
+    Kokkos::RangePolicy<exe_space> policy( 0, s->N_local );
     Kokkos::parallel_reduce(
-        "ForceNNPCabanaNeigh::compute_energy", s->N_local,
+        "ForceNNPCabanaNeigh::compute_energy", policy,
         KOKKOS_LAMBDA( const size_t i, T_V_FLOAT &updated_energy ) {
             updated_energy += energy( i );
         },
