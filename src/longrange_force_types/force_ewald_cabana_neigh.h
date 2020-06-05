@@ -32,8 +32,6 @@ class ForceEwald : public Force<t_System, t_Neighbor>
 
     typedef typename t_Neighbor::t_neigh_list t_neigh_list;
 
-    Kokkos::View<T_F_FLOAT *, DeviceType> U_trigonometric;
-
     T_F_FLOAT _alpha;
     T_X_FLOAT _r_max;
     T_X_FLOAT _k_max;
@@ -46,6 +44,11 @@ class ForceEwald : public Force<t_System, t_Neighbor>
     T_F_FLOAT _eps_r = 1.0; // Assume 1 for now (vacuum)
 
     MPI_Comm cart_comm;
+
+    using exe_space = typename t_System::execution_space;
+    using device_type = typename t_System::device_type;
+
+    Kokkos::View<T_F_FLOAT *, device_type> U_trigonometric;
 
   public:
     ForceEwald( t_System *system );

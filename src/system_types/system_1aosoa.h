@@ -19,24 +19,37 @@
 
 #include <Cabana_Core.hpp>
 
-template <>
-class System<AoSoA1> : public SystemCommon
+template <class t_device>
+class System<t_device, AoSoA1> : public SystemCommon<t_device>
 {
     using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
                                         T_INT, T_INT, T_FLOAT>;
-    using AoSoA_1 = Cabana::AoSoA<t_tuple, DeviceType, CabanaMD_VECTORLENGTH>;
+    using AoSoA_1 =
+        typename Cabana::AoSoA<t_tuple, t_device, CabanaMD_VECTORLENGTH>;
     AoSoA_1 aosoa_0;
 
+    using SystemCommon<t_device>::N_max;
+
   public:
-    using SystemCommon::SystemCommon;
+    using SystemCommon<t_device>::SystemCommon;
+
+    using layout_type = AoSoA1;
 
     // Per Particle Property
-    using t_x = AoSoA_1::member_slice_type<0>;
-    using t_v = AoSoA_1::member_slice_type<1>;
-    using t_f = AoSoA_1::member_slice_type<2>;
-    using t_type = AoSoA_1::member_slice_type<3>;
-    using t_id = AoSoA_1::member_slice_type<4>;
-    using t_q = AoSoA_1::member_slice_type<5>;
+    using t_x = typename System<t_device,
+                                AoSoA1>::AoSoA_1::template member_slice_type<0>;
+    using t_v = typename System<t_device,
+                                AoSoA1>::AoSoA_1::template member_slice_type<1>;
+    using t_f = typename System<t_device,
+                                AoSoA1>::AoSoA_1::template member_slice_type<2>;
+    using t_type =
+        typename System<t_device,
+                        AoSoA1>::AoSoA_1::template member_slice_type<3>;
+    using t_id =
+        typename System<t_device,
+                        AoSoA1>::AoSoA_1::template member_slice_type<4>;
+    using t_q = typename System<t_device,
+                                AoSoA1>::AoSoA_1::template member_slice_type<5>;
     t_x x;
     t_v v;
     t_f f;
@@ -56,6 +69,12 @@ class System<AoSoA1> : public SystemCommon
         aosoa_0.resize( N_new );
     }
 
+    template <class SrcSystem>
+    void deep_copy( SrcSystem src_system )
+    {
+        Cabana::deep_copy( aosoa_0, src_system.get_aosoa_x() );
+    }
+
     void slice_x() override { x = Cabana::slice<0>( aosoa_0 ); }
     void slice_v() override { v = Cabana::slice<1>( aosoa_0 ); }
     void slice_f() override { f = Cabana::slice<2>( aosoa_0 ); }
@@ -63,21 +82,29 @@ class System<AoSoA1> : public SystemCommon
     void slice_id() override { id = Cabana::slice<4>( aosoa_0 ); }
     void slice_q() override { q = Cabana::slice<5>( aosoa_0 ); }
 
-    void permute( t_linkedcell cell_list ) override
+    void permute( Cabana::LinkedCellList<t_device> cell_list ) override
     {
         Cabana::permute( cell_list, aosoa_0 );
     }
 
-    void migrate( std::shared_ptr<t_distributor> distributor ) override
+    void migrate(
+        std::shared_ptr<Cabana::Distributor<t_device>> distributor ) override
     {
         Cabana::migrate( *distributor, aosoa_0 );
     }
 
-    void gather( std::shared_ptr<t_halo> halo ) override
+    void gather( std::shared_ptr<Cabana::Halo<t_device>> halo ) override
     {
         Cabana::gather( *halo, aosoa_0 );
     }
 
     const char *name() override { return "System:1AoSoA"; }
+
+    AoSoA_1 get_aosoa_x() { return aosoa_0; }
+    AoSoA_1 get_aosoa_v() { return aosoa_0; }
+    AoSoA_1 get_aosoa_f() { return aosoa_0; }
+    AoSoA_1 get_aosoa_id() { return aosoa_0; }
+    AoSoA_1 get_aosoa_type() { return aosoa_0; }
+    AoSoA_1 get_aosoa_q() { return aosoa_0; }
 };
 #endif

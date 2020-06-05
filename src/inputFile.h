@@ -233,7 +233,6 @@ class InputFile
     void read_data_file( const char *filename );
     void check_lammps_command( int line );
     void create_lattice( Comm<t_System> *comm );
-    void create_velocities( Comm<t_System> *comm );
 };
 
 #include <inputFile_impl.h>

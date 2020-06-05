@@ -19,17 +19,20 @@
 #include <Cabana_Core.hpp>
 
 template <class t_System, class t_iteration, class t_layout>
-class NeighborTree : public Neighbor<t_System, t_iteration, t_layout>
+class NeighborTree : public Neighbor<t_System>
 {
+    using device_type = typename t_System::device_type;
+    using memory_space = typename t_System::memory_space;
+
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
 
     using t_neigh_list =
-        Cabana::Experimental::CrsGraph<MemorySpace, t_iteration>;
+        Cabana::Experimental::CrsGraph<memory_space, t_iteration>;
 
     NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_ )
-        : Neighbor<t_System, t_iteration, t_layout>( neigh_cut_, half_neigh_ )
+        : Neighbor<t_System>( neigh_cut_, half_neigh_ )
         , neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
     {
@@ -43,7 +46,7 @@ class NeighborTree : public Neighbor<t_System, t_iteration, t_layout>
         auto x = system->x;
 
         t_iteration tag;
-        list = Cabana::Experimental::makeNeighborList<MemorySpace>(
+        list = Cabana::Experimental::makeNeighborList<device_type>(
             tag, x, 0, N_local, neigh_cut );
     }
 

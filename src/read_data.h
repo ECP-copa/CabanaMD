@@ -281,6 +281,7 @@ template <class t_System>
 void read_lammps_masses( std::ifstream &file, t_System *s )
 {
     std::string line;
+    using t_mass = typename t_System::t_mass;
     s->mass = t_mass( "System::mass", s->ntypes );
 
     skip_empty( file, line );
@@ -291,7 +292,8 @@ void read_lammps_masses( std::ifstream &file, t_System *s )
     {
         const char *temp = line.data();
         std::sscanf( temp, "%i %lg", &type_tmp, &m_tmp );
-        Kokkos::View<T_V_FLOAT> mass_one( s->mass, type_tmp - 1 );
+        using exe_space = typename t_System::execution_space;
+        Kokkos::View<T_V_FLOAT, exe_space> mass_one( s->mass, type_tmp - 1 );
         Kokkos::deep_copy( mass_one, m_tmp );
         std::getline( file, line );
     }

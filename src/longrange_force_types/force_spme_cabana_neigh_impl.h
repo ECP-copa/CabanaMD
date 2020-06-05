@@ -187,7 +187,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
     // Using uppercase for grid/mesh variables and lowercase for particles
     auto scalar_layout =
         Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
-    Q = Cajita::createArray<double, DeviceType>( "meshq", scalar_layout );
+    Q = Cajita::createArray<double, device_type>( "meshq", scalar_layout );
     Q_halo = Cajita::createHalo( *Q, Cajita::FullHaloPattern() );
 
     auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
@@ -203,7 +203,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
     // paper This can be done once at the start of a run if the mesh stays
     // constant
     BC_array =
-        Cajita::createArray<double, DeviceType>( "BC_array", scalar_layout );
+        Cajita::createArray<double, device_type>( "BC_array", scalar_layout );
     auto BC_view = BC_array->view();
 
     auto BC_functor = KOKKOS_LAMBDA( const int kx, const int ky, const int kz )
@@ -243,7 +243,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
         }
     };
     Kokkos::parallel_for(
-        Cajita::createExecutionPolicy( owned_space, ExecutionSpace() ),
+                         Cajita::createExecutionPolicy( owned_space, exe_space() ),
         BC_functor );
     Kokkos::fence();
     // TODO: check these indices
@@ -277,7 +277,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     auto owned_space = local_grid->indexSpace( Cajita::Own(), Cajita::Node(),
                                                Cajita::Local() );
     auto grid_policy =
-        Cajita::createExecutionPolicy( owned_space, ExecutionSpace() );
+        Cajita::createExecutionPolicy( owned_space, exe_space() );
 
     // First, spread the charges onto the mesh
     Cajita::ArrayOp::assign( *Q, 0.0, Cajita::Ghost() );
@@ -287,7 +287,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     // Copy mesh charge into complex view for FFT work
     auto vector_layout =
         Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
-    Qcomplex = Cajita::createArray<Kokkos::complex<double>, DeviceType>(
+    Qcomplex = Cajita::createArray<Kokkos::complex<double>, device_type>(
         "Qcomplex", vector_layout );
     auto Qcomplex_view = Qcomplex->view();
     auto Q_view = Q->view();
@@ -304,7 +304,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
 
     // Using default FastFourierTransformParams
     auto fft =
-        Cajita::Experimental::createFastFourierTransform<double, DeviceType>(
+        Cajita::Experimental::createFastFourierTransform<double, device_type>(
             *vector_layout,
             Cajita::Experimental::FastFourierTransformParams() );
 
@@ -343,7 +343,8 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
         f( idx, 1 ) *= q( idx );
         f( idx, 2 ) *= q( idx );
     };
-    Kokkos::parallel_for( Kokkos::RangePolicy<ExecutionSpace>( 0, N_local ),
+    Kokkos::RangePolicy<exe_space> policy( 0, N_local );
+    Kokkos::parallel_for( policy,
                           mult_q );
     Kokkos::fence();
 
@@ -381,7 +382,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
             Kokkos::atomic_add( &f( j, 2 ), -f_fact * dz );
         }
     };
-    Kokkos::parallel_for( N_local, realspace_force );
+    Kokkos::parallel_for( policy, realspace_force );
     Kokkos::fence();
 }
 
@@ -426,7 +427,7 @@ ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system,
     };
     Kokkos::parallel_reduce(
         "ForceSPME::KspacePE",
-        Cajita::createExecutionPolicy( owned_space, ExecutionSpace() ),
+        Cajita::createExecutionPolicy( owned_space, exe_space() ),
         kspace_potential, energy_k );
     Kokkos::fence();
 
@@ -457,7 +458,8 @@ ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system,
         // self-energy contribution
         PE += -alpha / PI_SQRT * qi * qi * ENERGY_CONVERSION_FACTOR;
     };
-    Kokkos::parallel_reduce( "ForceSPME::RealSpacePE", N_local,
+    Kokkos::RangePolicy<exe_space> policy( 0, N_local );
+    Kokkos::parallel_reduce( "ForceSPME::RealSpacePE", policy,
                              realspace_potential, energy_r );
     Kokkos::fence();
 

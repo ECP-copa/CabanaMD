@@ -65,7 +65,7 @@ void ForceEwald<t_System, t_Neighbor>::init_longrange( t_System *system,
 
     _k_int = std::ceil( _k_max ) + 1;
     n_kvec = ( 2 * _k_int + 1 ) * ( 2 * _k_int + 1 ) * ( 2 * _k_int + 1 );
-    U_trigonometric = Kokkos::View<T_F_FLOAT *, DeviceType>(
+    U_trigonometric = Kokkos::View<T_F_FLOAT *, device_type>(
         "ForceEwald::U_trig", 2 * n_kvec );
 }
 
@@ -155,7 +155,8 @@ void ForceEwald<t_System, t_Neighbor>::compute( t_System *system,
             }
         }
     };
-    Kokkos::parallel_for( "ForceEwald::KspacePartial", N_local,
+    Kokkos::RangePolicy<exe_space> policy( 0, N_local );
+    Kokkos::parallel_for( "ForceEwald::KspacePartial", policy,
                           kspace_partial_sums );
     Kokkos::fence();
 
@@ -217,7 +218,7 @@ void ForceEwald<t_System, t_Neighbor>::compute( t_System *system,
             }
         }
     };
-    Kokkos::parallel_for( "ForceEwald::Kspace", N_local, kspace_force );
+    Kokkos::parallel_for( "ForceEwald::Kspace", policy, kspace_force );
     Kokkos::fence();
 
     auto realspace_force = KOKKOS_LAMBDA( const int idx )
@@ -253,7 +254,7 @@ void ForceEwald<t_System, t_Neighbor>::compute( t_System *system,
             Kokkos::atomic_add( &f( j, 2 ), -f_fact * dz );
         }
     };
-    Kokkos::parallel_for( N_local, realspace_force );
+    Kokkos::parallel_for( policy, realspace_force );
     Kokkos::fence();
 }
 
@@ -350,7 +351,8 @@ ForceEwald<t_System, t_Neighbor>::compute_energy( t_System *system,
         // self-energy contribution
         PE += -alpha / PI_SQRT * qi * qi * ENERGY_CONVERSION_FACTOR;
     };
-    Kokkos::parallel_reduce( "ForceEwald::RealSpacePE", N_local,
+    Kokkos::RangePolicy<exe_space> policy( 0, N_local );
+    Kokkos::parallel_reduce( "ForceEwald::RealSpacePE", policy,
                              realspace_potential, energy_r );
     Kokkos::fence();
 

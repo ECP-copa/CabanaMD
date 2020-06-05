@@ -16,7 +16,7 @@
 
 #include <types.h>
 
-template <class t_layout>
+template <class t_device, class t_layout>
 class System_NNP
 {
 };

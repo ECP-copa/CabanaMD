@@ -57,9 +57,14 @@
 #include <memory>
 #include <string>
 
+template <class t_device>
 class SystemCommon
 {
   public:
+    using device_type = t_device;
+    using memory_space = typename device_type::memory_space;
+    using execution_space = typename device_type::execution_space;
+
     T_INT N;       // Number of Global Particles
     T_INT N_max;   // Number of Particles I could have in available storage
     T_INT N_local; // Number of owned Particles
@@ -69,6 +74,10 @@ class SystemCommon
     std::string atom_style;
 
     // Per Type Property
+    // typedef typename t_device::array_layout layout;
+    typedef Kokkos::View<T_V_FLOAT *, t_device> t_mass;
+    typedef Kokkos::View<const T_V_FLOAT *, t_device> t_mass_const;
+    typedef typename t_mass::HostMirror h_t_mass;
     t_mass mass;
     t_mass charge;
 
@@ -156,17 +165,18 @@ class SystemCommon
 
     virtual void init() = 0;
     virtual void resize( T_INT N_new ) = 0;
-    virtual void permute( t_linkedcell cell_list ) = 0;
-    virtual void migrate( std::shared_ptr<t_distributor> distributor ) = 0;
-    virtual void gather( std::shared_ptr<t_halo> halo ) = 0;
+    virtual void permute( Cabana::LinkedCellList<t_device> cell_list ) = 0;
+    virtual void
+    migrate( std::shared_ptr<Cabana::Distributor<t_device>> distributor ) = 0;
+    virtual void gather( std::shared_ptr<Cabana::Halo<t_device>> halo ) = 0;
     virtual const char *name() { return "SystemNone"; }
 };
 
-template <class t_layout>
-class System : public SystemCommon
+template <class t_device, class t_layout>
+class System : public SystemCommon<t_device>
 {
   public:
-    using SystemCommon::SystemCommon;
+    using SystemCommon<t_device>::SystemCommon;
 };
 
 #include <modules_system.h>

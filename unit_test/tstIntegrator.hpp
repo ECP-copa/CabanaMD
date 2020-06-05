@@ -136,7 +136,8 @@ void testIntegratorReversibility( int steps )
 //---------------------------------------------------------------------------//
 TEST( TEST_CATEGORY, reversibility_test )
 {
-    testIntegratorReversibility<System<AoSoA6>>( 100 );
+    using DeviceType = Kokkos::Device<TEST_EXECSPACE, TEST_MEMSPACE>;
+    testIntegratorReversibility<System<DeviceType, AoSoA6>>( 100 );
 }
 
 //---------------------------------------------------------------------------//

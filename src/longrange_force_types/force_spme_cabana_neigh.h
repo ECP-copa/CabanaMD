@@ -40,17 +40,20 @@ class ForceSPME : public Force<t_System, t_Neighbor>
     // dielectric constant
     T_X_FLOAT _eps_r = 1.0; // Assume 1 for now (vacuum)
 
+    using exe_space = typename t_System::execution_space;
+    using device_type = typename t_System::device_type;
+
   public:
     std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<double>>> local_grid;
     std::shared_ptr<Cajita::Array<double, Cajita::Node,
-                                  Cajita::UniformMesh<double>, DeviceType>>
+                                  Cajita::UniformMesh<double>, device_type>>
         Q;
-    std::shared_ptr<Cajita::Halo<double, DeviceType>> Q_halo;
+    std::shared_ptr<Cajita::Halo<double, device_type>> Q_halo;
     std::shared_ptr<Cajita::Array<double, Cajita::Node,
-                                  Cajita::UniformMesh<double>, DeviceType>>
+                                  Cajita::UniformMesh<double>, device_type>>
         BC_array;
     std::shared_ptr<Cajita::Array<Kokkos::complex<double>, Cajita::Node,
-                                  Cajita::UniformMesh<double>, DeviceType>>
+                                  Cajita::UniformMesh<double>, device_type>>
         Qcomplex;
 
     ForceSPME( t_System *system );

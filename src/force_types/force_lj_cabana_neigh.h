@@ -85,6 +85,8 @@ class ForceLJ : public Force<t_System, t_Neighbor>
     T_F_FLOAT stack_lj2[MAX_TYPES_STACKPARAMS + 1][MAX_TYPES_STACKPARAMS + 1];
     T_F_FLOAT stack_cutsq[MAX_TYPES_STACKPARAMS + 1][MAX_TYPES_STACKPARAMS + 1];
 
+    using exe_space = typename t_System::execution_space;
+
   public:
     typedef T_V_FLOAT value_type;
 
@@ -104,13 +106,17 @@ class ForceLJ : public Force<t_System, t_Neighbor>
     {
     };
 
-    typedef Kokkos::RangePolicy<TagFullNeigh, Kokkos::IndexType<T_INT>>
+    typedef Kokkos::RangePolicy<exe_space, TagFullNeigh,
+                                Kokkos::IndexType<T_INT>>
         t_policy_full_neigh_stackparams;
-    typedef Kokkos::RangePolicy<TagHalfNeigh, Kokkos::IndexType<T_INT>>
+    typedef Kokkos::RangePolicy<exe_space, TagHalfNeigh,
+                                Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_stackparams;
-    typedef Kokkos::RangePolicy<TagFullNeighPE, Kokkos::IndexType<T_INT>>
+    typedef Kokkos::RangePolicy<exe_space, TagFullNeighPE,
+                                Kokkos::IndexType<T_INT>>
         t_policy_full_neigh_pe_stackparams;
-    typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
+    typedef Kokkos::RangePolicy<exe_space, TagHalfNeighPE,
+                                Kokkos::IndexType<T_INT>>
         t_policy_half_neigh_pe_stackparams;
 
     ForceLJ( t_System *system );
