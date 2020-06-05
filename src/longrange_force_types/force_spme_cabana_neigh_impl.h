@@ -243,8 +243,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
         }
     };
     Kokkos::parallel_for(
-                         Cajita::createExecutionPolicy( owned_space, exe_space() ),
-        BC_functor );
+        Cajita::createExecutionPolicy( owned_space, exe_space() ), BC_functor );
     Kokkos::fence();
     // TODO: check these indices
 }
@@ -344,8 +343,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
         f( idx, 2 ) *= q( idx );
     };
     Kokkos::RangePolicy<exe_space> policy( 0, N_local );
-    Kokkos::parallel_for( policy,
-                          mult_q );
+    Kokkos::parallel_for( policy, mult_q );
     Kokkos::fence();
 
     /* real-space contribution */
