@@ -36,7 +36,10 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 # Set up main options (inherit from Kokkos and Cabana CMake)
 ##---------------------------------------------------------------------------##
 find_package(Cabana REQUIRED)
-find_package(MPI REQUIRED)
+
+if( NOT Cabana_ENABLE_MPI )
+  message( FATAL_ERROR "Cabana must be compiled with MPI" )
+endif()
 
 option(CabanaMD_REQUIRE_SERIAL "Build CabanaMD with Serial support" ON)
 option(CabanaMD_REQUIRE_OPENMP "Build CabanaMD with OpenMP support" OFF)
@@ -55,11 +58,6 @@ endforeach()
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
-endif()
-
-option(CabanaMD_ENABLE_ARBORX "Build CabanaMD with ArborX" OFF)
-if(CabanaMD_ENABLE_ARBORX)
-  find_package(ArborX REQUIRED)
 endif()
 
 ##---------------------------------------------------------------------------##
