@@ -65,12 +65,15 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 
     if ( system->do_print )
     {
-        using exe_space = typename t_System::execution_space;
-#ifndef KOKKOS_ENABLE_HIP
-        exe_space::print_configuration( std::cout );
-#else
-        std::cout << "Using Kokkos::HIP" << std::endl;
-#endif
+        if ( commandline.device_type != HIP )
+        {
+            using exe_space = typename t_System::execution_space;
+            exe_space::print_configuration( std::cout );
+        }
+        else
+        {
+            std::cout << "Using Kokkos::Experimental::HIP" << std::endl;
+        }
     }
     // Read input file
     input->read_file();
