@@ -12,7 +12,7 @@ macro(CabanaMD_add_tests)
   set(CABANAMD_UNIT_TEST_NUMTHREADS 1 2)
   set(CABANAMD_UNIT_TEST_MAIN unit_test_main.cpp)
 
-  foreach(_device Serial OpenMP Cuda)
+  foreach(_device SERIAL OPENMP CUDA)
     if(Kokkos_ENABLE_${_device})
       string(TOUPPER ${_device} _uppercase_device)
       set(_dir ${CMAKE_CURRENT_BINARY_DIR}/${_uppercase_device})
@@ -29,7 +29,7 @@ macro(CabanaMD_add_tests)
         target_link_libraries(${_target} PRIVATE CabanaMD gtest CabanaMD)
 
         foreach(_np ${CABANAMD_UNIT_TEST_MPIEXEC_NUMPROCS})
-          if(_device STREQUAL THREADS OR _device STREQUAL OpenMP)
+          if(_device STREQUAL OPENMP)
             foreach(_thread ${CABANAMD_UNIT_TEST_NUMTHREADS})
               add_test(NAME ${_target}_${_np}_${_thread} COMMAND
                 ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${_np} ${MPIEXEC_PREFLAGS}
