@@ -47,11 +47,12 @@
 //************************************************************************
 
 #include <inputCL.h>
-#include <system.h>
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
-#include <typeinfo>
+
+#include <mpi.h>
 
 InputCL::InputCL()
 {
