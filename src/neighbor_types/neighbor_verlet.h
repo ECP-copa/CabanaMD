@@ -24,6 +24,7 @@ class NeighborVerlet : public Neighbor<t_System>
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
+    T_INT max_neigh = 50;
 
     using t_build = Cabana::TeamVectorOpTag;
     using t_neigh_list =
@@ -50,8 +51,10 @@ class NeighborVerlet : public Neighbor<t_System>
         system->slice_x();
         auto x = system->x;
 
-        list =
-            t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
+        list = t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max,
+                             max_neigh );
+        max_neigh =
+            Cabana::NeighborList<t_neigh_list>::maxNeighbor( list ) * 1.1;
     }
 
     t_neigh_list &get() { return list; }
