@@ -16,6 +16,8 @@
 #include <system.h>
 #include <types.h>
 
+#include <Cabana_Core.hpp>
+
 template <class t_System, class t_iteration, class t_layout>
 class NeighborVerlet : public Neighbor<t_System>
 {

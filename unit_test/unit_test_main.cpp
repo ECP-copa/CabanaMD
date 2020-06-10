@@ -11,7 +11,6 @@
 
 #include <gtest/gtest.h>
 
-#include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
 #include <mpi.h>

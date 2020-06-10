@@ -50,6 +50,8 @@
 #include <mdfactory.h>
 #include <types.h>
 
+#include <Kokkos_Core.hpp>
+
 #include "mpi.h"
 
 // CabanaMD can be used as a library

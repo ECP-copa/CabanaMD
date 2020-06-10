@@ -49,11 +49,6 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <CabanaMD_config.hpp>
-
-#include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
-
 // Module Types etc
 // Units to be used
 enum
