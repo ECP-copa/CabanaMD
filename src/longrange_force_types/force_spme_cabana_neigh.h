@@ -12,6 +12,7 @@
 #ifndef FORCE_SPME_CABANA_NEIGH_H
 #define FORCE_SPME_CABANA_NEIGH_H
 #include <Cabana_Core.hpp>
+#include <Cajita.hpp>
 #include <comm_mpi.h>
 #include <force.h>
 #include <system.h>
