@@ -40,7 +40,7 @@ before_script:
     make -j2 VERBOSE=1 && make install &&
     popd && popd
   - pwd
-  - Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos"
+  - Cabana_CMAKE_PREFIX_PATH=( $HOME/kokkos )
   - if [[ ${LongRange} ]]; then
        git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
        pushd heffte && mkdir build && pushd build &&
@@ -53,9 +53,9 @@ before_script:
        Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte";
        CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_ENABLE_HEFFTE=ON);
     fi
-    - pwd
-    - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
-    - pushd Cabana && mkdir build && pushd build &&
+  - pwd
+  - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
+  - pushd Cabana && mkdir build && pushd build &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte"
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
