@@ -13,7 +13,7 @@
 #define FORCE_EWALD_CABANA_NEIGH_H
 
 #include <assert.h>
-
+#include <Cajita.hpp>
 #include <Cabana_Core.hpp>
 #include <comm_mpi.h>
 #include <force.h>
