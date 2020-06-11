@@ -57,13 +57,11 @@ before_script:
   - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
   - pushd Cabana && mkdir build && pushd build &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-          -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte"
+          -DCMAKE_PREFIX_PATH=Cabana_CMAKE_PREFIX_PATH
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
           -DCabana_REQUIRE_SERIAL=OFF
           ${CABANA_OPTS[@]}
           -DCabana_ENABLE_MPI=ON
-          -DCabana_ENABLE_CAJITA=ON
-          -DCabana_ENABLE_HEFFTE=ON
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
           -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
     make -k -j2 VERBOSE=1 && make install &&
