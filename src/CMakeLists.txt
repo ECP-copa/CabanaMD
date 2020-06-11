@@ -79,8 +79,4 @@ if(CabanaMD_ENABLE_NNP AND N2P2_DIR)
   target_link_libraries(CabanaMD ${N2P2_LIB})
 endif()
 
-if( CabanaMD_ENABLE_LongRange )
-  target_link_libraries(CabanaMD Cajita::Cajita Heffte::Heffte)
-endif()
-
 install(TARGETS CabanaMD DESTINATION lib)
