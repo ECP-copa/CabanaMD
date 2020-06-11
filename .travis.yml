@@ -40,7 +40,7 @@ before_script:
     make -j2 VERBOSE=1 && make install &&
     popd && popd
   - pwd
-  - Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos";
+  - Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos"
   - if [[ ${LongRange} ]]; then
        git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
        pushd heffte && mkdir build && pushd build &&
