@@ -40,6 +40,7 @@ before_script:
     make -j2 VERBOSE=1 && make install &&
     popd && popd
   - pwd
+  - Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos";
   - if [[ ${LongRange} ]]; then
        git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
        pushd heffte && mkdir build && pushd build &&
@@ -49,9 +50,13 @@ before_script:
           -DHeffte_ENABLE_FFTW=ON .. &&
        make -j2 VERBOSE=1 && make install &&
        popd && popd;
-       git clone --depth=1 https://github.com/ECP-copa/Cabana.git
-       pushd Cabana && mkdir build && pushd build &&
-       cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+       Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte";
+       CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_ENABLE_HEFFTE=ON);
+    fi
+    - pwd
+    git clone --depth=1 https://github.com/ECP-copa/Cabana.git
+    pushd Cabana && mkdir build && pushd build &&
+    cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte"
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
           -DCabana_REQUIRE_SERIAL=OFF
@@ -61,23 +66,8 @@ before_script:
           -DCabana_ENABLE_HEFFTE=ON
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
           -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
-       make -k -j2 VERBOSE=1 && make install &&
-       popd && popd;
-    fi
-  - if [ [ ${LongRange} IS blank ] OR [ ${LongRange} IS NOT present ]; then
-       git clone --depth=1 https://github.com/ECP-copa/Cabana.git
-       pushd Cabana && mkdir build && pushd build &&
-       cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-          -DCMAKE_PREFIX_PATH="$HOME/kokkos"
-          -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
-          -DCabana_REQUIRE_SERIAL=OFF
-          ${CABANA_OPTS[@]}
-          -DCabana_ENABLE_MPI=ON
-          -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
-          -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
-       make -k -j2 VERBOSE=1 && make install &&
-       popd && popd;
-    fi
+    make -k -j2 VERBOSE=1 && make install &&
+    popd && popd;
   - if [[ ${NNP} ]]; then
       git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
