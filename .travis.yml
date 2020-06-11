@@ -54,8 +54,9 @@ before_script:
        CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_ENABLE_HEFFTE=ON);
     fi
   - pwd
-  - git clone --depth=1 https://github.com/sfogerty/Cabana/tree/fix_heffte_link
+  - git clone --depth=1 https://github.com/sfogerty/Cabana
   - pushd Cabana && mkdir build && pushd build &&
+    git checkout fix_heffte_link &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DCMAKE_PREFIX_PATH=Cabana_CMAKE_PREFIX_PATH
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
