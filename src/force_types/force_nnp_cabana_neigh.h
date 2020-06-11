@@ -15,7 +15,8 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-#include <nnp_mode.h>
+#include <ModeCabana.h>
+
 #include <system_nnp.h>
 
 #include <force.h>
@@ -48,7 +49,7 @@ class ForceNNP : public Force<t_System, t_Neighbor>
     using exe_space = typename t_System::execution_space;
 
   public:
-    nnpCbn::Mode<device_type> *mode;
+    nnp::ModeCabana<device_type> *mode;
 
     // numSymmetryFunctionsPerElement (per type property)
     using t_mass = typename t_System::t_mass;

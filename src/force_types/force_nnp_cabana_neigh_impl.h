@@ -46,7 +46,7 @@ void ForceNNP<
 {
     // This is the pair_style line (not coeff), so there's only one
     auto path = args.at( 0 ).at( 3 );
-    mode = new ( nnpCbn::Mode<device_type> );
+    mode = new ( nnp::ModeCabana<device_type> );
 
     mode->initialize();
     std::string settingsfile = path + "/input.nn";

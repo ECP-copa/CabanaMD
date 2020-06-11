@@ -14,8 +14,6 @@
 
 #include <Cabana_Core.hpp>
 
-#include <types_nnp.h>
-
 #include <types.h>
 
 template <class t_device, class t_layout>
