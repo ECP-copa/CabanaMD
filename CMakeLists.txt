@@ -52,10 +52,6 @@ endforeach()
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
 ##---------------------------------------------------------------------------##
-option(CabanaMD_ENABLE_LongRange "Build CabanaMD with longrange forces (Ewald)" OFF)
-if(CabanaMD_ENABLE_LongRange)
-  find_package(Cajita REQUIRED)
-endif()
 
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if(NOT DEFINED N2P2_DIR)
