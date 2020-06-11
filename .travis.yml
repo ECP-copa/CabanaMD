@@ -64,7 +64,7 @@ before_script:
        make -k -j2 VERBOSE=1 && make install &&
        popd && popd;
     fi
-  - if [ NOT [ ${LongRange} ]]; then
+  - if [ NOT [ ${LongRange} ] ]; then
        git clone --depth=1 https://github.com/ECP-copa/Cabana.git
        pushd Cabana && mkdir build && pushd build &&
        cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
