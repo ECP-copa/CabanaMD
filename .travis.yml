@@ -51,7 +51,7 @@ before_script:
        make -j2 VERBOSE=1 && make install &&
        popd && popd;
        Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte";
-       CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_REQUIRE_HEFFTE=ON -DCabana_ENABLE_HEFFTE=ON);
+       CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_ENABLE_HEFFTE=ON);
     fi
   - pwd
   - git clone --branch=fix_heffte_link --depth=1 https://github.com/sfogerty/Cabana
