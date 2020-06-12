@@ -78,5 +78,7 @@ if(CabanaMD_ENABLE_NNP AND N2P2_DIR)
   find_library(N2P2_LIB nnp PATHS ${N2P2_DIR}/lib NO_DEFAULT_PATH)
   target_link_libraries(CabanaMD ${N2P2_LIB})
 endif()
-
+if( CabanaMD_ENABLE_LongRange )
+  target_link_libraries(CabanaMD Cajita::Cajita)
+endif()
 install(TARGETS CabanaMD DESTINATION lib)
