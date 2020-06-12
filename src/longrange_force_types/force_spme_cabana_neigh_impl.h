@@ -9,6 +9,7 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <Cajita.hpp>
 #ifdef Cabana_ENABLE_Cuda
 #include <cufft.h>
 #include <cufftw.h>
