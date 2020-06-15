@@ -47,11 +47,12 @@
 //************************************************************************
 
 #include <inputCL.h>
-#include <system.h>
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
-#include <typeinfo>
+
+#include <mpi.h>
 
 InputCL::InputCL()
 {
@@ -86,7 +87,7 @@ void InputCL::read_args( int argc, char *argv[] )
                         "input file\n" );
                 printf( "  --device-type [TYPE]:       Kokkos device type to "
                         "run with\n                              (SERIAL, "
-                        "OPENMP, CUDA)\n" );
+                        "OPENMP, CUDA, HIP)\n" );
                 printf( "  --layout-type [TYPE]:       Number of AoSoA for "
                         "particle properties\n                              "
                         "(1AOSOA, 2AOSOA, 6AOSOA)\n" );
@@ -142,6 +143,8 @@ void InputCL::read_args( int argc, char *argv[] )
                 device_type = OPENMP;
             else if ( ( strcmp( argv[i + 1], "CUDA" ) == 0 ) )
                 device_type = CUDA;
+            else if ( ( strcmp( argv[i + 1], "HIP" ) == 0 ) )
+                device_type = HIP;
             ++i;
         }
 
@@ -186,13 +189,14 @@ void InputCL::read_args( int argc, char *argv[] )
             else if ( ( strcmp( argv[i + 1], "TREE" ) == 0 ) )
                 neighbor_type = NEIGH_TREE;
             ++i;
-#ifndef CabanaMD_ENABLE_ARBORX
+#ifndef Cabana_ENABLE_ARBORX
             if ( neighbor_type == NEIGH_TREE )
             {
                 if ( do_print )
                 {
-                    std::cout << "ArborX requested, but not compiled!"
-                              << std::endl;
+                    std::cout
+                        << "ArborX requested, but not compiled with Cabana!"
+                        << std::endl;
                 }
                 std::exit( 1 );
             }

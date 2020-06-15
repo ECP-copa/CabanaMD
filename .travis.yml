@@ -10,7 +10,22 @@ stages:
 jobs:
     include:
         - stage: canary
-          env: BACKENDS="OpenMP"
+          env: BACKENDS="OPENMP"
+
+env:
+  global:
+    - CCACHE_CPP2=yes
+  matrix:
+    - BACKENDS="OPENMP"
+    - BACKENDS="SERIAL"
+    - BACKENDS="OPENMP" ArborX=ON
+    - BACKENDS="SERIAL" ArborX=ON
+    - BACKENDS="OPENMP" Heffte=ON
+    - BACKENDS="SERIAL" Heffte=ON
+    - BACKENDS="OPENMP" NNP=ON
+    - BACKENDS="SERIAL" NNP=ON
+    - BACKENDS="OPENMP" ArborX=ON NNP=ON Heffte=ON
+    - BACKENDS="SERIAL" ArborX=ON NNP=ON Heffte=ON
 
 addons:
   apt:
@@ -26,9 +41,7 @@ addons:
 
 before_script:
   - ccache -z
-  - KOKKOS_OPTS=( -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DKokkos_ENABLE_HWLOC=ON -DKokkos_CXX_STANDARD=14 )
-  - for i in ${BACKENDS}; do KOKKOS_OPTS+=( -DKokkos_ENABLE_${i^^}=ON ); done
-  - for i in ${BACKENDS}; do CABANA_OPTS+=( -DCabana_REQUIRE_${i}=ON ); done
+  - for i in ${BACKENDS}; do KOKKOS_OPTS+=( -DKokkos_ENABLE_${i}=ON ); done
   - for i in ${BACKENDS}; do CABANAMD_OPTS+=( -DCabanaMD_REQUIRE_${i}=ON ); done
     # LD_LIBRARY_PATH workaround for libomp: https://github.com/travis-ci/travis-ci/issues/8613
   - if [[ ${CC} = clang ]]; then export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH; fi
@@ -36,12 +49,15 @@ before_script:
   - pushd $HOME/build
   - git clone --depth=1 https://github.com/kokkos/kokkos.git &&
     pushd kokkos && mkdir build && pushd build &&
-    cmake -DCMAKE_INSTALL_PREFIX=$HOME/kokkos ${KOKKOS_OPTS[@]} .. &&
+    cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_INSTALL_PREFIX=$HOME/kokkos
+          -DKokkos_ENABLE_SERIAL=OFF
+          ${KOKKOS_OPTS[@]}
+          -DKokkos_ENABLE_HWLOC=ON -DKokkos_CXX_STANDARD=14
+          .. &&
     make -j2 VERBOSE=1 && make install &&
     popd && popd
-  - pwd
-  - Cabana_CMAKE_PREFIX_PATH=( $HOME/kokkos )
-  - if [[ ${LongRange} ]]; then
+  - if [[ ${Heffte} ]]; then
        git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
        pushd heffte && mkdir build && pushd build &&
        cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"
@@ -50,20 +66,29 @@ before_script:
           -DHeffte_ENABLE_FFTW=ON .. &&
        make -j2 VERBOSE=1 && make install &&
        popd && popd;
-       Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte";
        CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_ENABLE_HEFFTE=ON);
     fi
-  - pwd
-  - git clone --depth=1 https://github.com/ECP-copa/Cabana
-  - pushd Cabana && mkdir build && pushd build
-  - cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-          -DCMAKE_PREFIX_PATH=Cabana_CMAKE_PREFIX_PATH
+  - if [[ ${ArborX} ]];  then
+      git clone --depth=1 https://github.com/arborx/ArborX.git &&
+      pushd ArborX && mkdir build && pushd build &&
+      cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_PREFIX_PATH=${HOME}/kokkos
+            -DCMAKE_INSTALL_PREFIX=${HOME}/ArborX
+            .. &&
+      make -j2 VERBOSE=1 && make install &&
+      popd && popd;
+      CABANA_OPTS+=( -DCabana_ENABLE_ARBORX=ON );
+    fi
+  - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
+  - pushd Cabana && mkdir build && pushd build &&
+    cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/ArborX;$HOME/heffte"
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
-          -DCabana_REQUIRE_SERIAL=OFF
           ${CABANA_OPTS[@]}
           -DCabana_ENABLE_MPI=ON
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
-          -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
+          -DCabana_ENABLE_PERFORMANCE_TESTING=OFF
+          .. &&
     make -k -j2 VERBOSE=1 && make install &&
     popd && popd;
   - if [[ ${NNP} ]]; then
@@ -78,19 +103,6 @@ before_script:
     fi
   - popd
 
-env:
-  global:
-    - CCACHE_CPP2=yes
-  matrix:
-    - BACKENDS="OPENMP"
-    - BACKENDS="SERIAL"
-    - BACKENDS="OPENMP" NNP=ON
-    - BACKENDS="SERIAL" NNP=ON
-    - BACKENDS="OPENMP" LongRange=ON
-    - BACKENDS="SERIAL" LongRange=ON
-    - BACKENDS="OPENMP" LongRange=ON NNP=ON
-    - BACKENDS="SERIAL" LongRange=ON NNP=ON
-
 script:
   - mkdir build && pushd build &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -99,7 +111,6 @@ script:
           -DCabanaMD_ENABLE_TESTING=ON
           -DCabanaMD_REQUIRE_SERIAL=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
-          -DCabanaMD_ENABLE_LongRange=${LongRange}
           -DN2P2_DIR=$HOME/build/n2p2
           ${CABANAMD_OPTS[@]}
           .. &&
@@ -116,7 +127,6 @@ after_success:
 branches:
   only:
   - master
-  - longrange_testing
 
 cache:
   directories:

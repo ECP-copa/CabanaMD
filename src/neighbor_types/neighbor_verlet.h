@@ -16,6 +16,8 @@
 #include <system.h>
 #include <types.h>
 
+#include <Cabana_Core.hpp>
+
 template <class t_System, class t_iteration, class t_layout>
 class NeighborVerlet : public Neighbor<t_System>
 {
@@ -24,8 +26,13 @@ class NeighborVerlet : public Neighbor<t_System>
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
+    T_INT max_neigh = 50;
 
+#ifdef KOKKOS_ENABLE_HIP
+    using t_build = Cabana::TeamOpTag;
+#else
     using t_build = Cabana::TeamVectorOpTag;
+#endif
     using t_neigh_list =
         Cabana::VerletList<memory_space, t_iteration, t_layout, t_build>;
 
@@ -50,8 +57,10 @@ class NeighborVerlet : public Neighbor<t_System>
         system->slice_x();
         auto x = system->x;
 
-        list =
-            t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
+        list = t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max,
+                             max_neigh );
+        max_neigh =
+            Cabana::NeighborList<t_neigh_list>::maxNeighbor( list ) * 1.1;
     }
 
     t_neigh_list &get() { return list; }

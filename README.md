@@ -75,8 +75,8 @@ cmake \
 ```
 
 ## Neural network potential build
-If using the optional neural network potential, additional CMake flags for the
-location of the libnnp library (https://github.com/CompPhysVienna/n2p2)
+If using the optional neural network potential, additional CMake flags for
+the location of the libnnp library (https://github.com/CompPhysVienna/n2p2)
 and enabling the potential are needed (with one additional optional vector
 length setting):
 ```
@@ -87,8 +87,8 @@ length setting):
 
 ## ArborX neighbor list build
 If using the optional ArborX library (https://github.com/arborx/ArborX),
-additional CMake flags are needed:
+changes to the Cabana CMake flags are needed:
 ```
-    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$CABANA_DIR;$ARBORX_DIR" \
-    -D CabanaMD_ENABLE_ARBORX=ON \
+    -D CMAKE_PREFIX_PATH="$KOKKOS_DIR;$ARBORX_DIR"
+    -D Cabana_ENABLE_ARBORX=ON
 ```
