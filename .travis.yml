@@ -54,7 +54,7 @@ before_script:
        CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_ENABLE_HEFFTE=ON);
     fi
   - pwd
-  - git clone --branch=fix_heffte_link --depth=1 https://github.com/ECP-copa/Cabana
+  - git clone --depth=1 https://github.com/ECP-copa/Cabana
   - pushd Cabana && mkdir build && pushd build
   - cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DCMAKE_PREFIX_PATH=Cabana_CMAKE_PREFIX_PATH
