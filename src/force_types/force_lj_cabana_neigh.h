@@ -79,9 +79,9 @@ class ForceLJ : public Force<t_System, t_Neighbor>
     t_fparams lj1, lj2, cutsq;
     t_fparams_rnd rnd_lj1, rnd_lj2, rnd_cutsq;
 
-    T_F_FLOAT
-    stack_lj1[MAX_TYPES_STACKPARAMS + 1]
-             [MAX_TYPES_STACKPARAMS + 1]; // hardwired space for 12 atom types
+    T_F_FLOAT stack_lj1[MAX_TYPES_STACKPARAMS + 1]
+                       [MAX_TYPES_STACKPARAMS +
+                        1]; // hardwired space for 12 atom types
     T_F_FLOAT stack_lj2[MAX_TYPES_STACKPARAMS + 1][MAX_TYPES_STACKPARAMS + 1];
     T_F_FLOAT stack_cutsq[MAX_TYPES_STACKPARAMS + 1][MAX_TYPES_STACKPARAMS + 1];
 

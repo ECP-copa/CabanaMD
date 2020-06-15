@@ -127,8 +127,8 @@ void read_lammps_header( std::ifstream &file, t_System *s )
         int natoms, ntypes;
         double xlo, xhi, ylo, yhi, zlo, zhi;
 
-        const char *temp =
-            line.data(); // convert to C-string for sscanf utility
+        const char *temp = line.data(); // convert to C-string for sscanf
+                                        // utility
 
         // search line for header keyword and set corresponding variable
         if ( line.find( "atoms" ) != std::string::npos )
@@ -314,6 +314,7 @@ template <class t_System>
 void read_lammps_data_file( std::string filename, t_System *s,
                             Comm<t_System> *comm )
 {
+
     int atomflag = 0;
     std::string keyword;
     std::ifstream file( filename );

@@ -123,7 +123,6 @@ T_V_FLOAT ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
     system_energy += s->N * mode->meanEnergy;
     // TODO: generalize (hartree to eV conversion)
     system_energy *= 27.211384021355236;
-
     step++;
     return system_energy;
 }
