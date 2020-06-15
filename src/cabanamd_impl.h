@@ -86,7 +86,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         std::exit( 1 );
     }
 #endif
-#ifndef CabanaMD_ENABLE_LongRange
+#ifndef Cabana_ENABLE_HEFFTE
     if ( input->lrforce_type != FORCE_NONE )
     {
         if ( system->do_print )
@@ -192,7 +192,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 
     // Create long range Force class: options in longrangeforce_types/ folder
     // Delay because tuning (within init) uses atom count, domain size
-#ifdef CabanaMD_ENABLE_LongRange
+#ifdef Cabana_ENABLE_HEFFTE
     if ( input->lrforce_type != FORCE_NONE )
     {
         bool half_neigh =

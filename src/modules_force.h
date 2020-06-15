@@ -56,7 +56,7 @@
 #endif
 
 // Include Module header files for longrange force
-#ifdef CabanaMD_ENABLE_LongRange
+#ifdef Cabana_ENABLE_HEFFTE
 #include <force_ewald_cabana_neigh.h>
 #include <force_spme_cabana_neigh.h>
 #endif

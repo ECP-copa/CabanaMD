@@ -48,7 +48,7 @@ endif()
 
 list(APPEND SOURCES ${FORCE_TYPES} ${SYSTEM_TYPES} ${SYSNNP_TYPES})
 
-if( CabanaMD_ENABLE_LongRange )
+if( Cabana_ENABLE_HEFFTE )
   file(GLOB LR_FORCE_TYPES longrange_force_types/*.cpp)
   list(APPEND SOURCES ${LR_FORCE_TYPES})
 endif()
@@ -78,7 +78,5 @@ if(CabanaMD_ENABLE_NNP AND N2P2_DIR)
   find_library(N2P2_LIB nnp PATHS ${N2P2_DIR}/lib NO_DEFAULT_PATH)
   target_link_libraries(CabanaMD ${N2P2_LIB})
 endif()
-if( CabanaMD_ENABLE_LongRange )
-  target_link_libraries(CabanaMD Cabana::Cajita)
-endif()
+
 install(TARGETS CabanaMD DESTINATION lib)

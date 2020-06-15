@@ -52,7 +52,6 @@ endforeach()
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
 ##---------------------------------------------------------------------------##
-
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
