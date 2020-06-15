@@ -40,10 +40,24 @@ before_script:
     make -j2 VERBOSE=1 && make install &&
     popd && popd
   - pwd
-  - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
-  - pushd Cabana && mkdir build && pushd build &&
-    cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-          -DCMAKE_PREFIX_PATH=$HOME/kokkos
+  - Cabana_CMAKE_PREFIX_PATH=( $HOME/kokkos )
+  - if [[ ${LongRange} ]]; then
+       git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
+       pushd heffte && mkdir build && pushd build &&
+       cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"
+          -DCMAKE_CXX_STANDARD="11"
+          -DBUILD_SHARED_LIBS=ON
+          -DHeffte_ENABLE_FFTW=ON .. &&
+       make -j2 VERBOSE=1 && make install &&
+       popd && popd;
+       Cabana_CMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte";
+       CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_ENABLE_HEFFTE=ON);
+    fi
+  - pwd
+  - git clone --depth=1 https://github.com/ECP-copa/Cabana
+  - pushd Cabana && mkdir build && pushd build
+  - cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_PREFIX_PATH=Cabana_CMAKE_PREFIX_PATH
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
           -DCabana_REQUIRE_SERIAL=OFF
           ${CABANA_OPTS[@]}
@@ -51,25 +65,7 @@ before_script:
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
           -DCabana_ENABLE_PERFORMANCE_TESTING=OFF .. &&
     make -k -j2 VERBOSE=1 && make install &&
-    popd && popd
-  - if [[ ${LongRange} ]]; then
-    git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
-    pushd heffte && mkdir build && pushd build &&
-    cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"
-          -DCMAKE_CXX_STANDARD="11"
-          -DBUILD_SHARED_LIBS=ON
-          -DHeffte_ENABLE_FFTW=ON .. &&
-    make -j2 VERBOSE=1 && make install &&
     popd && popd;
-    git clone --depth=1 https://github.com/ECP-copa/Cajita.git &&
-    pushd Cajita && mkdir build && pushd build &&
-    cmake -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/heffte"
-          -DCMAKE_INSTALL_PREFIX=$HOME/Cajita
-          -DCajita_ENABLE_TESTING=OFF
-          -DCajita_ENABLE_COVERAGE_BUILD=OFF .. &&
-    make -k -j2 VERBOSE=1 && make install &&
-    popd && popd;
-    fi
   - if [[ ${NNP} ]]; then
       git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
@@ -79,7 +75,7 @@ before_script:
   - if [[ ${COVERAGE} ]]; then
        pip install --user coverxygen &&
        mkdir -p $HOME/.local/bin && wget -O $HOME/.local/bin/codecov https://codecov.io/bash && chmod +x $HOME/.local/bin/codecov;
-     fi
+    fi
   - popd
 
 env:
@@ -99,7 +95,7 @@ script:
   - mkdir build && pushd build &&
     cmake -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Werror"
-          -DCMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/kokkos;$HOME/Cajita;$HOME/heffte"
+          -DCMAKE_PREFIX_PATH="$HOME/Cabana"
           -DCabanaMD_ENABLE_TESTING=ON
           -DCabanaMD_REQUIRE_SERIAL=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
@@ -120,6 +116,7 @@ after_success:
 branches:
   only:
   - master
+  - longrange_testing
 
 cache:
   directories:

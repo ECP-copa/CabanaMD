@@ -12,9 +12,8 @@
 #ifndef FORCE_EWALD_CABANA_NEIGH_H
 #define FORCE_EWALD_CABANA_NEIGH_H
 
-#include <assert.h>
-
 #include <Cabana_Core.hpp>
+#include <assert.h>
 #include <comm_mpi.h>
 #include <force.h>
 #include <system.h>
