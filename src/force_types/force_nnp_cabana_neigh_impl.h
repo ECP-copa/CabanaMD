@@ -44,14 +44,16 @@ const char *ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
 
 template <class t_System, class t_System_NNP, class t_Neighbor,
           class t_neigh_parallel, class t_angle_parallel>
-void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
-              t_angle_parallel>::init_coeff( char **args )
+void ForceNNP<
+    t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
+    t_angle_parallel>::init_coeff( std::vector<std::vector<std::string>> args )
 {
+    // This is the pair_style line (not coeff), so there's only one
+    auto path = args.at( 0 ).at( 3 );
     mode = new ( nnpCbn::Mode<device_type> );
 
     mode->initialize();
-    std::string settingsfile =
-        std::string( args[3] ) + "/input.nn"; // arg[3] gives directory path
+    std::string settingsfile = path + "/input.nn";
     mode->loadSettingsFile( settingsfile );
     mode->setupNormalization();
     mode->setupElementMap();
@@ -60,9 +62,9 @@ void ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,
     mode->setupSymmetryFunctions();
     mode->setupSymmetryFunctionGroups();
     mode->setupNeuralNetwork();
-    std::string scalingfile = std::string( args[3] ) + "/scaling.data";
+    std::string scalingfile = path + "/scaling.data";
     mode->setupSymmetryFunctionScaling( scalingfile );
-    std::string weightsfile = std::string( args[3] ) + "/weights.%03zu.data";
+    std::string weightsfile = path + "/weights.%03zu.data";
     mode->setupSymmetryFunctionStatistics( false, false, true, false );
     mode->setupNeuralNetworkWeights( weightsfile );
 }

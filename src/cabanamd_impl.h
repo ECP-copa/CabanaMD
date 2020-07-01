@@ -166,14 +166,10 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     }
 #endif
     else
-        log_err( err, "Invalid ForceType" );
-
-    for ( std::size_t line = 0; line < input->force_coeff_lines.extent( 0 );
-          line++ )
     {
-        force->init_coeff(
-            input->input_data.words[input->force_coeff_lines( line )] );
+        log_err( err, "Invalid ForceType" );
     }
+    force->init_coeff( input->force_coeff_lines );
 
     log( out, "Using: SystemVectorLength: ", CabanaMD_VECTORLENGTH, " ",
          system->name() );

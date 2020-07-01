@@ -61,22 +61,24 @@ ForceLJ<t_System, t_Neighbor, t_parallel>::ForceLJ( t_System *system )
 }
 
 template <class t_System, class t_Neighbor, class t_parallel>
-void ForceLJ<t_System, t_Neighbor, t_parallel>::init_coeff( char **args )
+void ForceLJ<t_System, t_Neighbor, t_parallel>::init_coeff(
+    std::vector<std::vector<std::string>> args )
 {
-    step = 0;
-
-    double eps = atof( args[3] );
-    double sigma = atof( args[4] );
-    double cut = atof( args[5] );
-
-    for ( int i = 0; i < ntypes; i++ )
+    for ( std::size_t a = 0; a < args.size(); a++ )
     {
-        for ( int j = 0; j < ntypes; j++ )
-        {
-            stack_lj1[i][j] = 48.0 * eps * pow( sigma, 12.0 );
-            stack_lj2[i][j] = 24.0 * eps * pow( sigma, 6.0 );
-            stack_cutsq[i][j] = cut * cut;
-        }
+        auto pair = args.at( a );
+        int i = std::stoi( pair.at( 1 ) ) - 1;
+        int j = std::stoi( pair.at( 2 ) ) - 1;
+        double eps = std::stod( pair.at( 3 ) );
+        double sigma = std::stod( pair.at( 4 ) );
+        double cut = std::stod( pair.at( 5 ) );
+
+        stack_lj1[i][j] = 48.0 * eps * pow( sigma, 12.0 );
+        stack_lj2[i][j] = 24.0 * eps * pow( sigma, 6.0 );
+        stack_cutsq[i][j] = cut * cut;
+        stack_lj1[j][i] = stack_lj1[i][j];
+        stack_lj2[j][i] = stack_lj2[i][j];
+        stack_cutsq[j][i] = stack_cutsq[i][j];
     }
 }
 

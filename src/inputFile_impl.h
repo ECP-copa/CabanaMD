@@ -51,108 +51,26 @@
 
 #include <fstream>
 #include <iostream>
+#include <regex>
 
-ItemizedFile::ItemizedFile()
+std::vector<std::string> split( const std::string &line )
 {
-    nlines = 0;
-    max_nlines = 0;
-    words = NULL;
-    words_per_line = 32;
-    max_word_size = 32;
-}
-
-void ItemizedFile::allocate_words( int num_lines )
-{
-    nlines = 0;
-
-    if ( max_nlines >= num_lines )
-    {
-        for ( int i = 0; i < max_nlines; i++ )
-            for ( int j = 0; j < words_per_line; j++ )
-                words[i][j][0] = 0;
-        return;
-    }
-
-    free_words();
-    max_nlines = num_lines;
-    words = new char **[max_nlines];
-    for ( int i = 0; i < max_nlines; i++ )
-    {
-        words[i] = new char *[words_per_line];
-        for ( int j = 0; j < words_per_line; j++ )
-        {
-            words[i][j] = new char[max_word_size];
-            words[i][j][0] = 0;
-        }
-    }
-}
-
-void ItemizedFile::free_words()
-{
-    for ( int i = 0; i < max_nlines; i++ )
-    {
-        for ( int j = 0; j < words_per_line; j++ )
-            delete[] words[i][j];
-        delete[] words[i];
-    }
-    delete[] words;
-}
-
-void ItemizedFile::print_line( int i )
-{
-    for ( int j = 0; j < words_per_line; j++ )
-    {
-        if ( words[i][j][0] )
-            std::cout << words[i][j] << " ";
-    }
-    std::cout << std::endl;
-}
-
-int ItemizedFile::words_in_line( int i )
-{
-    int count = 0;
-    for ( int j = 0; j < words_per_line; j++ )
-        if ( words[i][j][0] )
-            count++;
-    return count;
-}
-void ItemizedFile::print()
-{
-    for ( int l = 0; l < nlines; l++ )
-        print_line( l );
-}
-
-void ItemizedFile::add_line( const char *const line )
-{
-    const char *pos = line;
-    if ( nlines < max_nlines )
-    {
-        int j = 0;
-        while ( ( *pos ) && ( j < words_per_line ) )
-        {
-            while ( ( ( *pos == ' ' ) || ( *pos == '\t' ) ) && *pos )
-                pos++;
-            int k = 0;
-            while ( ( ( *pos != ' ' ) && ( *pos != '\t' ) ) && ( *pos ) &&
-                    ( k < max_word_size ) )
-            {
-                words[nlines][j][k] = *pos;
-                k++;
-                pos++;
-            }
-            words[nlines][j][k] = 0;
-            j++;
-        }
-    }
-    nlines++;
+    // Split line on spaces and tabs
+    std::regex re( "[ \r\t\n]" );
+    std::sregex_token_iterator first{line.begin(), line.end(), re, -1}, last;
+    std::vector<std::string> words{first, last};
+    // Remove empty
+    words.erase(
+        std::remove_if( words.begin(), words.end(),
+                        []( std::string const &s ) { return s.empty(); } ),
+        words.end() );
+    return words;
 }
 
 template <class t_System>
 InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     : commandline( commandline_ )
     , system( system_ )
-    , input_data( ItemizedFile() )
-    , data_file_data( ItemizedFile() )
 {
     comm_type = COMM_MPI;
     integrator_type = INTEGRATOR_NVE;
@@ -172,9 +90,6 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     // set defaults (matches ExaMiniMD LJ example)
 
     nsteps = 0;
-    force_coeff_lines = Kokkos::View<int *, Kokkos::HostSpace>(
-        "InputFile::force_coeff_lines", 0 );
-    data_file_type = -1;
 
     thermo_rate = 0;
     dumpbinary_rate = 0;
@@ -230,60 +145,49 @@ void InputFile<t_System>::read_file( const char *filename )
     }
     log_err( err, "Unknown input file type: ", filename );
     err.close();
-}
-
-template <class t_System>
-void InputFile<t_System>::read_lammps_file( std::ifstream &file,
-                                            std::ofstream &out,
-                                            std::ofstream &err )
-{
-    input_data.allocate_words( 100 );
-
-    char *line = new char[512];
-    line[0] = 0;
-    file.getline( line, std::streamsize( 511 ) );
-    while ( file.good() )
-    {
-        input_data.add_line( line );
-        line[0] = 0;
-        file.getline( line, 511 );
-    }
-    log( out, "\n#InputFile:\n",
-         "#=========================================================" );
-
-    if ( print_rank() )
-        input_data.print();
-    // log( out, input_data );
-
-    log( out, "#=========================================================\n" );
-
-    for ( int l = 0; l < input_data.nlines; l++ )
-        check_lammps_command( l, err );
-
     out.close();
 }
 
 template <class t_System>
-void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
+void InputFile<t_System>::read_lammps_file( std::ifstream &in,
+                                            std::ofstream &out,
+                                            std::ofstream &err )
 {
-    bool known = false;
+    log( out, "\n#InputFile:\n",
+         "#=========================================================" );
+    std::string line;
+    while ( std::getline( in, line ) )
+    {
+        check_lammps_command( line, err );
+        log( out, line );
+    }
+    log( out, "#=========================================================\n" );
+}
 
-    if ( input_data.words[line][0][0] == 0 )
-    {
+template <class t_System>
+void InputFile<t_System>::check_lammps_command( std::string line,
+                                                std::ofstream &err )
+{
+    std::string keyword = "";
+    bool known = false;
+    auto words = split( line );
+
+    // Ignore empty lines and all comment lines
+    if ( words.size() == 0 )
         known = true;
-    }
-    if ( strstr( input_data.words[line][0], "#" ) )
-    {
+    else if ( words.at( 0 )[0] == '#' )
         known = true;
-    }
-    if ( strcmp( input_data.words[line][0], "variable" ) == 0 )
+    else
+        keyword = words.at( 0 );
+
+    if ( keyword.compare( "variable" ) == 0 )
     {
         log_err( err, "LAMMPS-Command: 'variable' keyword is not supported in "
                       "CabanaMD" );
     }
-    if ( strcmp( input_data.words[line][0], "units" ) == 0 )
+    if ( keyword.compare( "units" ) == 0 )
     {
-        if ( strcmp( input_data.words[line][1], "metal" ) == 0 )
+        if ( words.at( 1 ).compare( "metal" ) == 0 )
         {
             known = true;
             units_style = UNITS_METAL;
@@ -292,7 +196,7 @@ void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
             system->mvv2e = 1.0364269e-4;
             system->dt = 0.001;
         }
-        else if ( strcmp( input_data.words[line][1], "real" ) == 0 )
+        else if ( words.at( 1 ).compare( "real" ) == 0 )
         {
             known = true;
             units_style = UNITS_REAL;
@@ -302,7 +206,7 @@ void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
             if ( !timestepflag )
                 system->dt = 1.0;
         }
-        else if ( strcmp( input_data.words[line][1], "lj" ) == 0 )
+        else if ( words.at( 1 ).compare( "lj" ) == 0 )
         {
             known = true;
             units_style = UNITS_LJ;
@@ -318,13 +222,13 @@ void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
                           "'metal', 'real', and 'lj' in CabanaMD" );
         }
     }
-    if ( strcmp( input_data.words[line][0], "atom_style" ) == 0 )
+    if ( keyword.compare( "atom_style" ) == 0 )
     {
-        if ( strcmp( input_data.words[line][1], "atomic" ) == 0 )
+        if ( words.at( 1 ).compare( "atomic" ) == 0 )
         {
             known = true;
         }
-        else if ( strcmp( input_data.words[line][1], "charge" ) == 0 )
+        else if ( words.at( 1 ).compare( "charge" ) == 0 )
         {
             known = true;
             system->atom_style = "charge";
@@ -335,24 +239,23 @@ void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
                           "'atomic' and 'charge' in CabanaMD" );
         }
     }
-    if ( strcmp( input_data.words[line][0], "lattice" ) == 0 )
+    if ( keyword.compare( "lattice" ) == 0 )
     {
-        if ( strcmp( input_data.words[line][1], "sc" ) == 0 )
+        if ( words.at( 1 ).compare( "sc" ) == 0 )
         {
             known = true;
             lattice_style = LATTICE_SC;
-            lattice_constant = atof( input_data.words[line][2] );
+            lattice_constant = std::stod( words.at( 2 ) );
         }
-        else if ( strcmp( input_data.words[line][1], "fcc" ) == 0 )
+        else if ( words.at( 1 ).compare( "fcc" ) == 0 )
         {
             known = true;
             lattice_style = LATTICE_FCC;
             if ( units_style == UNITS_LJ )
-                lattice_constant =
-                    std::pow( ( 4.0 / atof( input_data.words[line][2] ) ),
-                              ( 1.0 / 3.0 ) );
+                lattice_constant = std::pow(
+                    ( 4.0 / std::stod( words.at( 2 ) ) ), ( 1.0 / 3.0 ) );
             else
-                lattice_constant = atof( input_data.words[line][2] );
+                lattice_constant = std::stod( words.at( 2 ) );
         }
         else
         {
@@ -360,25 +263,35 @@ void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
                      "LAMMPS-Command: 'lattice' command only supports 'sc' "
                      "and 'fcc' in CabanaMD" );
         }
-        if ( strcmp( input_data.words[line][3], "origin" ) == 0 )
+        if ( words.size() > 3 )
         {
-            lattice_offset_x = atof( input_data.words[line][4] );
-            lattice_offset_y = atof( input_data.words[line][5] );
-            lattice_offset_z = atof( input_data.words[line][6] );
+            if ( words.at( 3 ).compare( "origin" ) == 0 )
+            {
+                lattice_offset_x = std::stod( words.at( 4 ) );
+                lattice_offset_y = std::stod( words.at( 5 ) );
+                lattice_offset_z = std::stod( words.at( 6 ) );
+            }
+            else
+            {
+                log_err(
+                    err,
+                    "LAMMPS-Command: 'lattice' command only supports 'origin' "
+                    "additional option in CabanaMD" );
+            }
         }
     }
-    if ( strcmp( input_data.words[line][0], "region" ) == 0 )
+    if ( keyword.compare( "region" ) == 0 )
     {
-        if ( strcmp( input_data.words[line][2], "block" ) == 0 )
+        if ( words.at( 2 ).compare( "block" ) == 0 )
         {
             known = true;
             int box[6];
-            box[0] = atoi( input_data.words[line][3] );
-            box[1] = atoi( input_data.words[line][4] );
-            box[2] = atoi( input_data.words[line][5] );
-            box[3] = atoi( input_data.words[line][6] );
-            box[4] = atoi( input_data.words[line][7] );
-            box[5] = atoi( input_data.words[line][8] );
+            box[0] = std::stoi( words.at( 3 ) );
+            box[1] = std::stoi( words.at( 4 ) );
+            box[2] = std::stoi( words.at( 5 ) );
+            box[3] = std::stoi( words.at( 6 ) );
+            box[4] = std::stoi( words.at( 7 ) );
+            box[5] = std::stoi( words.at( 8 ) );
             if ( ( box[0] != 0 ) || ( box[2] != 0 ) || ( box[4] != 0 ) )
                 log_err( err, "LAMMPS-Command: region only allows for boxes "
                               "with 0,0,0 offset in CabanaMD" );
@@ -392,108 +305,103 @@ void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
                           "'block' option in CabanaMD" );
         }
     }
-    if ( strcmp( input_data.words[line][0], "create_box" ) == 0 )
+    if ( keyword.compare( "create_box" ) == 0 )
     {
         known = true;
-        system->ntypes = atoi( input_data.words[line][1] );
+        system->ntypes = std::stoi( words.at( 1 ) );
         using t_mass = typename t_System::t_mass;
         system->mass = t_mass( "System::mass", system->ntypes );
     }
-    if ( strcmp( input_data.words[line][0], "create_atoms" ) == 0 )
+    if ( keyword.compare( "create_atoms" ) == 0 )
     {
         known = true;
     }
-    if ( strcmp( input_data.words[line][0], "mass" ) == 0 )
+    if ( keyword.compare( "mass" ) == 0 )
     {
         known = true;
-        int type = atoi( input_data.words[line][1] ) - 1;
+        int type = std::stoi( words.at( 1 ) ) - 1;
         using exe_space = typename t_System::execution_space;
         Kokkos::View<T_V_FLOAT, exe_space> mass_one( system->mass, type );
-        T_V_FLOAT mass = atof( input_data.words[line][2] );
+        T_V_FLOAT mass = std::stod( words.at( 2 ) );
         Kokkos::deep_copy( mass_one, mass );
     }
-    if ( strcmp( input_data.words[line][0], "read_data" ) == 0 )
+    if ( keyword.compare( "read_data" ) == 0 )
     {
         known = true;
         read_data_flag = true;
-        lammps_data_file = input_data.words[line][1];
+        lammps_data_file = words.at( 1 );
     }
 
-    if ( strcmp( input_data.words[line][0], "pair_style" ) == 0 )
+    if ( keyword.compare( "pair_style" ) == 0 )
     {
-        if ( strcmp( input_data.words[line][1], "lj/cut" ) == 0 )
+        if ( words.at( 1 ).compare( "lj/cut" ) == 0 )
         {
             known = true;
             force_type = FORCE_LJ;
-            force_cutoff = atof( input_data.words[line][2] );
-            force_line = line;
+            force_cutoff = std::stod( words.at( 2 ) );
         }
-        if ( strcmp( input_data.words[line][1], "snap" ) == 0 )
+        if ( words.at( 1 ).compare( "snap" ) == 0 )
         {
             known = false;
             force_type = FORCE_SNAP;
-            force_cutoff = 4.73442; // atof(input_data.words[line][2]);
-            force_line = line;
+            force_cutoff = 4.73442; // std::stod(words.at(2));
         }
-        if ( strcmp( input_data.words[line][1], "nnp" ) == 0 )
+        if ( words.at( 1 ).compare( "nnp" ) == 0 )
         {
             known = true;
             force_type = FORCE_NNP;
-            force_line = line; // TODO: process this line to read in the right
-                               // directories
-            Kokkos::resize( force_coeff_lines, 1 );
-            force_coeff_lines( 0 ) = line;
+            force_coeff_lines.resize( 1 );
+            force_coeff_lines.at( 0 ) = split( line );
         }
         if ( !known )
             log_err( err, "LAMMPS-Command: 'pair_style' command only supports "
                           "'lj/cut' and 'nnp' style in CabanaMD" );
     }
-    if ( strcmp( input_data.words[line][0], "pair_coeff" ) == 0 )
+    if ( keyword.compare( "pair_coeff" ) == 0 )
     {
         known = true;
         if ( force_type == FORCE_NNP )
-            force_cutoff = atof( input_data.words[line][3] );
+            force_cutoff = std::stod( words.at( 3 ) );
         else
         {
-            int n_coeff_lines = force_coeff_lines.extent( 0 );
-            Kokkos::resize( force_coeff_lines, n_coeff_lines + 1 );
-            force_coeff_lines( n_coeff_lines ) = line;
-            n_coeff_lines++;
+            int nlines = force_coeff_lines.size();
+            force_coeff_lines.resize( nlines + 1 );
+            force_coeff_lines.at( nlines ) = split( line );
         }
     }
-    if ( strcmp( input_data.words[line][0], "velocity" ) == 0 )
+    if ( keyword.compare( "velocity" ) == 0 )
     {
         known = true;
-        if ( strcmp( input_data.words[line][1], "all" ) != 0 )
+        if ( words.at( 1 ).compare( "all" ) != 0 )
         {
             log_err( err, "LAMMPS-Command: 'velocity' command can only be "
                           "applied to 'all' in CabanaMD" );
         }
-        if ( strcmp( input_data.words[line][2], "create" ) != 0 )
+        if ( words.at( 2 ).compare( "create" ) != 0 )
         {
             log_err( err, "LAMMPS-Command: 'velocity' command can only be used "
                           "with option 'create' in CabanaMD" );
         }
-        temperature_target = atof( input_data.words[line][3] );
-        temperature_seed = atoi( input_data.words[line][4] );
+        temperature_target = std::stod( words.at( 3 ) );
+        temperature_seed = std::stoi( words.at( 4 ) );
     }
-    if ( strcmp( input_data.words[line][0], "neighbor" ) == 0 )
+    if ( keyword.compare( "neighbor" ) == 0 )
     {
         known = true;
-        neighbor_skin = atof( input_data.words[line][1] );
+        neighbor_skin = std::stod( words.at( 1 ) );
     }
-    if ( strcmp( input_data.words[line][0], "neigh_modify" ) == 0 )
+    if ( keyword.compare( "neigh_modify" ) == 0 )
     {
         known = true;
-        for ( int i = 1; i < input_data.words_per_line - 1; i++ )
-            if ( strcmp( input_data.words[line][i], "every" ) == 0 )
+        for ( std::size_t i = 0; i < words.size(); i++ )
+            if ( words.at( i ).compare( "every" ) == 0 )
             {
-                comm_exchange_rate = atoi( input_data.words[line][i + 1] );
+                comm_exchange_rate = std::stoi( words.at( i + 1 ) );
             }
     }
-    if ( strcmp( input_data.words[line][0], "fix" ) == 0 )
+    if ( keyword.compare( "fix" ) == 0 )
     {
-        if ( strcmp( input_data.words[line][3], "nve" ) == 0 )
+        if ( words.at( 3 ).compare( "nve" ) == 0 )
         {
             known = true;
             integrator_type = INTEGRATOR_NVE;
@@ -504,33 +412,33 @@ void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
                           "style in CabanaMD" );
         }
     }
-    if ( strcmp( input_data.words[line][0], "run" ) == 0 )
+    if ( keyword.compare( "run" ) == 0 )
     {
         known = true;
-        nsteps = atoi( input_data.words[line][1] );
+        nsteps = std::stoi( words.at( 1 ) );
     }
-    if ( strcmp( input_data.words[line][0], "thermo" ) == 0 )
+    if ( keyword.compare( "thermo" ) == 0 )
     {
         known = true;
-        thermo_rate = atoi( input_data.words[line][1] );
+        thermo_rate = std::stoi( words.at( 1 ) );
     }
-    if ( strcmp( input_data.words[line][0], "timestep" ) == 0 )
+    if ( keyword.compare( "timestep" ) == 0 )
     {
         known = true;
-        system->dt = atof( input_data.words[line][1] );
+        system->dt = std::stod( words.at( 1 ) );
         timestepflag = true;
     }
-    if ( strcmp( input_data.words[line][0], "newton" ) == 0 )
+    if ( keyword.compare( "newton" ) == 0 )
     {
         known = true;
         // File setting overriden by commandline
         if ( !commandline.set_force_iteration )
         {
-            if ( strcmp( input_data.words[line][1], "on" ) == 0 )
+            if ( words.at( 1 ).compare( "on" ) == 0 )
             {
                 force_iteration_type = FORCE_ITER_NEIGH_HALF;
             }
-            else if ( strcmp( input_data.words[line][1], "off" ) == 0 )
+            else if ( words.at( 1 ).compare( "off" ) == 0 )
             {
                 force_iteration_type = FORCE_ITER_NEIGH_FULL;
             }
@@ -547,15 +455,11 @@ void InputFile<t_System>::check_lammps_command( int line, std::ofstream &err )
                  "commandline --force-iteration" );
         }
     }
-    if ( input_data.words[line][0][0] == '#' )
-    {
-        known = true;
-    }
+
     if ( !known )
     {
         log_err( err, "Unknown input file keyword: ", line );
     }
-    err.close();
 }
 
 template <class t_System>
