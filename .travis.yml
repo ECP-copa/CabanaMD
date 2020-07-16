@@ -58,7 +58,7 @@ before_script:
     make -j2 VERBOSE=1 && make install &&
     popd && popd
   - if [[ ${Heffte} ]]; then
-       git clone --depth=1  https://bitbucket.org/icl/heffte.git &&
+       git clone --depth=1 --branch v1.0-rc1 https://bitbucket.org/icl/heffte.git &&
        pushd heffte && mkdir build && pushd build &&
        cmake -DCMAKE_INSTALL_PREFIX="$HOME/heffte"
           -DCMAKE_CXX_STANDARD="11"
