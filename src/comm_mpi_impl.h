@@ -549,11 +549,3 @@ int Comm<t_System>::num_processes()
 {
     return proc_size;
 }
-
-template <class t_System>
-void Comm<t_System>::error( const char *errormsg )
-{
-    if ( proc_rank == 0 )
-        printf( "%s\n", errormsg );
-    MPI_Abort( MPI_COMM_WORLD, 1 );
-}

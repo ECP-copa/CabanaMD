@@ -67,6 +67,7 @@
 class CabanaMD
 {
   public:
+    bool _print_lammps = false;
     int nsteps;
 
     virtual void init( InputCL cl ) = 0;
