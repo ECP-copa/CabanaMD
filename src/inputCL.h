@@ -49,6 +49,7 @@
 #ifndef INPUTCL_H
 #define INPUTCL_H
 
+#include <output.h>
 #include <types.h>
 
 #include <iostream>
@@ -56,8 +57,6 @@
 class InputCL
 {
   public:
-    bool do_print;
-
     int input_file_type;
 
     int neighbor_type;
@@ -72,6 +71,9 @@ class InputCL
     bool dumpbinaryflag, correctnessflag;
     char *dumpbinary_path, *reference_path, *correctness_file;
     char *input_file = NULL;
+
+    std::string output_file = "cabanaMD.out";
+    std::string error_file = "cabanaMD.err";
 
     InputCL();
     ~InputCL();

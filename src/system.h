@@ -95,11 +95,6 @@ class SystemCommon
     // Units
     T_FLOAT boltz, mvv2e, dt;
 
-    // Should this process print messages
-    bool do_print;
-    // Should print LAMMPS style messages
-    bool print_lammps;
-
     SystemCommon()
     {
         N = 0;
@@ -118,13 +113,7 @@ class SystemCommon
         sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
         mvv2e = boltz = dt = 0.0;
 
-        print_lammps = false;
-
         mass = t_mass( "System::mass", ntypes );
-
-        int proc_rank;
-        MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
-        do_print = proc_rank == 0;
     }
 
     ~SystemCommon() {}

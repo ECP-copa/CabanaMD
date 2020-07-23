@@ -46,8 +46,8 @@
 //
 //************************************************************************
 
-template <class t_System, class t_Neighbor>
-ForceLJ<t_System, t_Neighbor>::ForceLJ( t_System *system )
+template <class t_System, class t_Neighbor, class t_parallel>
+ForceLJ<t_System, t_Neighbor, t_parallel>::ForceLJ( t_System *system )
     : Force<t_System, t_Neighbor>( system )
 {
     ntypes = system->ntypes;
@@ -60,114 +60,103 @@ ForceLJ<t_System, t_Neighbor>::ForceLJ( t_System *system )
     step = 0;
 }
 
-template <class t_System, class t_Neighbor>
-void ForceLJ<t_System, t_Neighbor>::init_coeff( char **args )
+template <class t_System, class t_Neighbor, class t_parallel>
+void ForceLJ<t_System, t_Neighbor, t_parallel>::init_coeff(
+    std::vector<std::vector<std::string>> args )
 {
-    step = 0;
-
-    double eps = atof( args[3] );
-    double sigma = atof( args[4] );
-    double cut = atof( args[5] );
-
-    for ( int i = 0; i < ntypes; i++ )
+    for ( std::size_t a = 0; a < args.size(); a++ )
     {
-        for ( int j = 0; j < ntypes; j++ )
-        {
-            stack_lj1[i][j] = 48.0 * eps * pow( sigma, 12.0 );
-            stack_lj2[i][j] = 24.0 * eps * pow( sigma, 6.0 );
-            stack_cutsq[i][j] = cut * cut;
-        }
+        auto pair = args.at( a );
+        int i = std::stoi( pair.at( 1 ) ) - 1;
+        int j = std::stoi( pair.at( 2 ) ) - 1;
+        double eps = std::stod( pair.at( 3 ) );
+        double sigma = std::stod( pair.at( 4 ) );
+        double cut = std::stod( pair.at( 5 ) );
+
+        stack_lj1[i][j] = 48.0 * eps * pow( sigma, 12.0 );
+        stack_lj2[i][j] = 24.0 * eps * pow( sigma, 6.0 );
+        stack_cutsq[i][j] = cut * cut;
+        stack_lj1[j][i] = stack_lj1[i][j];
+        stack_lj2[j][i] = stack_lj2[i][j];
+        stack_cutsq[j][i] = stack_cutsq[i][j];
     }
 }
 
-template <class t_System, class t_Neighbor>
-void ForceLJ<t_System, t_Neighbor>::compute( t_System *system,
-                                             t_Neighbor *neighbor )
+template <class t_System, class t_Neighbor, class t_parallel>
+void ForceLJ<t_System, t_Neighbor, t_parallel>::compute( t_System *system,
+                                                         t_Neighbor *neighbor )
 {
     N_local = system->N_local;
     system->slice_force();
-    x = system->x;
-    f = system->f;
-    f_a = f;
-    type = system->type;
+    auto x = system->x;
+    auto f = system->f;
+    t_f_a f_a = system->f;
+    auto type = system->type;
 
-    neigh_list = neighbor->get();
+    auto neigh_list = neighbor->get();
 
     if ( neighbor->half_neigh )
     {
-        Kokkos::parallel_for(
-            "ForceLJCabanaNeigh::compute",
-            t_policy_half_neigh_stackparams( 0, system->N_local ), *this );
+        // Forces must be atomic for half list
+        compute_force_half( f_a, x, type, neigh_list );
     }
     else
     {
-        Kokkos::parallel_for(
-            "ForceLJCabanaNeigh::compute",
-            t_policy_full_neigh_stackparams( 0, system->N_local ), *this );
+        // Forces only atomic if using team threading
+        if ( std::is_same<t_parallel, Cabana::TeamOpTag>::value )
+            compute_force_full( f_a, x, type, neigh_list );
+        else
+            compute_force_full( f, x, type, neigh_list );
     }
     Kokkos::fence();
 
     step++;
 }
 
-template <class t_System, class t_Neighbor>
-T_V_FLOAT ForceLJ<t_System, t_Neighbor>::compute_energy( t_System *system,
-                                                         t_Neighbor *neighbor )
+template <class t_System, class t_Neighbor, class t_parallel>
+T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy(
+    t_System *system, t_Neighbor *neighbor )
 {
     N_local = system->N_local;
     system->slice_force();
-    x = system->x;
-    f = system->f;
-    f_a = f;
-    type = system->type;
+    auto x = system->x;
+    auto f = system->f;
+    auto type = system->type;
 
-    neigh_list = neighbor->get();
+    auto neigh_list = neighbor->get();
 
-    T_V_FLOAT energy;
-
+    T_F_FLOAT energy;
     if ( neighbor->half_neigh )
-        Kokkos::parallel_reduce(
-            "ForceLJCabanaNeigh::compute_energy",
-            t_policy_half_neigh_pe_stackparams( 0, system->N_local ), *this,
-            energy );
+        energy = compute_energy_half( x, type, neigh_list );
     else
-        Kokkos::parallel_reduce(
-            "ForceLJCabanaNeigh::compute_energy",
-            t_policy_full_neigh_pe_stackparams( 0, system->N_local ), *this,
-            energy );
-
+        energy = compute_energy_full( x, type, neigh_list );
     Kokkos::fence();
 
     step++;
     return energy;
 }
 
-template <class t_System, class t_Neighbor>
-const char *ForceLJ<t_System, t_Neighbor>::name()
+template <class t_System, class t_Neighbor, class t_parallel>
+const char *ForceLJ<t_System, t_Neighbor, t_parallel>::name()
 {
     return "Force:LJCabana";
 }
 
-template <class t_System, class t_Neighbor>
-KOKKOS_INLINE_FUNCTION void ForceLJ<t_System, t_Neighbor>::
-operator()( TagFullNeigh, const T_INT &i ) const
+template <class t_System, class t_Neighbor, class t_parallel>
+template <class t_f, class t_x, class t_type, class t_neigh>
+void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_full(
+    t_f f, const t_x x, const t_type type, const t_neigh neigh_list )
 {
-    const T_F_FLOAT x_i = x( i, 0 );
-    const T_F_FLOAT y_i = x( i, 1 );
-    const T_F_FLOAT z_i = x( i, 2 );
-    const int type_i = type( i );
-
-    int num_neighs =
-        Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, i );
-
-    T_F_FLOAT fxi = 0.0;
-    T_F_FLOAT fyi = 0.0;
-    T_F_FLOAT fzi = 0.0;
-
-    for ( int jj = 0; jj < num_neighs; jj++ )
+    auto force_full = KOKKOS_LAMBDA( const int i, const int j )
     {
-        int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list, i,
-                                                                 jj );
+        const T_F_FLOAT x_i = x( i, 0 );
+        const T_F_FLOAT y_i = x( i, 1 );
+        const T_F_FLOAT z_i = x( i, 2 );
+        const int type_i = type( i );
+
+        T_F_FLOAT fxi = 0.0;
+        T_F_FLOAT fyi = 0.0;
+        T_F_FLOAT fzi = 0.0;
 
         const T_F_FLOAT dx = x_i - x( j, 0 );
         const T_F_FLOAT dy = y_i - x( j, 1 );
@@ -190,32 +179,34 @@ operator()( TagFullNeigh, const T_INT &i ) const
             fyi += dy * fpair;
             fzi += dz * fpair;
         }
-    }
 
-    f( i, 0 ) += fxi;
-    f( i, 1 ) += fyi;
-    f( i, 2 ) += fzi;
+        f( i, 0 ) += fxi;
+        f( i, 1 ) += fyi;
+        f( i, 2 ) += fzi;
+    };
+
+    Kokkos::RangePolicy<exe_space> policy( 0, N_local );
+    t_parallel neigh_parallel;
+    Cabana::neighbor_parallel_for( policy, force_full, neigh_list,
+                                   Cabana::FirstNeighborsTag(), neigh_parallel,
+                                   "ForceLJCabanaNeigh::compute_full" );
 }
 
-template <class t_System, class t_Neighbor>
-KOKKOS_INLINE_FUNCTION void ForceLJ<t_System, t_Neighbor>::
-operator()( TagHalfNeigh, const T_INT &i ) const
+template <class t_System, class t_Neighbor, class t_parallel>
+template <class t_f, class t_x, class t_type, class t_neigh>
+void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_half(
+    t_f f_a, const t_x x, const t_type type, const t_neigh neigh_list )
 {
-    const T_F_FLOAT x_i = x( i, 0 );
-    const T_F_FLOAT y_i = x( i, 1 );
-    const T_F_FLOAT z_i = x( i, 2 );
-    const int type_i = type( i );
-
-    int num_neighs =
-        Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, i );
-
-    T_F_FLOAT fxi = 0.0;
-    T_F_FLOAT fyi = 0.0;
-    T_F_FLOAT fzi = 0.0;
-    for ( int jj = 0; jj < num_neighs; jj++ )
+    auto force_half = KOKKOS_LAMBDA( const int i, const int j )
     {
-        int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list, i,
-                                                                 jj );
+        const T_F_FLOAT x_i = x( i, 0 );
+        const T_F_FLOAT y_i = x( i, 1 );
+        const T_F_FLOAT z_i = x( i, 2 );
+        const int type_i = type( i );
+
+        T_F_FLOAT fxi = 0.0;
+        T_F_FLOAT fyi = 0.0;
+        T_F_FLOAT fzi = 0.0;
 
         const T_F_FLOAT dx = x_i - x( j, 0 );
         const T_F_FLOAT dy = y_i - x( j, 1 );
@@ -241,29 +232,30 @@ operator()( TagHalfNeigh, const T_INT &i ) const
             f_a( j, 1 ) -= dy * fpair;
             f_a( j, 2 ) -= dz * fpair;
         }
-    }
-    f_a( i, 0 ) += fxi;
-    f_a( i, 1 ) += fyi;
-    f_a( i, 2 ) += fzi;
+        f_a( i, 0 ) += fxi;
+        f_a( i, 1 ) += fyi;
+        f_a( i, 2 ) += fzi;
+    };
+
+    Kokkos::RangePolicy<exe_space> policy( 0, N_local );
+    t_parallel neigh_parallel;
+    Cabana::neighbor_parallel_for( policy, force_half, neigh_list,
+                                   Cabana::FirstNeighborsTag(), neigh_parallel,
+                                   "ForceLJCabanaNeigh::compute_half" );
 }
 
-template <class t_System, class t_Neighbor>
-KOKKOS_INLINE_FUNCTION void ForceLJ<t_System, t_Neighbor>::
-operator()( TagFullNeighPE, const T_INT &i, T_V_FLOAT &PE ) const
+template <class t_System, class t_Neighbor, class t_parallel>
+template <class t_x, class t_type, class t_neigh>
+T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_full(
+    const t_x x, const t_type type, const t_neigh neigh_list )
 {
-    const T_F_FLOAT x_i = x( i, 0 );
-    const T_F_FLOAT y_i = x( i, 1 );
-    const T_F_FLOAT z_i = x( i, 2 );
-    const int type_i = type( i );
-    const bool shift_flag = true;
-
-    int num_neighs =
-        Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, i );
-
-    for ( int jj = 0; jj < num_neighs; jj++ )
+    auto energy_full = KOKKOS_LAMBDA( const int i, const int j, T_F_FLOAT &PE )
     {
-        int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list, i,
-                                                                 jj );
+        const T_F_FLOAT x_i = x( i, 0 );
+        const T_F_FLOAT y_i = x( i, 1 );
+        const T_F_FLOAT z_i = x( i, 2 );
+        const int type_i = type( i );
+        const bool shift_flag = true;
 
         const T_F_FLOAT dx = x_i - x( j, 0 );
         const T_F_FLOAT dy = y_i - x( j, 1 );
@@ -292,26 +284,30 @@ operator()( TagFullNeighPE, const T_INT &i, T_V_FLOAT &PE ) const
                       6.0; // optimize later
             }
         }
-    }
+    };
+
+    T_F_FLOAT energy = 0.0;
+    Kokkos::RangePolicy<exe_space> policy( 0, N_local );
+    t_parallel neigh_parallel;
+    Cabana::neighbor_parallel_reduce(
+        policy, energy_full, neigh_list, Cabana::FirstNeighborsTag(),
+        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_half" );
+    return energy;
 }
 
-template <class t_System, class t_Neighbor>
-KOKKOS_INLINE_FUNCTION void ForceLJ<t_System, t_Neighbor>::
-operator()( TagHalfNeighPE, const T_INT &i, T_V_FLOAT &PE ) const
+template <class t_System, class t_Neighbor, class t_parallel>
+template <class t_x, class t_type, class t_neigh>
+T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
+    const t_x x, const t_type type, const t_neigh neigh_list )
 {
-    const T_F_FLOAT x_i = x( i, 0 );
-    const T_F_FLOAT y_i = x( i, 1 );
-    const T_F_FLOAT z_i = x( i, 2 );
-    const int type_i = type( i );
-    const bool shift_flag = true;
-
-    int num_neighs =
-        Cabana::NeighborList<t_neigh_list>::numNeighbor( neigh_list, i );
-
-    for ( int jj = 0; jj < num_neighs; jj++ )
+    auto energy_half = KOKKOS_LAMBDA( const int i, const int j, T_F_FLOAT &PE )
     {
-        int j = Cabana::NeighborList<t_neigh_list>::getNeighbor( neigh_list, i,
-                                                                 jj );
+
+        const T_F_FLOAT x_i = x( i, 0 );
+        const T_F_FLOAT y_i = x( i, 1 );
+        const T_F_FLOAT z_i = x( i, 2 );
+        const int type_i = type( i );
+        const bool shift_flag = true;
 
         const T_F_FLOAT dx = x_i - x( j, 0 );
         const T_F_FLOAT dy = y_i - x( j, 1 );
@@ -346,5 +342,13 @@ operator()( TagHalfNeighPE, const T_INT &i, T_V_FLOAT &PE ) const
                       6.0; // optimize later
             }
         }
-    }
+    };
+
+    T_F_FLOAT energy = 0.0;
+    Kokkos::RangePolicy<exe_space> policy( 0, N_local );
+    t_parallel neigh_parallel;
+    Cabana::neighbor_parallel_reduce(
+        policy, energy_half, neigh_list, Cabana::FirstNeighborsTag(),
+        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_half" );
+    return energy;
 }

@@ -36,9 +36,10 @@ ForceSPME<t_System, t_Neighbor>::ForceSPME( t_System *system )
 
 // TODO: allow user to specify parameters
 template <class t_System, class t_Neighbor>
-void ForceSPME<t_System, t_Neighbor>::init_coeff( char **args )
+void ForceSPME<t_System, t_Neighbor>::init_coeff(
+    std::vector<std::vector<std::string>> args )
 {
-    accuracy = atof( args[2] );
+    accuracy = std::stod( args[2] );
 }
 
 template <class t_System, class t_Neighbor>

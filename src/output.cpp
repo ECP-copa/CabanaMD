@@ -9,15 +9,11 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef CABANA_TEST_CUDAUVM_CATEGORY_HPP
-#define CABANA_TEST_CUDAUVM_CATEGORY_HPP
+#include <output.h>
 
-#include <Kokkos_Cuda.hpp>
-
-#include <gtest/gtest.h>
-
-#define TEST_CATEGORY cuda_uvm
-#define TEST_EXECSPACE Kokkos::Cuda
-#define TEST_MEMSPACE Kokkos::CudaUVMSpace
-
-#endif // end CABANA_TEST_CUDAUVM_CATEGORY_HPP
+bool print_rank()
+{
+    int proc_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+    return proc_rank == 0;
+}

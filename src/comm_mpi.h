@@ -360,7 +360,6 @@ class Comm
     const char *name();
     int process_rank();
     int num_processes();
-    void error( const char * );
 };
 
 #include <comm_mpi_impl.h>

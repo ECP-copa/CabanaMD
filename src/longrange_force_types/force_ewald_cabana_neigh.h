@@ -52,7 +52,7 @@ class ForceEwald : public Force<t_System, t_Neighbor>
   public:
     ForceEwald( t_System *system );
 
-    void init_coeff( char **args ) override;
+    void init_coeff( std::vector<std::vector<std::string>> args ) override;
     void init_longrange( t_System *system, T_X_FLOAT r_max ) override;
     void tune( t_System *system );
 
