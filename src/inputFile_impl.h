@@ -172,7 +172,7 @@ void InputFile<t_System>::read_lammps_file( std::ifstream &in,
 
         if ( num_lattice == -1 )
             log( out, line );
-        
+
         if ( curr_lattice == done_lattice and done_lattice < num_lattice )
         {
             done_lattice += 1;
@@ -366,8 +366,8 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     if ( keyword.compare( "set" ) == 0 )
     {
         known = true;
-        if ( words.at(1).compare( "type" ) == 0 and
-             words.at(3).compare( "charge" ) == 0 )
+        if ( words.at( 1 ).compare( "type" ) == 0 and
+             words.at( 3 ).compare( "charge" ) == 0 )
         {
             int type = stoi( words.at( 2 ) ) - 1;
             Kokkos::View<T_V_FLOAT> charge_one( system->charge, type );
@@ -376,7 +376,8 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         }
         else
         {
-            log_err( err, "LAMMPS-Command: 'set' command only supports setting charges by type CabanaMD\n" );
+            log_err( err, "LAMMPS-Command: 'set' command only supports setting "
+                          "charges by type CabanaMD\n" );
         }
     }
     if ( keyword.compare( "read_data" ) == 0 )
@@ -412,8 +413,10 @@ void InputFile<t_System>::check_lammps_command( std::string line,
             force_coeff_lines.at( 0 ) = split( line );
         }
         if ( !known )
-            log_err( err, "LAMMPS-Command: 'pair_style' command only supports "
-                          "'lj/cut', 'lj/cut/coul/long', and 'nnp' style in CabanaMD" );
+            log_err(
+                err,
+                "LAMMPS-Command: 'pair_style' command only supports 'lj/cut', "
+                "'lj/cut/coul/long', and 'nnp' style in CabanaMD" );
     }
     if ( keyword.compare( "pair_coeff" ) == 0 )
     {
@@ -447,7 +450,8 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         }
         else
         {
-            log_err( err, "LAMMPS-Command: 'kspace_style' command only supports 'ewald' or 'spme' in CabanaMD\n" );
+            log_err( err, "LAMMPS-Command: 'kspace_style' command only "
+                          "supports 'ewald' or 'spme' in CabanaMD\n" );
         }
     }
     if ( keyword.compare( "velocity" ) == 0 )
