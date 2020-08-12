@@ -52,6 +52,8 @@
 #include <output.h>
 #include <types.h>
 
+#include <CabanaMD_config.hpp>
+
 #include <iostream>
 
 class InputCL

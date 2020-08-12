@@ -213,7 +213,7 @@ void InputCL::read_args( int argc, char *argv[] )
                 log_err( std::cout, "Unknown commandline option: ", argv[i],
                          " ", argv[i + 1] );
             ++i;
-#ifndef Cabana_ENABLE_ARBORX
+#ifndef CabanaMD_ENABLE_ARBORX
             if ( neighbor_type == NEIGH_TREE )
             {
                 log_err( std::cout,
