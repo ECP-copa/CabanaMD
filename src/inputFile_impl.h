@@ -436,17 +436,11 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         {
             known = true;
             lrforce_type = FORCE_EWALD;
-            int nlines = force_coeff_lines.size();
-            force_coeff_lines.resize( nlines + 1 );
-            force_coeff_lines.at( nlines ) = split( line );
         }
         else if ( words.at( 1 ).compare( "spme" ) == 0 )
         {
             known = true;
             lrforce_type = FORCE_SPME;
-            int nlines = force_coeff_lines.size();
-            force_coeff_lines.resize( nlines + 1 );
-            force_coeff_lines.at( nlines ) = split( line );
         }
         else
         {

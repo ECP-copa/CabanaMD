@@ -13,11 +13,14 @@
 #define FORCE_EWALD_CABANA_NEIGH_H
 
 #include <Cabana_Core.hpp>
-#include <assert.h>
 #include <comm_mpi.h>
 #include <force.h>
 #include <system.h>
 #include <types.h>
+
+#include <assert.h>
+#include <string>
+#include <vector>
 
 template <class t_System, class t_Neighbor>
 class ForceEwald : public Force<t_System, t_Neighbor>

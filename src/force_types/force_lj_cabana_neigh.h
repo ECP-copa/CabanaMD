@@ -57,6 +57,9 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+#include <string>
+#include <vector>
+
 template <class t_System, class t_Neighbor, class t_parallel>
 class ForceLJ : public Force<t_System, t_Neighbor>
 {

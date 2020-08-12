@@ -19,6 +19,8 @@
 
 #include <mpi.h>
 
+#include <string>
+
 /* Smooth particle mesh Ewald (SPME) solver
  * - This method, from Essman et al. (1995) computes long-range Coulombic forces
  *   with O(nlogN) scaling by using 3D FFT and interpolation to a mesh for the
@@ -39,7 +41,8 @@ template <class t_System, class t_Neighbor>
 void ForceSPME<t_System, t_Neighbor>::init_coeff(
     std::vector<std::vector<std::string>> args )
 {
-    accuracy = std::stod( args[2] );
+    // This is the kspace_style line (not coeff), so there's only one
+    accuracy = std::stod( args.at( 0 ).at( 2 ) );
 }
 
 template <class t_System, class t_Neighbor>

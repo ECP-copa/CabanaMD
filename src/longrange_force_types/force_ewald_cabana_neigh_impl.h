@@ -54,7 +54,8 @@ template <class t_System, class t_Neighbor>
 void ForceEwald<t_System, t_Neighbor>::init_coeff(
     std::vector<std::vector<std::string>> args )
 {
-    accuracy = std::stod( args[2] );
+    // This is the kspace_style line (not coeff), so there's only one
+    accuracy = std::stod( args.at( 0 ).at( 2 ) );
 }
 
 template <class t_System, class t_Neighbor>
