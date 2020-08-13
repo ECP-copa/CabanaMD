@@ -9,7 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-// Include module header files for Neighbor
+#include <Cabana_Core.hpp>
+
 #include <neighbor_verlet.h>
 
 #ifdef Cabana_ENABLE_ARBORX

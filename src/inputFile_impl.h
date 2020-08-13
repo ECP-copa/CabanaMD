@@ -49,7 +49,6 @@
 #include <inputFile.h>
 #include <property_temperature.h>
 
-#include <fstream>
 #include <iostream>
 #include <regex>
 

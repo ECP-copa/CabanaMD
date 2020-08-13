@@ -9,12 +9,15 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <CabanaMD_config.hpp>
+
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
 #include <cabanamd.h>
 #include <inputCL.h>
 #include <neighbor.h>
 #include <system.h>
-
-#include <CabanaMD_config.hpp>
 
 class MDfactory
 {

@@ -46,6 +46,8 @@
 //
 //************************************************************************
 
+#include <Cabana_Core.hpp>
+
 template <class t_System>
 Binning<t_System>::Binning( t_System *s )
     : system( s )

@@ -49,9 +49,9 @@
 #include <Cabana_Core.hpp>
 
 #include <inputCL.h>
+#include <output.h>
+#include <types.h>
 
-#include <cstring>
-#include <fstream>
 #include <iostream>
 
 InputCL::InputCL()

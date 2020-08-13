@@ -12,11 +12,9 @@
 #ifndef NEIGHBOR_TREE_H
 #define NEIGHBOR_TREE_H
 
-#include <neighbor.h>
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
+
+#include <neighbor.h>
 
 template <class t_System, class t_iteration, class t_layout>
 class NeighborTree : public Neighbor<t_System>

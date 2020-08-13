@@ -46,6 +46,10 @@
 //
 //************************************************************************
 
+#include <mpi.h>
+
+#include <algorithm>
+
 template <class t_System>
 Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     : neighbors_halo( 6 )

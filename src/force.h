@@ -49,9 +49,10 @@
 #ifndef FORCE_H
 #define FORCE_H
 
-#include <neighbor.h>
-#include <system.h>
 #include <types.h>
+
+#include <string>
+#include <vector>
 
 template <class t_System, class t_Neighbor>
 class Force

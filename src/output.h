@@ -14,8 +14,8 @@
 
 #include <fstream>
 #include <iostream>
-
-#include <mpi.h>
+#include <stdexcept>
+#include <utility>
 
 bool print_rank();
 
