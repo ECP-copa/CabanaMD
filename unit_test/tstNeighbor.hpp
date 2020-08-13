@@ -338,7 +338,7 @@ TEST( TEST_CATEGORY, verlet_full_test )
         testNeighborListPartialRange<t_System, t_Neigh>( false );
     }
     {
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
         using t_Neigh = NeighborTree<t_System, Cabana::FullNeighborTag,
                                      Cabana::VerletLayoutCSR>;
         testNeighborListPartialRange<t_System, t_Neigh>( false );
@@ -362,7 +362,7 @@ TEST( TEST_CATEGORY, verlet_half_test )
         testNeighborListPartialRange<t_System, t_Neigh>( true );
     }
     {
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
         using t_Neigh = NeighborTree<t_System, Cabana::HalfNeighborTag,
                                      Cabana::VerletLayoutCSR>;
         testNeighborListPartialRange<t_System, t_Neigh>( true );
