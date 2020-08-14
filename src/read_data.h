@@ -37,12 +37,10 @@
    Please read the accompanying LICENSE_MINIMD file.
 ---------------------------------------------------------------------- */
 
-#include <comm_mpi.h>
-#include <system.h>
-#include <types.h>
-
-#include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
+
+#include <comm_mpi.h>
+#include <types.h>
 
 #include <cstring>
 #include <fstream>

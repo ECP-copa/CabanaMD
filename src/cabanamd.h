@@ -55,14 +55,7 @@
 #include <inputCL.h>
 #include <inputFile.h>
 #include <integrator_nve.h>
-#include <neighbor.h>
-#include <system.h>
 #include <types.h>
-
-#include <CabanaMD_config.hpp>
-
-#include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
 
 class CabanaMD
 {

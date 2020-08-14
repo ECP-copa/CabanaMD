@@ -9,12 +9,15 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <CabanaMD_config.hpp>
+
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
 #include <cabanamd.h>
 #include <inputCL.h>
 #include <neighbor.h>
 #include <system.h>
-
-#include <CabanaMD_config.hpp>
 
 class MDfactory
 {
@@ -580,7 +583,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -634,7 +637,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;
@@ -688,7 +691,7 @@ class MDfactory
                         return new CbnMD<t_sys, t_neigh>;
                     }
                 }
-#ifdef CabanaMD_ENABLE_ARBORX
+#ifdef Cabana_ENABLE_ARBORX
                 else if ( neigh == NEIGH_TREE )
                 {
                     using t_lay = Cabana::VerletLayoutCSR;

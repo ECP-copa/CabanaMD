@@ -46,12 +46,18 @@
 //
 //************************************************************************
 
+#include <CabanaMD_config.hpp>
+
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
 #include <output.h>
 #include <property_kine.h>
 #include <property_pote.h>
 #include <property_temperature.h>
 #include <read_data.h>
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 

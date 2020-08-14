@@ -11,6 +11,8 @@
 
 #include <output.h>
 
+#include <mpi.h>
+
 bool print_rank()
 {
     int proc_rank;

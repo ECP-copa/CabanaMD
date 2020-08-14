@@ -49,10 +49,10 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include <types.h>
-
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
+
+#include <types.h>
 
 #include <memory>
 #include <string>

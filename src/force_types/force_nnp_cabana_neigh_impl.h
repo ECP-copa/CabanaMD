@@ -9,10 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#include <iostream>
-#include <string.h>
-#include <string>
-
 template <class t_System, class t_System_NNP, class t_Neighbor,
           class t_neigh_parallel, class t_angle_parallel>
 ForceNNP<t_System, t_System_NNP, t_Neighbor, t_neigh_parallel,

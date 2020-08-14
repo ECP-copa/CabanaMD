@@ -49,15 +49,11 @@
 #ifndef COMM_MPI_H
 #define COMM_MPI_H
 
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-#include <mpi.h>
+#include <types.h>
 
-#include <algorithm>
 #include <memory>
 #include <vector>
 

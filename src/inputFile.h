@@ -49,14 +49,16 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include <comm_mpi.h>
-#include <inputCL.h>
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+#include <comm_mpi.h>
+#include <inputCL.h>
+#include <output.h>
+#include <system.h>
+#include <types.h>
+
+#include <fstream>
 #include <vector>
 
 // Class replicating LAMMPS Random velocity initialization with GEOM option

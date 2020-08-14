@@ -46,8 +46,6 @@
 //
 //************************************************************************
 
-#include <property_temperature.h>
-
 template <class t_System>
 Temperature<t_System>::Temperature( Comm<t_System> *comm_ )
     : comm( comm_ )

@@ -49,10 +49,7 @@
 #ifndef INPUTCL_H
 #define INPUTCL_H
 
-#include <output.h>
-#include <types.h>
-
-#include <iostream>
+#include <string>
 
 class InputCL
 {

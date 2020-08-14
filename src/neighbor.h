@@ -48,7 +48,7 @@
 
 #ifndef NEIGHBOR_H
 #define NEIGHBOR_H
-#include <system.h>
+
 #include <types.h>
 
 template <class t_System>

@@ -12,11 +12,10 @@
 #ifndef NEIGHBOR_VERLET_H
 #define NEIGHBOR_VERLET_H
 
-#include <neighbor.h>
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
+#include <neighbor.h>
 
 template <class t_System, class t_iteration, class t_layout>
 class NeighborVerlet : public Neighbor<t_System>

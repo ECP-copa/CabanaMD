@@ -12,12 +12,9 @@
 #ifndef SYSTEM_2AOSOA_H
 #define SYSTEM_2AOSOA_H
 
-#include <system.h>
-#include <types.h>
-
 #include <CabanaMD_config.hpp>
 
-#include <Cabana_Core.hpp>
+#include <system.h>
 
 template <class t_device>
 class System<t_device, AoSoA2> : public SystemCommon<t_device>

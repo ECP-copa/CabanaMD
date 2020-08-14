@@ -49,12 +49,11 @@
 #ifndef PROPERTY_TEMP_H
 #define PROPERTY_TEMP_H
 
-#include <comm_mpi.h>
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
+
+#include <comm_mpi.h>
+#include <types.h>
 
 template <class t_System>
 class Temperature

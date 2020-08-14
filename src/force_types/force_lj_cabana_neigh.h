@@ -49,16 +49,10 @@
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
 
-#include <force.h>
-#include <neighbor.h>
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-#include <string>
-#include <vector>
+#include <force.h>
 
 template <class t_System, class t_Neighbor, class t_parallel>
 class ForceLJ : public Force<t_System, t_Neighbor>
