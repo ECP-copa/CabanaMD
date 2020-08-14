@@ -46,6 +46,8 @@
 //
 //************************************************************************
 
+#include <Cabana_Core.hpp>
+
 #include <inputCL.h>
 
 #include <cstring>
