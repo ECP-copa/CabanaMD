@@ -51,6 +51,10 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+#ifdef Cabana_ENABLE_CAJITA
+#include <Cajita.hpp>
+#endif
+
 #include <output.h>
 #include <property_kine.h>
 #include <property_pote.h>
@@ -100,9 +104,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 #ifndef Cabana_ENABLE_HEFFTE
     if ( input->lrforce_type != FORCE_NONE )
     {
-        log_err(
-            err,
-            "LongRange requested, but heFFTe was not compiled with Cabana!" );
+        log_err( err, "LongRange requested, but heFFTe and/or Cajita was not "
+                      "compiled with Cabana!" );
     }
 #endif
     auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
