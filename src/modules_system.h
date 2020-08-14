@@ -9,7 +9,6 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-// Include Module header files for system
 #include <system_1aosoa.h>
 #include <system_2aosoa.h>
 #include <system_6aosoa.h>

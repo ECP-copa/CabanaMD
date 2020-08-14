@@ -12,6 +12,8 @@
 #ifndef SYSTEM_NNP_H
 #define SYSTEM_NNP_H
 
+#include <Cabana_Core.hpp>
+
 #include <types_nnp.h>
 
 #include <types.h>

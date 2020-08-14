@@ -9,6 +9,5 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-// Include Module header files for NNP system
 #include <system_nnp_1aosoa.h>
 #include <system_nnp_3aosoa.h>

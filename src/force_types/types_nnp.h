@@ -51,9 +51,6 @@
 
 #include <types.h>
 
-#include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
-
 constexpr double CFLENGTH = 1.889726;
 constexpr double CFENERGY = 0.036749;
 constexpr double CFFORCE = CFLENGTH / CFENERGY;

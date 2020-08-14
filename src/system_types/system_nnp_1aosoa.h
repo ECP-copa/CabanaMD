@@ -12,14 +12,9 @@
 #ifndef SYSTEM_NNP_1AOSOA_H
 #define SYSTEM_NNP_1AOSOA_H
 
-#include <system_nnp.h>
-#include <types_nnp.h>
-
-#include <types.h>
-
 #include <CabanaMD_config.hpp>
 
-#include <Cabana_Core.hpp>
+#include <system_nnp.h>
 
 template <class t_device>
 class System_NNP<t_device, AoSoA1>

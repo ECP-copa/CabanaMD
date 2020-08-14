@@ -46,10 +46,12 @@
 //
 //************************************************************************
 
-#include <inputCL.h>
+#include <Cabana_Core.hpp>
 
-#include <cstring>
-#include <fstream>
+#include <inputCL.h>
+#include <output.h>
+#include <types.h>
+
 #include <iostream>
 
 InputCL::InputCL()

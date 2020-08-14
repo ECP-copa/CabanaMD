@@ -12,15 +12,13 @@
 #ifndef FORCE_NNP_CABANA_NEIGH_H
 #define FORCE_NNP_CABANA_NEIGH_H
 
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
 #include <nnp_mode.h>
 #include <system_nnp.h>
 
 #include <force.h>
-#include <neighbor.h>
-#include <system.h>
-#include <types.h>
-
-#include <Cabana_Core.hpp>
 
 template <class t_System, class t_System_NNP, class t_Neighbor,
           class t_neigh_parallel, class t_angle_parallel>

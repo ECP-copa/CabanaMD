@@ -46,9 +46,6 @@
 //
 //************************************************************************
 
-#include <cabanamd.h>
-#include <property_pote.h>
-
 template <class t_System, class t_Neighbor>
 PotE<t_System, t_Neighbor>::PotE( Comm<t_System> *comm_ )
     : comm( comm_ )
