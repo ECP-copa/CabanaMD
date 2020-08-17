@@ -222,7 +222,7 @@ void InputCL::read_args( int argc, char *argv[] )
                  neighbor_type == NEIGH_TREE_CSR )
             {
                 log_err( std::cout,
-                         "ArborX requested, but not compiled with Cabana!" );
+                         "ArborX requested, but not enabled in Cabana!" );
             }
 #endif
         }
