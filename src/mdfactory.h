@@ -24,7 +24,20 @@ class MDfactory
   public:
     static CabanaMD *create( InputCL commandline )
     {
+        // If device is not specifically enabled, choose in this order
         int device = commandline.device_type;
+        if ( device == NONE )
+        {
+#ifdef CabanaMD_REQUIRE_HIP
+            device = HIP;
+#elif defined( CabanaMD_REQUIRE_CUDA )
+            device = CUDA;
+#elif defined( CabanaMD_REQUIRE_OPENMP )
+            device = OPENMP;
+#elif defined( CabanaMD_REQUIRE_SERIAL )
+            device = SERIAL;
+#endif
+        }
         int layout = commandline.layout_type;
         int neigh = commandline.neighbor_type;
         bool half_neigh =
@@ -32,7 +45,7 @@ class MDfactory
 
         if ( device == SERIAL )
         {
-#ifdef KOKKOS_ENABLE_SERIAL
+#ifdef CabanaMD_REQUIRE_SERIAL
             using t_device = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
             if ( layout == AOSOA_1 )
             {
@@ -203,7 +216,7 @@ class MDfactory
         }
         else if ( device == OPENMP )
         {
-#ifdef KOKKOS_ENABLE_OPENMP
+#ifdef CabanaMD_REQUIRE_OPENMP
             using t_device = Kokkos::Device<Kokkos::OpenMP, Kokkos::HostSpace>;
             if ( layout == AOSOA_1 )
             {
@@ -374,7 +387,7 @@ class MDfactory
         }
         else if ( device == CUDA )
         {
-#ifdef KOKKOS_ENABLE_CUDA
+#ifdef CabanaMD_REQUIRE_CUDA
             using t_device = Kokkos::Device<Kokkos::Cuda, Kokkos::CudaSpace>;
             if ( layout == AOSOA_1 )
             {
@@ -545,7 +558,7 @@ class MDfactory
         }
         else if ( device == HIP )
         {
-#ifdef KOKKOS_ENABLE_HIP
+#ifdef CabanaMD_REQUIRE_HIP
             using t_device = Kokkos::Device<Kokkos::Experimental::HIP,
                                             Kokkos::Experimental::HIPSpace>;
             if ( layout == AOSOA_1 )

@@ -56,7 +56,7 @@
 
 InputCL::InputCL()
 {
-    device_type = SERIAL;
+    device_type = NONE;
     layout_type = AOSOA_6;
     nnp_layout_type = AOSOA_3;
     neighbor_type = NEIGH_VERLET_2D;

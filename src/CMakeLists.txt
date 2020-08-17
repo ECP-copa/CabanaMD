@@ -2,7 +2,7 @@
 # Set up vector length options
 #------------------------------------------------------------
 if(NOT CabanaMD_VECTORLENGTH)
-  if(Kokkos_ENABLE_CUDA)
+  if(CabanaMD_REQUIRE_CUDA)
     set(CabanaMD_VECTORLENGTH 32)
   else()
     set(CabanaMD_VECTORLENGTH 1)
@@ -12,7 +12,7 @@ message( STATUS "Using vector length: ${CabanaMD_VECTORLENGTH}" )
 
 if(CabanaMD_ENABLE_NNP)
   if(NOT CabanaMD_VECTORLENGTH_NNP)
-    if(Kokkos_ENABLE_CUDA)
+    if(CabanaMD_REQUIRE_CUDA)
       set(CabanaMD_VECTORLENGTH_NNP 32)
     else()
       set(CabanaMD_VECTORLENGTH_NNP 1)

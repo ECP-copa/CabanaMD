@@ -64,7 +64,8 @@ enum
     CUDA,
     HIP,
     OPENMP,
-    SERIAL
+    SERIAL,
+    NONE
 };
 
 // AoSoA layout type
