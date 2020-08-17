@@ -19,6 +19,12 @@
 template <class t_System, class t_iteration, class t_layout>
 class NeighborTree : public Neighbor<t_System>
 {
+};
+
+template <class t_System, class t_iteration>
+class NeighborTree<t_System, t_iteration, Cabana::VerletLayoutCSR>
+    : public Neighbor<t_System>
+{
     using device_type = typename t_System::device_type;
     using memory_space = typename t_System::memory_space;
 
@@ -52,8 +58,52 @@ class NeighborTree : public Neighbor<t_System>
 
     const char *name() override
     {
-        return half_neigh ? "Neighbor:CabanaTreeHalf"
-                          : "Neighbor:CabanaTreeFull";
+        return half_neigh ? "Neighbor:CabanaTreeHalfCSR"
+                          : "Neighbor:CabanaTreeFullCSR";
+    }
+
+  private:
+    t_neigh_list list;
+};
+
+template <class t_System, class t_iteration>
+class NeighborTree<t_System, t_iteration, Cabana::VerletLayout2D>
+    : public Neighbor<t_System>
+{
+    using device_type = typename t_System::device_type;
+    using memory_space = typename t_System::memory_space;
+
+  public:
+    T_X_FLOAT neigh_cut;
+    bool half_neigh;
+
+    using t_neigh_list = Cabana::Experimental::Dense<memory_space, t_iteration>;
+
+    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_ )
+        : Neighbor<t_System>( neigh_cut_, half_neigh_ )
+        , neigh_cut( neigh_cut_ )
+        , half_neigh( half_neigh_ )
+    {
+    }
+
+    void create( t_System *system ) override
+    {
+        T_INT N_local = system->N_local;
+
+        system->slice_x();
+        auto x = system->x;
+
+        t_iteration tag;
+        list = Cabana::Experimental::make2DNeighborList<device_type>(
+            tag, x, 0, N_local, neigh_cut );
+    }
+
+    t_neigh_list &get() { return list; }
+
+    const char *name() override
+    {
+        return half_neigh ? "Neighbor:CabanaTreeHalf2D"
+                          : "Neighbor:CabanaTreeFull2D";
     }
 
   private:

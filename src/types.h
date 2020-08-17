@@ -135,7 +135,8 @@ enum
 {
     NEIGH_VERLET_2D,
     NEIGH_VERLET_CSR,
-    NEIGH_TREE
+    NEIGH_TREE_2D,
+    NEIGH_TREE_CSR
 };
 // Input File Type
 enum

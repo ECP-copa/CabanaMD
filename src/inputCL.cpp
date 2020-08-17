@@ -209,17 +209,20 @@ void InputCL::read_args( int argc, char *argv[] )
                 neighbor_type = NEIGH_VERLET_2D;
             else if ( ( strcmp( argv[i + 1], "VERLET_CSR" ) == 0 ) )
                 neighbor_type = NEIGH_VERLET_CSR;
-            else if ( ( strcmp( argv[i + 1], "TREE" ) == 0 ) )
-                neighbor_type = NEIGH_TREE;
+            else if ( ( strcmp( argv[i + 1], "TREE_2D" ) == 0 ) )
+                neighbor_type = NEIGH_TREE_2D;
+            else if ( ( strcmp( argv[i + 1], "TREE_CSR" ) == 0 ) )
+                neighbor_type = NEIGH_TREE_CSR;
             else
                 log_err( std::cout, "Unknown commandline option: ", argv[i],
                          " ", argv[i + 1] );
             ++i;
 #ifndef Cabana_ENABLE_ARBORX
-            if ( neighbor_type == NEIGH_TREE )
+            if ( neighbor_type == NEIGH_TREE_2D ||
+                 neighbor_type == NEIGH_TREE_CSR )
             {
                 log_err( std::cout,
-                         "ArborX requested, but not compiled with Cabana!" );
+                         "ArborX requested, but not enabled in Cabana!" );
             }
 #endif
         }
