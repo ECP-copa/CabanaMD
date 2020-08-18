@@ -79,4 +79,8 @@ if(CabanaMD_ENABLE_NNP AND N2P2_DIR)
   target_link_libraries(CabanaMD ${N2P2_LIB})
 endif()
 
+if(Cabana_ENABLE_HEFFTE)
+   target_link_libraries(CabanaMD Cabana::Cajita)
+endif()
+
 install(TARGETS CabanaMD DESTINATION lib)
