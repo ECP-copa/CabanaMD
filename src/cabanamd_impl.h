@@ -221,8 +221,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         else
             log( err, "Invalid LongRangeForceType" );
 
-        lrforce->init_coeff(
-            input->input_data.words[input->lrforce_coeff_lines( 0 )] );
+        lrforce->init_coeff( input->lrforce_coeff_lines );
         lrforce->init_longrange( system, neigh_cutoff );
     }
 #endif
