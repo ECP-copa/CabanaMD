@@ -47,6 +47,7 @@ class ForceSPME : public Force<t_System, t_Neighbor>
     T_X_FLOAT _eps_r = 1.0; // Assume 1 for now (vacuum)
 
     using exe_space = typename t_System::execution_space;
+    using mem_space = typename t_System::memory_space;
     using device_type = typename t_System::device_type;
 
   public:
@@ -54,7 +55,7 @@ class ForceSPME : public Force<t_System, t_Neighbor>
     std::shared_ptr<Cajita::Array<double, Cajita::Node,
                                   Cajita::UniformMesh<double>, device_type>>
         Q;
-    std::shared_ptr<Cajita::Halo<double, device_type>> Q_halo;
+    std::shared_ptr<Cajita::Halo<mem_space>> Q_halo;
     std::shared_ptr<Cajita::Array<double, Cajita::Node,
                                   Cajita::UniformMesh<double>, device_type>>
         BC_array;
