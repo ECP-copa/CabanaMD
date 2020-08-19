@@ -148,8 +148,6 @@ enum
 #define MAX( a, b ) ( a > b ? a : b )
 #define MIN( a, b ) ( a < b ? a : b )
 
-#define MAX_TYPES_STACKPARAMS 12
-
 // Define Scalar Types
 #ifndef T_INT
 #define T_INT int
