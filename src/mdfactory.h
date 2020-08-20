@@ -30,11 +30,20 @@ class MDfactory
         bool half_neigh =
             commandline.force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
+        if ( device == CUDA )
+        {
+            // Cuda is the first default, so just use that.
+            device = DEFAULT;
+#ifndef KOKKOS_ENABLE_CUDA
+            throw std::runtime_error(
+                "CabanaMD not compiled with Kokkos::Cuda" );
+#endif // Cuda
+        }
         if ( device == DEFAULT )
         {
-	    using t_exe = Kokkos::DefaultExecutionSpace;
-	    using t_mem = typename t_exe::memory_space;
-	    using t_device = Kokkos::Device<t_exe, t_mem>;
+            using t_exe = Kokkos::DefaultExecutionSpace;
+            using t_mem = typename t_exe::memory_space;
+            using t_device = Kokkos::Device<t_exe, t_mem>;
             if ( layout == AOSOA_1 )
             {
                 using t_sys = System<t_device, AoSoA1>;
@@ -683,225 +692,6 @@ class MDfactory
             throw std::runtime_error(
                 "CabanaMD not compiled with Kokkos::OpenMP" );
 #endif // OpenMP
-        }
-        else if ( device == CUDA )
-        {
-#ifdef KOKKOS_ENABLE_CUDA
-            using t_device = Kokkos::Device<Kokkos::Cuda, Kokkos::CudaSpace>;
-            if ( layout == AOSOA_1 )
-            {
-                using t_sys = System<t_device, AoSoA1>;
-                if ( neigh == NEIGH_VERLET_2D )
-                {
-                    using t_lay = Cabana::VerletLayout2D;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-                else if ( neigh == NEIGH_VERLET_CSR )
-                {
-                    using t_lay = Cabana::VerletLayoutCSR;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-#ifdef Cabana_ENABLE_ARBORX
-                else if ( neigh == NEIGH_TREE_2D )
-                {
-                    using t_lay = Cabana::VerletLayout2D;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-                else if ( neigh == NEIGH_TREE_CSR )
-                {
-                    using t_lay = Cabana::VerletLayoutCSR;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-#endif // ArborX
-            }
-            else if ( layout == AOSOA_2 )
-            {
-                using t_sys = System<t_device, AoSoA2>;
-                if ( neigh == NEIGH_VERLET_2D )
-                {
-                    using t_lay = Cabana::VerletLayout2D;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-                else if ( neigh == NEIGH_VERLET_CSR )
-                {
-                    using t_lay = Cabana::VerletLayoutCSR;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-#ifdef Cabana_ENABLE_ARBORX
-                else if ( neigh == NEIGH_TREE_2D )
-                {
-                    using t_lay = Cabana::VerletLayout2D;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-                else if ( neigh == NEIGH_TREE_CSR )
-                {
-                    using t_lay = Cabana::VerletLayoutCSR;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-#endif // ArborX
-            }
-            else if ( layout == AOSOA_6 )
-            {
-                using t_sys = System<t_device, AoSoA6>;
-                if ( neigh == NEIGH_VERLET_2D )
-                {
-                    using t_lay = Cabana::VerletLayout2D;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-                else if ( neigh == NEIGH_VERLET_CSR )
-                {
-                    using t_lay = Cabana::VerletLayoutCSR;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-#ifdef Cabana_ENABLE_ARBORX
-                else if ( neigh == NEIGH_TREE_2D )
-                {
-                    using t_lay = Cabana::VerletLayout2D;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-                else if ( neigh == NEIGH_TREE_CSR )
-                {
-                    using t_lay = Cabana::VerletLayoutCSR;
-                    if ( half_neigh )
-                    {
-                        using t_half = Cabana::HalfNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                    else
-                    {
-                        using t_full = Cabana::FullNeighborTag;
-                        using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                        return new CbnMD<t_sys, t_neigh>;
-                    }
-                }
-#endif // ArborX
-            }
-#else
-            throw std::runtime_error(
-                "CabanaMD not compiled with Kokkos::Cuda" );
-#endif // Cuda
         }
         else if ( device == HIP )
         {
