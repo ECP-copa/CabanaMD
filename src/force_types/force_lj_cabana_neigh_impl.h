@@ -153,6 +153,10 @@ template <class t_f, class t_x, class t_type, class t_neigh>
 void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_full(
     t_f f, const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto cutsq_copy = cutsq;
+    auto lj1_copy = lj1;
+    auto lj2_copy = lj2;
+
     auto force_full = KOKKOS_LAMBDA( const int i, const int j )
     {
         const T_F_FLOAT x_i = x( i, 0 );
@@ -171,12 +175,12 @@ void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_full(
         const int type_j = type( j );
         const T_F_FLOAT rsq = dx * dx + dy * dy + dz * dz;
 
-        const T_F_FLOAT cutsq_ij = cutsq( type_i, type_j );
+        const T_F_FLOAT cutsq_ij = cutsq_copy( type_i, type_j );
 
         if ( rsq < cutsq_ij )
         {
-            const T_F_FLOAT lj1_ij = lj1( type_i, type_j );
-            const T_F_FLOAT lj2_ij = lj2( type_i, type_j );
+            const T_F_FLOAT lj1_ij = lj1_copy( type_i, type_j );
+            const T_F_FLOAT lj2_ij = lj2_copy( type_i, type_j );
 
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
@@ -203,6 +207,10 @@ template <class t_f, class t_x, class t_type, class t_neigh>
 void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_half(
     t_f f_a, const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto cutsq_copy = cutsq;
+    auto lj1_copy = lj1;
+    auto lj2_copy = lj2;
+
     auto force_half = KOKKOS_LAMBDA( const int i, const int j )
     {
         const T_F_FLOAT x_i = x( i, 0 );
@@ -221,12 +229,12 @@ void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_half(
         const int type_j = type( j );
         const T_F_FLOAT rsq = dx * dx + dy * dy + dz * dz;
 
-        const T_F_FLOAT cutsq_ij = cutsq( type_i, type_j );
+        const T_F_FLOAT cutsq_ij = cutsq_copy( type_i, type_j );
 
         if ( rsq < cutsq_ij )
         {
-            const T_F_FLOAT lj1_ij = lj1( type_i, type_j );
-            const T_F_FLOAT lj2_ij = lj2( type_i, type_j );
+            const T_F_FLOAT lj1_ij = lj1_copy( type_i, type_j );
+            const T_F_FLOAT lj2_ij = lj2_copy( type_i, type_j );
 
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
@@ -255,6 +263,10 @@ template <class t_x, class t_type, class t_neigh>
 T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_full(
     const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto cutsq_copy = cutsq;
+    auto lj1_copy = lj1;
+    auto lj2_copy = lj2;
+
     auto energy_full = KOKKOS_LAMBDA( const int i, const int j, T_F_FLOAT &PE )
     {
         const T_F_FLOAT x_i = x( i, 0 );
@@ -270,12 +282,12 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_full(
         const int type_j = type( j );
         const T_F_FLOAT rsq = dx * dx + dy * dy + dz * dz;
 
-        const T_F_FLOAT cutsq_ij = cutsq( type_i, type_j );
+        const T_F_FLOAT cutsq_ij = cutsq_copy( type_i, type_j );
 
         if ( rsq < cutsq_ij )
         {
-            const T_F_FLOAT lj1_ij = lj1( type_i, type_j );
-            const T_F_FLOAT lj2_ij = lj2( type_i, type_j );
+            const T_F_FLOAT lj1_ij = lj1_copy( type_i, type_j );
+            const T_F_FLOAT lj2_ij = lj2_copy( type_i, type_j );
 
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
@@ -306,9 +318,12 @@ template <class t_x, class t_type, class t_neigh>
 T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
     const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto cutsq_copy = cutsq;
+    auto lj1_copy = lj1;
+    auto lj2_copy = lj2;
+
     auto energy_half = KOKKOS_LAMBDA( const int i, const int j, T_F_FLOAT &PE )
     {
-
         const T_F_FLOAT x_i = x( i, 0 );
         const T_F_FLOAT y_i = x( i, 1 );
         const T_F_FLOAT z_i = x( i, 2 );
@@ -322,12 +337,12 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
         const int type_j = type( j );
         const T_F_FLOAT rsq = dx * dx + dy * dy + dz * dz;
 
-        const T_F_FLOAT cutsq_ij = cutsq( type_i, type_j );
+        const T_F_FLOAT cutsq_ij = cutsq_copy( type_i, type_j );
 
         if ( rsq < cutsq_ij )
         {
-            const T_F_FLOAT lj1_ij = lj1( type_i, type_j );
-            const T_F_FLOAT lj2_ij = lj2( type_i, type_j );
+            const T_F_FLOAT lj1_ij = lj1_copy( type_i, type_j );
+            const T_F_FLOAT lj2_ij = lj2_copy( type_i, type_j );
 
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
