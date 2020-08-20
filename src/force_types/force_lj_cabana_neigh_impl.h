@@ -309,7 +309,8 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_full(
     t_parallel neigh_parallel;
     Cabana::neighbor_parallel_reduce(
         policy, energy_full, neigh_list, Cabana::FirstNeighborsTag(),
-        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_half" );
+        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_energy_full" );
+
     return energy;
 }
 
@@ -370,6 +371,6 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
     t_parallel neigh_parallel;
     Cabana::neighbor_parallel_reduce(
         policy, energy_half, neigh_list, Cabana::FirstNeighborsTag(),
-        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_half" );
+        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_energy_half" );
     return energy;
 }
