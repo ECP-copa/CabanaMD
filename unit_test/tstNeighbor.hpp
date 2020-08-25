@@ -252,7 +252,12 @@ t_System createAtoms( const int num_atom, const int num_ghost,
     // Manually setup what would be done in input
     system.dt = 0.005;
     system.mvv2e = 1.0;
-    system.mass( 0 ) = 1.0;
+
+    // Set mass (device View)
+    using h_t_mass = typename t_System::h_t_mass;
+    h_t_mass h_mass = Kokkos::create_mirror_view( system.mass );
+    h_mass( 0 ) = 1.0;
+    Kokkos::deep_copy( system.mass, h_mass );
 
     system.resize( num_atom );
     system.N_local = num_atom - num_ghost;
