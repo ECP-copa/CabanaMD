@@ -110,7 +110,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     binning = new Binning<t_System>( system );
 
     // Create Neighbor class: create neighbor list
-    neighbor = new t_Neighbor( neigh_cutoff, half_neigh );
+    neighbor =
+        new t_Neighbor( neigh_cutoff, half_neigh, input->max_neigh_guess );
 
     // Create Force class: potential options in force_types/ folder
     bool serial_neigh =

@@ -57,11 +57,14 @@ class Neighbor
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
+    T_INT max_neigh_guess;
 
     Neighbor();
-    Neighbor( T_X_FLOAT neigh_cut_, bool half_neigh_ )
+    Neighbor( T_X_FLOAT neigh_cut_, bool half_neigh_,
+              T_INT max_neigh_guess_ = 0 )
         : neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
+        , max_neigh_guess( max_neigh_guess_ )
     {
     }
     virtual ~Neighbor() {}
