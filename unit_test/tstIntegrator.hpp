@@ -35,12 +35,7 @@ t_System createParticles( const int num_particle, const int num_ghost,
     // Manually setup what would be done in input
     system.dt = 0.005;
     system.mvv2e = 1.0;
-
-    // Set mass (device View)
-    using h_t_mass = typename t_System::h_t_mass;
-    h_t_mass h_mass = Kokkos::create_mirror_view( system.mass );
-    h_mass( 0 ) = 1.0;
-    Kokkos::deep_copy( system.mass, h_mass );
+    Kokkos::deep_copy( system.mass, 1.0 );
 
     system.resize( num_particle );
     system.N_local = num_particle - num_ghost;
@@ -115,10 +110,11 @@ void testIntegratorReversibility( int steps )
 
     // Reverse system
     system.slice_v();
+    auto v = system.v;
     Kokkos::RangePolicy<TEST_EXECSPACE> exec_policy( 0, num_particle );
     Kokkos::parallel_for( exec_policy, KOKKOS_LAMBDA( const int p ) {
         for ( int d = 0; d < 3; ++d )
-            system.v( p, d ) *= -1.0;
+            v( p, d ) *= -1.0;
     } );
 
     // Integrate back
