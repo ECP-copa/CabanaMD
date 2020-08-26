@@ -119,6 +119,7 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
 
     neighbor_skin = 0.3;
     neighbor_skin = 0.0; // for metal and real units
+    max_neigh_guess = 50;
     comm_exchange_rate = 20;
 
     force_cutoff = 2.5;
@@ -392,11 +393,25 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     if ( keyword.compare( "neigh_modify" ) == 0 )
     {
         known = true;
-        for ( std::size_t i = 0; i < words.size(); i++ )
+        std::size_t i = 1;
+        while ( i < words.size() )
+        {
             if ( words.at( i ).compare( "every" ) == 0 )
             {
                 comm_exchange_rate = std::stoi( words.at( i + 1 ) );
+                i += 2;
             }
+            else if ( words.at( i ).compare( "one" ) == 0 )
+            {
+                max_neigh_guess = std::stoi( words.at( i + 1 ) );
+                i += 2;
+            }
+            else
+            {
+                log_err( err, "LAMMPS-Command: 'neigh_modify' only supports "
+                              "'every' and 'one' in CabanaMD" );
+            }
+        }
     }
     if ( keyword.compare( "fix" ) == 0 )
     {

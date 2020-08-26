@@ -35,7 +35,7 @@ class NeighborTree<t_System, t_iteration, Cabana::VerletLayoutCSR>
     using t_neigh_list =
         Cabana::Experimental::CrsGraph<memory_space, t_iteration>;
 
-    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_ )
+    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_, T_INT )
         : Neighbor<t_System>( neigh_cut_, half_neigh_ )
         , neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
@@ -79,7 +79,7 @@ class NeighborTree<t_System, t_iteration, Cabana::VerletLayout2D>
 
     using t_neigh_list = Cabana::Experimental::Dense<memory_space, t_iteration>;
 
-    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_ )
+    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_, T_INT )
         : Neighbor<t_System>( neigh_cut_, half_neigh_ )
         , neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )

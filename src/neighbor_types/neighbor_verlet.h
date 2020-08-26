@@ -25,7 +25,7 @@ class NeighborVerlet : public Neighbor<t_System>
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
-    T_INT max_neigh = 50;
+    T_INT max_neigh_guess;
 
 #ifdef KOKKOS_ENABLE_HIP
     using t_build = Cabana::TeamOpTag;
@@ -35,10 +35,12 @@ class NeighborVerlet : public Neighbor<t_System>
     using t_neigh_list =
         Cabana::VerletList<memory_space, t_iteration, t_layout, t_build>;
 
-    NeighborVerlet( T_X_FLOAT neigh_cut_, bool half_neigh_ )
-        : Neighbor<t_System>( neigh_cut_, half_neigh_ )
+    NeighborVerlet( T_X_FLOAT neigh_cut_, bool half_neigh_,
+                    T_INT max_neigh_guess_ )
+        : Neighbor<t_System>( neigh_cut_, half_neigh_, max_neigh_guess_ )
         , neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
+        , max_neigh_guess( max_neigh_guess_ )
     {
     }
 
@@ -57,8 +59,8 @@ class NeighborVerlet : public Neighbor<t_System>
         auto x = system->x;
 
         list = t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max,
-                             max_neigh );
-        max_neigh =
+                             max_neigh_guess );
+        max_neigh_guess =
             Cabana::NeighborList<t_neigh_list>::maxNeighbor( list ) * 1.1;
     }
 

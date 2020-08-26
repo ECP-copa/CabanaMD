@@ -304,7 +304,7 @@ void testNeighborListPartialRange( bool half_neigh )
         createAtoms<t_System>( num_atom, num_ghost, box_min, box_max );
 
     // Create the neighbor list.
-    t_Neighbor neighbor( cutoff, half_neigh );
+    t_Neighbor neighbor( cutoff, half_neigh, 100 );
     neighbor.create( &system );
 
     // Check the neighbor list.
