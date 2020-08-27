@@ -35,7 +35,7 @@ t_System createParticles( const int num_particle, const int num_ghost,
     // Manually setup what would be done in input
     system.dt = 0.005;
     system.mvv2e = 1.0;
-    system.mass( 0 ) = 1.0;
+    Kokkos::deep_copy( system.mass, 1.0 );
 
     system.resize( num_particle );
     system.N_local = num_particle - num_ghost;
@@ -52,6 +52,7 @@ t_System createParticles( const int num_particle, const int num_ghost,
     auto f = system.f;
     auto type = system.type;
 
+    // Create random atom positions within the box.
     using PoolType = Kokkos::Random_XorShift64_Pool<TEST_EXECSPACE>;
     using RandomType = Kokkos::Random_XorShift64<TEST_EXECSPACE>;
     PoolType pool( 342343901 );
@@ -109,9 +110,12 @@ void testIntegratorReversibility( int steps )
 
     // Reverse system
     system.slice_v();
-    for ( int p = 0; p < num_particle; ++p )
+    auto v = system.v;
+    Kokkos::RangePolicy<TEST_EXECSPACE> exec_policy( 0, num_particle );
+    Kokkos::parallel_for( exec_policy, KOKKOS_LAMBDA( const int p ) {
         for ( int d = 0; d < 3; ++d )
-            system.v( p, d ) *= -1.0;
+            v( p, d ) *= -1.0;
+    } );
 
     // Integrate back
     for ( int s = 0; s < steps; ++s )

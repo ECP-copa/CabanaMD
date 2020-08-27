@@ -252,7 +252,7 @@ t_System createAtoms( const int num_atom, const int num_ghost,
     // Manually setup what would be done in input
     system.dt = 0.005;
     system.mvv2e = 1.0;
-    system.mass( 0 ) = 1.0;
+    Kokkos::deep_copy( system.mass, 1.0 );
 
     system.resize( num_atom );
     system.N_local = num_atom - num_ghost;
