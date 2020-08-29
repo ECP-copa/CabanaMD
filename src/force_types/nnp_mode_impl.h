@@ -1094,6 +1094,8 @@ void Mode<t_device>::calculateAtomicNeuralNetworks( t_slice_type type,
     auto numLayers_ = numLayers;
     auto numHiddenLayers_ = numHiddenLayers;
     auto AF_ = AF;
+    auto weights_ = weights;
+    auto bias_ = bias;
 
     auto calc_nn_op = KOKKOS_LAMBDA( const int atomindex )
     {
@@ -1116,9 +1118,9 @@ void Mode<t_device>::calculateAtomicNeuralNetworks( t_slice_type type,
             {
                 dtmp = 0.0;
                 for ( int j = 0; j < layer_lminusone; j++ )
-                    dtmp += weights( attype, l - 1, i, j ) *
+                    dtmp += weights_( attype, l - 1, i, j ) *
                             NN( atomindex, l - 1, j );
-                dtmp += bias( attype, l - 1, i );
+                dtmp += bias_( attype, l - 1, i );
                 if ( AF_( l ) == 0 )
                 {
                     NN( atomindex, l, i ) = dtmp;
@@ -1140,7 +1142,7 @@ void Mode<t_device>::calculateAtomicNeuralNetworks( t_slice_type type,
         {
             for ( int i = 0; i < numNeuronsPerLayer_( 1 ); i++ )
                 inner( atomindex, 0, i ) =
-                    weights( attype, 0, i, k ) * dfdx( atomindex, 1, i );
+                    weights_( attype, 0, i, k ) * dfdx( atomindex, 1, i );
 
             for ( int l = 1; l < numHiddenLayers_ + 1; l++ )
             {
@@ -1150,7 +1152,7 @@ void Mode<t_device>::calculateAtomicNeuralNetworks( t_slice_type type,
 
                     for ( int i1 = 0; i1 < numNeuronsPerLayer_( l ); i1++ )
                         outer( atomindex, l - 1, i2 ) +=
-                            weights( attype, l, i2, i1 ) *
+                            weights_( attype, l, i2, i1 ) *
                             inner( atomindex, l - 1, i1 );
                     outer( atomindex, l - 1, i2 ) *=
                         dfdx( atomindex, l + 1, i2 );
