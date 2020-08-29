@@ -866,6 +866,7 @@ void Mode<t_device>::calculateSymmetryFunctionGroups(
     auto maxSFperElem_ = maxSFperElem;
     auto convLength_ = convLength;
     auto cutoffType_ = cutoffType;
+    auto cutoffAlpha_ = cutoffAlpha;
 
     auto calc_radial_symm_op = KOKKOS_LAMBDA( const int i, const int j )
     {
@@ -898,8 +899,8 @@ void Mode<t_device>::calculateSymmetryFunctionGroups(
                 rij = sqrt( r2ij );
                 if ( e1 == nej && rij < rc )
                 {
-                    compute_cutoff( cutoffType_, pfcij, pdfcij, rij, rc,
-                                    false );
+                    compute_cutoff( cutoffType_, cutoffAlpha_, pfcij, pdfcij,
+                                    rij, rc, false );
                     for ( size_t k = 0; k < size; ++k )
                     {
                         memberindex = SFGmemberlist_( attype, groupIndex, k );
@@ -953,8 +954,8 @@ void Mode<t_device>::calculateSymmetryFunctionGroups(
                 if ( ( e1 == nej || e2 == nej ) && rij < rc )
                 {
                     // Calculate cutoff function and derivative.
-                    compute_cutoff( cutoffType_, pfcij, pdfcij, rij, rc,
-                                    false );
+                    compute_cutoff( cutoffType_, cutoffAlpha_, pfcij, pdfcij,
+                                    rij, rc, false );
 
                     nek = type( k );
 
@@ -978,12 +979,12 @@ void Mode<t_device>::calculateSymmetryFunctionGroups(
                             if ( r2jk < rc * rc )
                             {
                                 // Energy calculation.
-                                compute_cutoff( cutoffType_, pfcik, pdfcik, rik,
-                                                rc, false );
+                                compute_cutoff( cutoffType_, cutoffAlpha_,
+                                                pfcik, pdfcik, rik, rc, false );
 
                                 rjk = sqrt( r2jk );
-                                compute_cutoff( cutoffType_, pfcjk, pdfcjk, rjk,
-                                                rc, false );
+                                compute_cutoff( cutoffType_, cutoffAlpha_,
+                                                pfcjk, pdfcjk, rjk, rc, false );
 
                                 double const rinvijik = 1.0 / rij / rik;
                                 double const costijk =
@@ -1192,6 +1193,7 @@ void Mode<t_device>::calculateForces( t_slice_x x, t_slice_f f_a,
     auto maxSFperElem_ = maxSFperElem;
     auto convLength_ = convLength;
     auto cutoffType_ = cutoffType;
+    auto cutoffAlpha_ = cutoffAlpha;
 
     auto calc_radial_force_op = KOKKOS_LAMBDA( const int i, const int j )
     {
@@ -1226,7 +1228,8 @@ void Mode<t_device>::calculateForces( t_slice_x x, t_slice_f f_a,
                 {
                     // Energy calculation.
                     // Calculate cutoff function and derivative.
-                    compute_cutoff( cutoffType_, pfcij, pdfcij, rij, rc, true );
+                    compute_cutoff( cutoffType_, cutoffAlpha_, pfcij, pdfcij,
+                                    rij, rc, true );
                     for ( size_t k = 0; k < size; ++k )
                     {
                         globalIndex =
@@ -1299,7 +1302,8 @@ void Mode<t_device>::calculateForces( t_slice_x x, t_slice_f f_a,
                 if ( ( e1 == nej || e2 == nej ) && rij < rc )
                 {
                     // Calculate cutoff function and derivative.
-                    compute_cutoff( cutoffType_, pfcij, pdfcij, rij, rc, true );
+                    compute_cutoff( cutoffType_, cutoffAlpha_, pfcij, pdfcij,
+                                    rij, rc, true );
 
                     nek = type( k );
                     if ( ( e1 == nej && e2 == nek ) ||
@@ -1322,12 +1326,12 @@ void Mode<t_device>::calculateForces( t_slice_x x, t_slice_f f_a,
                             if ( r2jk < rc * rc )
                             {
                                 // Energy calculation.
-                                compute_cutoff( cutoffType_, pfcik, pdfcik, rik,
-                                                rc, true );
+                                compute_cutoff( cutoffType_, cutoffAlpha_,
+                                                pfcik, pdfcik, rik, rc, true );
                                 rjk = sqrt( r2jk );
 
-                                compute_cutoff( cutoffType_, pfcjk, pdfcjk, rjk,
-                                                rc, true );
+                                compute_cutoff( cutoffType_, cutoffAlpha_,
+                                                pfcjk, pdfcjk, rjk, rc, true );
 
                                 double const rinvijik = 1.0 / rij / rik;
                                 double const costijk =
