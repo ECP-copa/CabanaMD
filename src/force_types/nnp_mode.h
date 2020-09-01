@@ -346,11 +346,12 @@ public:
   std::vector<std::size_t> numAtomsPerElement;
 
   KOKKOS_INLINE_FUNCTION
-  void compute_cutoff(CutoffFunction::CutoffType cutoffType, double &fc,
-                      double &dfc, double r, double rc, bool derivative);
+  void compute_cutoff(CutoffFunction::CutoffType cutoffType, double cutoffAlpha,
+                      double &fc, double &dfc, double r, double rc,
+                      bool derivative) const;
 
   KOKKOS_INLINE_FUNCTION
-  double scale(int attype, double value, int k, d_t_SFscaling SFscaling);
+  double scale(int attype, double value, int k, d_t_SFscaling SFscaling) const;
 
   template <class t_slice_x, class t_slice_f, class t_slice_type,
             class t_slice_dEdG, class t_neigh_list, class t_neigh_parallel,
@@ -466,8 +467,8 @@ template <class t_device> inline bool Mode<t_device>::useNormalization() const {
 template <class t_device>
 KOKKOS_INLINE_FUNCTION void
 Mode<t_device>::compute_cutoff(CutoffFunction::CutoffType cutoffType,
-                               double &fc, double &dfc, double r, double rc,
-                               bool derivative) {
+                               double cutoffAlpha, double &fc, double &dfc,
+                               double r, double rc, bool derivative) const {
   double temp;
   if (cutoffType == CutoffFunction::CT_TANHU) {
     temp = tanh(1.0 - r / rc);
@@ -494,17 +495,17 @@ Mode<t_device>::compute_cutoff(CutoffFunction::CutoffType cutoffType,
 }
 
 template <class t_device>
-KOKKOS_INLINE_FUNCTION double Mode<t_device>::scale(int attype, double value,
-                                                    int k,
-                                                    d_t_SFscaling SFscaling) {
-  double scalingType = SFscaling(attype, k, 7);
-  double scalingFactor = SFscaling(attype, k, 6);
-  double Gmin = SFscaling(attype, k, 0);
-  // double Gmax = SFscaling(attype,k,1);
-  double Gmean = SFscaling(attype, k, 2);
-  // double Gsigma = SFscaling(attype,k,3);
-  double Smin = SFscaling(attype, k, 4);
-  // double Smax = SFscaling(attype,k,5);
+KOKKOS_INLINE_FUNCTION double
+Mode<t_device>::scale(int attype, double value, int k,
+                      d_t_SFscaling SFscaling_) const {
+  double scalingType = SFscaling_(attype, k, 7);
+  double scalingFactor = SFscaling_(attype, k, 6);
+  double Gmin = SFscaling_(attype, k, 0);
+  // double Gmax = SFscaling_(attype,k,1);
+  double Gmean = SFscaling_(attype, k, 2);
+  // double Gsigma = SFscaling_(attype,k,3);
+  double Smin = SFscaling_(attype, k, 4);
+  // double Smax = SFscaling_(attype,k,5);
 
   if (scalingType == 0.0) {
     return value;
