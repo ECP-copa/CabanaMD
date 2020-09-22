@@ -60,8 +60,11 @@ class NeighborVerlet : public Neighbor<t_System>
 
         list = t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max,
                              max_neigh_guess );
-        max_neigh_guess =
-            Cabana::NeighborList<t_neigh_list>::maxNeighbor( list ) * 1.1;
+
+        T_INT current_max =
+            Cabana::NeighborList<t_neigh_list>::maxNeighbor( list );
+        if ( current_max > max_neigh_guess )
+            max_neigh_guess = current_max * 1.1;
     }
 
     t_neigh_list &get() { return list; }
