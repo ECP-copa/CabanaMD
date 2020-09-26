@@ -491,27 +491,32 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     h_t_mass h_mass = Kokkos::create_mirror_view( s.mass );
     Kokkos::deep_copy( h_mass, s.mass );
 
+    // Create the mesh.
+    T_X_FLOAT max_x = lattice_constant * lattice_nx;
+    T_X_FLOAT max_y = lattice_constant * lattice_ny;
+    T_X_FLOAT max_z = lattice_constant * lattice_nz;
+    std::array<T_X_FLOAT, 3> global_low = {0.0, 0.0, 0.0};
+    std::array<T_X_FLOAT, 3> global_high = {max_x, max_y, max_z};
+    system->create_domain( global_low, global_high );
+    s = *system;
+
+    auto local_mesh_lo_x = s.local_mesh_lo_x;
+    auto local_mesh_lo_y = s.local_mesh_lo_y;
+    auto local_mesh_lo_z = s.local_mesh_lo_z;
+    auto local_mesh_hi_x = s.local_mesh_hi_x;
+    auto local_mesh_hi_y = s.local_mesh_hi_y;
+    auto local_mesh_hi_z = s.local_mesh_hi_z;
+
+    T_INT ix_start = local_mesh_lo_x / s.global_mesh_x * lattice_nx - 0.5;
+    T_INT iy_start = local_mesh_lo_y / s.global_mesh_y * lattice_ny - 0.5;
+    T_INT iz_start = local_mesh_lo_z / s.global_mesh_z * lattice_nz - 0.5;
+    T_INT ix_end = local_mesh_hi_x / s.global_mesh_x * lattice_nx + 0.5;
+    T_INT iy_end = local_mesh_hi_y / s.global_mesh_y * lattice_ny + 0.5;
+    T_INT iz_end = local_mesh_hi_z / s.global_mesh_z * lattice_nz + 0.5;
+
     // Create Simple Cubic Lattice
     if ( lattice_style == LATTICE_SC )
     {
-        system->domain_x = lattice_constant * lattice_nx;
-        system->domain_y = lattice_constant * lattice_ny;
-        system->domain_z = lattice_constant * lattice_nz;
-        system->domain_hi_x = system->domain_x;
-        system->domain_hi_y = system->domain_y;
-        system->domain_hi_z = system->domain_z;
-
-        comm->create_domain_decomposition();
-        s = *system;
-
-        T_INT ix_start = s.sub_domain_lo_x / s.domain_x * lattice_nx - 0.5;
-        T_INT iy_start = s.sub_domain_lo_y / s.domain_y * lattice_ny - 0.5;
-        T_INT iz_start = s.sub_domain_lo_z / s.domain_z * lattice_nz - 0.5;
-
-        T_INT ix_end = s.sub_domain_hi_x / s.domain_x * lattice_nx + 0.5;
-        T_INT iy_end = s.sub_domain_hi_y / s.domain_y * lattice_ny + 0.5;
-        T_INT iz_end = s.sub_domain_hi_z / s.domain_z * lattice_nz + 0.5;
-
         T_INT n = 0;
 
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
@@ -523,12 +528,12 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                 for ( T_INT ix = ix_start; ix <= ix_end; ix++ )
                 {
                     T_FLOAT xtmp = lattice_constant * ( ix + lattice_offset_x );
-                    if ( ( xtmp >= s.sub_domain_lo_x ) &&
-                         ( ytmp >= s.sub_domain_lo_y ) &&
-                         ( ztmp >= s.sub_domain_lo_z ) &&
-                         ( xtmp < s.sub_domain_hi_x ) &&
-                         ( ytmp < s.sub_domain_hi_y ) &&
-                         ( ztmp < s.sub_domain_hi_z ) )
+                    if ( ( xtmp >= local_mesh_lo_x ) &&
+                         ( ytmp >= local_mesh_lo_y ) &&
+                         ( ztmp >= local_mesh_lo_z ) &&
+                         ( xtmp < local_mesh_hi_x ) &&
+                         ( ytmp < local_mesh_hi_y ) &&
+                         ( ztmp < local_mesh_hi_z ) )
                     {
                         n++;
                     }
@@ -556,12 +561,12 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                 for ( T_INT ix = ix_start; ix <= ix_end; ix++ )
                 {
                     T_FLOAT xtmp = lattice_constant * ( ix + lattice_offset_x );
-                    if ( ( xtmp >= s.sub_domain_lo_x ) &&
-                         ( ytmp >= s.sub_domain_lo_y ) &&
-                         ( ztmp >= s.sub_domain_lo_z ) &&
-                         ( xtmp < s.sub_domain_hi_x ) &&
-                         ( ytmp < s.sub_domain_hi_y ) &&
-                         ( ztmp < s.sub_domain_hi_z ) )
+                    if ( ( xtmp >= local_mesh_lo_x ) &&
+                         ( ytmp >= local_mesh_lo_y ) &&
+                         ( ztmp >= local_mesh_lo_z ) &&
+                         ( xtmp < local_mesh_hi_x ) &&
+                         ( ytmp < local_mesh_hi_y ) &&
+                         ( ztmp < local_mesh_hi_z ) )
                     {
                         x( n, 0 ) = xtmp;
                         x( n, 1 ) = ytmp;
@@ -585,16 +590,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     // Create Face Centered Cubic (FCC) Lattice
     if ( lattice_style == LATTICE_FCC )
     {
-        system->domain_x = lattice_constant * lattice_nx;
-        system->domain_y = lattice_constant * lattice_ny;
-        system->domain_z = lattice_constant * lattice_nz;
-        system->domain_hi_x = system->domain_x;
-        system->domain_hi_y = system->domain_y;
-        system->domain_hi_z = system->domain_z;
-
-        comm->create_domain_decomposition();
-        s = *system;
-
         double basis[4][3];
         basis[0][0] = 0.0;
         basis[0][1] = 0.0;
@@ -616,14 +611,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
             basis[i][2] += lattice_offset_z;
         }
 
-        T_INT ix_start = s.sub_domain_lo_x / s.domain_x * lattice_nx - 0.5;
-        T_INT iy_start = s.sub_domain_lo_y / s.domain_y * lattice_ny - 0.5;
-        T_INT iz_start = s.sub_domain_lo_z / s.domain_z * lattice_nz - 0.5;
-
-        T_INT ix_end = s.sub_domain_hi_x / s.domain_x * lattice_nx + 0.5;
-        T_INT iy_end = s.sub_domain_hi_y / s.domain_y * lattice_ny + 0.5;
-        T_INT iz_end = s.sub_domain_hi_z / s.domain_z * lattice_nz + 0.5;
-
         T_INT n = 0;
 
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
@@ -640,12 +627,12 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                             lattice_constant * ( 1.0 * iy + basis[k][1] );
                         T_FLOAT ztmp =
                             lattice_constant * ( 1.0 * iz + basis[k][2] );
-                        if ( ( xtmp >= s.sub_domain_lo_x ) &&
-                             ( ytmp >= s.sub_domain_lo_y ) &&
-                             ( ztmp >= s.sub_domain_lo_z ) &&
-                             ( xtmp < s.sub_domain_hi_x ) &&
-                             ( ytmp < s.sub_domain_hi_y ) &&
-                             ( ztmp < s.sub_domain_hi_z ) )
+                        if ( ( xtmp >= local_mesh_lo_x ) &&
+                             ( ytmp >= local_mesh_lo_y ) &&
+                             ( ztmp >= local_mesh_lo_z ) &&
+                             ( xtmp < local_mesh_hi_x ) &&
+                             ( ytmp < local_mesh_hi_y ) &&
+                             ( ztmp < local_mesh_hi_z ) )
                         {
                             n++;
                         }
@@ -680,12 +667,12 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                             lattice_constant * ( 1.0 * iy + basis[k][1] );
                         T_FLOAT ztmp =
                             lattice_constant * ( 1.0 * iz + basis[k][2] );
-                        if ( ( xtmp >= s.sub_domain_lo_x ) &&
-                             ( ytmp >= s.sub_domain_lo_y ) &&
-                             ( ztmp >= s.sub_domain_lo_z ) &&
-                             ( xtmp < s.sub_domain_hi_x ) &&
-                             ( ytmp < s.sub_domain_hi_y ) &&
-                             ( ztmp < s.sub_domain_hi_z ) )
+                        if ( ( xtmp >= local_mesh_lo_x ) &&
+                             ( ytmp >= local_mesh_lo_y ) &&
+                             ( ztmp >= local_mesh_lo_z ) &&
+                             ( xtmp < local_mesh_hi_x ) &&
+                             ( ytmp < local_mesh_hi_y ) &&
+                             ( ztmp < local_mesh_hi_z ) )
                         {
                             h_x( n, 0 ) = xtmp;
                             h_x( n, 1 ) = ytmp;

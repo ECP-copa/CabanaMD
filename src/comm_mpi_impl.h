@@ -75,101 +75,21 @@ void Comm<t_System>::init()
 template <class t_System>
 void Comm<t_System>::create_domain_decomposition()
 {
-
     MPI_Comm_size( MPI_COMM_WORLD, &proc_size );
     MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
 
-    int ipx = 1;
-
-    double area_xy = system->domain_x * system->domain_y;
-    double area_xz = system->domain_x * system->domain_z;
-    double area_yz = system->domain_y * system->domain_z;
-
-    double smallest_surface = 2.0 * ( area_xy + area_xz + area_yz );
-
-    while ( ipx <= proc_size )
+    for ( int d = 0; d < 3; d++ )
     {
-        if ( proc_size % ipx == 0 )
-        {
-            int nremain = proc_size / ipx;
-            int ipy = 1;
-
-            while ( ipy <= nremain )
-            {
-                if ( nremain % ipy == 0 )
-                {
-                    int ipz = nremain / ipy;
-                    double surface = area_xy / ipx / ipy + area_xz / ipx / ipz +
-                                     area_yz / ipy / ipz;
-
-                    if ( surface < smallest_surface )
-                    {
-                        smallest_surface = surface;
-                        proc_grid[0] = ipx;
-                        proc_grid[1] = ipy;
-                        proc_grid[2] = ipz;
-                    }
-                }
-
-                ipy++;
-            }
-        }
-
-        ipx++;
-    }
-    proc_pos[2] = proc_rank / ( proc_grid[0] * proc_grid[1] );
-    proc_pos[1] =
-        ( proc_rank % ( proc_grid[0] * proc_grid[1] ) ) / proc_grid[0];
-    proc_pos[0] = proc_rank % proc_grid[0];
-
-    if ( proc_grid[0] > 1 )
-    {
-        proc_neighbors_send[1] = ( proc_pos[0] > 0 )
-                                     ? proc_rank - 1
-                                     : proc_rank + ( proc_grid[0] - 1 );
-        proc_neighbors_send[0] = ( proc_pos[0] < ( proc_grid[0] - 1 ) )
-                                     ? proc_rank + 1
-                                     : proc_rank - ( proc_grid[0] - 1 );
-    }
-    else
-    {
-        proc_neighbors_send[0] = proc_rank;
-        proc_neighbors_send[1] = proc_rank;
+        proc_grid[d] = system->ranks_per_dim[d];
+        proc_pos[d] = system->rank_dim_pos[d];
     }
 
-    if ( proc_grid[1] > 1 )
-    {
-        proc_neighbors_send[3] =
-            ( proc_pos[1] > 0 )
-                ? proc_rank - proc_grid[0]
-                : proc_rank + proc_grid[0] * ( proc_grid[1] - 1 );
-        proc_neighbors_send[2] =
-            ( proc_pos[1] < ( proc_grid[1] - 1 ) )
-                ? proc_rank + proc_grid[0]
-                : proc_rank - proc_grid[0] * ( proc_grid[1] - 1 );
-    }
-    else
-    {
-        proc_neighbors_send[2] = proc_rank;
-        proc_neighbors_send[3] = proc_rank;
-    }
-
-    if ( proc_grid[2] > 1 )
-    {
-        proc_neighbors_send[5] = ( proc_pos[2] > 0 )
-                                     ? proc_rank - proc_grid[0] * proc_grid[1]
-                                     : proc_rank + proc_grid[0] * proc_grid[1] *
-                                                       ( proc_grid[2] - 1 );
-        proc_neighbors_send[4] = ( proc_pos[2] < ( proc_grid[2] - 1 ) )
-                                     ? proc_rank + proc_grid[0] * proc_grid[1]
-                                     : proc_rank - proc_grid[0] * proc_grid[1] *
-                                                       ( proc_grid[2] - 1 );
-    }
-    else
-    {
-        proc_neighbors_send[4] = proc_rank;
-        proc_neighbors_send[5] = proc_rank;
-    }
+    proc_neighbors_send[0] = system->local_grid->neighborRank( 1, 0, 0 );
+    proc_neighbors_send[1] = system->local_grid->neighborRank( -1, 0, 0 );
+    proc_neighbors_send[2] = system->local_grid->neighborRank( 0, 1, 0 );
+    proc_neighbors_send[3] = system->local_grid->neighborRank( 0, -1, 0 );
+    proc_neighbors_send[4] = system->local_grid->neighborRank( 0, 0, 1 );
+    proc_neighbors_send[5] = system->local_grid->neighborRank( 0, 0, -1 );
 
     proc_neighbors_recv[0] = proc_neighbors_send[1];
     proc_neighbors_recv[1] = proc_neighbors_send[0];
@@ -177,22 +97,6 @@ void Comm<t_System>::create_domain_decomposition()
     proc_neighbors_recv[3] = proc_neighbors_send[2];
     proc_neighbors_recv[4] = proc_neighbors_send[5];
     proc_neighbors_recv[5] = proc_neighbors_send[4];
-
-    system->sub_domain_x = system->domain_x / proc_grid[0];
-    system->sub_domain_y = system->domain_y / proc_grid[1];
-    system->sub_domain_z = system->domain_z / proc_grid[2];
-    system->sub_domain_lo_x =
-        proc_pos[0] * system->sub_domain_x + system->domain_lo_x;
-    system->sub_domain_lo_y =
-        proc_pos[1] * system->sub_domain_y + system->domain_lo_y;
-    system->sub_domain_lo_z =
-        proc_pos[2] * system->sub_domain_z + system->domain_lo_z;
-    system->sub_domain_hi_x =
-        ( proc_pos[0] + 1 ) * system->sub_domain_x + system->domain_lo_x;
-    system->sub_domain_hi_y =
-        ( proc_pos[1] + 1 ) * system->sub_domain_y + system->domain_lo_y;
-    system->sub_domain_hi_z =
-        ( proc_pos[2] + 1 ) * system->sub_domain_z + system->domain_lo_z;
 
     for ( int p = 0; p < 6; p++ )
     {

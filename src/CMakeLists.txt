@@ -65,7 +65,7 @@ target_include_directories(CabanaMD PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 
 #------------------------------------------------------------
 
-target_link_libraries(CabanaMD Cabana::cabanacore)
+target_link_libraries(CabanaMD Cabana::cabanacore Cabana::Cajita)
 
 if(CabanaMD_ENABLE_NNP AND N2P2_DIR)
   target_include_directories(CabanaMD PUBLIC ${N2P2_DIR}/include)
