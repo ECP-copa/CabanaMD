@@ -79,7 +79,7 @@ before_script:
   - if [[ ${NNP} ]]; then
       git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
-      make libnnp &&
+      make libnnpif INTERFACES=CabanaMD &&
       popd && popd;
     fi
   - if [[ ${COVERAGE} ]]; then
