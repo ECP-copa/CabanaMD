@@ -105,7 +105,7 @@ void InputCL::read_args( int argc, char *argv[] )
                  "  --neigh-type [TYPE]:      Specify Neighbor Routines ",
                  "implementation\n",
                  "                                (VERLET_2D, VERLET_CSR, "
-                 "TREE)" );
+                 "TREE_2D, TREE_CSR)" );
             log( std::cout,
                  "  --dumpbinary [N] [PATH]:  Request that binary output ",
                  "files PATH/output* be generated every N steps\n",
