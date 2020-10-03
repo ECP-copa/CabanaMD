@@ -31,14 +31,17 @@ class NeighborTree<t_System, t_iteration, Cabana::VerletLayoutCSR>
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
+    T_INT max_neigh_guess;
 
     using t_neigh_list =
         Cabana::Experimental::CrsGraph<memory_space, t_iteration>;
 
-    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_, T_INT )
+    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_,
+                  T_INT max_neigh_guess_ )
         : Neighbor<t_System>( neigh_cut_, half_neigh_ )
         , neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
+        , max_neigh_guess( max_neigh_guess_ )
     {
     }
 
@@ -51,7 +54,7 @@ class NeighborTree<t_System, t_iteration, Cabana::VerletLayoutCSR>
 
         t_iteration tag;
         list = Cabana::Experimental::makeNeighborList<device_type>(
-            tag, x, 0, N_local, neigh_cut );
+            tag, x, 0, N_local, neigh_cut, max_neigh_guess );
     }
 
     t_neigh_list &get() { return list; }
@@ -76,13 +79,16 @@ class NeighborTree<t_System, t_iteration, Cabana::VerletLayout2D>
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
+    T_INT max_neigh_guess;
 
     using t_neigh_list = Cabana::Experimental::Dense<memory_space, t_iteration>;
 
-    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_, T_INT )
+    NeighborTree( T_X_FLOAT neigh_cut_, bool half_neigh_,
+                  T_INT max_neigh_guess_ )
         : Neighbor<t_System>( neigh_cut_, half_neigh_ )
         , neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
+        , max_neigh_guess( max_neigh_guess_ )
     {
     }
 
@@ -95,7 +101,7 @@ class NeighborTree<t_System, t_iteration, Cabana::VerletLayout2D>
 
         t_iteration tag;
         list = Cabana::Experimental::make2DNeighborList<device_type>(
-            tag, x, 0, N_local, neigh_cut );
+            tag, x, 0, N_local, neigh_cut, max_neigh_guess );
     }
 
     t_neigh_list &get() { return list; }
