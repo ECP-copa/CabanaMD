@@ -21,6 +21,58 @@
 
 class MDfactory
 {
+    template <typename t_sys, typename t_lay>
+    static CabanaMD *createImplVerlet( int half_neigh )
+    {
+        if ( half_neigh )
+        {
+            using t_half = Cabana::HalfNeighborTag;
+            using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
+            return new CbnMD<t_sys, t_neigh>;
+        }
+        else
+        {
+            using t_full = Cabana::FullNeighborTag;
+            using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
+            return new CbnMD<t_sys, t_neigh>;
+        }
+    }
+#ifdef Cabana_ENABLE_ARBORX
+    template <typename t_sys, typename t_lay>
+    static CabanaMD *createImplTree( int half_neigh )
+    {
+        if ( half_neigh )
+        {
+            using t_half = Cabana::HalfNeighborTag;
+            using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
+            return new CbnMD<t_sys, t_neigh>;
+        }
+        else
+        {
+            using t_full = Cabana::FullNeighborTag;
+            using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
+            return new CbnMD<t_sys, t_neigh>;
+        }
+    }
+#endif
+    template <typename t_sys>
+    static CabanaMD *createImplSystem( int neigh, int half_neigh )
+    {
+        if ( neigh == NEIGH_VERLET_2D )
+            return createImplVerlet<t_sys, Cabana::VerletLayout2D>(
+                half_neigh );
+        else if ( neigh == NEIGH_VERLET_CSR )
+            return createImplVerlet<t_sys, Cabana::VerletLayoutCSR>(
+                half_neigh );
+#ifdef Cabana_ENABLE_ARBORX
+        else if ( neigh == NEIGH_TREE_2D )
+            return createImplTree<t_sys, Cabana::VerletLayout2D>( half_neigh );
+        else if ( neigh == NEIGH_TREE_CSR )
+            return createImplTree<t_sys, Cabana::VerletLayoutCSR>( half_neigh );
+#endif // ArborX
+        return nullptr;
+    }
+
     template <typename t_device>
     static CabanaMD *createImpl( InputCL commandline )
     {
@@ -30,215 +82,14 @@ class MDfactory
             commandline.force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
         if ( layout == AOSOA_1 )
-        {
-            using t_sys = System<t_device, AoSoA1>;
-            if ( neigh == NEIGH_VERLET_2D )
-            {
-                using t_lay = Cabana::VerletLayout2D;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-            else if ( neigh == NEIGH_VERLET_CSR )
-            {
-                using t_lay = Cabana::VerletLayoutCSR;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-#ifdef Cabana_ENABLE_ARBORX
-            else if ( neigh == NEIGH_TREE_2D )
-            {
-                using t_lay = Cabana::VerletLayout2D;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-            else if ( neigh == NEIGH_TREE_CSR )
-            {
-                using t_lay = Cabana::VerletLayoutCSR;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-#endif // ArborX
-        }
+            return createImplSystem<System<t_device, AoSoA1>>( neigh,
+                                                               half_neigh );
         else if ( layout == AOSOA_2 )
-        {
-            using t_sys = System<t_device, AoSoA2>;
-            if ( neigh == NEIGH_VERLET_2D )
-            {
-                using t_lay = Cabana::VerletLayout2D;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-            else if ( neigh == NEIGH_VERLET_CSR )
-            {
-                using t_lay = Cabana::VerletLayoutCSR;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-#ifdef Cabana_ENABLE_ARBORX
-            else if ( neigh == NEIGH_TREE_2D )
-            {
-                using t_lay = Cabana::VerletLayout2D;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-            else if ( neigh == NEIGH_TREE_CSR )
-            {
-                using t_lay = Cabana::VerletLayoutCSR;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-#endif // ArborX
-        }
+            return createImplSystem<System<t_device, AoSoA2>>( neigh,
+                                                               half_neigh );
         else if ( layout == AOSOA_6 )
-        {
-            using t_sys = System<t_device, AoSoA6>;
-            if ( neigh == NEIGH_VERLET_2D )
-            {
-                using t_lay = Cabana::VerletLayout2D;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-            else if ( neigh == NEIGH_VERLET_CSR )
-            {
-                using t_lay = Cabana::VerletLayoutCSR;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-#ifdef Cabana_ENABLE_ARBORX
-            else if ( neigh == NEIGH_TREE_2D )
-            {
-                using t_lay = Cabana::VerletLayout2D;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-            else if ( neigh == NEIGH_TREE_CSR )
-            {
-                using t_lay = Cabana::VerletLayoutCSR;
-                if ( half_neigh )
-                {
-                    using t_half = Cabana::HalfNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-                else
-                {
-                    using t_full = Cabana::FullNeighborTag;
-                    using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
-                    return new CbnMD<t_sys, t_neigh>;
-                }
-            }
-#endif // ArborX
-        }
+            return createImplSystem<System<t_device, AoSoA6>>( neigh,
+                                                               half_neigh );
         return nullptr;
     }
 
@@ -254,7 +105,7 @@ class MDfactory
 #ifndef KOKKOS_ENABLE_CUDA
             throw std::runtime_error(
                 "CabanaMD not compiled with Kokkos::Cuda" );
-#endif // Cuda
+#endif
         }
         if ( device == DEFAULT )
         {
