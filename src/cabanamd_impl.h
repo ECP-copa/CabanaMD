@@ -199,6 +199,9 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     }
     log( out, "Created atoms." );
 
+    // Set MPI rank neighbors
+    comm->create_domain_decomposition();
+
     // Exchange atoms across MPI ranks
     comm->exchange();
 

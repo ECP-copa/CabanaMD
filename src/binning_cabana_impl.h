@@ -67,9 +67,13 @@ void Binning<t_System>::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in,
         int end =
             do_ghost ? system->N_local + system->N_ghost : system->N_local;
 
-        nbinx = T_INT( system->sub_domain_x / dx_in );
-        nbiny = T_INT( system->sub_domain_y / dy_in );
-        nbinz = T_INT( system->sub_domain_z / dz_in );
+        auto local_mesh_x = system->local_mesh_x;
+        auto local_mesh_y = system->local_mesh_y;
+        auto local_mesh_z = system->local_mesh_z;
+
+        nbinx = T_INT( local_mesh_x / dx_in );
+        nbiny = T_INT( local_mesh_y / dy_in );
+        nbinz = T_INT( local_mesh_z / dz_in );
 
         if ( nbinx == 0 )
             nbinx = 1;
@@ -78,17 +82,17 @@ void Binning<t_System>::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in,
         if ( nbinz == 0 )
             nbinz = 1;
 
-        T_X_FLOAT dx = system->sub_domain_x / nbinx;
-        T_X_FLOAT dy = system->sub_domain_y / nbiny;
-        T_X_FLOAT dz = system->sub_domain_z / nbinz;
+        T_X_FLOAT dx = local_mesh_x / nbinx;
+        T_X_FLOAT dy = local_mesh_y / nbiny;
+        T_X_FLOAT dz = local_mesh_z / nbinz;
 
         T_X_FLOAT eps = dx / 1000;
-        minx = -dx * halo_depth - eps + system->sub_domain_lo_x;
-        maxx = dx * halo_depth + eps + system->sub_domain_hi_x;
-        miny = -dy * halo_depth - eps + system->sub_domain_lo_y;
-        maxy = dy * halo_depth + eps + system->sub_domain_hi_y;
-        minz = -dz * halo_depth - eps + system->sub_domain_lo_z;
-        maxz = dz * halo_depth + eps + system->sub_domain_hi_z;
+        minx = -dx * halo_depth - eps + system->local_mesh_lo_x;
+        maxx = dx * halo_depth + eps + system->local_mesh_hi_x;
+        miny = -dy * halo_depth - eps + system->local_mesh_lo_y;
+        maxy = dy * halo_depth + eps + system->local_mesh_hi_y;
+        minz = -dz * halo_depth - eps + system->local_mesh_lo_z;
+        maxz = dz * halo_depth + eps + system->local_mesh_hi_z;
 
         T_X_FLOAT delta[3] = {dx, dy, dz};
         T_X_FLOAT min[3] = {minx, miny, minz};

@@ -48,12 +48,10 @@ class NeighborVerlet : public Neighbor<t_System>
     {
         T_INT N_local = system->N_local;
 
-        double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
-                              system->sub_domain_lo_y - system->sub_domain_y,
-                              system->sub_domain_lo_z - system->sub_domain_z};
-        double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
-                              system->sub_domain_hi_y + system->sub_domain_y,
-                              system->sub_domain_hi_z + system->sub_domain_z};
+        double grid_min[3] = {system->ghost_mesh_lo_x, system->ghost_mesh_lo_y,
+                              system->ghost_mesh_lo_z};
+        double grid_max[3] = {system->ghost_mesh_hi_x, system->ghost_mesh_hi_y,
+                              system->ghost_mesh_hi_z};
 
         system->slice_x();
         auto x = system->x;

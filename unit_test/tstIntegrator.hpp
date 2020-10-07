@@ -41,10 +41,8 @@ t_System createParticles( const int num_particle, const int num_ghost,
     system.N_local = num_particle - num_ghost;
     system.N_ghost = num_ghost;
 
-    auto box = box_max - box_min;
-    system.domain_x = system.domain_y = system.domain_z = box;
-    system.domain_lo_x = system.domain_lo_y = system.domain_lo_z = box_min;
-    system.domain_hi_x = system.domain_hi_y = system.domain_hi_z = box_max;
+    system.create_domain( {box_min, box_min, box_min},
+                          {box_max, box_max, box_max} );
 
     system.slice_integrate();
     auto x = system.x;

@@ -106,6 +106,9 @@ void read_lammps_header( std::ifstream &file, std::ofstream &err, t_System *s )
             err,
             "Could not read from data file. Please check for a valid file and "
             "ensure that file path is less than 32 characters." );
+
+    std::array<double, 3> low_corner;
+    std::array<double, 3> high_corner;
     while ( 1 )
     {
         std::getline( file, line );
@@ -136,26 +139,26 @@ void read_lammps_header( std::ifstream &file, std::ofstream &err, t_System *s )
         else if ( line.find( "xlo xhi" ) != std::string::npos )
         {
             std::sscanf( temp, "%lg %lg", &xlo, &xhi );
-            s->domain_lo_x = xlo;
-            s->domain_hi_x = xhi;
-            s->domain_x = xhi - xlo;
+            low_corner[0] = xlo;
+            high_corner[0] = xhi;
         }
         else if ( line.find( "ylo yhi" ) != std::string::npos )
         {
             std::sscanf( temp, "%lg %lg", &ylo, &yhi );
-            s->domain_lo_y = ylo;
-            s->domain_hi_y = yhi;
-            s->domain_y = yhi - ylo;
+            low_corner[1] = ylo;
+            high_corner[1] = yhi;
         }
         else if ( line.find( "zlo zhi" ) != std::string::npos )
         {
             std::sscanf( temp, "%lg %lg", &zlo, &zhi );
-            s->domain_lo_z = zlo;
-            s->domain_hi_z = zhi;
-            s->domain_z = zhi - zlo;
+            low_corner[2] = zlo;
+            high_corner[2] = zhi;
             break;
         }
     }
+
+    // Create mesh
+    s->create_domain( low_corner, high_corner );
 }
 
 template <class t_System>
@@ -168,6 +171,13 @@ void read_lammps_atoms( std::ifstream &file, t_System *s )
     auto id = s->id;
     auto type = s->type;
     auto q = s->q;
+
+    auto local_mesh_lo_x = s->local_mesh_lo_x;
+    auto local_mesh_lo_y = s->local_mesh_lo_y;
+    auto local_mesh_lo_z = s->local_mesh_lo_z;
+    auto local_mesh_hi_x = s->local_mesh_hi_x;
+    auto local_mesh_hi_y = s->local_mesh_hi_y;
+    auto local_mesh_hi_z = s->local_mesh_hi_z;
 
     skip_empty( file, line );
 
@@ -193,12 +203,9 @@ void read_lammps_atoms( std::ifstream &file, t_System *s )
         {
             std::sscanf( temp, "%i %i %lg %lg %lg", &id_tmp, &type_tmp, &x_tmp,
                          &y_tmp, &z_tmp );
-            if ( ( x_tmp >= s->sub_domain_lo_x ) &&
-                 ( y_tmp >= s->sub_domain_lo_y ) &&
-                 ( z_tmp >= s->sub_domain_lo_z ) &&
-                 ( x_tmp < s->sub_domain_hi_x ) &&
-                 ( y_tmp < s->sub_domain_hi_y ) &&
-                 ( z_tmp < s->sub_domain_hi_z ) )
+            if ( ( x_tmp >= local_mesh_lo_x ) && ( y_tmp >= local_mesh_lo_y ) &&
+                 ( z_tmp >= local_mesh_lo_z ) && ( x_tmp < local_mesh_hi_x ) &&
+                 ( y_tmp < local_mesh_hi_y ) && ( z_tmp < local_mesh_hi_z ) )
             {
                 id( count ) = id_tmp;
                 type( count ) = type_tmp - 1;
@@ -213,12 +220,9 @@ void read_lammps_atoms( std::ifstream &file, t_System *s )
         {
             std::sscanf( temp, "%i %i %lg %lg %lg %lg", &id_tmp, &type_tmp,
                          &q_tmp, &x_tmp, &y_tmp, &z_tmp );
-            if ( ( x_tmp >= s->sub_domain_lo_x ) &&
-                 ( y_tmp >= s->sub_domain_lo_y ) &&
-                 ( z_tmp >= s->sub_domain_lo_z ) &&
-                 ( x_tmp < s->sub_domain_hi_x ) &&
-                 ( y_tmp < s->sub_domain_hi_y ) &&
-                 ( z_tmp < s->sub_domain_hi_z ) )
+            if ( ( x_tmp >= local_mesh_lo_x ) && ( y_tmp >= local_mesh_lo_y ) &&
+                 ( z_tmp >= local_mesh_lo_z ) && ( x_tmp < local_mesh_hi_x ) &&
+                 ( y_tmp < local_mesh_hi_y ) && ( z_tmp < local_mesh_hi_z ) )
             {
                 id( count ) = id_tmp;
                 type( count ) = type_tmp - 1;
@@ -312,9 +316,6 @@ void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
     std::ofstream err( input->error_file, std::ofstream::app );
 
     read_lammps_header<t_System>( file, err, s );
-
-    // perform domain decomposition and get access to subdomains
-    comm->create_domain_decomposition();
 
     // Assume near load balance and resize as necessary
     s->resize( s->N / comm->num_processes() );
