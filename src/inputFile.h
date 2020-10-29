@@ -49,32 +49,17 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include <comm_mpi.h>
-#include <inputCL.h>
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-#include <vector>
+#include <comm_mpi.h>
+#include <inputCL.h>
+#include <output.h>
+#include <system.h>
+#include <types.h>
 
-class ItemizedFile
-{
-  public:
-    char ***words;
-    int max_nlines;
-    int nlines;
-    int words_per_line;
-    int max_word_size;
-    ItemizedFile();
-    void allocate_words( int num_lines );
-    void free_words();
-    void print_line( int line );
-    int words_in_line( int line );
-    void print();
-    void add_line( const char *const line );
-};
+#include <fstream>
+#include <vector>
 
 // Class replicating LAMMPS Random velocity initialization with GEOM option
 #define IA 16807
@@ -150,13 +135,11 @@ class LAMMPS_RandomVelocityGeom
 
         // keep 31 bits of unsigned int as new seed
         // do not allow seed = 0, since will cause hang in gaussian()
-
         seed = hash & 0x7ffffff;
         if ( !seed )
             seed = 1;
 
         // warm up the RNG
-
         for ( i = 0; i < 5; i++ )
             uniform();
     }
@@ -171,7 +154,7 @@ class InputFile
     InputCL commandline;
     t_System *system;
 
-    bool do_print;
+    bool _print_rank;
     int units_style;
     int lattice_style;
     double lattice_constant, lattice_offset_x, lattice_offset_y,
@@ -179,11 +162,11 @@ class InputFile
     int lattice_nx, lattice_ny, lattice_nz;
     int box[6];
 
-    ItemizedFile input_data;
-
     char *data_file;
     int data_file_type;
-    ItemizedFile data_file_data;
+
+    std::string output_file;
+    std::string error_file;
 
     double temperature_target;
     int temperature_seed;
@@ -201,11 +184,11 @@ class InputFile
     int force_neigh_parallel_type;
 
     T_F_FLOAT force_cutoff;
-    int force_line;
-    Kokkos::View<int *, Kokkos::HostSpace> force_coeff_lines;
+    std::vector<std::vector<std::string>> force_coeff_lines;
 
     T_F_FLOAT neighbor_skin;
     int neighbor_type;
+    T_INT max_neigh_guess;
 
     int layout_type;
     int nnp_layout_type;
@@ -213,14 +196,14 @@ class InputFile
     int thermo_rate, dumpbinary_rate, correctness_rate;
     bool dumpbinaryflag, correctnessflag;
     char *dumpbinary_path, *reference_path, *correctness_file;
-    char *lammps_data_file;
+    std::string lammps_data_file;
     bool read_data_flag = false;
 
     InputFile( InputCL cl, t_System *s );
     void read_file( const char *filename = NULL );
-    void read_lammps_file( const char *filename );
-    void read_data_file( const char *filename );
-    void check_lammps_command( int line );
+    void read_lammps_file( std::ifstream &in, std::ofstream &out,
+                           std::ofstream &err );
+    void check_lammps_command( std::string line, std::ofstream &err );
     void create_lattice( Comm<t_System> *comm );
 };
 

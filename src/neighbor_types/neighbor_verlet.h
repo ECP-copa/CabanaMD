@@ -12,23 +12,35 @@
 #ifndef NEIGHBOR_VERLET_H
 #define NEIGHBOR_VERLET_H
 
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
 #include <neighbor.h>
-#include <system.h>
-#include <types.h>
 
 template <class t_System, class t_iteration, class t_layout>
-class NeighborVerlet : public Neighbor<t_System, t_iteration, t_layout>
+class NeighborVerlet : public Neighbor<t_System>
 {
+    using memory_space = typename t_System::memory_space;
+
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
+    T_INT max_neigh_guess;
 
-    using t_neigh_list = Cabana::VerletList<MemorySpace, t_iteration, t_layout>;
+#ifdef KOKKOS_ENABLE_HIP
+    using t_build = Cabana::TeamOpTag;
+#else
+    using t_build = Cabana::TeamVectorOpTag;
+#endif
+    using t_neigh_list =
+        Cabana::VerletList<memory_space, t_iteration, t_layout, t_build>;
 
-    NeighborVerlet( T_X_FLOAT neigh_cut_, bool half_neigh_ )
-        : Neighbor<t_System, t_iteration, t_layout>( neigh_cut_, half_neigh_ )
+    NeighborVerlet( T_X_FLOAT neigh_cut_, bool half_neigh_,
+                    T_INT max_neigh_guess_ )
+        : Neighbor<t_System>( neigh_cut_, half_neigh_, max_neigh_guess_ )
         , neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
+        , max_neigh_guess( max_neigh_guess_ )
     {
     }
 
@@ -36,18 +48,21 @@ class NeighborVerlet : public Neighbor<t_System, t_iteration, t_layout>
     {
         T_INT N_local = system->N_local;
 
-        double grid_min[3] = {system->sub_domain_lo_x - system->sub_domain_x,
-                              system->sub_domain_lo_y - system->sub_domain_y,
-                              system->sub_domain_lo_z - system->sub_domain_z};
-        double grid_max[3] = {system->sub_domain_hi_x + system->sub_domain_x,
-                              system->sub_domain_hi_y + system->sub_domain_y,
-                              system->sub_domain_hi_z + system->sub_domain_z};
+        double grid_min[3] = {system->ghost_mesh_lo_x, system->ghost_mesh_lo_y,
+                              system->ghost_mesh_lo_z};
+        double grid_max[3] = {system->ghost_mesh_hi_x, system->ghost_mesh_hi_y,
+                              system->ghost_mesh_hi_z};
 
         system->slice_x();
         auto x = system->x;
 
-        list =
-            t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max );
+        list = t_neigh_list( x, 0, N_local, neigh_cut, 1.0, grid_min, grid_max,
+                             max_neigh_guess );
+
+        T_INT current_max =
+            Cabana::NeighborList<t_neigh_list>::maxNeighbor( list );
+        if ( current_max > max_neigh_guess )
+            max_neigh_guess = current_max * 1.1;
     }
 
     t_neigh_list &get() { return list; }

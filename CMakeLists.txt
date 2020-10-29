@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.11)
 project(CabanaMD LANGUAGES CXX VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
   #release comes with -O3 by default
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
@@ -36,20 +36,13 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 # Set up main options (inherit from Kokkos and Cabana CMake)
 ##---------------------------------------------------------------------------##
 find_package(Cabana REQUIRED)
-find_package(MPI REQUIRED)
 
-option(CabanaMD_ENABLE_Serial "Build CabanaMD with Serial support" ON)
-option(CabanaMD_ENABLE_Threads "Build CabanaMD with Threads support" OFF)
-option(CabanaMD_ENABLE_OpenMP "Build CabanaMD with OpenMP support" OFF)
-option(CabanaMD_ENABLE_Cuda "Build CabanaMD with Cuda support" OFF)
-
-set(CABANAMD_SUPPORTED_DEVICES Serial Threads OpenMP Cuda)
-foreach(_device ${CABANAMD_SUPPORTED_DEVICES})
-  if(CabanaMD_ENABLE_${_device})
-    string(TOUPPER ${_device} _uppercase_device)
-    kokkos_check( DEVICES ${_uppercase_device} )
-  endif()
-endforeach()
+if( NOT Cabana_ENABLE_MPI )
+  message( FATAL_ERROR "Cabana must be compiled with MPI" )
+endif()
+if( NOT Cabana_ENABLE_CAJITA )
+  message( FATAL_ERROR "Cabana must be compiled with Cajita" )
+endif()
 
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
@@ -57,11 +50,6 @@ endforeach()
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
-endif()
-
-option(CabanaMD_ENABLE_ARBORX "Build CabanaMD with ArborX" OFF)
-if(CabanaMD_ENABLE_ARBORX)
-  find_package(ArborX REQUIRED)
 endif()
 
 ##---------------------------------------------------------------------------##

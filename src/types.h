@@ -49,11 +49,6 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <CabanaMD_config.hpp>
-
-#include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
-
 // Module Types etc
 // Units to be used
 enum
@@ -61,6 +56,16 @@ enum
     UNITS_REAL,
     UNITS_LJ,
     UNITS_METAL
+};
+
+// Device type
+enum
+{
+    CUDA,
+    HIP,
+    OPENMP,
+    SERIAL,
+    DEFAULT
 };
 
 // AoSoA layout type
@@ -131,7 +136,8 @@ enum
 {
     NEIGH_VERLET_2D,
     NEIGH_VERLET_CSR,
-    NEIGH_TREE
+    NEIGH_TREE_2D,
+    NEIGH_TREE_CSR
 };
 // Input File Type
 enum
@@ -142,8 +148,6 @@ enum
 // Macros to work around the fact that std::max/min is not available on GPUs
 #define MAX( a, b ) ( a > b ? a : b )
 #define MIN( a, b ) ( a < b ? a : b )
-
-#define MAX_TYPES_STACKPARAMS 12
 
 // Define Scalar Types
 #ifndef T_INT
@@ -162,32 +166,5 @@ enum
 #ifndef T_F_FLOAT
 #define T_F_FLOAT T_FLOAT
 #endif
-
-typedef Kokkos::View<T_V_FLOAT *> t_mass;             // Mass
-typedef Kokkos::View<const T_V_FLOAT *> t_mass_const; // Mass
-
-// Cabana
-
-#ifdef CabanaMD_ENABLE_Cuda
-using MemorySpace = Kokkos::CudaUVMSpace;
-using ExecutionSpace = Kokkos::Cuda;
-#else
-using MemorySpace = Kokkos::HostSpace;
-#ifdef CabanaMD_ENABLE_Serial
-using ExecutionSpace = Kokkos::Serial;
-#elif defined( CabanaMD_ENABLE_Threads )
-using ExecutionSpace = Kokkos::Threads;
-#elif defined( CabanaMD_ENABLE_OpenMP )
-using ExecutionSpace = Kokkos::OpenMP;
-#endif
-#endif
-using DeviceType = Kokkos::Device<ExecutionSpace, MemorySpace>;
-
-using MemoryAccess = Cabana::DefaultAccessMemory;
-using AtomicAccess = Cabana::AtomicAccessMemory;
-
-using t_linkedcell = Cabana::LinkedCellList<DeviceType>;
-using t_distributor = Cabana::Distributor<DeviceType>;
-using t_halo = Cabana::Halo<DeviceType>;
 
 #endif // TYPES_H

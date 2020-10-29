@@ -49,17 +49,23 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include <types.h>
-
 #include <Cabana_Core.hpp>
+#include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
+
+#include <types.h>
 
 #include <memory>
 #include <string>
 
+template <class t_device>
 class SystemCommon
 {
   public:
+    using device_type = t_device;
+    using memory_space = typename device_type::memory_space;
+    using execution_space = typename device_type::execution_space;
+
     T_INT N;       // Number of Global Particles
     T_INT N_max;   // Number of Particles I could have in available storage
     T_INT N_local; // Number of owned Particles
@@ -69,25 +75,30 @@ class SystemCommon
     std::string atom_style;
 
     // Per Type Property
+    // typedef typename t_device::array_layout layout;
+    typedef Kokkos::View<T_V_FLOAT *, t_device> t_mass;
+    typedef Kokkos::View<const T_V_FLOAT *, t_device> t_mass_const;
+    typedef typename t_mass::HostMirror h_t_mass;
     t_mass mass;
 
-    // Simulation domain
-    T_X_FLOAT domain_x, domain_y, domain_z;
-    T_X_FLOAT domain_lo_x, domain_lo_y, domain_lo_z;
-    T_X_FLOAT domain_hi_x, domain_hi_y, domain_hi_z;
+    // Simulation total domain
+    T_X_FLOAT global_mesh_x, global_mesh_y, global_mesh_z;
 
-    // Simulation sub domain (for example of a single MPI rank)
-    T_X_FLOAT sub_domain_x, sub_domain_y, sub_domain_z;
-    T_X_FLOAT sub_domain_lo_x, sub_domain_lo_y, sub_domain_lo_z;
-    T_X_FLOAT sub_domain_hi_x, sub_domain_hi_y, sub_domain_hi_z;
+    // Simulation sub domain (single MPI rank)
+    T_X_FLOAT local_mesh_x, local_mesh_y, local_mesh_z;
+    T_X_FLOAT local_mesh_lo_x, local_mesh_lo_y, local_mesh_lo_z;
+    T_X_FLOAT local_mesh_hi_x, local_mesh_hi_y, local_mesh_hi_z;
+    T_X_FLOAT ghost_mesh_lo_x, ghost_mesh_lo_y, ghost_mesh_lo_z;
+    T_X_FLOAT ghost_mesh_hi_x, ghost_mesh_hi_y, ghost_mesh_hi_z;
+    std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
+        local_grid;
+
+    // Only needed for current comm
+    std::array<int, 3> ranks_per_dim;
+    std::array<int, 3> rank_dim_pos;
 
     // Units
     T_FLOAT boltz, mvv2e, dt;
-
-    // Should this process print messages
-    bool do_print;
-    // Should print LAMMPS style messages
-    bool print_lammps;
 
     SystemCommon()
     {
@@ -99,24 +110,67 @@ class SystemCommon
         atom_style = "atomic";
 
         mass = t_mass();
-        domain_x = domain_y = domain_z = 0.0;
-        sub_domain_x = sub_domain_y = sub_domain_z = 0.0;
-        domain_lo_x = domain_lo_y = domain_lo_z = 0.0;
-        domain_hi_x = domain_hi_y = domain_hi_z = 0.0;
-        sub_domain_hi_x = sub_domain_hi_y = sub_domain_hi_z = 0.0;
-        sub_domain_lo_x = sub_domain_lo_y = sub_domain_lo_z = 0.0;
+
+        global_mesh_x = global_mesh_y = global_mesh_z = 0.0;
+        local_mesh_lo_x = local_mesh_lo_y = local_mesh_lo_z = 0.0;
+        local_mesh_hi_x = local_mesh_hi_y = local_mesh_hi_z = 0.0;
+        ghost_mesh_lo_x = ghost_mesh_lo_y = ghost_mesh_lo_z = 0.0;
+        ghost_mesh_hi_x = ghost_mesh_hi_y = ghost_mesh_hi_z = 0.0;
+        local_mesh_x = local_mesh_y = local_mesh_z = 0.0;
+
         mvv2e = boltz = dt = 0.0;
 
-        print_lammps = false;
-
         mass = t_mass( "System::mass", ntypes );
-
-        int proc_rank;
-        MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
-        do_print = proc_rank == 0;
     }
 
     ~SystemCommon() {}
+
+    void create_domain( std::array<double, 3> low_corner,
+                        std::array<double, 3> high_corner )
+    {
+        // Create the MPI partitions.
+        Cajita::UniformDimPartitioner partitioner;
+        ranks_per_dim = partitioner.ranksPerDimension( MPI_COMM_WORLD, {} );
+
+        // Create global mesh of MPI partitions.
+        auto global_mesh = Cajita::createUniformGlobalMesh(
+            low_corner, high_corner, ranks_per_dim );
+
+        global_mesh_x = global_mesh->extent( 0 );
+        global_mesh_y = global_mesh->extent( 1 );
+        global_mesh_z = global_mesh->extent( 2 );
+
+        // Create the global grid.
+        std::array<bool, 3> is_periodic = {true, true, true};
+        auto global_grid = Cajita::createGlobalGrid(
+            MPI_COMM_WORLD, global_mesh, is_periodic, partitioner );
+
+        for ( int d = 0; d < 3; d++ )
+        {
+            rank_dim_pos[d] = global_grid->dimBlockId( d );
+        }
+
+        // Create a local mesh
+        int halo_width = 1;
+        local_grid = Cajita::createLocalGrid( global_grid, halo_width );
+        auto local_mesh = Cajita::createLocalMesh<t_device>( *local_grid );
+
+        local_mesh_lo_x = local_mesh.lowCorner( Cajita::Own(), 0 );
+        local_mesh_lo_y = local_mesh.lowCorner( Cajita::Own(), 1 );
+        local_mesh_lo_z = local_mesh.lowCorner( Cajita::Own(), 2 );
+        local_mesh_hi_x = local_mesh.highCorner( Cajita::Own(), 0 );
+        local_mesh_hi_y = local_mesh.highCorner( Cajita::Own(), 1 );
+        local_mesh_hi_z = local_mesh.highCorner( Cajita::Own(), 2 );
+        ghost_mesh_lo_x = local_mesh.lowCorner( Cajita::Ghost(), 0 );
+        ghost_mesh_lo_y = local_mesh.lowCorner( Cajita::Ghost(), 1 );
+        ghost_mesh_lo_z = local_mesh.lowCorner( Cajita::Ghost(), 2 );
+        ghost_mesh_hi_x = local_mesh.highCorner( Cajita::Ghost(), 0 );
+        ghost_mesh_hi_y = local_mesh.highCorner( Cajita::Ghost(), 1 );
+        ghost_mesh_hi_z = local_mesh.highCorner( Cajita::Ghost(), 2 );
+        local_mesh_x = local_mesh.extent( Cajita::Own(), 0 );
+        local_mesh_y = local_mesh.extent( Cajita::Own(), 1 );
+        local_mesh_z = local_mesh.extent( Cajita::Own(), 2 );
+    }
 
     void slice_all()
     {
@@ -154,17 +208,18 @@ class SystemCommon
 
     virtual void init() = 0;
     virtual void resize( T_INT N_new ) = 0;
-    virtual void permute( t_linkedcell cell_list ) = 0;
-    virtual void migrate( std::shared_ptr<t_distributor> distributor ) = 0;
-    virtual void gather( std::shared_ptr<t_halo> halo ) = 0;
+    virtual void permute( Cabana::LinkedCellList<t_device> cell_list ) = 0;
+    virtual void
+    migrate( std::shared_ptr<Cabana::Distributor<t_device>> distributor ) = 0;
+    virtual void gather( std::shared_ptr<Cabana::Halo<t_device>> halo ) = 0;
     virtual const char *name() { return "SystemNone"; }
 };
 
-template <class t_layout>
-class System : public SystemCommon
+template <class t_device, class t_layout>
+class System : public SystemCommon<t_device>
 {
   public:
-    using SystemCommon::SystemCommon;
+    using SystemCommon<t_device>::SystemCommon;
 };
 
 #include <modules_system.h>

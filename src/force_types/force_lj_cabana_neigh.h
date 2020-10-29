@@ -49,87 +49,49 @@
 #ifndef FORCE_LJ_CABANA_NEIGH_H
 #define FORCE_LJ_CABANA_NEIGH_H
 
-#include <force.h>
-#include <neighbor.h>
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-template <class t_System, class t_Neighbor>
+#include <force.h>
+
+template <class t_System, class t_Neighbor, class t_parallel>
 class ForceLJ : public Force<t_System, t_Neighbor>
 {
   private:
     int N_local, ntypes;
-    typename t_System::t_x x;
-    typename t_System::t_f f;
-    typename t_System::t_f::atomic_access_slice f_a;
-    typename t_System::t_type type;
 
-    typedef typename t_Neighbor::t_neigh_list t_neigh_list;
-    typename t_Neighbor::t_neigh_list neigh_list;
+    typedef typename t_System::t_f::atomic_access_slice t_f_a;
 
     int step;
 
-    typedef Kokkos::View<T_F_FLOAT **> t_fparams;
-    typedef Kokkos::View<const T_F_FLOAT **,
-                         Kokkos::MemoryTraits<Kokkos::RandomAccess>>
-        t_fparams_rnd;
-    t_fparams lj1, lj2, cutsq;
-    t_fparams_rnd rnd_lj1, rnd_lj2, rnd_cutsq;
+    using exe_space = typename t_System::execution_space;
+    using mem_space = typename t_System::memory_space;
 
-    T_F_FLOAT stack_lj1[MAX_TYPES_STACKPARAMS + 1]
-                       [MAX_TYPES_STACKPARAMS +
-                        1]; // hardwired space for 12 atom types
-    T_F_FLOAT stack_lj2[MAX_TYPES_STACKPARAMS + 1][MAX_TYPES_STACKPARAMS + 1];
-    T_F_FLOAT stack_cutsq[MAX_TYPES_STACKPARAMS + 1][MAX_TYPES_STACKPARAMS + 1];
+    typedef Kokkos::View<T_F_FLOAT **, mem_space,
+                         Kokkos::MemoryTraits<Kokkos::RandomAccess>>
+        t_fparams;
+    t_fparams lj1, lj2, cutsq;
 
   public:
-    typedef T_V_FLOAT value_type;
-
-    struct TagFullNeigh
-    {
-    };
-
-    struct TagHalfNeigh
-    {
-    };
-
-    struct TagFullNeighPE
-    {
-    };
-
-    struct TagHalfNeighPE
-    {
-    };
-
-    typedef Kokkos::RangePolicy<TagFullNeigh, Kokkos::IndexType<T_INT>>
-        t_policy_full_neigh_stackparams;
-    typedef Kokkos::RangePolicy<TagHalfNeigh, Kokkos::IndexType<T_INT>>
-        t_policy_half_neigh_stackparams;
-    typedef Kokkos::RangePolicy<TagFullNeighPE, Kokkos::IndexType<T_INT>>
-        t_policy_full_neigh_pe_stackparams;
-    typedef Kokkos::RangePolicy<TagHalfNeighPE, Kokkos::IndexType<T_INT>>
-        t_policy_half_neigh_pe_stackparams;
-
     ForceLJ( t_System *system );
 
-    void init_coeff( char **args ) override;
+    void init_coeff( std::vector<std::vector<std::string>> args ) override;
     void compute( t_System *system, t_Neighbor *neighbor ) override;
     T_F_FLOAT compute_energy( t_System *system, t_Neighbor *neighbor ) override;
 
-    KOKKOS_INLINE_FUNCTION
-    void operator()( TagFullNeigh, const T_INT &i ) const;
+    template <class t_f, class t_x, class t_type, class t_neigh>
+    void compute_force_full( t_f f, const t_x x, const t_type type,
+                             const t_neigh neigh_list );
+    template <class t_f, class t_x, class t_type, class t_neigh>
+    void compute_force_half( t_f f, const t_x x, const t_type type,
+                             const t_neigh neigh_list );
 
-    KOKKOS_INLINE_FUNCTION
-    void operator()( TagHalfNeigh, const T_INT &i ) const;
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( TagFullNeighPE, const T_INT &i, T_V_FLOAT &PE ) const;
-
-    KOKKOS_INLINE_FUNCTION
-    void operator()( TagHalfNeighPE, const T_INT &i, T_V_FLOAT &PE ) const;
+    template <class t_x, class t_type, class t_neigh>
+    T_F_FLOAT compute_energy_full( const t_x x, const t_type type,
+                                   const t_neigh neigh_list );
+    template <class t_x, class t_type, class t_neigh>
+    T_F_FLOAT compute_energy_half( const t_x x, const t_type type,
+                                   const t_neigh neigh_list );
 
     const char *name() override;
 };

@@ -49,17 +49,11 @@
 #ifndef INPUTCL_H
 #define INPUTCL_H
 
-#include <types.h>
-
-#include <CabanaMD_config.hpp>
-
-#include <iostream>
+#include <string>
 
 class InputCL
 {
   public:
-    bool do_print;
-
     int input_file_type;
 
     int neighbor_type;
@@ -68,11 +62,15 @@ class InputCL
     int force_neigh_parallel_type;
     int layout_type;
     int nnp_layout_type;
+    int device_type;
 
     int dumpbinary_rate, correctness_rate;
     bool dumpbinaryflag, correctnessflag;
     char *dumpbinary_path, *reference_path, *correctness_file;
     char *input_file = NULL;
+
+    std::string output_file = "cabanaMD.out";
+    std::string error_file = "cabanaMD.err";
 
     InputCL();
     ~InputCL();

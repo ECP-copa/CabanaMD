@@ -46,6 +46,10 @@
 //
 //************************************************************************
 
+#include <mpi.h>
+
+#include <algorithm>
+
 template <class t_System>
 Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     : neighbors_halo( 6 )
@@ -54,10 +58,12 @@ Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     , system( s )
     , comm_depth( comm_depth_ )
 {
-    pack_count = Kokkos::View<int>( "CommMPI::pack_count" );
-    pack_indicies_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType>(
-        "CommMPI::pack_indicies_all", 6, 200 );
-    pack_ranks_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType>(
+    pack_count = Kokkos::View<int, Kokkos::LayoutRight, device_type>(
+        "CommMPI::pack_count" );
+    pack_indicies_all =
+        Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type>(
+            "CommMPI::pack_indicies_all", 6, 200 );
+    pack_ranks_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type>(
         "CommMPI::pack_ranks_all", 6, 200 );
 }
 
@@ -69,101 +75,21 @@ void Comm<t_System>::init()
 template <class t_System>
 void Comm<t_System>::create_domain_decomposition()
 {
-
     MPI_Comm_size( MPI_COMM_WORLD, &proc_size );
     MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
 
-    int ipx = 1;
-
-    double area_xy = system->domain_x * system->domain_y;
-    double area_xz = system->domain_x * system->domain_z;
-    double area_yz = system->domain_y * system->domain_z;
-
-    double smallest_surface = 2.0 * ( area_xy + area_xz + area_yz );
-
-    while ( ipx <= proc_size )
+    for ( int d = 0; d < 3; d++ )
     {
-        if ( proc_size % ipx == 0 )
-        {
-            int nremain = proc_size / ipx;
-            int ipy = 1;
-
-            while ( ipy <= nremain )
-            {
-                if ( nremain % ipy == 0 )
-                {
-                    int ipz = nremain / ipy;
-                    double surface = area_xy / ipx / ipy + area_xz / ipx / ipz +
-                                     area_yz / ipy / ipz;
-
-                    if ( surface < smallest_surface )
-                    {
-                        smallest_surface = surface;
-                        proc_grid[0] = ipx;
-                        proc_grid[1] = ipy;
-                        proc_grid[2] = ipz;
-                    }
-                }
-
-                ipy++;
-            }
-        }
-
-        ipx++;
-    }
-    proc_pos[2] = proc_rank / ( proc_grid[0] * proc_grid[1] );
-    proc_pos[1] =
-        ( proc_rank % ( proc_grid[0] * proc_grid[1] ) ) / proc_grid[0];
-    proc_pos[0] = proc_rank % proc_grid[0];
-
-    if ( proc_grid[0] > 1 )
-    {
-        proc_neighbors_send[1] = ( proc_pos[0] > 0 )
-                                     ? proc_rank - 1
-                                     : proc_rank + ( proc_grid[0] - 1 );
-        proc_neighbors_send[0] = ( proc_pos[0] < ( proc_grid[0] - 1 ) )
-                                     ? proc_rank + 1
-                                     : proc_rank - ( proc_grid[0] - 1 );
-    }
-    else
-    {
-        proc_neighbors_send[0] = proc_rank;
-        proc_neighbors_send[1] = proc_rank;
+        proc_grid[d] = system->ranks_per_dim[d];
+        proc_pos[d] = system->rank_dim_pos[d];
     }
 
-    if ( proc_grid[1] > 1 )
-    {
-        proc_neighbors_send[3] =
-            ( proc_pos[1] > 0 )
-                ? proc_rank - proc_grid[0]
-                : proc_rank + proc_grid[0] * ( proc_grid[1] - 1 );
-        proc_neighbors_send[2] =
-            ( proc_pos[1] < ( proc_grid[1] - 1 ) )
-                ? proc_rank + proc_grid[0]
-                : proc_rank - proc_grid[0] * ( proc_grid[1] - 1 );
-    }
-    else
-    {
-        proc_neighbors_send[2] = proc_rank;
-        proc_neighbors_send[3] = proc_rank;
-    }
-
-    if ( proc_grid[2] > 1 )
-    {
-        proc_neighbors_send[5] = ( proc_pos[2] > 0 )
-                                     ? proc_rank - proc_grid[0] * proc_grid[1]
-                                     : proc_rank + proc_grid[0] * proc_grid[1] *
-                                                       ( proc_grid[2] - 1 );
-        proc_neighbors_send[4] = ( proc_pos[2] < ( proc_grid[2] - 1 ) )
-                                     ? proc_rank + proc_grid[0] * proc_grid[1]
-                                     : proc_rank - proc_grid[0] * proc_grid[1] *
-                                                       ( proc_grid[2] - 1 );
-    }
-    else
-    {
-        proc_neighbors_send[4] = proc_rank;
-        proc_neighbors_send[5] = proc_rank;
-    }
+    proc_neighbors_send[0] = system->local_grid->neighborRank( 1, 0, 0 );
+    proc_neighbors_send[1] = system->local_grid->neighborRank( -1, 0, 0 );
+    proc_neighbors_send[2] = system->local_grid->neighborRank( 0, 1, 0 );
+    proc_neighbors_send[3] = system->local_grid->neighborRank( 0, -1, 0 );
+    proc_neighbors_send[4] = system->local_grid->neighborRank( 0, 0, 1 );
+    proc_neighbors_send[5] = system->local_grid->neighborRank( 0, 0, -1 );
 
     proc_neighbors_recv[0] = proc_neighbors_send[1];
     proc_neighbors_recv[1] = proc_neighbors_send[0];
@@ -171,22 +97,6 @@ void Comm<t_System>::create_domain_decomposition()
     proc_neighbors_recv[3] = proc_neighbors_send[2];
     proc_neighbors_recv[4] = proc_neighbors_send[5];
     proc_neighbors_recv[5] = proc_neighbors_send[4];
-
-    system->sub_domain_x = system->domain_x / proc_grid[0];
-    system->sub_domain_y = system->domain_y / proc_grid[1];
-    system->sub_domain_z = system->domain_z / proc_grid[2];
-    system->sub_domain_lo_x =
-        proc_pos[0] * system->sub_domain_x + system->domain_lo_x;
-    system->sub_domain_lo_y =
-        proc_pos[1] * system->sub_domain_y + system->domain_lo_y;
-    system->sub_domain_lo_z =
-        proc_pos[2] * system->sub_domain_z + system->domain_lo_z;
-    system->sub_domain_hi_x =
-        ( proc_pos[0] + 1 ) * system->sub_domain_x + system->domain_lo_x;
-    system->sub_domain_hi_y =
-        ( proc_pos[1] + 1 ) * system->sub_domain_y + system->domain_lo_y;
-    system->sub_domain_hi_z =
-        ( proc_pos[2] + 1 ) * system->sub_domain_z + system->domain_lo_z;
 
     for ( int p = 0; p < 6; p++ )
     {
@@ -292,15 +202,15 @@ void Comm<t_System>::exchange()
 
     max_local = x.size() * 1.1;
 
-    std::shared_ptr<Cabana::Distributor<DeviceType>> distributor;
+    std::shared_ptr<Cabana::Distributor<device_type>> distributor;
 
     pack_ranks_migrate_all =
-        Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType>(
+        Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type>(
             "pack_ranks_migrate", max_local );
     Kokkos::parallel_for(
         "CommMPI::exchange_self",
-        Kokkos::RangePolicy<TagExchangeSelf, Kokkos::IndexType<T_INT>>(
-            0, N_local ),
+        Kokkos::RangePolicy<exe_space, TagExchangeSelf,
+                            Kokkos::IndexType<T_INT>>( 0, N_local ),
         *this );
 
     T_INT N_total_recv = 0;
@@ -330,14 +240,14 @@ void Comm<t_System>::exchange()
 
             Kokkos::parallel_for(
                 "CommMPI::exchange_pack",
-                Kokkos::RangePolicy<TagExchangePack, Kokkos::IndexType<T_INT>>(
-                    0, x.size() ),
+                Kokkos::RangePolicy<exe_space, TagExchangePack,
+                                    Kokkos::IndexType<T_INT>>( 0, x.size() ),
                 *this );
 
             Kokkos::deep_copy( count, pack_count );
             proc_num_send[phase] = count;
 
-            distributor = std::make_shared<Cabana::Distributor<DeviceType>>(
+            distributor = std::make_shared<Cabana::Distributor<device_type>>(
                 MPI_COMM_WORLD, pack_ranks_migrate, neighbors_dist[phase] );
             system->migrate( distributor );
             system->resize(
@@ -391,8 +301,8 @@ void Comm<t_System>::exchange_halo()
             ( ( phase % 2 == 1 ) ? proc_num_recv[phase - 1] : 0 );
         Kokkos::parallel_for(
             "CommMPI::halo_exchange_pack",
-            Kokkos::RangePolicy<TagHaloPack, Kokkos::IndexType<T_INT>>(
-                0, nparticles ),
+            Kokkos::RangePolicy<exe_space, TagHaloPack,
+                                Kokkos::IndexType<T_INT>>( 0, nparticles ),
             *this );
 
         Kokkos::deep_copy( count, pack_count );
@@ -408,8 +318,8 @@ void Comm<t_System>::exchange_halo()
             Kokkos::deep_copy( pack_count, 0 );
             Kokkos::parallel_for(
                 "CommMPI::halo_exchange_pack",
-                Kokkos::RangePolicy<TagHaloPack, Kokkos::IndexType<T_INT>>(
-                    0, nparticles ),
+                Kokkos::RangePolicy<exe_space, TagHaloPack,
+                                    Kokkos::IndexType<T_INT>>( 0, nparticles ),
                 *this );
         }
         proc_num_send[phase] = count;
@@ -420,7 +330,7 @@ void Comm<t_System>::exchange_halo()
         pack_ranks = Kokkos::subview(
             pack_ranks, std::pair<size_t, size_t>( 0, proc_num_send[phase] ) );
 
-        halo_all[phase] = std::make_shared<Cabana::Halo<DeviceType>>(
+        halo_all[phase] = std::make_shared<Cabana::Halo<device_type>>(
             MPI_COMM_WORLD, N_local + N_ghost, pack_indicies, pack_ranks,
             neighbors_halo[phase] );
         system->resize( halo_all[phase]->numLocal() +
@@ -440,7 +350,8 @@ void Comm<t_System>::exchange_halo()
         Kokkos::deep_copy( pack_count, 0 );
         Kokkos::parallel_for(
             "CommMPI::halo_exchange_pack_wrap",
-            Kokkos::RangePolicy<TagHaloPBC, Kokkos::IndexType<T_INT>>(
+            Kokkos::RangePolicy<exe_space, TagHaloPBC,
+                                Kokkos::IndexType<T_INT>>(
                 halo_all[phase]->numLocal(),
                 halo_all[phase]->numLocal() + halo_all[phase]->numGhost() ),
             *this );
@@ -483,7 +394,8 @@ void Comm<t_System>::update_halo()
 
         Kokkos::parallel_for(
             "CommMPI::halo_update_PBC",
-            Kokkos::RangePolicy<TagHaloPBC, Kokkos::IndexType<T_INT>>(
+            Kokkos::RangePolicy<exe_space, TagHaloPBC,
+                                Kokkos::IndexType<T_INT>>(
                 halo_all[phase]->numLocal(),
                 halo_all[phase]->numLocal() + halo_all[phase]->numGhost() ),
             *this );
@@ -544,12 +456,4 @@ template <class t_System>
 int Comm<t_System>::num_processes()
 {
     return proc_size;
-}
-
-template <class t_System>
-void Comm<t_System>::error( const char *errormsg )
-{
-    if ( proc_rank == 0 )
-        printf( "%s\n", errormsg );
-    MPI_Abort( MPI_COMM_WORLD, 1 );
 }

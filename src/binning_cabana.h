@@ -49,10 +49,7 @@
 #ifndef BINNING_CABANA_H
 #define BINNING_CABANA_H
 
-#include <system.h>
 #include <types.h>
-
-#include <Cabana_Core.hpp>
 
 template <class t_System>
 class Binning

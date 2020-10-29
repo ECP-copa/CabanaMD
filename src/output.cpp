@@ -9,17 +9,13 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef SYSTEM_NNP_H
-#define SYSTEM_NNP_H
+#include <output.h>
 
-#include <Cabana_Core.hpp>
+#include <mpi.h>
 
-#include <types.h>
-
-template <class t_device, class t_layout>
-class System_NNP
+bool print_rank()
 {
-};
-
-#include <modules_system_nnp.h>
-#endif
+    int proc_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+    return proc_rank == 0;
+}

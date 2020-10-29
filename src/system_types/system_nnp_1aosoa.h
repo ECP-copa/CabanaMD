@@ -12,35 +12,36 @@
 #ifndef SYSTEM_NNP_1AOSOA_H
 #define SYSTEM_NNP_1AOSOA_H
 
-#include <system_nnp.h>
-#include <types_nnp.h>
-
-#include <types.h>
-
 #include <CabanaMD_config.hpp>
 
-#include <Cabana_Core.hpp>
+#include <system_nnp.h>
 
-template <>
-class System_NNP<AoSoA1>
+template <class t_device>
+class System_NNP<t_device, AoSoA1>
 {
     using t_tuple_NNP =
         Cabana::MemberTypes<T_FLOAT[CabanaMD_MAXSYMMFUNC_NNP],
                             T_FLOAT[CabanaMD_MAXSYMMFUNC_NNP], T_FLOAT>;
-    using AoSoA_NNP_1 =
-        Cabana::AoSoA<t_tuple_NNP, MemorySpace, CabanaMD_VECTORLENGTH_NNP>;
+    using AoSoA_NNP_1 = typename Cabana::AoSoA<t_tuple_NNP, t_device,
+                                               CabanaMD_VECTORLENGTH_NNP>;
     AoSoA_NNP_1 aosoa_0;
 
   public:
-    using t_G = AoSoA_NNP_1::member_slice_type<0>;
-    using t_dEdG = AoSoA_NNP_1::member_slice_type<1>;
-    using t_E = AoSoA_NNP_1::member_slice_type<2>;
+    using t_G =
+        typename System_NNP<t_device,
+                            AoSoA1>::AoSoA_NNP_1::template member_slice_type<0>;
+    using t_dEdG =
+        typename System_NNP<t_device,
+                            AoSoA1>::AoSoA_NNP_1::template member_slice_type<1>;
+    using t_E =
+        typename System_NNP<t_device,
+                            AoSoA1>::AoSoA_NNP_1::template member_slice_type<2>;
     t_G G;
     t_dEdG dEdG;
     t_E E;
 
-    System_NNP<AoSoA1>() { AoSoA_NNP_1 aosoa_0( "All", 0 ); }
-    ~System_NNP<AoSoA1>() {}
+    System_NNP<t_device, AoSoA1>() { AoSoA_NNP_1 aosoa_0( "All", 0 ); }
+    ~System_NNP<t_device, AoSoA1>() {}
 
     void resize( T_INT N_new ) { aosoa_0.resize( N_new ); }
 

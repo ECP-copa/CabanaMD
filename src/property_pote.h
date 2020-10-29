@@ -50,7 +50,6 @@
 #define PROPERTY_POTE_H
 
 #include <comm_mpi.h>
-#include <system.h>
 #include <types.h>
 
 template <class t_System, class t_Neighbor>

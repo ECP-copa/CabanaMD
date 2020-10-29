@@ -49,11 +49,9 @@
 #ifndef INTEGRATOR_NVE_H
 #define INTEGRATOR_NVE_H
 
-#include <system.h>
-#include <types.h>
-
-#include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
+
+#include <types.h>
 
 template <class t_System>
 class Integrator
@@ -65,7 +63,9 @@ class Integrator
     typename t_System::t_f f;
     typename t_System::t_type type;
 
-    t_mass_const mass;
+    typename t_System::t_mass_const mass;
+
+    using exe_space = typename t_System::execution_space;
 
   public:
     Integrator( t_System *s );
@@ -83,9 +83,9 @@ class Integrator
     struct TagFinal
     {
     };
-    typedef Kokkos::RangePolicy<TagInitial, Kokkos::IndexType<T_INT>>
+    typedef Kokkos::RangePolicy<exe_space, TagInitial, Kokkos::IndexType<T_INT>>
         t_policy_initial;
-    typedef Kokkos::RangePolicy<TagFinal, Kokkos::IndexType<T_INT>>
+    typedef Kokkos::RangePolicy<exe_space, TagFinal, Kokkos::IndexType<T_INT>>
         t_policy_final;
 
     KOKKOS_INLINE_FUNCTION

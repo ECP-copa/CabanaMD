@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2019 by the Cabana authors                            *
+ * Copyright (c) 2018-2020 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -11,7 +11,6 @@
 
 #include <gtest/gtest.h>
 
-#include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
 #include <mpi.h>

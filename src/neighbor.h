@@ -48,19 +48,23 @@
 
 #ifndef NEIGHBOR_H
 #define NEIGHBOR_H
-#include <system.h>
+
 #include <types.h>
 
-template <class t_System, class t_iteration, class t_layout>
+template <class t_System>
 class Neighbor
 {
   public:
     T_X_FLOAT neigh_cut;
     bool half_neigh;
+    T_INT max_neigh_guess;
 
-    Neighbor( T_X_FLOAT neigh_cut_, bool half_neigh_ )
+    Neighbor();
+    Neighbor( T_X_FLOAT neigh_cut_, bool half_neigh_,
+              T_INT max_neigh_guess_ = 0 )
         : neigh_cut( neigh_cut_ )
         , half_neigh( half_neigh_ )
+        , max_neigh_guess( max_neigh_guess_ )
     {
     }
     virtual ~Neighbor() {}

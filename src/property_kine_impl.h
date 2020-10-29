@@ -62,12 +62,11 @@ T_V_FLOAT KinE<t_System>::compute( t_System *system )
     mass = system->mass;
 
     T_V_FLOAT KE;
+    using exe_space = typename t_System::execution_space;
     Kokkos::parallel_reduce(
-        Kokkos::RangePolicy<Kokkos::IndexType<T_INT>>( 0, system->N_local ),
+        Kokkos::RangePolicy<exe_space, Kokkos::IndexType<T_INT>>(
+            0, system->N_local ),
         *this, KE );
-
-    // Make sure I don't carry around references to data
-    mass = t_mass();
 
     // Multiply by scaling factor (units based) to get to kinetic energy
     T_V_FLOAT factor = 0.5 * system->mvv2e;

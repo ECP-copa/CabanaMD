@@ -49,15 +49,11 @@
 #ifndef COMM_MPI_H
 #define COMM_MPI_H
 
-#include <system.h>
-#include <types.h>
-
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
-#include <mpi.h>
+#include <types.h>
 
-#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -65,6 +61,8 @@ template <class t_System>
 class Comm
 {
     // Variables Comm doesn't own but requires for computations
+
+    typedef typename t_System::device_type device_type;
 
     T_INT N_local;
     T_INT N_ghost;
@@ -87,18 +85,22 @@ class Comm
     int proc_size;              // Number of processes
     int max_local;
 
-    Kokkos::View<int, Kokkos::MemoryTraits<Kokkos::Atomic>> pack_count;
+    Kokkos::View<int, Kokkos::LayoutRight, device_type,
+                 Kokkos::MemoryTraits<Kokkos::Atomic>>
+        pack_count;
 
-    Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType> pack_indicies_all;
-    Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType> pack_indicies;
-    Kokkos::View<T_INT **, Kokkos::LayoutRight, DeviceType> pack_ranks_all;
-    Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType> pack_ranks;
-    Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType>
+    Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type> pack_indicies_all;
+    Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type> pack_indicies;
+    Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type> pack_ranks_all;
+    Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type> pack_ranks;
+    Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type>
         pack_ranks_migrate_all;
-    Kokkos::View<T_INT *, Kokkos::LayoutRight, DeviceType> pack_ranks_migrate;
+    Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type> pack_ranks_migrate;
     std::vector<std::vector<int>> neighbors_halo, neighbors_dist;
 
-    std::vector<std::shared_ptr<Cabana::Halo<DeviceType>>> halo_all;
+    std::vector<std::shared_ptr<Cabana::Halo<device_type>>> halo_all;
+
+    using exe_space = typename t_System::execution_space;
 
   protected:
     t_System *system;
@@ -142,26 +144,26 @@ class Comm
         if ( proc_grid[0] == 1 )
         {
             const T_X_FLOAT x1 = x( i, 0 );
-            if ( x1 > s.domain_x )
-                x( i, 0 ) -= s.domain_x;
+            if ( x1 > s.global_mesh_x )
+                x( i, 0 ) -= s.global_mesh_x;
             if ( x1 < 0 )
-                x( i, 0 ) += s.domain_x;
+                x( i, 0 ) += s.global_mesh_x;
         }
         if ( proc_grid[1] == 1 )
         {
             const T_X_FLOAT y1 = x( i, 1 );
-            if ( y1 > s.domain_y )
-                x( i, 1 ) -= s.domain_y;
+            if ( y1 > s.global_mesh_y )
+                x( i, 1 ) -= s.global_mesh_y;
             if ( y1 < 0 )
-                x( i, 1 ) += s.domain_y;
+                x( i, 1 ) += s.global_mesh_y;
         }
         if ( proc_grid[2] == 1 )
         {
             const T_X_FLOAT z1 = x( i, 2 );
-            if ( z1 > s.domain_z )
-                x( i, 2 ) -= s.domain_z;
+            if ( z1 > s.global_mesh_z )
+                x( i, 2 ) -= s.global_mesh_z;
             if ( z1 < 0 )
-                x( i, 2 ) += s.domain_z;
+                x( i, 2 ) += s.global_mesh_z;
         }
     }
 
@@ -169,67 +171,67 @@ class Comm
     KOKKOS_INLINE_FUNCTION
     void operator()( const TagExchangePack, const T_INT &i ) const
     {
-        if ( ( phase == 0 ) && ( x( i, 0 ) > s.sub_domain_hi_x ) )
+        if ( ( phase == 0 ) && ( x( i, 0 ) > s.local_mesh_hi_x ) )
         {
             const std::size_t pack_idx = pack_count()++;
             if ( pack_idx < pack_ranks_migrate.extent( 0 ) )
             {
                 pack_ranks_migrate( i ) = proc_neighbors_send[phase];
                 if ( proc_pos[0] == proc_grid[0] - 1 )
-                    x( i, 0 ) -= s.domain_x;
+                    x( i, 0 ) -= s.global_mesh_x;
             }
         }
 
-        if ( ( phase == 1 ) && ( x( i, 0 ) < s.sub_domain_lo_x ) )
+        if ( ( phase == 1 ) && ( x( i, 0 ) < s.local_mesh_lo_x ) )
         {
             const std::size_t pack_idx = pack_count()++;
             if ( pack_idx < pack_ranks_migrate.extent( 0 ) )
             {
                 pack_ranks_migrate( i ) = proc_neighbors_send[phase];
                 if ( proc_pos[0] == 0 )
-                    x( i, 0 ) += s.domain_x;
+                    x( i, 0 ) += s.global_mesh_x;
             }
         }
 
-        if ( ( phase == 2 ) && ( x( i, 1 ) > s.sub_domain_hi_y ) )
+        if ( ( phase == 2 ) && ( x( i, 1 ) > s.local_mesh_hi_y ) )
         {
             const std::size_t pack_idx = pack_count()++;
             if ( pack_idx < pack_ranks_migrate.extent( 0 ) )
             {
                 pack_ranks_migrate( i ) = proc_neighbors_send[phase];
                 if ( proc_pos[1] == proc_grid[1] - 1 )
-                    x( i, 1 ) -= s.domain_y;
+                    x( i, 1 ) -= s.global_mesh_y;
             }
         }
-        if ( ( phase == 3 ) && ( x( i, 1 ) < s.sub_domain_lo_y ) )
+        if ( ( phase == 3 ) && ( x( i, 1 ) < s.local_mesh_lo_y ) )
         {
             const std::size_t pack_idx = pack_count()++;
             if ( pack_idx < pack_ranks_migrate.extent( 0 ) )
             {
                 pack_ranks_migrate( i ) = proc_neighbors_send[phase];
                 if ( proc_pos[1] == 0 )
-                    x( i, 1 ) += s.domain_y;
+                    x( i, 1 ) += s.global_mesh_y;
             }
         }
 
-        if ( ( phase == 4 ) && ( x( i, 2 ) > s.sub_domain_hi_z ) )
+        if ( ( phase == 4 ) && ( x( i, 2 ) > s.local_mesh_hi_z ) )
         {
             const std::size_t pack_idx = pack_count()++;
             if ( pack_idx < pack_ranks_migrate.extent( 0 ) )
             {
                 pack_ranks_migrate( i ) = proc_neighbors_send[phase];
                 if ( proc_pos[2] == proc_grid[2] - 1 )
-                    x( i, 2 ) -= s.domain_z;
+                    x( i, 2 ) -= s.global_mesh_z;
             }
         }
-        if ( ( phase == 5 ) && ( x( i, 2 ) < s.sub_domain_lo_z ) )
+        if ( ( phase == 5 ) && ( x( i, 2 ) < s.local_mesh_lo_z ) )
         {
             const std::size_t pack_idx = pack_count()++;
             if ( pack_idx < pack_ranks_migrate.extent( 0 ) )
             {
                 pack_ranks_migrate( i ) = proc_neighbors_send[phase];
                 if ( proc_pos[2] == 0 )
-                    x( i, 2 ) += s.domain_z;
+                    x( i, 2 ) += s.global_mesh_z;
             }
         }
     }
@@ -244,7 +246,7 @@ class Comm
 
         if ( phase == 0 )
         {
-            if ( x( i, 0 ) >= s.sub_domain_hi_x - comm_depth )
+            if ( x( i, 0 ) >= s.local_mesh_hi_x - comm_depth )
             {
                 const std::size_t pack_idx = pack_count()++;
                 if ( pack_idx < pack_indicies.extent( 0 ) )
@@ -256,7 +258,7 @@ class Comm
         }
         if ( phase == 1 )
         {
-            if ( x( i, 0 ) <= s.sub_domain_lo_x + comm_depth )
+            if ( x( i, 0 ) <= s.local_mesh_lo_x + comm_depth )
             {
                 const std::size_t pack_idx = pack_count()++;
                 if ( pack_idx < pack_indicies.extent( 0 ) )
@@ -268,7 +270,7 @@ class Comm
         }
         if ( phase == 2 )
         {
-            if ( x( i, 1 ) >= s.sub_domain_hi_y - comm_depth )
+            if ( x( i, 1 ) >= s.local_mesh_hi_y - comm_depth )
             {
                 const std::size_t pack_idx = pack_count()++;
                 if ( pack_idx < pack_indicies.extent( 0 ) )
@@ -280,7 +282,7 @@ class Comm
         }
         if ( phase == 3 )
         {
-            if ( x( i, 1 ) <= s.sub_domain_lo_y + comm_depth )
+            if ( x( i, 1 ) <= s.local_mesh_lo_y + comm_depth )
             {
                 const std::size_t pack_idx = pack_count()++;
                 if ( pack_idx < pack_indicies.extent( 0 ) )
@@ -292,7 +294,7 @@ class Comm
         }
         if ( phase == 4 )
         {
-            if ( x( i, 2 ) >= s.sub_domain_hi_z - comm_depth )
+            if ( x( i, 2 ) >= s.local_mesh_hi_z - comm_depth )
             {
                 const std::size_t pack_idx = pack_count()++;
                 if ( pack_idx < pack_indicies.extent( 0 ) )
@@ -304,7 +306,7 @@ class Comm
         }
         if ( phase == 5 )
         {
-            if ( x( i, 2 ) <= s.sub_domain_lo_z + comm_depth )
+            if ( x( i, 2 ) <= s.local_mesh_lo_z + comm_depth )
             {
                 const std::size_t pack_idx = pack_count()++;
                 if ( pack_idx < pack_indicies.extent( 0 ) )
@@ -326,27 +328,27 @@ class Comm
         {
         case 0:
             if ( proc_pos[0] == 0 )
-                x( i, 0 ) -= s.domain_x;
+                x( i, 0 ) -= s.global_mesh_x;
             break;
         case 1:
             if ( proc_pos[0] == proc_grid[0] - 1 )
-                x( i, 0 ) += s.domain_x;
+                x( i, 0 ) += s.global_mesh_x;
             break;
         case 2:
             if ( proc_pos[1] == 0 )
-                x( i, 1 ) -= s.domain_y;
+                x( i, 1 ) -= s.global_mesh_y;
             break;
         case 3:
             if ( proc_pos[1] == proc_grid[1] - 1 )
-                x( i, 1 ) += s.domain_y;
+                x( i, 1 ) += s.global_mesh_y;
             break;
         case 4:
             if ( proc_pos[2] == 0 )
-                x( i, 2 ) -= s.domain_z;
+                x( i, 2 ) -= s.global_mesh_z;
             break;
         case 5:
             if ( proc_pos[2] == proc_grid[2] - 1 )
-                x( i, 2 ) += s.domain_z;
+                x( i, 2 ) += s.global_mesh_z;
             break;
         }
     }
@@ -354,7 +356,6 @@ class Comm
     const char *name();
     int process_rank();
     int num_processes();
-    void error( const char * );
 };
 
 #include <comm_mpi_impl.h>

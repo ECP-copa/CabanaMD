@@ -9,142 +9,145 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <CabanaMD_config.hpp>
+
+#include <Cabana_Core.hpp>
+#include <Kokkos_Core.hpp>
+
 #include <cabanamd.h>
 #include <inputCL.h>
 #include <neighbor.h>
 #include <system.h>
 
-#include <CabanaMD_config.hpp>
-
 class MDfactory
 {
+    template <typename t_sys, typename t_lay>
+    static CabanaMD *createImplVerlet( int half_neigh )
+    {
+        if ( half_neigh )
+        {
+            using t_half = Cabana::HalfNeighborTag;
+            using t_neigh = NeighborVerlet<t_sys, t_half, t_lay>;
+            return new CbnMD<t_sys, t_neigh>;
+        }
+        else
+        {
+            using t_full = Cabana::FullNeighborTag;
+            using t_neigh = NeighborVerlet<t_sys, t_full, t_lay>;
+            return new CbnMD<t_sys, t_neigh>;
+        }
+    }
+#ifdef Cabana_ENABLE_ARBORX
+    template <typename t_sys, typename t_lay>
+    static CabanaMD *createImplTree( int half_neigh )
+    {
+        if ( half_neigh )
+        {
+            using t_half = Cabana::HalfNeighborTag;
+            using t_neigh = NeighborTree<t_sys, t_half, t_lay>;
+            return new CbnMD<t_sys, t_neigh>;
+        }
+        else
+        {
+            using t_full = Cabana::FullNeighborTag;
+            using t_neigh = NeighborTree<t_sys, t_full, t_lay>;
+            return new CbnMD<t_sys, t_neigh>;
+        }
+    }
+#endif
+    template <typename t_sys>
+    static CabanaMD *createImplSystem( int neigh, int half_neigh )
+    {
+        if ( neigh == NEIGH_VERLET_2D )
+            return createImplVerlet<t_sys, Cabana::VerletLayout2D>(
+                half_neigh );
+        else if ( neigh == NEIGH_VERLET_CSR )
+            return createImplVerlet<t_sys, Cabana::VerletLayoutCSR>(
+                half_neigh );
+#ifdef Cabana_ENABLE_ARBORX
+        else if ( neigh == NEIGH_TREE_2D )
+            return createImplTree<t_sys, Cabana::VerletLayout2D>( half_neigh );
+        else if ( neigh == NEIGH_TREE_CSR )
+            return createImplTree<t_sys, Cabana::VerletLayoutCSR>( half_neigh );
+#endif // ArborX
+        return nullptr;
+    }
+
+    template <typename t_device>
+    static CabanaMD *createImpl( InputCL commandline )
+    {
+        int layout = commandline.layout_type;
+        int neigh = commandline.neighbor_type;
+        bool half_neigh =
+            commandline.force_iteration_type == FORCE_ITER_NEIGH_HALF;
+
+        if ( layout == AOSOA_1 )
+            return createImplSystem<System<t_device, AoSoA1>>( neigh,
+                                                               half_neigh );
+        else if ( layout == AOSOA_2 )
+            return createImplSystem<System<t_device, AoSoA2>>( neigh,
+                                                               half_neigh );
+        else if ( layout == AOSOA_6 )
+            return createImplSystem<System<t_device, AoSoA6>>( neigh,
+                                                               half_neigh );
+        return nullptr;
+    }
+
   public:
     static CabanaMD *create( InputCL commandline )
     {
-        bool half_neigh =
-            commandline.force_iteration_type == FORCE_ITER_NEIGH_HALF;
-        int layout = commandline.layout_type;
-        int neigh = commandline.neighbor_type;
+        int device = commandline.device_type;
 
-        if ( neigh == NEIGH_VERLET_2D )
+        if ( device == CUDA )
         {
-            if ( half_neigh )
-            {
-                if ( layout == AOSOA_1 )
-                    return new CbnMD<
-                        System<AoSoA1>,
-                        NeighborVerlet<System<AoSoA1>, Cabana::HalfNeighborTag,
-                                       Cabana::VerletLayout2D>>;
-                else if ( layout == AOSOA_2 )
-                    return new CbnMD<
-                        System<AoSoA2>,
-                        NeighborVerlet<System<AoSoA2>, Cabana::HalfNeighborTag,
-                                       Cabana::VerletLayout2D>>;
-                else if ( layout == AOSOA_6 )
-                    return new CbnMD<
-                        System<AoSoA6>,
-                        NeighborVerlet<System<AoSoA6>, Cabana::HalfNeighborTag,
-                                       Cabana::VerletLayout2D>>;
-            }
-            else
-            {
-                if ( layout == AOSOA_1 )
-                    return new CbnMD<
-                        System<AoSoA1>,
-                        NeighborVerlet<System<AoSoA1>, Cabana::FullNeighborTag,
-                                       Cabana::VerletLayout2D>>;
-                else if ( layout == AOSOA_2 )
-                    return new CbnMD<
-                        System<AoSoA2>,
-                        NeighborVerlet<System<AoSoA2>, Cabana::FullNeighborTag,
-                                       Cabana::VerletLayout2D>>;
-                else if ( layout == AOSOA_6 )
-                    return new CbnMD<
-                        System<AoSoA6>,
-                        NeighborVerlet<System<AoSoA6>, Cabana::FullNeighborTag,
-                                       Cabana::VerletLayout2D>>;
-            }
-        }
-        if ( neigh == NEIGH_VERLET_CSR )
-        {
-            if ( half_neigh )
-            {
-                if ( layout == AOSOA_1 )
-                    return new CbnMD<
-                        System<AoSoA1>,
-                        NeighborVerlet<System<AoSoA1>, Cabana::HalfNeighborTag,
-                                       Cabana::VerletLayoutCSR>>;
-                else if ( layout == AOSOA_2 )
-                    return new CbnMD<
-                        System<AoSoA2>,
-                        NeighborVerlet<System<AoSoA2>, Cabana::HalfNeighborTag,
-                                       Cabana::VerletLayoutCSR>>;
-                else if ( layout == AOSOA_6 )
-                    return new CbnMD<
-                        System<AoSoA6>,
-                        NeighborVerlet<System<AoSoA6>, Cabana::HalfNeighborTag,
-                                       Cabana::VerletLayoutCSR>>;
-            }
-            else
-            {
-                if ( layout == AOSOA_1 )
-                    return new CbnMD<
-                        System<AoSoA1>,
-                        NeighborVerlet<System<AoSoA1>, Cabana::FullNeighborTag,
-                                       Cabana::VerletLayoutCSR>>;
-                else if ( layout == AOSOA_2 )
-                    return new CbnMD<
-                        System<AoSoA2>,
-                        NeighborVerlet<System<AoSoA2>, Cabana::FullNeighborTag,
-                                       Cabana::VerletLayoutCSR>>;
-                else if ( layout == AOSOA_6 )
-                    return new CbnMD<
-                        System<AoSoA6>,
-                        NeighborVerlet<System<AoSoA6>, Cabana::FullNeighborTag,
-                                       Cabana::VerletLayoutCSR>>;
-            }
-        }
-#ifdef CabanaMD_ENABLE_ARBORX
-        if ( neigh == NEIGH_TREE )
-        {
-            if ( half_neigh )
-            {
-                if ( layout == AOSOA_1 )
-                    return new CbnMD<
-                        System<AoSoA1>,
-                        NeighborTree<System<AoSoA1>, Cabana::HalfNeighborTag,
-                                     Cabana::VerletLayoutCSR>>;
-                else if ( layout == AOSOA_2 )
-                    return new CbnMD<
-                        System<AoSoA2>,
-                        NeighborTree<System<AoSoA2>, Cabana::HalfNeighborTag,
-                                     Cabana::VerletLayoutCSR>>;
-                else if ( layout == AOSOA_6 )
-                    return new CbnMD<
-                        System<AoSoA6>,
-                        NeighborTree<System<AoSoA6>, Cabana::HalfNeighborTag,
-                                     Cabana::VerletLayoutCSR>>;
-            }
-            else
-            {
-                if ( layout == AOSOA_1 )
-                    return new CbnMD<
-                        System<AoSoA1>,
-                        NeighborTree<System<AoSoA1>, Cabana::FullNeighborTag,
-                                     Cabana::VerletLayoutCSR>>;
-                else if ( layout == AOSOA_2 )
-                    return new CbnMD<
-                        System<AoSoA2>,
-                        NeighborTree<System<AoSoA2>, Cabana::FullNeighborTag,
-                                     Cabana::VerletLayoutCSR>>;
-                else if ( layout == AOSOA_6 )
-                    return new CbnMD<
-                        System<AoSoA6>,
-                        NeighborTree<System<AoSoA6>, Cabana::FullNeighborTag,
-                                     Cabana::VerletLayoutCSR>>;
-            }
-        }
+            // Cuda is the first default, so just use that.
+            device = DEFAULT;
+#ifndef KOKKOS_ENABLE_CUDA
+            throw std::runtime_error(
+                "CabanaMD not compiled with Kokkos::Cuda" );
 #endif
+        }
+        if ( device == DEFAULT )
+        {
+            using t_exe = Kokkos::DefaultExecutionSpace;
+            using t_mem = typename t_exe::memory_space;
+            using t_device = Kokkos::Device<t_exe, t_mem>;
+
+            return createImpl<t_device>( commandline );
+        }
+        if ( device == SERIAL )
+        {
+#ifdef KOKKOS_ENABLE_SERIAL
+            using t_device = Kokkos::Device<Kokkos::Serial, Kokkos::HostSpace>;
+            return createImpl<t_device>( commandline );
+
+#else
+            throw std::runtime_error(
+                "CabanaMD not compiled with Kokkos::Serial" );
+#endif
+        }
+        else if ( device == OPENMP )
+        {
+#ifdef KOKKOS_ENABLE_OPENMP
+            using t_device = Kokkos::Device<Kokkos::OpenMP, Kokkos::HostSpace>;
+            return createImpl<t_device>( commandline );
+#else
+            throw std::runtime_error(
+                "CabanaMD not compiled with Kokkos::OpenMP" );
+#endif
+        }
+        else if ( device == HIP )
+        {
+#ifdef KOKKOS_ENABLE_HIP
+            using t_device = Kokkos::Device<Kokkos::Experimental::HIP,
+                                            Kokkos::Experimental::HIPSpace>;
+            return createImpl<t_device>( commandline );
+#else
+            throw std::runtime_error(
+                "CabanaMD not compiled with Kokkos::Experimental::HIP" );
+#endif
+        }
+
         return nullptr;
     }
 };

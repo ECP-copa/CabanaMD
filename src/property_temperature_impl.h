@@ -46,8 +46,6 @@
 //
 //************************************************************************
 
-#include <property_temperature.h>
-
 template <class t_System>
 Temperature<t_System>::Temperature( Comm<t_System> *comm_ )
     : comm( comm_ )
@@ -64,12 +62,11 @@ T_V_FLOAT Temperature<t_System>::compute( t_System *system )
     mass = system->mass;
 
     T_V_FLOAT T;
+    using exe_space = typename t_System::execution_space;
     Kokkos::parallel_reduce(
-        Kokkos::RangePolicy<Kokkos::IndexType<T_INT>>( 0, system->N_local ),
+        Kokkos::RangePolicy<exe_space, Kokkos::IndexType<T_INT>>(
+            0, system->N_local ),
         *this, T );
-
-    // Make sure I don't carry around references to data
-    mass = t_mass();
 
     // Multiply by scaling factor (units based) to get to temperature
     T_INT dof = 3 * system->N - 3;

@@ -5,15 +5,19 @@ set(gtest_args --gtest_color=yes)
 ##--------------------------------------------------------------------------##
 macro(CabanaMD_add_tests)
   cmake_parse_arguments(CABANAMD_UNIT_TEST "MPI" "" "NAMES" ${ARGN})
-  set(CABANAMD_UNIT_TEST_MPIEXEC_NUMPROCS 1 2)
-  if(MPIEXEC_MAX_NUMPROCS GREATER 2)
-    list(APPEND CABANAMD_UNIT_TEST_MPIEXEC_NUMPROCS ${MPIEXEC_MAX_NUMPROCS})
+  set(CABANAMD_UNIT_TEST_MPIEXEC_NUMPROCS 1)
+  if(CABANAMD_UNIT_TEST_MPI)
+    list(APPEND CABANAMD_UNIT_TEST_MPIEXEC_NUMPROCS 2)
+    if(MPIEXEC_MAX_NUMPROCS GREATER 1)
+      list(APPEND CABANAMD_UNIT_TEST_MPIEXEC_NUMPROCS ${MPIEXEC_MAX_NUMPROCS})
+    endif()
   endif()
   set(CABANAMD_UNIT_TEST_NUMTHREADS 1 2)
-  set(CABANAMD_UNIT_TEST_MAIN unit_test_main.cpp)
 
-  foreach(_device Serial OpenMP Cuda)
-    if(CabanaMD_ENABLE_${_device})
+  set(CABANAMD_UNIT_TEST_MAIN mpi_unit_test_main.cpp)
+
+  foreach(_device SERIAL PTHREAD OPENMP CUDA HIP)
+    if(Kokkos_ENABLE_${_device})
       string(TOUPPER ${_device} _uppercase_device)
       set(_dir ${CMAKE_CURRENT_BINARY_DIR}/${_uppercase_device})
       file(MAKE_DIRECTORY ${_dir})
@@ -29,7 +33,7 @@ macro(CabanaMD_add_tests)
         target_link_libraries(${_target} PRIVATE CabanaMD gtest CabanaMD)
 
         foreach(_np ${CABANAMD_UNIT_TEST_MPIEXEC_NUMPROCS})
-          if(_device STREQUAL THREADS OR _device STREQUAL OpenMP)
+          if(_device STREQUAL PTHREAD OR _device STREQUAL OPENMP)
             foreach(_thread ${CABANAMD_UNIT_TEST_NUMTHREADS})
               add_test(NAME ${_target}_${_np}_${_thread} COMMAND
                 ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${_np} ${MPIEXEC_PREFLAGS}
@@ -46,4 +50,7 @@ macro(CabanaMD_add_tests)
   endforeach()
 endmacro()
 
-CabanaMD_add_tests(MPI NAMES Integrator)
+CabanaMD_add_tests(NAMES Integrator Neighbor)
+
+# TODO:
+#CabanaMD_add_tests(MPI NAMES Comm)
