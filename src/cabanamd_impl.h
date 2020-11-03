@@ -121,7 +121,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     binning = new Binning<t_System>( system );
 
     // Create Neighbor class: create neighbor list
-    neighbor = new t_Neighbor( neigh_cutoff, half_neigh );
+    neighbor =
+        new t_Neighbor( neigh_cutoff, half_neigh, input->max_neigh_guess );
 
     // Create Force class: potential options in force_types/ folder
     bool serial_neigh =
@@ -242,6 +243,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
              comm->name(), " ", binning->name(), " ", integrator->name() );
 
     // Run step 0
+    // Set MPI rank neighbors
+    comm->create_domain_decomposition();
 
     // Exchange atoms across MPI ranks
     comm->exchange();

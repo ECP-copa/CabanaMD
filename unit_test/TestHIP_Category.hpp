@@ -9,17 +9,13 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
-#ifndef SYSTEM_NNP_H
-#define SYSTEM_NNP_H
+#ifndef CABANA_TEST_HIP_CATEGORY_HPP
+#define CABANA_TEST_HIP_CATEGORY_HPP
 
-#include <Cabana_Core.hpp>
+#define TEST_CATEGORY hip
+#define TEST_EXECSPACE Kokkos::Experimental::HIP
+#define TEST_MEMSPACE Kokkos::Experimental::HIPSpace
+#define TEST_DEVICE                                                            \
+    Kokkos::Device<Kokkos::Experimental::HIP, Kokkos::Experimental::HIPSpace>
 
-#include <types.h>
-
-template <class t_device, class t_layout>
-class System_NNP
-{
-};
-
-#include <modules_system_nnp.h>
 #endif

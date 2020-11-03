@@ -64,7 +64,8 @@ enum
     CUDA,
     HIP,
     OPENMP,
-    SERIAL
+    SERIAL,
+    DEFAULT
 };
 
 // AoSoA layout type
@@ -138,7 +139,8 @@ enum
 {
     NEIGH_VERLET_2D,
     NEIGH_VERLET_CSR,
-    NEIGH_TREE
+    NEIGH_TREE_2D,
+    NEIGH_TREE_CSR
 };
 // Input File Type
 enum
@@ -154,8 +156,6 @@ constexpr double PI_DIV_SQ( 1.0 / PI_SQ ); // 0.101321183642338
 // Macros to work around the fact that std::max/min is not available on GPUs
 #define MAX( a, b ) ( a > b ? a : b )
 #define MIN( a, b ) ( a < b ? a : b )
-
-#define MAX_TYPES_STACKPARAMS 12
 
 // Define Scalar Types
 #ifndef T_INT

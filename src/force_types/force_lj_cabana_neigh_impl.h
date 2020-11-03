@@ -51,7 +51,6 @@ ForceLJ<t_System, t_Neighbor, t_parallel>::ForceLJ( t_System *system )
     : Force<t_System, t_Neighbor>( system )
 {
     ntypes = system->ntypes;
-
     lj1 = t_fparams( "ForceLJCabanaNeigh::lj1", ntypes, ntypes );
     lj2 = t_fparams( "ForceLJCabanaNeigh::lj2", ntypes, ntypes );
     cutsq = t_fparams( "ForceLJCabanaNeigh::cutsq", ntypes, ntypes );
@@ -64,6 +63,10 @@ template <class t_System, class t_Neighbor, class t_parallel>
 void ForceLJ<t_System, t_Neighbor, t_parallel>::init_coeff(
     std::vector<std::vector<std::string>> args )
 {
+    auto host_lj1 = Kokkos::create_mirror_view( Kokkos::HostSpace{}, lj1 );
+    auto host_lj2 = Kokkos::create_mirror_view( Kokkos::HostSpace{}, lj2 );
+    auto host_cutsq = Kokkos::create_mirror_view( Kokkos::HostSpace{}, cutsq );
+
     for ( std::size_t a = 0; a < args.size(); a++ )
     {
         auto pair = args.at( a );
@@ -73,13 +76,16 @@ void ForceLJ<t_System, t_Neighbor, t_parallel>::init_coeff(
         double sigma = std::stod( pair.at( 4 ) );
         double cut = std::stod( pair.at( 5 ) );
 
-        stack_lj1[i][j] = 48.0 * eps * pow( sigma, 12.0 );
-        stack_lj2[i][j] = 24.0 * eps * pow( sigma, 6.0 );
-        stack_cutsq[i][j] = cut * cut;
-        stack_lj1[j][i] = stack_lj1[i][j];
-        stack_lj2[j][i] = stack_lj2[i][j];
-        stack_cutsq[j][i] = stack_cutsq[i][j];
+        host_lj1( i, j ) = 48.0 * eps * pow( sigma, 12.0 );
+        host_lj2( i, j ) = 24.0 * eps * pow( sigma, 6.0 );
+        host_cutsq( i, j ) = cut * cut;
+        host_lj1( j, i ) = host_lj1( i, j );
+        host_lj2( j, i ) = host_lj2( i, j );
+        host_cutsq( j, i ) = host_cutsq( i, j );
     }
+    Kokkos::deep_copy( lj1, host_lj1 );
+    Kokkos::deep_copy( lj2, host_lj2 );
+    Kokkos::deep_copy( cutsq, host_cutsq );
 }
 
 template <class t_System, class t_Neighbor, class t_parallel>
@@ -147,6 +153,10 @@ template <class t_f, class t_x, class t_type, class t_neigh>
 void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_full(
     t_f f, const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto cutsq_copy = cutsq;
+    auto lj1_copy = lj1;
+    auto lj2_copy = lj2;
+
     auto force_full = KOKKOS_LAMBDA( const int i, const int j )
     {
         const T_F_FLOAT x_i = x( i, 0 );
@@ -165,12 +175,12 @@ void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_full(
         const int type_j = type( j );
         const T_F_FLOAT rsq = dx * dx + dy * dy + dz * dz;
 
-        const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
+        const T_F_FLOAT cutsq_ij = cutsq_copy( type_i, type_j );
 
         if ( rsq < cutsq_ij )
         {
-            const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
-            const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
+            const T_F_FLOAT lj1_ij = lj1_copy( type_i, type_j );
+            const T_F_FLOAT lj2_ij = lj2_copy( type_i, type_j );
 
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
@@ -197,6 +207,10 @@ template <class t_f, class t_x, class t_type, class t_neigh>
 void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_half(
     t_f f_a, const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto cutsq_copy = cutsq;
+    auto lj1_copy = lj1;
+    auto lj2_copy = lj2;
+
     auto force_half = KOKKOS_LAMBDA( const int i, const int j )
     {
         const T_F_FLOAT x_i = x( i, 0 );
@@ -215,12 +229,12 @@ void ForceLJ<t_System, t_Neighbor, t_parallel>::compute_force_half(
         const int type_j = type( j );
         const T_F_FLOAT rsq = dx * dx + dy * dy + dz * dz;
 
-        const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
+        const T_F_FLOAT cutsq_ij = cutsq_copy( type_i, type_j );
 
         if ( rsq < cutsq_ij )
         {
-            const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
-            const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
+            const T_F_FLOAT lj1_ij = lj1_copy( type_i, type_j );
+            const T_F_FLOAT lj2_ij = lj2_copy( type_i, type_j );
 
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
@@ -249,6 +263,10 @@ template <class t_x, class t_type, class t_neigh>
 T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_full(
     const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto cutsq_copy = cutsq;
+    auto lj1_copy = lj1;
+    auto lj2_copy = lj2;
+
     auto energy_full = KOKKOS_LAMBDA( const int i, const int j, T_F_FLOAT &PE )
     {
         const T_F_FLOAT x_i = x( i, 0 );
@@ -264,12 +282,12 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_full(
         const int type_j = type( j );
         const T_F_FLOAT rsq = dx * dx + dy * dy + dz * dz;
 
-        const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
+        const T_F_FLOAT cutsq_ij = cutsq_copy( type_i, type_j );
 
         if ( rsq < cutsq_ij )
         {
-            const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
-            const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
+            const T_F_FLOAT lj1_ij = lj1_copy( type_i, type_j );
+            const T_F_FLOAT lj2_ij = lj2_copy( type_i, type_j );
 
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
@@ -291,7 +309,8 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_full(
     t_parallel neigh_parallel;
     Cabana::neighbor_parallel_reduce(
         policy, energy_full, neigh_list, Cabana::FirstNeighborsTag(),
-        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_half" );
+        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_energy_full" );
+
     return energy;
 }
 
@@ -300,9 +319,12 @@ template <class t_x, class t_type, class t_neigh>
 T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
     const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto cutsq_copy = cutsq;
+    auto lj1_copy = lj1;
+    auto lj2_copy = lj2;
+
     auto energy_half = KOKKOS_LAMBDA( const int i, const int j, T_F_FLOAT &PE )
     {
-
         const T_F_FLOAT x_i = x( i, 0 );
         const T_F_FLOAT y_i = x( i, 1 );
         const T_F_FLOAT z_i = x( i, 2 );
@@ -316,12 +338,12 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
         const int type_j = type( j );
         const T_F_FLOAT rsq = dx * dx + dy * dy + dz * dz;
 
-        const T_F_FLOAT cutsq_ij = stack_cutsq[type_i][type_j];
+        const T_F_FLOAT cutsq_ij = cutsq_copy( type_i, type_j );
 
         if ( rsq < cutsq_ij )
         {
-            const T_F_FLOAT lj1_ij = stack_lj1[type_i][type_j];
-            const T_F_FLOAT lj2_ij = stack_lj2[type_i][type_j];
+            const T_F_FLOAT lj1_ij = lj1_copy( type_i, type_j );
+            const T_F_FLOAT lj2_ij = lj2_copy( type_i, type_j );
 
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
@@ -349,6 +371,6 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
     t_parallel neigh_parallel;
     Cabana::neighbor_parallel_reduce(
         policy, energy_half, neigh_list, Cabana::FirstNeighborsTag(),
-        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_half" );
+        neigh_parallel, energy, "ForceLJCabanaNeigh::compute_energy_half" );
     return energy;
 }

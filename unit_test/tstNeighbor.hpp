@@ -252,20 +252,14 @@ t_System createAtoms( const int num_atom, const int num_ghost,
     // Manually setup what would be done in input
     system.dt = 0.005;
     system.mvv2e = 1.0;
-    system.mass( 0 ) = 1.0;
+    Kokkos::deep_copy( system.mass, 1.0 );
 
     system.resize( num_atom );
     system.N_local = num_atom - num_ghost;
     system.N_ghost = num_ghost;
 
-    auto box = box_max - box_min;
-    system.domain_x = system.domain_y = system.domain_z = box;
-    system.domain_lo_x = system.domain_lo_y = system.domain_lo_z = box_min;
-    system.domain_hi_x = system.domain_hi_y = system.domain_hi_z = box_max;
-    system.sub_domain_lo_x = system.sub_domain_lo_y = system.sub_domain_lo_z =
-        box_min;
-    system.sub_domain_hi_x = system.sub_domain_hi_y = system.sub_domain_hi_z =
-        box_max;
+    system.create_domain( {box_min, box_min, box_min},
+                          {box_max, box_max, box_max} );
 
     // Create random atom positions within the box.
     system.slice_x();
@@ -304,7 +298,7 @@ void testNeighborListPartialRange( bool half_neigh )
         createAtoms<t_System>( num_atom, num_ghost, box_min, box_max );
 
     // Create the neighbor list.
-    t_Neighbor neighbor( cutoff, half_neigh );
+    t_Neighbor neighbor( cutoff, half_neigh, 100 );
     neighbor.create( &system );
 
     // Check the neighbor list.

@@ -17,15 +17,18 @@ env:
     - CCACHE_CPP2=yes
   matrix:
     - BACKENDS="OPENMP"
+    - BACKENDS="PTHREAD"
     - BACKENDS="SERIAL"
     - BACKENDS="OPENMP" ArborX=ON
-    - BACKENDS="SERIAL" ArborX=ON
+    - BACKENDS="OPENMP" NNP=ON
+    - BACKENDS="OPENMP" ArborX=ON NNP=ON
+    - BACKENDS="PTHREAD" ArborX=ON NNP=ON
+    - BACKENDS="SERIAL" ArborX=ON NNP=ON
     - BACKENDS="OPENMP" Heffte=ON
     - BACKENDS="SERIAL" Heffte=ON
-    - BACKENDS="OPENMP" NNP=ON
-    - BACKENDS="SERIAL" NNP=ON
     - BACKENDS="OPENMP" ArborX=ON NNP=ON Heffte=ON
     - BACKENDS="SERIAL" ArborX=ON NNP=ON Heffte=ON
+>>>>>>> master
 
 addons:
   apt:
@@ -92,9 +95,9 @@ before_script:
     make -k -j2 VERBOSE=1 && make install &&
     popd && popd;
   - if [[ ${NNP} ]]; then
-      git clone --depth=1 https://github.com/CompPhysVienna/n2p2.git &&
+      git clone --depth=1 --branch v2.0.1 https://github.com/CompPhysVienna/n2p2.git &&
       pushd n2p2 && pushd src &&
-      make libnnp &&
+      make libnnpif INTERFACES=CabanaMD &&
       popd && popd;
     fi
   - if [[ ${COVERAGE} ]]; then
@@ -127,6 +130,7 @@ after_success:
 branches:
   only:
   - master
+  - longrange_testtravis
 
 cache:
   directories:

@@ -199,6 +199,7 @@ class InputFile
 
     T_F_FLOAT neighbor_skin;
     int neighbor_type;
+    T_INT max_neigh_guess;
 
     int layout_type;
     int nnp_layout_type;
