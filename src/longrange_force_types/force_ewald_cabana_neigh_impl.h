@@ -74,13 +74,13 @@ void ForceEwald<t_System, t_Neighbor>::init_longrange( t_System *system,
 template <class t_System, class t_Neighbor>
 void ForceEwald<t_System, t_Neighbor>::tune( t_System *system )
 {
-    if ( system->domain_x != system->domain_y or
-         system->domain_x != system->domain_z )
+    if ( system->global_mesh_x != system->global_mesh_y or
+         system->global_mesh_x != system->global_mesh_z )
         throw std::runtime_error(
             "Ewald needs symmetric system size for now." );
-    lx = system->domain_x;
-    ly = system->domain_y;
-    lz = system->domain_z;
+    lx = system->global_mesh_x;
+    ly = system->global_mesh_y;
+    lz = system->global_mesh_z;
 
     // Fincham 1994, Optimisation of the Ewald Sum for Large Systems
     // only valid for cubic systems (needs adjustement for non-cubic systems)

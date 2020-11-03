@@ -84,6 +84,7 @@ class SystemCommon
 
     // Simulation total domain
     T_X_FLOAT global_mesh_x, global_mesh_y, global_mesh_z;
+    T_X_FLOAT lattice_constant;
 
     // Simulation sub domain (single MPI rank)
     T_X_FLOAT local_mesh_x, local_mesh_y, local_mesh_z;

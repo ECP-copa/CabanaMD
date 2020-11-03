@@ -58,8 +58,8 @@ void ForceSPME<t_System, t_Neighbor>::init_longrange( t_System *system,
 template <class t_System, class t_Neighbor>
 void ForceSPME<t_System, t_Neighbor>::tune( t_System *system )
 {
-    if ( system->domain_x != system->domain_y or
-         system->domain_x != system->domain_z )
+    if ( system->global_mesh_x != system->global_mesh_y or
+         system->global_mesh_x != system->global_mesh_z )
         throw std::runtime_error( "SPME needs symmetric system size for now." );
 
     // Fincham 1994, Optimisation of the Ewald Sum for Large Systems
@@ -160,26 +160,17 @@ template <class t_System, class t_Neighbor>
 void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
 {
     // TODO: This should be configurable
-    double cell_size = system->domain_x / 100.0;
+    double cell_size = system->global_mesh_x / 100.0;
     std::array<bool, 3> is_dim_periodic = {true, true, true};
-    std::array<double, 3> global_low_corner = {
-        system->domain_lo_x, system->domain_lo_y, system->domain_lo_z};
+    std::array<double, 3> global_low_corner = { 0.0, 0.0, 0.0 };
     std::array<double, 3> global_high_corner = {
-        system->domain_hi_x, system->domain_hi_y, system->domain_hi_z};
+        system->global_mesh_x, system->global_mesh_y, system->global_mesh_z};
     // Create the global mesh.
     auto uniform_global_mesh = Cajita::createUniformGlobalMesh(
         global_low_corner, global_high_corner, cell_size );
 
-    // Compute what proc_grid must be
-    const int proc_grid_x = system->domain_x / system->sub_domain_x;
-    const int proc_grid_y = system->domain_y / system->sub_domain_y;
-    const int proc_grid_z = system->domain_z / system->sub_domain_z;
-
-    const std::array<int, 3> proc_grid = {proc_grid_x, proc_grid_y,
-                                          proc_grid_z};
-
     // Partition mesh into local grids.
-    auto partitioner = Cajita::ManualPartitioner( proc_grid );
+    Cajita::UniformDimPartitioner partitioner;
     auto global_grid = Cajita::createGlobalGrid(
         MPI_COMM_WORLD, uniform_global_mesh, is_dim_periodic, partitioner );
 
@@ -238,7 +229,7 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
                 ForceSPME::oneDeuler( ky, meshwidth_y ) *
                 ForceSPME::oneDeuler( kz, meshwidth_z ) *
                 exp( -PI * PI * m2 / ( alpha * alpha ) ) /
-                ( PI * system->domain_x * system->domain_y * system->domain_z *
+                ( PI * system->global_mesh_x * system->global_mesh_y * system->global_mesh_z *
                   m2 );
         }
         else
@@ -258,8 +249,8 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
                                                t_Neighbor *neighbor )
 {
     // For now, force symmetry
-    if ( system->domain_x != system->domain_y or
-         system->domain_x != system->domain_z )
+    if ( system->global_mesh_x != system->global_mesh_y or
+         system->global_mesh_x != system->global_mesh_z )
         throw std::runtime_error( "SPME needs symmetric system size for now." );
 
     auto N_local = system->N_local;
