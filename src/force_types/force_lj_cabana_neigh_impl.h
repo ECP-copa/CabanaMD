@@ -319,6 +319,7 @@ template <class t_x, class t_type, class t_neigh>
 T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
     const t_x x, const t_type type, const t_neigh neigh_list )
 {
+    auto N_local_copy = N_local;
     auto cutsq_copy = cutsq;
     auto lj1_copy = lj1;
     auto lj2_copy = lj2;
@@ -348,7 +349,7 @@ T_F_FLOAT ForceLJ<t_System, t_Neighbor, t_parallel>::compute_energy_half(
             T_F_FLOAT r2inv = 1.0 / rsq;
             T_F_FLOAT r6inv = r2inv * r2inv * r2inv;
             T_F_FLOAT fac;
-            if ( j < N_local )
+            if ( j < N_local_copy )
                 fac = 1.0;
             else
                 fac = 0.5;
