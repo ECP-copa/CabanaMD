@@ -307,11 +307,10 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
 
     // Using default FastFourierTransformParams
     auto fft =
-        Cajita::Experimental::createFastFourierTransform<double, device_type>(
-            *vector_layout,
-            Cajita::Experimental::FastFourierTransformParams() );
+        Cajita::Experimental::createHeffteFastFourierTransform<double, device_type>(
+            *vector_layout );
 
-    fft->reverse( *Qcomplex );
+    fft->reverse( *Qcomplex, Cajita::Experimental::FFTScaleNone() );
 
     // update Q for later force calcs
     auto BC_view = BC_array->view();
@@ -322,7 +321,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     Kokkos::parallel_for( grid_policy, mult_BC_Qr );
     Kokkos::fence();
 
-    fft->forward( *Qcomplex );
+    fft->forward( *Qcomplex, Cajita::Experimental::FFTScaleNone() );
 
     // Copy real part of complex Qr to Q
     auto copy_back_charge =
