@@ -79,6 +79,12 @@ void InputCL::read_args( int argc, char *argv[] )
             log( std::cout,
                  "  -il [FILE] (OR)\n"
                  "  --input-lammps [FILE]:    Provide LAMMPS input file\n" );
+            log( std::cout,
+                 "  -o [FILE] (OR)\n"
+                 "  --output-file [FILE]:    Provide output file name\n" );
+            log( std::cout,
+                 "  -e [FILE] (OR)\n"
+                 "  --error-file [FILE]:    Provide error file name\n" );
             log(
                 std::cout,
                 "  --device-type [TYPE]:     Kokkos device type to run ",
