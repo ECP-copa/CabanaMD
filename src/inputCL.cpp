@@ -57,7 +57,6 @@
 InputCL::InputCL()
 {
     device_type = DEFAULT;
-    layout_type = AOSOA_6;
     nnp_layout_type = AOSOA_3;
     neighbor_type = NEIGH_VERLET_2D;
     force_iteration_type = FORCE_ITER_NEIGH_FULL;
@@ -90,10 +89,6 @@ void InputCL::read_args( int argc, char *argv[] )
                 "  --device-type [TYPE]:     Kokkos device type to run ",
                 "with\n",
                 "                                (SERIAL, OPENMP, CUDA, HIP)" );
-            log( std::cout,
-                 "  --layout-type [TYPE]:     Number of AoSoA for particle ",
-                 "properties\n",
-                 "                                (1AOSOA, 2AOSOA, 6AOSOA)" );
             log( std::cout,
                  "  --nnp-layout-type [TYPE]: Number of AoSoA for neural ",
                  "network potential particle properties\n",
@@ -168,20 +163,6 @@ void InputCL::read_args( int argc, char *argv[] )
             ++i;
         }
 
-        // AoSoA layout type
-        else if ( ( strcmp( argv[i], "--layout-type" ) == 0 ) )
-        {
-            if ( ( strcmp( argv[i + 1], "1AOSOA" ) == 0 ) )
-                layout_type = AOSOA_1;
-            else if ( ( strcmp( argv[i + 1], "2AOSOA" ) == 0 ) )
-                layout_type = AOSOA_2;
-            else if ( ( strcmp( argv[i + 1], "6AOSOA" ) == 0 ) )
-                layout_type = AOSOA_6;
-            else
-                log_err( std::cout, "Unknown commandline option: ", argv[i],
-                         " ", argv[i + 1] );
-            ++i;
-        }
         else if ( ( strcmp( argv[i], "--nnp-layout-type" ) == 0 ) )
         {
             if ( ( strcmp( argv[i + 1], "1AOSOA" ) == 0 ) )

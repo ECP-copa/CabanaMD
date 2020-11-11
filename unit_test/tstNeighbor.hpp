@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <CabanaMD_config.hpp>
+
 #include <neighbor.h>
 #include <system.h>
 
@@ -320,7 +322,13 @@ void testNeighborListPartialRange( bool half_neigh )
 TEST( TEST_CATEGORY, verlet_full_test )
 {
     using DeviceType = Kokkos::Device<TEST_EXECSPACE, TEST_MEMSPACE>;
-    using t_System = System<DeviceType, AoSoA6>;
+#if ( CabanaMD_LAYOUT == 1 )
+    using t_System = System<DeviceType, 1>;
+#elif ( CabanaMD_LAYOUT == 2 )
+    using t_System = System<DeviceType, 2>;
+#elif ( CabanaMD_LAYOUT == 6 )
+    using t_System = System<DeviceType, 6>;
+#endif
     {
         using t_Neigh = NeighborVerlet<t_System, Cabana::FullNeighborTag,
                                        Cabana::VerletLayout2D>;
@@ -344,7 +352,13 @@ TEST( TEST_CATEGORY, verlet_full_test )
 TEST( TEST_CATEGORY, verlet_half_test )
 {
     using DeviceType = Kokkos::Device<TEST_EXECSPACE, TEST_MEMSPACE>;
-    using t_System = System<DeviceType, AoSoA6>;
+#if ( CabanaMD_LAYOUT == 1 )
+    using t_System = System<DeviceType, 1>;
+#elif ( CabanaMD_LAYOUT == 2 )
+    using t_System = System<DeviceType, 2>;
+#elif ( CabanaMD_LAYOUT == 6 )
+    using t_System = System<DeviceType, 6>;
+#endif
     {
         using t_Neigh = NeighborVerlet<t_System, Cabana::HalfNeighborTag,
                                        Cabana::VerletLayout2D>;

@@ -17,12 +17,12 @@
 #include <system.h>
 
 template <class t_device>
-class System<t_device, AoSoA1> : public SystemCommon<t_device>
+class System<t_device, 1> : public SystemCommon<t_device>
 {
     using t_tuple = Cabana::MemberTypes<T_FLOAT[3], T_FLOAT[3], T_FLOAT[3],
                                         T_INT, T_INT, T_FLOAT>;
     using AoSoA_1 =
-        typename Cabana::AoSoA<t_tuple, t_device, CabanaMD_VECTORLENGTH>;
+        typename Cabana::AoSoA<t_tuple, t_device, CabanaMD_VECTORLENGTH_0>;
     AoSoA_1 aosoa_0;
 
     using SystemCommon<t_device>::N_max;
@@ -30,23 +30,19 @@ class System<t_device, AoSoA1> : public SystemCommon<t_device>
   public:
     using SystemCommon<t_device>::SystemCommon;
 
-    using layout_type = AoSoA1;
-
     // Per Particle Property
-    using t_x = typename System<t_device,
-                                AoSoA1>::AoSoA_1::template member_slice_type<0>;
-    using t_v = typename System<t_device,
-                                AoSoA1>::AoSoA_1::template member_slice_type<1>;
-    using t_f = typename System<t_device,
-                                AoSoA1>::AoSoA_1::template member_slice_type<2>;
+    using t_x =
+        typename System<t_device, 1>::AoSoA_1::template member_slice_type<0>;
+    using t_v =
+        typename System<t_device, 1>::AoSoA_1::template member_slice_type<1>;
+    using t_f =
+        typename System<t_device, 1>::AoSoA_1::template member_slice_type<2>;
     using t_type =
-        typename System<t_device,
-                        AoSoA1>::AoSoA_1::template member_slice_type<3>;
+        typename System<t_device, 1>::AoSoA_1::template member_slice_type<3>;
     using t_id =
-        typename System<t_device,
-                        AoSoA1>::AoSoA_1::template member_slice_type<4>;
-    using t_q = typename System<t_device,
-                                AoSoA1>::AoSoA_1::template member_slice_type<5>;
+        typename System<t_device, 1>::AoSoA_1::template member_slice_type<4>;
+    using t_q =
+        typename System<t_device, 1>::AoSoA_1::template member_slice_type<5>;
     t_x x;
     t_v v;
     t_f f;

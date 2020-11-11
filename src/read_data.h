@@ -320,9 +320,8 @@ void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
     read_lammps_header<t_System>( file, err, s );
 
     // Use a host mirror for reading from data file
-    using t_layout = typename t_System::layout_type;
     System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
-           t_layout>
+           CabanaMD_LAYOUT>
         host_system;
     // Assume near load balance and resize as necessary
     host_system.resize( s->N / comm->num_processes() );
@@ -384,9 +383,8 @@ void write_data( t_System *s, std::string data_file )
 {
     std::ofstream data( data_file );
 
-    using t_layout = typename t_System::layout_type;
     System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
-           t_layout>
+           CabanaMD_LAYOUT>
         host_s;
     s->slice_x();
     auto x = s->x;
