@@ -9,6 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#include <CabanaMD_config.hpp>
+
 #include <integrator_nve.h>
 #include <system.h>
 
@@ -139,7 +141,15 @@ void testIntegratorReversibility( int steps )
 TEST( TEST_CATEGORY, reversibility_test )
 {
     using DeviceType = Kokkos::Device<TEST_EXECSPACE, TEST_MEMSPACE>;
-    testIntegratorReversibility<System<DeviceType, AoSoA6>>( 100 );
+#if ( CabanaMD_LAYOUT == 1 )
+    using t_System = System<DeviceType, 1>;
+#elif ( CabanaMD_LAYOUT == 2 )
+    using t_System = System<DeviceType, 2>;
+#elif ( CabanaMD_LAYOUT == 6 )
+    using t_System = System<DeviceType, 6>;
+#endif
+
+    testIntegratorReversibility<t_System>( 100 );
 }
 
 //---------------------------------------------------------------------------//

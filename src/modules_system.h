@@ -9,6 +9,10 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#if ( CabanaMD_LAYOUT == 1 )
 #include <system_1aosoa.h>
+#elif ( CabanaMD_LAYOUT == 2 )
 #include <system_2aosoa.h>
+#elif ( CabanaMD_LAYOUT == 6 )
 #include <system_6aosoa.h>
+#endif

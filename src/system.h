@@ -228,7 +228,7 @@ class SystemCommon
     virtual const char *name() { return "SystemNone"; }
 };
 
-template <class t_device, class t_layout>
+template <class t_device, int layout>
 class System : public SystemCommon<t_device>
 {
   public:

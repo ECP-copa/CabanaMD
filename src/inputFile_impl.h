@@ -78,8 +78,6 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     lrforce_type = FORCE_NONE;
     binning_type = BINNING_LINKEDCELL;
 
-    layout_type = commandline.layout_type;
-    nnp_layout_type = commandline.nnp_layout_type;
     neighbor_type = commandline.neighbor_type;
     force_iteration_type = commandline.force_iteration_type;
     force_neigh_parallel_type = commandline.force_neigh_parallel_type;
@@ -534,9 +532,8 @@ void InputFile<t_System>::create_lattices( Comm<t_System> *comm,
                                            std::ofstream &out )
 {
     t_System s = *system;
-    using t_layout = typename t_System::layout_type;
     System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
-           t_layout>
+           CabanaMD_LAYOUT>
         host_system;
 
     for ( int i = 0; i < num_lattice; i++ )

@@ -76,20 +76,13 @@ class MDfactory
     template <typename t_device>
     static CabanaMD *createImpl( InputCL commandline )
     {
-        int layout = commandline.layout_type;
         int neigh = commandline.neighbor_type;
         bool half_neigh =
             commandline.force_iteration_type == FORCE_ITER_NEIGH_HALF;
 
-        if ( layout == AOSOA_1 )
-            return createImplSystem<System<t_device, AoSoA1>>( neigh,
-                                                               half_neigh );
-        else if ( layout == AOSOA_2 )
-            return createImplSystem<System<t_device, AoSoA2>>( neigh,
-                                                               half_neigh );
-        else if ( layout == AOSOA_6 )
-            return createImplSystem<System<t_device, AoSoA6>>( neigh,
-                                                               half_neigh );
+        return createImplSystem<System<t_device, CabanaMD_LAYOUT>>(
+            neigh, half_neigh );
+
         return nullptr;
     }
 
