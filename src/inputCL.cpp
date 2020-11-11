@@ -179,9 +179,9 @@ void InputCL::read_args( int argc, char *argv[] )
         else if ( ( strcmp( argv[i], "--nnp-layout-type" ) == 0 ) )
         {
             if ( ( strcmp( argv[i + 1], "1AOSOA" ) == 0 ) )
-                layout_type = AOSOA_1;
+                nnp_layout_type = AOSOA_1;
             else if ( ( strcmp( argv[i + 1], "3AOSOA" ) == 0 ) )
-                layout_type = AOSOA_3;
+                nnp_layout_type = AOSOA_3;
             else
                 log_err( std::cout, "Unknown commandline option: ", argv[i],
                          " ", argv[i + 1] );
