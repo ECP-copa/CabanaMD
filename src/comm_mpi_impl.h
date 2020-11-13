@@ -58,6 +58,9 @@ Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     , system( s )
     , comm_depth( comm_depth_ )
 {
+    MPI_Comm_size( MPI_COMM_WORLD, &proc_size );
+    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
+
     pack_count = Kokkos::View<int, Kokkos::LayoutRight, device_type>(
         "CommMPI::pack_count" );
     pack_indicies_all =
@@ -75,9 +78,6 @@ void Comm<t_System>::init()
 template <class t_System>
 void Comm<t_System>::create_domain_decomposition()
 {
-    MPI_Comm_size( MPI_COMM_WORLD, &proc_size );
-    MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
-
     for ( int d = 0; d < 3; d++ )
     {
         proc_grid[d] = system->ranks_per_dim[d];
