@@ -79,19 +79,12 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     std::ofstream err( input->error_file, std::ofstream::app );
     log( out, "Read input file." );
 
-    if ( commandline.device_type != HIP )
-    {
-        using exe_space = typename t_System::execution_space;
-        if ( print_rank() )
-            exe_space::print_configuration( out );
-    }
-    else
-    {
-        log( out, "Using Kokkos::Experimental::HIP" );
-    }
+    using exe_space = typename t_System::execution_space;
+    if ( print_rank() )
+        exe_space::print_configuration( out );
 
-    // Check that the requested pair_style was compiled
 #ifndef CabanaMD_ENABLE_NNP
+    // Check that the requested pair_style was compiled
     if ( input->force_type == FORCE_NNP )
     {
         log_err( err, "NNP requested, but not compiled!" );
