@@ -28,7 +28,6 @@ env:
     - BACKENDS="SERIAL" Heffte=ON
     - BACKENDS="OPENMP" ArborX=ON NNP=ON Heffte=ON
     - BACKENDS="SERIAL" ArborX=ON NNP=ON Heffte=ON
->>>>>>> master
 
 addons:
   apt:
