@@ -161,10 +161,12 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
 {
     // TODO: This should be configurable
     double cell_size = system->global_mesh_x / 100.0;
-    std::array<double, 3> global_low_corner = {
-	system->global_mesh_lo_x, system->global_mesh_lo_y, system->global_mesh_lo_z};
-    std::array<double, 3> global_high_corner = {
-        system->global_mesh_hi_x, system->global_mesh_hi_y, system->global_mesh_hi_z};
+    std::array<double, 3> global_low_corner = {system->global_mesh_lo_x,
+                                               system->global_mesh_lo_y,
+                                               system->global_mesh_lo_z};
+    std::array<double, 3> global_high_corner = {system->global_mesh_hi_x,
+                                                system->global_mesh_hi_y,
+                                                system->global_mesh_hi_z};
 
     // Create the global mesh, global grid, and local grid.
     auto uniform_global_mesh = Cajita::createUniformGlobalMesh(
@@ -226,8 +228,8 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
                 ForceSPME::oneDeuler( ky, meshwidth_y ) *
                 ForceSPME::oneDeuler( kz, meshwidth_z ) *
                 exp( -PI * PI * m2 / ( alpha * alpha ) ) /
-                ( PI * system->global_mesh_x * system->global_mesh_y * system->global_mesh_z *
-                  m2 );
+                ( PI * system->global_mesh_x * system->global_mesh_y *
+                  system->global_mesh_z * m2 );
         }
         else
         {
@@ -294,9 +296,8 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     // Next, solve Poisson's equation taking some FFTs of charges on mesh grid
 
     // Using default FastFourierTransformParams
-    auto fft =
-        Cajita::Experimental::createHeffteFastFourierTransform<double, device_type>(
-            *vector_layout );
+    auto fft = Cajita::Experimental::createHeffteFastFourierTransform<
+        double, device_type>( *vector_layout );
 
     fft->reverse( *Qcomplex, Cajita::Experimental::FFTScaleNone() );
 
