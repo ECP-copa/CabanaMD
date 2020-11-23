@@ -161,20 +161,17 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
 {
     // TODO: This should be configurable
     double cell_size = system->global_mesh_x / 100.0;
-    std::array<bool, 3> is_dim_periodic = {true, true, true};
-    std::array<double, 3> global_low_corner = { 0.0, 0.0, 0.0 };
+    std::array<double, 3> global_low_corner = {
+	system->global_mesh_lo_x, system->global_mesh_lo_y, system->global_mesh_lo_z};
     std::array<double, 3> global_high_corner = {
-        system->global_mesh_x, system->global_mesh_y, system->global_mesh_z};
-    // Create the global mesh.
+        system->global_mesh_hi_x, system->global_mesh_hi_y, system->global_mesh_hi_z};
+
+    // Create the global mesh, global grid, and local grid.
     auto uniform_global_mesh = Cajita::createUniformGlobalMesh(
         global_low_corner, global_high_corner, cell_size );
-
-    // Partition mesh into local grids.
     Cajita::UniformDimPartitioner partitioner;
     auto global_grid = Cajita::createGlobalGrid(
-        MPI_COMM_WORLD, uniform_global_mesh, is_dim_periodic, partitioner );
-
-    // Create a local grid.
+        MPI_COMM_WORLD, uniform_global_mesh, system->is_periodic, partitioner );
     const int halo_width = 3;
     local_grid = Cajita::createLocalGrid( global_grid, halo_width );
 
