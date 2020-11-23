@@ -211,11 +211,12 @@ class InputFile
     bool read_data_flag = false;
 
     InputFile( InputCL cl, t_System *s );
-    void read_file( const char *filename = NULL );
+    void read_file( std::ofstream &out, std::ofstream &err,
+                    const char *filename = NULL );
     void read_lammps_file( std::ifstream &in, std::ofstream &out,
                            std::ofstream &err );
     void check_lammps_command( std::string line, std::ofstream &err );
-    void create_lattice( Comm<t_System> *comm );
+    void create_lattice( Comm<t_System> *comm, std::ofstream &out );
 };
 
 #include <inputFile_impl.h>

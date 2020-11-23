@@ -76,11 +76,14 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 
     // Create the Input class: Command line and LAMMPS input file
     input = new InputFile<t_System>( commandline, system );
+
+    // Create output/error streams and overwrite previous runs
+    std::ofstream out( input->output_file, std::ofstream::out );
+    std::ofstream err( input->error_file, std::ofstream::out );
+
     // Read input file
-    input->read_file();
+    input->read_file( out, err );
     nsteps = input->nsteps;
-    std::ofstream out( input->output_file, std::ofstream::app );
-    std::ofstream err( input->error_file, std::ofstream::app );
     log( out, "Read input file." );
 
     if ( commandline.device_type != HIP )
@@ -192,14 +195,14 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     // Create atoms - from LAMMPS data file or create FCC/SC lattice
     if ( system->N == 0 && input->read_data_flag == true )
     {
-        read_lammps_data_file<t_System>( input, system, comm );
+        read_lammps_data_file<t_System>( input, system, comm, err );
     }
     else if ( system->N == 0 )
     {
         for ( int i = 0; i < input->num_lattice; i++ )
         {
-            input->read_file();
-            input->create_lattice( comm );
+            input->read_file( out, err );
+            input->create_lattice( comm, out );
         }
     }
     log( out, "Created atoms." );

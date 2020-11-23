@@ -133,13 +133,9 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
 }
 
 template <class t_System>
-void InputFile<t_System>::read_file( const char *filename )
+void InputFile<t_System>::read_file( std::ofstream &out, std::ofstream &err,
+                                     const char *filename )
 {
-    // This is the first time the streams are used - overwrite any previous
-    // output
-    std::ofstream out( output_file, std::ofstream::out );
-    std::ofstream err( error_file, std::ofstream::out );
-
     if ( filename == NULL )
     {
         filename = commandline.input_file;
@@ -151,8 +147,6 @@ void InputFile<t_System>::read_file( const char *filename )
         return;
     }
     log_err( err, "Unknown input file type: ", filename );
-    err.close();
-    out.close();
 }
 
 template <class t_System>
@@ -560,10 +554,9 @@ void InputFile<t_System>::check_lammps_command( std::string line,
 }
 
 template <class t_System>
-void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
+void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
+                                          std::ofstream &out )
 {
-    std::ofstream out( output_file, std::ofstream::app );
-
     t_System s = *system;
     using t_layout = typename t_System::layout_type;
     System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
@@ -592,12 +585,12 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     auto local_mesh_hi_y = s.local_mesh_hi_y;
     auto local_mesh_hi_z = s.local_mesh_hi_z;
 
-    T_INT ix_start = local_mesh_lo_x / s.global_mesh_x * lattice_nx - 0.5;
-    T_INT iy_start = local_mesh_lo_y / s.global_mesh_y * lattice_ny - 0.5;
-    T_INT iz_start = local_mesh_lo_z / s.global_mesh_z * lattice_nz - 0.5;
-    T_INT ix_end = local_mesh_hi_x / s.global_mesh_x * lattice_nx + 0.5;
-    T_INT iy_end = local_mesh_hi_y / s.global_mesh_y * lattice_ny + 0.5;
-    T_INT iz_end = local_mesh_hi_z / s.global_mesh_z * lattice_nz + 0.5;
+    T_INT ix_start = local_mesh_lo_x / s.global_mesh_x * lattice_nx - 1.5;
+    T_INT iy_start = local_mesh_lo_y / s.global_mesh_y * lattice_ny - 1.5;
+    T_INT iz_start = local_mesh_lo_z / s.global_mesh_z * lattice_nz - 1.5;
+    T_INT ix_end = local_mesh_hi_x / s.global_mesh_x * lattice_nx + 1.5;
+    T_INT iy_end = local_mesh_hi_y / s.global_mesh_y * lattice_ny + 1.5;
+    T_INT iz_end = local_mesh_hi_z / s.global_mesh_z * lattice_nz + 1.5;
 
     // Create Simple Cubic Lattice
     if ( lattice_style == LATTICE_SC )
@@ -851,6 +844,4 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
         h_v( i, 2 ) *= T_init_scale;
     }
     system->deep_copy( host_system );
-
-    out.close();
 }
