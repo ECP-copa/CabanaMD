@@ -413,6 +413,9 @@ void CbnMD<t_System, t_Neighbor>::run()
              " procs for ", nsteps, " steps with ", system->N, " atoms" );
     }
     out.close();
+
+    if ( input->write_data_flag )
+        write_data( system, input->output_data_file );
 }
 
 template <class t_System, class t_Neighbor>

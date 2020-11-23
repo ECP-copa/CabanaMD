@@ -313,7 +313,7 @@ void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
 {
     int atomflag = 0;
     std::string keyword;
-    std::ifstream file( input->lammps_data_file );
+    std::ifstream file( input->input_data_file );
     std::ofstream out( input->output_file, std::ofstream::app );
     std::ofstream err( input->error_file, std::ofstream::app );
 
@@ -376,5 +376,49 @@ void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
     else
     {
         log( out, "Atoms: ", s->N, " ", s->N_local );
+    }
+}
+
+template <class t_System>
+void write_data( t_System *s, std::string data_file )
+{
+    std::ofstream data( data_file );
+
+    using t_layout = typename t_System::layout_type;
+    System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
+           t_layout>
+        host_s;
+    s->slice_x();
+    auto x = s->x;
+    host_s.resize( x.size() );
+    host_s.slice_x();
+    auto h_x = host_s.x;
+    host_s.deep_copy( *s );
+
+    log( data, "LAMMPS data file from CabanaMD\n" );
+    log( data, s->N, " atoms" );
+    log( data, s->ntypes, " atom types\n" );
+
+    log( data, s->local_mesh_lo_x, " ", s->local_mesh_hi_x, " xlo xhi" );
+    log( data, s->local_mesh_lo_y, " ", s->local_mesh_hi_y, " ylo yhi" );
+    log( data, s->local_mesh_lo_z, " ", s->local_mesh_hi_z, " zlo zhi\n" );
+    log( data, "Atoms # atomic\n" );
+
+    host_s.slice_all();
+    h_x = host_s.x;
+    auto h_id = host_s.id;
+    auto h_type = host_s.type;
+    auto h_v = host_s.v;
+
+    for ( int n = 0; n < s->N_local; n++ )
+    {
+        log( data, h_id( n ), " ", h_type( n ) + 1, " ", h_x( n, 0 ), " ",
+             h_x( n, 1 ), " ", h_x( n, 2 ) );
+    }
+    log( data, "\nVelocities\n" );
+    for ( int n = 0; n < s->N_local; n++ )
+    {
+        log( data, h_id( n ), " ", h_v( n, 0 ), " ", h_v( n, 1 ), " ",
+             h_v( n, 2 ) );
     }
 }

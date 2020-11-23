@@ -196,8 +196,10 @@ class InputFile
     int thermo_rate, dumpbinary_rate, correctness_rate;
     bool dumpbinaryflag, correctnessflag;
     char *dumpbinary_path, *reference_path, *correctness_file;
-    std::string lammps_data_file;
+    std::string input_data_file;
+    std::string output_data_file;
     bool read_data_flag = false;
+    bool write_data_flag = false;
 
     InputFile( InputCL cl, t_System *s );
     void read_file( const char *filename = NULL );

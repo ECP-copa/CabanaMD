@@ -329,9 +329,14 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     {
         known = true;
         read_data_flag = true;
-        lammps_data_file = words.at( 1 );
+        input_data_file = words.at( 1 );
     }
-
+    if ( keyword.compare( "write_data" ) == 0 )
+    {
+        known = true;
+        write_data_flag = true;
+        output_data_file = words.at( 1 );
+    }
     if ( keyword.compare( "pair_style" ) == 0 )
     {
         if ( words.at( 1 ).compare( "lj/cut" ) == 0 )
