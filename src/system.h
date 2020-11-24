@@ -109,7 +109,7 @@ class SystemCommon
         ntypes = 1;
         atom_style = "atomic";
 
-        mass = t_mass();
+        mass = t_mass( "System::mass", ntypes );
 
         global_mesh_x = global_mesh_y = global_mesh_z = 0.0;
         local_mesh_lo_x = local_mesh_lo_y = local_mesh_lo_z = 0.0;
