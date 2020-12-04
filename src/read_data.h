@@ -309,13 +309,12 @@ void read_lammps_pair( std::ifstream &file, t_System *s )
 
 template <class t_System>
 void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
-                            Comm<t_System> *comm )
+                            Comm<t_System> *comm, std::ofstream &out,
+                            std::ofstream &err )
 {
     int atomflag = 0;
     std::string keyword;
     std::ifstream file( input->input_data_file );
-    std::ofstream out( input->output_file, std::ofstream::app );
-    std::ofstream err( input->error_file, std::ofstream::app );
 
     read_lammps_header<t_System>( file, err, s );
 

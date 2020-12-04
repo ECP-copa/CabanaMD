@@ -309,7 +309,6 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     if ( keyword.compare( "create_box" ) == 0 )
     {
         known = true;
-        // Avoid resetting arrays if creating multiple lattices
         system->ntypes = std::stoi( words.at( 1 ) );
     }
     if ( keyword.compare( "create_atoms" ) == 0 )
