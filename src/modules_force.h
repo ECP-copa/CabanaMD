@@ -49,9 +49,7 @@
 #include <CabanaMD_config.hpp>
 
 #include <Cabana_Core.hpp>
-#ifdef Cabana_ENABLE_CAJITA
 #include <Cajita.hpp>
-#endif
 
 #include <force_lj_cabana_neigh.h>
 

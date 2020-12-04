@@ -49,11 +49,8 @@
 #include <CabanaMD_config.hpp>
 
 #include <Cabana_Core.hpp>
-#include <Kokkos_Core.hpp>
-
-#ifdef Cabana_ENABLE_CAJITA
 #include <Cajita.hpp>
-#endif
+#include <Kokkos_Core.hpp>
 
 #include <output.h>
 #include <property_kine.h>
@@ -195,7 +192,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     // Create atoms - from LAMMPS data file or create FCC/SC lattice
     if ( system->N == 0 && input->read_data_flag == true )
     {
-        read_lammps_data_file<t_System>( input, system, comm, err );
+        read_lammps_data_file<t_System>( input, system, comm, out, err );
     }
     else if ( system->N == 0 )
     {
