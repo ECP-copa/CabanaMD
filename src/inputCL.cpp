@@ -79,6 +79,12 @@ void InputCL::read_args( int argc, char *argv[] )
             log( std::cout,
                  "  -il [FILE] (OR)\n"
                  "  --input-lammps [FILE]:    Provide LAMMPS input file\n" );
+            log( std::cout,
+                 "  -o [FILE] (OR)\n"
+                 "  --output-file [FILE]:    Provide output file name\n" );
+            log( std::cout,
+                 "  -e [FILE] (OR)\n"
+                 "  --error-file [FILE]:    Provide error file name\n" );
             log(
                 std::cout,
                 "  --device-type [TYPE]:     Kokkos device type to run ",
@@ -179,9 +185,9 @@ void InputCL::read_args( int argc, char *argv[] )
         else if ( ( strcmp( argv[i], "--nnp-layout-type" ) == 0 ) )
         {
             if ( ( strcmp( argv[i + 1], "1AOSOA" ) == 0 ) )
-                layout_type = AOSOA_1;
+                nnp_layout_type = AOSOA_1;
             else if ( ( strcmp( argv[i + 1], "3AOSOA" ) == 0 ) )
-                layout_type = AOSOA_3;
+                nnp_layout_type = AOSOA_3;
             else
                 log_err( std::cout, "Unknown commandline option: ", argv[i],
                          " ", argv[i + 1] );

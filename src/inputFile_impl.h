@@ -311,8 +311,6 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         known = true;
         // Avoid resetting arrays if creating multiple lattices
         system->ntypes = std::stoi( words.at( 1 ) );
-        using t_mass = typename t_System::t_mass;
-        system->mass = t_mass( "System::mass", system->ntypes );
     }
     if ( keyword.compare( "create_atoms" ) == 0 )
     {
@@ -323,6 +321,8 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     {
         known = true;
         int type = std::stoi( words.at( 1 ) ) - 1;
+        if ( type >= (int)system->mass.extent( 0 ) )
+            Kokkos::resize( system->mass, type + 1 );
         using exe_space = typename t_System::execution_space;
         Kokkos::View<T_V_FLOAT, exe_space> mass_one( system->mass, type );
         T_V_FLOAT mass = std::stod( words.at( 2 ) );
@@ -348,7 +348,13 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     {
         known = true;
         read_data_flag = true;
-        lammps_data_file = words.at( 1 );
+        input_data_file = words.at( 1 );
+    }
+    if ( keyword.compare( "write_data" ) == 0 )
+    {
+        known = true;
+        write_data_flag = true;
+        output_data_file = words.at( 1 );
     }
     if ( keyword.compare( "pair_style" ) == 0 )
     {

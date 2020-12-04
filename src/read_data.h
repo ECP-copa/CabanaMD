@@ -161,16 +161,16 @@ void read_lammps_header( std::ifstream &file, std::ofstream &err, t_System *s )
     s->create_domain( low_corner, high_corner );
 }
 
-template <class t_System>
-void read_lammps_atoms( std::ifstream &file, t_System *s )
+template <class t_System, class t_HostSystem>
+void read_lammps_atoms( std::ifstream &file, t_System *s, t_HostSystem &host_s )
 {
     std::string line;
 
-    s->slice_all();
-    auto x = s->x;
-    auto id = s->id;
-    auto type = s->type;
-    auto q = s->q;
+    host_s.slice_all();
+    auto h_x = host_s.x;
+    auto h_id = host_s.id;
+    auto h_type = host_s.type;
+    auto h_q = host_s.q;
 
     auto local_mesh_lo_x = s->local_mesh_lo_x;
     auto local_mesh_lo_y = s->local_mesh_lo_y;
@@ -187,14 +187,14 @@ void read_lammps_atoms( std::ifstream &file, t_System *s )
     for ( int n = 0; n < s->N; n++ )
     {
         // Resize if needed
-        if ( count >= x.size() - 1 )
+        if ( count >= h_x.size() - 1 )
         {
-            s->resize( count * 1.1 );
-            s->slice_all();
-            x = s->x;
-            id = s->id;
-            type = s->type;
-            q = s->q;
+            host_s.resize( count * 2 );
+            host_s.slice_all();
+            h_x = host_s.x;
+            h_id = host_s.id;
+            h_type = host_s.type;
+            h_q = host_s.q;
         }
 
         // TODO: error if atom_style doesn't match data
@@ -207,12 +207,12 @@ void read_lammps_atoms( std::ifstream &file, t_System *s )
                  ( z_tmp >= local_mesh_lo_z ) && ( x_tmp < local_mesh_hi_x ) &&
                  ( y_tmp < local_mesh_hi_y ) && ( z_tmp < local_mesh_hi_z ) )
             {
-                id( count ) = id_tmp;
-                type( count ) = type_tmp - 1;
-                x( count, 0 ) = x_tmp;
-                x( count, 1 ) = y_tmp;
-                x( count, 2 ) = z_tmp;
-                q( count ) = 0;
+                h_id( count ) = id_tmp;
+                h_type( count ) = type_tmp - 1;
+                h_x( count, 0 ) = x_tmp;
+                h_x( count, 1 ) = y_tmp;
+                h_x( count, 2 ) = z_tmp;
+                h_q( count ) = 0;
                 count++;
             }
         }
@@ -224,12 +224,12 @@ void read_lammps_atoms( std::ifstream &file, t_System *s )
                  ( z_tmp >= local_mesh_lo_z ) && ( x_tmp < local_mesh_hi_x ) &&
                  ( y_tmp < local_mesh_hi_y ) && ( z_tmp < local_mesh_hi_z ) )
             {
-                id( count ) = id_tmp;
-                type( count ) = type_tmp - 1;
-                q( count ) = q_tmp;
-                x( count, 0 ) = x_tmp;
-                x( count, 1 ) = y_tmp;
-                x( count, 2 ) = z_tmp;
+                h_id( count ) = id_tmp;
+                h_type( count ) = type_tmp - 1;
+                h_q( count ) = q_tmp;
+                h_x( count, 0 ) = x_tmp;
+                h_x( count, 1 ) = y_tmp;
+                h_x( count, 2 ) = z_tmp;
                 count++;
             }
         }
@@ -238,18 +238,19 @@ void read_lammps_atoms( std::ifstream &file, t_System *s )
         std::getline( file, line );
     }
     s->N_local = count;
-    s->resize( s->N_local );
+    host_s.resize( s->N_local );
 }
 
-template <class t_System>
-void read_lammps_velocities( std::ifstream &file, t_System *s )
+template <class t_System, class t_HostSystem>
+void read_lammps_velocities( std::ifstream &file, t_System *s,
+                             t_HostSystem &host_s )
 {
     std::string line;
 
-    s->slice_v();
-    s->slice_id();
-    auto v = s->v;
-    auto id = s->id;
+    host_s.slice_v();
+    host_s.slice_id();
+    auto h_v = host_s.v;
+    auto h_id = host_s.id;
 
     skip_empty( file, line );
 
@@ -262,11 +263,11 @@ void read_lammps_velocities( std::ifstream &file, t_System *s )
         std::sscanf( temp, "%i %lg %lg %lg", &id_tmp, &vx_tmp, &vy_tmp,
                      &vz_tmp );
         // Only extract velocities on this rank (order matches positions)
-        if ( id_tmp == id( count ) )
+        if ( id_tmp == h_id( count ) )
         {
-            v( count, 0 ) = vx_tmp;
-            v( count, 1 ) = vy_tmp;
-            v( count, 2 ) = vz_tmp;
+            h_v( count, 0 ) = vx_tmp;
+            h_v( count, 1 ) = vy_tmp;
+            h_v( count, 2 ) = vz_tmp;
             count++;
         }
         std::getline( file, line );
@@ -308,16 +309,23 @@ void read_lammps_pair( std::ifstream &file, t_System *s )
 
 template <class t_System>
 void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
-                            Comm<t_System> *comm, std::ofstream &err )
+                            Comm<t_System> *comm )
 {
     int atomflag = 0;
     std::string keyword;
-    std::ifstream file( input->lammps_data_file );
+    std::ifstream file( input->input_data_file );
+    std::ofstream out( input->output_file, std::ofstream::app );
+    std::ofstream err( input->error_file, std::ofstream::app );
 
     read_lammps_header<t_System>( file, err, s );
 
+    // Use a host mirror for reading from data file
+    using t_layout = typename t_System::layout_type;
+    System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
+           t_layout>
+        host_system;
     // Assume near load balance and resize as necessary
-    s->resize( s->N / comm->num_processes() );
+    host_system.resize( s->N / comm->num_processes() );
 
     // check that the next string is a valid section keyword
     keyword = read_lammps_parse_keyword( file, err );
@@ -325,7 +333,7 @@ void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
     {
         if ( keyword.compare( "Atoms" ) == 0 )
         {
-            read_lammps_atoms<t_System>( file, s );
+            read_lammps_atoms<t_System>( file, s, host_system );
             atomflag = 1;
         }
         else if ( keyword.compare( "Velocities" ) == 0 )
@@ -333,7 +341,7 @@ void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
             if ( atomflag == 0 )
                 log_err( err, "Must read Atoms before Velocities" );
 
-            read_lammps_velocities<t_System>( file, s );
+            read_lammps_velocities<t_System>( file, s, host_system );
         }
         else if ( keyword.compare( "Masses" ) == 0 )
         {
@@ -354,6 +362,9 @@ void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
         keyword = read_lammps_parse_keyword( file, err );
     }
 
+    s->resize( s->N_local );
+    s->deep_copy( host_system );
+
     // check that correct # of atoms were created
     int natoms = s->N_local;
     comm->reduce_int( &natoms, 1 );
@@ -361,5 +372,53 @@ void read_lammps_data_file( InputFile<t_System> *input, t_System *s,
     if ( natoms != s->N )
     {
         log_err( err, "Created incorrect # of atoms." );
+    }
+    else
+    {
+        log( out, "Atoms: ", s->N, " ", s->N_local );
+    }
+}
+
+template <class t_System>
+void write_data( t_System *s, std::string data_file )
+{
+    std::ofstream data( data_file );
+
+    using t_layout = typename t_System::layout_type;
+    System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
+           t_layout>
+        host_s;
+    s->slice_x();
+    auto x = s->x;
+    host_s.resize( x.size() );
+    host_s.slice_x();
+    auto h_x = host_s.x;
+    host_s.deep_copy( *s );
+
+    log( data, "LAMMPS data file from CabanaMD\n" );
+    log( data, s->N, " atoms" );
+    log( data, s->ntypes, " atom types\n" );
+
+    log( data, s->local_mesh_lo_x, " ", s->local_mesh_hi_x, " xlo xhi" );
+    log( data, s->local_mesh_lo_y, " ", s->local_mesh_hi_y, " ylo yhi" );
+    log( data, s->local_mesh_lo_z, " ", s->local_mesh_hi_z, " zlo zhi\n" );
+    log( data, "Atoms # atomic\n" );
+
+    host_s.slice_all();
+    h_x = host_s.x;
+    auto h_id = host_s.id;
+    auto h_type = host_s.type;
+    auto h_v = host_s.v;
+
+    for ( int n = 0; n < s->N_local; n++ )
+    {
+        log( data, h_id( n ), " ", h_type( n ) + 1, " ", h_x( n, 0 ), " ",
+             h_x( n, 1 ), " ", h_x( n, 2 ) );
+    }
+    log( data, "\nVelocities\n" );
+    for ( int n = 0; n < s->N_local; n++ )
+    {
+        log( data, h_id( n ), " ", h_v( n, 0 ), " ", h_v( n, 1 ), " ",
+             h_v( n, 2 ) );
     }
 }
