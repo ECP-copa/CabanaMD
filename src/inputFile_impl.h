@@ -99,24 +99,10 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     correctnessflag = false;
     timestepflag = false;
 
-    lattice_offset_x = 0.0;
-    lattice_offset_y = 0.0;
-    lattice_offset_z = 0.0;
-    box[0] = 0;
-    box[2] = 0;
-    box[4] = 0;
-    box[1] = 40;
-    box[3] = 40;
-    box[5] = 40;
-
     units_style = UNITS_LJ;
     lattice_style = LATTICE_FCC;
-    lattice_constant = 0.8442;
 
-    num_lattice = -1;
-    curr_lattice = 0;
-    done_lattice = 1;
-    type_lattice = 0;
+    num_lattice = 0;
 
     temperature_target = 1.4;
     temperature_seed = 87287;
@@ -154,33 +140,14 @@ void InputFile<t_System>::read_lammps_file( std::ifstream &in,
                                             std::ofstream &out,
                                             std::ofstream &err )
 {
-    if ( num_lattice == -1 )
-        log( out, "\n#InputFile:\n",
-             "#=========================================================" );
+    log( out, "\n#InputFile:\n",
+         "#=========================================================" );
 
-    curr_lattice = 0;
     std::string line;
     while ( std::getline( in, line ) )
-    {
         check_lammps_command( line, err );
 
-        if ( num_lattice == -1 )
-            log( out, line );
-
-        if ( curr_lattice == done_lattice and done_lattice < num_lattice )
-        {
-            done_lattice += 1;
-            return;
-        }
-    }
-
-    // Re-read input file to build multiple lattices
-    if ( num_lattice == -1 )
-    {
-        num_lattice = curr_lattice;
-        log( out,
-             "#=========================================================\n" );
-    }
+    log( out, "#=========================================================\n" );
 }
 
 template <class t_System>
@@ -260,21 +227,23 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     }
     if ( keyword.compare( "lattice" ) == 0 )
     {
+        int curr_latt = lattice_constant.size();
+        lattice_constant.resize( curr_latt + 1 );
         if ( words.at( 1 ).compare( "sc" ) == 0 )
         {
             known = true;
             lattice_style = LATTICE_SC;
-            lattice_constant = std::stod( words.at( 2 ) );
+            lattice_constant.at( curr_latt ) = std::stod( words.at( 2 ) );
         }
         else if ( words.at( 1 ).compare( "fcc" ) == 0 )
         {
             known = true;
             lattice_style = LATTICE_FCC;
             if ( units_style == UNITS_LJ )
-                lattice_constant = std::pow(
+                lattice_constant.at( curr_latt ) = std::pow(
                     ( 4.0 / std::stod( words.at( 2 ) ) ), ( 1.0 / 3.0 ) );
             else
-                lattice_constant = std::stod( words.at( 2 ) );
+                lattice_constant.at( curr_latt ) = std::stod( words.at( 2 ) );
         }
         else
         {
@@ -284,13 +253,16 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         }
         system->lattice_constant = lattice_constant;
 
+        lattice_offset_x.resize( curr_latt + 1 );
+        lattice_offset_y.resize( curr_latt + 1 );
+        lattice_offset_z.resize( curr_latt + 1 );
         if ( words.size() > 3 )
         {
             if ( words.at( 3 ).compare( "origin" ) == 0 )
             {
-                lattice_offset_x = std::stod( words.at( 4 ) );
-                lattice_offset_y = std::stod( words.at( 5 ) );
-                lattice_offset_z = std::stod( words.at( 6 ) );
+                lattice_offset_x.at( curr_latt ) = std::stod( words.at( 4 ) );
+                lattice_offset_y.at( curr_latt ) = std::stod( words.at( 5 ) );
+                lattice_offset_z.at( curr_latt ) = std::stod( words.at( 6 ) );
             }
             else
             {
@@ -300,13 +272,17 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         }
         else
         {
-            lattice_offset_x = 0.0;
-            lattice_offset_y = 0.0;
-            lattice_offset_z = 0.0;
+            lattice_offset_x.at( curr_latt ) = 0.0;
+            lattice_offset_y.at( curr_latt ) = 0.0;
+            lattice_offset_z.at( curr_latt ) = 0.0;
         }
     }
     if ( keyword.compare( "region" ) == 0 )
     {
+        int curr_latt = lattice_nx.size();
+        lattice_nx.resize( curr_latt + 1 );
+        lattice_ny.resize( curr_latt + 1 );
+        lattice_nz.resize( curr_latt + 1 );
         if ( words.at( 2 ).compare( "block" ) == 0 )
         {
             known = true;
@@ -320,9 +296,9 @@ void InputFile<t_System>::check_lammps_command( std::string line,
             if ( ( box[0] != 0 ) || ( box[2] != 0 ) || ( box[4] != 0 ) )
                 log_err( err, "LAMMPS-Command: region only allows for boxes "
                               "with 0,0,0 offset in CabanaMD" );
-            lattice_nx = box[1];
-            lattice_ny = box[3];
-            lattice_nz = box[5];
+            lattice_nx.at( curr_latt ) = box[1];
+            lattice_ny.at( curr_latt ) = box[3];
+            lattice_nz.at( curr_latt ) = box[5];
         }
         else
         {
@@ -334,19 +310,14 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     {
         known = true;
         // Avoid resetting arrays if creating multiple lattices
-        if ( num_lattice == -1 )
-        {
-            system->ntypes = std::stoi( words.at( 1 ) );
-            using t_mass = typename t_System::t_mass;
-            system->mass = t_mass( "System::mass", system->ntypes );
-            system->charge = t_mass( "System::charge", system->ntypes );
-        }
+        system->ntypes = std::stoi( words.at( 1 ) );
+        using t_mass = typename t_System::t_mass;
+        system->mass = t_mass( "System::mass", system->ntypes );
     }
     if ( keyword.compare( "create_atoms" ) == 0 )
     {
         known = true;
-        type_lattice = std::stoi( words.at( 1 ) ) - 1;
-        curr_lattice += 1;
+        num_lattice += 1;
     }
     if ( keyword.compare( "mass" ) == 0 )
     {
@@ -364,9 +335,8 @@ void InputFile<t_System>::check_lammps_command( std::string line,
              words.at( 3 ).compare( "charge" ) == 0 )
         {
             int type = stoi( words.at( 2 ) ) - 1;
-            Kokkos::View<T_V_FLOAT> charge_one( system->charge, type );
-            T_V_FLOAT charge = std::stod( words.at( 4 ) );
-            Kokkos::deep_copy( charge_one, charge );
+            charge.resize( charge.size() + 1 );
+            charge.at( type ) = std::stod( words.at( 4 ) );
         }
         else
         {
@@ -461,6 +431,7 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         }
         temperature_target = std::stod( words.at( 3 ) );
         temperature_seed = std::stoi( words.at( 4 ) );
+        create_velocity_flag = true;
     }
     if ( keyword.compare( "neighbor" ) == 0 )
     {
@@ -554,8 +525,8 @@ void InputFile<t_System>::check_lammps_command( std::string line,
 }
 
 template <class t_System>
-void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
-                                          std::ofstream &out )
+void InputFile<t_System>::create_lattices( Comm<t_System> *comm,
+                                           std::ofstream &out )
 {
     t_System s = *system;
     using t_layout = typename t_System::layout_type;
@@ -563,20 +534,36 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
            t_layout>
         host_system;
 
-    using h_t_mass = typename t_System::h_t_mass;
-    h_t_mass h_mass = Kokkos::create_mirror_view( s.mass );
-    Kokkos::deep_copy( h_mass, s.mass );
-    h_t_mass h_charge = Kokkos::create_mirror_view( s.charge );
-    Kokkos::deep_copy( h_charge, s.charge );
+    for ( int i = 0; i < num_lattice; i++ )
+        create_one_lattice( comm, out, i, host_system );
+
+    system->deep_copy( host_system );
+}
+
+template <class t_System>
+template <class t_HostSystem>
+void InputFile<t_System>::create_one_lattice( Comm<t_System> *comm,
+                                              std::ofstream &out,
+                                              const int create_type,
+                                              t_HostSystem &host_system )
+{
+    auto curr_charge = charge.at( create_type );
+    auto curr_constant = lattice_constant.at( create_type );
+    auto curr_offset_x = lattice_offset_x.at( create_type );
+    auto curr_offset_y = lattice_offset_y.at( create_type );
+    auto curr_offset_z = lattice_offset_z.at( create_type );
+    auto curr_nx = lattice_nx.at( create_type );
+    auto curr_ny = lattice_ny.at( create_type );
+    auto curr_nz = lattice_nz.at( create_type );
 
     // Create the mesh.
-    T_X_FLOAT max_x = lattice_constant * lattice_nx;
-    T_X_FLOAT max_y = lattice_constant * lattice_ny;
-    T_X_FLOAT max_z = lattice_constant * lattice_nz;
+    T_X_FLOAT max_x = curr_constant * curr_nx;
+    T_X_FLOAT max_y = curr_constant * curr_ny;
+    T_X_FLOAT max_z = curr_constant * curr_nz;
     std::array<T_X_FLOAT, 3> global_low = {0.0, 0.0, 0.0};
     std::array<T_X_FLOAT, 3> global_high = {max_x, max_y, max_z};
     system->create_domain( global_low, global_high );
-    s = *system;
+    t_System s = *system;
 
     auto local_mesh_lo_x = s.local_mesh_lo_x;
     auto local_mesh_lo_y = s.local_mesh_lo_y;
@@ -585,12 +572,12 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
     auto local_mesh_hi_y = s.local_mesh_hi_y;
     auto local_mesh_hi_z = s.local_mesh_hi_z;
 
-    T_INT ix_start = local_mesh_lo_x / s.global_mesh_x * lattice_nx - 1.5;
-    T_INT iy_start = local_mesh_lo_y / s.global_mesh_y * lattice_ny - 1.5;
-    T_INT iz_start = local_mesh_lo_z / s.global_mesh_z * lattice_nz - 1.5;
-    T_INT ix_end = local_mesh_hi_x / s.global_mesh_x * lattice_nx + 1.5;
-    T_INT iy_end = local_mesh_hi_y / s.global_mesh_y * lattice_ny + 1.5;
-    T_INT iz_end = local_mesh_hi_z / s.global_mesh_z * lattice_nz + 1.5;
+    T_INT ix_start = local_mesh_lo_x / s.global_mesh_x * curr_nx - 1.5;
+    T_INT iy_start = local_mesh_lo_y / s.global_mesh_y * curr_ny - 1.5;
+    T_INT iz_start = local_mesh_lo_z / s.global_mesh_z * curr_nz - 1.5;
+    T_INT ix_end = local_mesh_hi_x / s.global_mesh_x * curr_nx + 1.5;
+    T_INT iy_end = local_mesh_hi_y / s.global_mesh_y * curr_ny + 1.5;
+    T_INT iz_end = local_mesh_hi_z / s.global_mesh_z * curr_nz + 1.5;
 
     // Create Simple Cubic Lattice
     if ( lattice_style == LATTICE_SC )
@@ -599,13 +586,13 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
 
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
         {
-            T_FLOAT ztmp = lattice_constant * ( iz + lattice_offset_z );
+            T_FLOAT ztmp = curr_constant * ( iz + curr_offset_z );
             for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
             {
-                T_FLOAT ytmp = lattice_constant * ( iy + lattice_offset_y );
+                T_FLOAT ytmp = curr_constant * ( iy + curr_offset_y );
                 for ( T_INT ix = ix_start; ix <= ix_end; ix++ )
                 {
-                    T_FLOAT xtmp = lattice_constant * ( ix + lattice_offset_x );
+                    T_FLOAT xtmp = curr_constant * ( ix + curr_offset_x );
                     if ( ( xtmp >= local_mesh_lo_x ) &&
                          ( ytmp >= local_mesh_lo_y ) &&
                          ( ztmp >= local_mesh_lo_z ) &&
@@ -630,13 +617,13 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
         n = system->N_local;
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
         {
-            T_FLOAT ztmp = lattice_constant * ( iz + lattice_offset_z );
+            T_FLOAT ztmp = curr_constant * ( iz + curr_offset_z );
             for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
             {
-                T_FLOAT ytmp = lattice_constant * ( iy + lattice_offset_y );
+                T_FLOAT ytmp = curr_constant * ( iy + curr_offset_y );
                 for ( T_INT ix = ix_start; ix <= ix_end; ix++ )
                 {
-                    T_FLOAT xtmp = lattice_constant * ( ix + lattice_offset_x );
+                    T_FLOAT xtmp = curr_constant * ( ix + curr_offset_x );
                     if ( ( xtmp >= local_mesh_lo_x ) &&
                          ( ytmp >= local_mesh_lo_y ) &&
                          ( ztmp >= local_mesh_lo_z ) &&
@@ -647,9 +634,9 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
                         x( n, 0 ) = xtmp;
                         x( n, 1 ) = ytmp;
                         x( n, 2 ) = ztmp;
-                        type( n ) = type_lattice;
+                        type( n ) = create_type;
                         id( n ) = n + 1;
-                        q( n ) = h_charge( type( n ) );
+                        q( n ) = curr_charge;
                         n++;
                     }
                 }
@@ -685,9 +672,9 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
 
         for ( int i = 0; i < 4; i++ )
         {
-            basis[i][0] += lattice_offset_x;
-            basis[i][1] += lattice_offset_y;
-            basis[i][2] += lattice_offset_z;
+            basis[i][0] += curr_offset_x;
+            basis[i][1] += curr_offset_y;
+            basis[i][2] += curr_offset_z;
         }
 
         T_INT n = 0;
@@ -701,11 +688,11 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
                     for ( int k = 0; k < 4; k++ )
                     {
                         T_FLOAT xtmp =
-                            lattice_constant * ( 1.0 * ix + basis[k][0] );
+                            curr_constant * ( 1.0 * ix + basis[k][0] );
                         T_FLOAT ytmp =
-                            lattice_constant * ( 1.0 * iy + basis[k][1] );
+                            curr_constant * ( 1.0 * iy + basis[k][1] );
                         T_FLOAT ztmp =
-                            lattice_constant * ( 1.0 * iz + basis[k][2] );
+                            curr_constant * ( 1.0 * iz + basis[k][2] );
                         if ( ( xtmp >= local_mesh_lo_x ) &&
                              ( ytmp >= local_mesh_lo_y ) &&
                              ( ztmp >= local_mesh_lo_z ) &&
@@ -738,11 +725,11 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
                     for ( int k = 0; k < 4; k++ )
                     {
                         T_FLOAT xtmp =
-                            lattice_constant * ( 1.0 * ix + basis[k][0] );
+                            curr_constant * ( 1.0 * ix + basis[k][0] );
                         T_FLOAT ytmp =
-                            lattice_constant * ( 1.0 * iy + basis[k][1] );
+                            curr_constant * ( 1.0 * iy + basis[k][1] );
                         T_FLOAT ztmp =
-                            lattice_constant * ( 1.0 * iz + basis[k][2] );
+                            curr_constant * ( 1.0 * iz + basis[k][2] );
                         if ( ( xtmp >= local_mesh_lo_x ) &&
                              ( ytmp >= local_mesh_lo_y ) &&
                              ( ztmp >= local_mesh_lo_z ) &&
@@ -753,9 +740,9 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
                             h_x( n, 0 ) = xtmp;
                             h_x( n, 1 ) = ytmp;
                             h_x( n, 2 ) = ztmp;
-                            h_type( n ) = rand() % s.ntypes;
+                            h_type( n ) = create_type;
                             h_id( n ) = n + 1;
-                            h_q( n ) = h_charge( h_type( n ) );
+                            h_q( n ) = curr_charge;
                             n++;
                         }
                     }
@@ -771,15 +758,29 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
         comm->scan_int( &N_local_offset, 1 );
         for ( T_INT i = 0; i < n; i++ )
             h_id( i ) += N_local_offset - n;
-
-        system->deep_copy( host_system );
     }
     log( out, "Atoms: ", system->N, " ", system->N_local );
+}
 
+template <class t_System>
+void InputFile<t_System>::create_velocities( Comm<t_System> *comm,
+                                             std::ofstream &out )
+{
     // Initialize velocity using the equivalent of the LAMMPS
     // velocity geom option, i.e. uniform random kinetic energies.
     // zero out momentum of the whole system afterwards, to eliminate
     // drift (bad for energy statistics)
+
+    t_System s = *system;
+    using t_layout = typename t_System::layout_type;
+    System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
+           t_layout>
+        host_system;
+    host_system.slice_all();
+
+    using h_t_mass = typename t_System::h_t_mass;
+    h_t_mass h_mass = Kokkos::create_mirror_view( s.mass );
+    Kokkos::deep_copy( h_mass, s.mass );
 
     // already sliced
     auto h_x = host_system.x;
@@ -844,4 +845,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm,
         h_v( i, 2 ) *= T_init_scale;
     }
     system->deep_copy( host_system );
+
+    log( out, "Created velocities" );
 }

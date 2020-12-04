@@ -80,13 +80,12 @@ class SystemCommon
     typedef Kokkos::View<const T_V_FLOAT *, t_device> t_mass_const;
     typedef typename t_mass::HostMirror h_t_mass;
     t_mass mass;
-    t_mass charge;
 
     // Simulation total domain
     T_X_FLOAT global_mesh_x, global_mesh_y, global_mesh_z;
     T_X_FLOAT global_mesh_lo_x, global_mesh_lo_y, global_mesh_lo_z;
     T_X_FLOAT global_mesh_hi_x, global_mesh_hi_y, global_mesh_hi_z;
-    T_X_FLOAT lattice_constant;
+    std::vector<T_X_FLOAT> lattice_constant;
 
     // Simulation sub domain (single MPI rank)
     T_X_FLOAT local_mesh_x, local_mesh_y, local_mesh_z;

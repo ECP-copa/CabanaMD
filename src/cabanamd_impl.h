@@ -199,13 +199,13 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     }
     else if ( system->N == 0 )
     {
-        for ( int i = 0; i < input->num_lattice; i++ )
-        {
-            input->read_file( out, err );
-            input->create_lattice( comm, out );
-        }
+        input->create_lattices( comm, out );
     }
     log( out, "Created atoms." );
+    if ( input->create_velocity_flag )
+    {
+        input->create_velocities( comm, out );
+    }
 
     // Create long range Force class: options in longrangeforce_types/ folder
     // Delay because tuning (within init) uses atom count, domain size
@@ -262,6 +262,14 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     // Compute atom neighbors
     neighbor->create( system );
     // TODO: option for separate long range neighbors
+
+    system->slice_all();
+    auto q = system->q;
+    auto type = system->type;
+    auto pos = system->x;
+    std::cout << pos( 0, 0 ) << " " << q( 0 ) << " " << type( 0 ) << " "
+              << pos( 6000, 0 ) << " " << q( 6000 ) << " " << type( 6000 )
+              << std::endl;
 
     // Compute initial forces
     system->slice_f();

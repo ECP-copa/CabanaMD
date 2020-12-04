@@ -151,9 +151,6 @@ class InputFile
   private:
     bool timestepflag; // input timestep?
 
-    int curr_lattice, done_lattice;
-    int type_lattice;
-
   public:
     InputCL commandline;
     t_System *system;
@@ -161,10 +158,10 @@ class InputFile
     bool _print_rank;
     int units_style;
     int lattice_style;
-    double lattice_constant, lattice_offset_x, lattice_offset_y,
-        lattice_offset_z;
-    int lattice_nx, lattice_ny, lattice_nz;
-    int box[6];
+    std::vector<double> lattice_constant;
+    std::vector<double> lattice_offset_x, lattice_offset_y, lattice_offset_z;
+    std::vector<int> lattice_nx, lattice_ny, lattice_nz;
+    std::vector<double> charge;
 
     int num_lattice;
 
@@ -209,6 +206,7 @@ class InputFile
     char *dumpbinary_path, *reference_path, *correctness_file;
     std::string lammps_data_file;
     bool read_data_flag = false;
+    bool create_velocity_flag = false;
 
     InputFile( InputCL cl, t_System *s );
     void read_file( std::ofstream &out, std::ofstream &err,
@@ -216,7 +214,11 @@ class InputFile
     void read_lammps_file( std::ifstream &in, std::ofstream &out,
                            std::ofstream &err );
     void check_lammps_command( std::string line, std::ofstream &err );
-    void create_lattice( Comm<t_System> *comm, std::ofstream &out );
+    void create_lattices( Comm<t_System> *comm, std::ofstream &out );
+    template <class t_HostSystem>
+    void create_one_lattice( Comm<t_System> *comm, std::ofstream &out,
+                             const int type, t_HostSystem &host_system );
+    void create_velocities( Comm<t_System> *comm, std::ofstream &out );
 };
 
 #include <inputFile_impl.h>
