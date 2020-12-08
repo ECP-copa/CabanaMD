@@ -27,11 +27,7 @@ class NeighborVerlet : public Neighbor<t_System>
     bool half_neigh;
     T_INT max_neigh_guess;
 
-#ifdef KOKKOS_ENABLE_HIP
-    using t_build = Cabana::TeamOpTag;
-#else
     using t_build = Cabana::TeamVectorOpTag;
-#endif
     using t_neigh_list =
         Cabana::VerletList<memory_space, t_iteration, t_layout, t_build>;
 
