@@ -260,14 +260,6 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     neighbor->create( system );
     // TODO: option for separate long range neighbors
 
-    system->slice_all();
-    auto q = system->q;
-    auto type = system->type;
-    auto pos = system->x;
-    std::cout << pos( 0, 0 ) << " " << q( 0 ) << " " << type( 0 ) << " "
-              << pos( 6000, 0 ) << " " << q( 6000 ) << " " << type( 6000 )
-              << std::endl;
-
     // Compute initial forces
     system->slice_f();
     auto f = system->f;

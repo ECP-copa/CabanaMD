@@ -781,13 +781,14 @@ void InputFile<t_System>::create_velocities( Comm<t_System> *comm,
     System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
            t_layout>
         host_system;
+    host_system.resize( system->N_local );
+    host_system.deep_copy( s );
     host_system.slice_all();
 
     using h_t_mass = typename t_System::h_t_mass;
     h_t_mass h_mass = Kokkos::create_mirror_view( s.mass );
     Kokkos::deep_copy( h_mass, s.mass );
 
-    // already sliced
     auto h_x = host_system.x;
     auto h_v = host_system.v;
     auto h_q = host_system.q;
