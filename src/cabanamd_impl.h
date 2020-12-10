@@ -83,16 +83,9 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     nsteps = input->nsteps;
     log( out, "Read input file." );
 
-    if ( commandline.device_type != HIP )
-    {
-        using exe_space = typename t_System::execution_space;
-        if ( print_rank() )
-            exe_space::print_configuration( out );
-    }
-    else
-    {
-        log( out, "Using Kokkos::Experimental::HIP" );
-    }
+    using exe_space = typename t_System::execution_space;
+    if ( print_rank() )
+        exe_space::print_configuration( out );
 
     // Check that the requested pair_style/kspace_style was compiled
 #ifndef CabanaMD_ENABLE_NNP
