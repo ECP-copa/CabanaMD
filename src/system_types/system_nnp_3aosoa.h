@@ -17,37 +17,42 @@
 #include <system_nnp.h>
 
 template <class t_device>
-class System_NNP<t_device, AoSoA3>
+class System_NNP<t_device, 3>
 {
     using t_tuple_NNP_SF =
         Cabana::MemberTypes<T_FLOAT[CabanaMD_MAXSYMMFUNC_NNP]>;
     using t_tuple_NNP_fl = Cabana::MemberTypes<T_FLOAT>;
-    using AoSoA_NNP_SF = typename Cabana::AoSoA<t_tuple_NNP_SF, t_device,
-                                                CabanaMD_VECTORLENGTH_NNP>;
-    using AoSoA_NNP_fl = typename Cabana::AoSoA<t_tuple_NNP_fl, t_device,
-                                                CabanaMD_VECTORLENGTH_NNP>;
-    AoSoA_NNP_SF aosoa_G;
-    AoSoA_NNP_SF aosoa_dEdG;
-    AoSoA_NNP_fl aosoa_E;
+    using AoSoA_NNP_G = typename Cabana::AoSoA<t_tuple_NNP_SF, t_device,
+                                               CabanaMD_VECTORLENGTH_NNP_0>;
+    using AoSoA_NNP_dEdG = typename Cabana::AoSoA<t_tuple_NNP_SF, t_device,
+                                                  CabanaMD_VECTORLENGTH_NNP_1>;
+    using AoSoA_NNP_E = typename Cabana::AoSoA<t_tuple_NNP_fl, t_device,
+                                               CabanaMD_VECTORLENGTH_NNP_2>;
+    AoSoA_NNP_G aosoa_G;
+    AoSoA_NNP_dEdG aosoa_dEdG;
+    AoSoA_NNP_E aosoa_E;
 
   public:
-    using t_G = typename System_NNP<
-        t_device, AoSoA3>::AoSoA_NNP_SF::template member_slice_type<0>;
-    using t_dEdG = typename System_NNP<
-        t_device, AoSoA3>::AoSoA_NNP_SF::template member_slice_type<0>;
-    using t_E = typename System_NNP<
-        t_device, AoSoA3>::AoSoA_NNP_fl::template member_slice_type<0>;
+    using t_G =
+        typename System_NNP<t_device,
+                            3>::AoSoA_NNP_G::template member_slice_type<0>;
+    using t_dEdG =
+        typename System_NNP<t_device,
+                            3>::AoSoA_NNP_dEdG::template member_slice_type<0>;
+    using t_E =
+        typename System_NNP<t_device,
+                            3>::AoSoA_NNP_E::template member_slice_type<0>;
     t_G G;
     t_dEdG dEdG;
     t_E E;
 
-    System_NNP<t_device, AoSoA3>()
+    System_NNP<t_device, 3>()
     {
-        AoSoA_NNP_SF aosoa_G( "G", 0 );
-        AoSoA_NNP_SF aosoa_dEdG( "dEdG", 0 );
-        AoSoA_NNP_fl aosoa_E( "E", 0 );
+        AoSoA_NNP_G aosoa_G( "G", 0 );
+        AoSoA_NNP_dEdG aosoa_dEdG( "dEdG", 0 );
+        AoSoA_NNP_E aosoa_E( "E", 0 );
     }
-    ~System_NNP<t_device, AoSoA3>() {}
+    ~System_NNP<t_device, 3>() {}
 
     void resize( T_INT N_new )
     {

@@ -9,5 +9,8 @@
  * SPDX-License-Identifier: BSD-3-Clause                                    *
  ****************************************************************************/
 
+#if ( CabanaMD_LAYOUT_NNP == 1 )
 #include <system_nnp_1aosoa.h>
+#elif ( CabanaMD_LAYOUT_NNP == 3 )
 #include <system_nnp_3aosoa.h>
+#endif
