@@ -68,27 +68,6 @@ enum
     DEFAULT
 };
 
-// AoSoA layout type
-enum
-{
-    AOSOA_1,
-    AOSOA_2,
-    AOSOA_3,
-    AOSOA_6
-};
-struct AoSoA1
-{
-};
-struct AoSoA2
-{
-};
-struct AoSoA3
-{
-};
-struct AoSoA6
-{
-};
-
 // Lattice Type
 enum
 {

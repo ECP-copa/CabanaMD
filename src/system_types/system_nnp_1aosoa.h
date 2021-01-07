@@ -17,31 +17,31 @@
 #include <system_nnp.h>
 
 template <class t_device>
-class System_NNP<t_device, AoSoA1>
+class System_NNP<t_device, 1>
 {
     using t_tuple_NNP =
         Cabana::MemberTypes<T_FLOAT[CabanaMD_MAXSYMMFUNC_NNP],
                             T_FLOAT[CabanaMD_MAXSYMMFUNC_NNP], T_FLOAT>;
     using AoSoA_NNP_1 = typename Cabana::AoSoA<t_tuple_NNP, t_device,
-                                               CabanaMD_VECTORLENGTH_NNP>;
+                                               CabanaMD_VECTORLENGTH_NNP_0>;
     AoSoA_NNP_1 aosoa_0;
 
   public:
     using t_G =
         typename System_NNP<t_device,
-                            AoSoA1>::AoSoA_NNP_1::template member_slice_type<0>;
+                            1>::AoSoA_NNP_1::template member_slice_type<0>;
     using t_dEdG =
         typename System_NNP<t_device,
-                            AoSoA1>::AoSoA_NNP_1::template member_slice_type<1>;
+                            1>::AoSoA_NNP_1::template member_slice_type<1>;
     using t_E =
         typename System_NNP<t_device,
-                            AoSoA1>::AoSoA_NNP_1::template member_slice_type<2>;
+                            1>::AoSoA_NNP_1::template member_slice_type<2>;
     t_G G;
     t_dEdG dEdG;
     t_E E;
 
-    System_NNP<t_device, AoSoA1>() { AoSoA_NNP_1 aosoa_0( "All", 0 ); }
-    ~System_NNP<t_device, AoSoA1>() {}
+    System_NNP<t_device, 1>() { AoSoA_NNP_1 aosoa_0( "All", 0 ); }
+    ~System_NNP<t_device, 1>() {}
 
     void resize( T_INT N_new ) { aosoa_0.resize( N_new ); }
 

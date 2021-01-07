@@ -15,9 +15,11 @@
 #cmakedefine CabanaMD_VECTORLENGTH_4 @CabanaMD_VECTORLENGTH_4@
 #cmakedefine CabanaMD_VECTORLENGTH_5 @CabanaMD_VECTORLENGTH_5@
 
-#cmakedefine CabanaMD_LAYOUT_NNP_1AOSOA
-#cmakedefine CabanaMD_LAYOUT_NNP_3AOSOA
-#cmakedefine CabanaMD_VECTORLENGTH_NNP @CabanaMD_VECTORLENGTH_NNP@
+#cmakedefine CabanaMD_LAYOUT_NNP @CabanaMD_LAYOUT_NNP@
+#cmakedefine CabanaMD_VECTORLENGTH_NNP "@CabanaMD_VECTORLENGTH_NNP@"
+#cmakedefine CabanaMD_VECTORLENGTH_NNP_0 @CabanaMD_VECTORLENGTH_NNP_0@
+#cmakedefine CabanaMD_VECTORLENGTH_NNP_1 @CabanaMD_VECTORLENGTH_NNP_1@
+#cmakedefine CabanaMD_VECTORLENGTH_NNP_2 @CabanaMD_VECTORLENGTH_NNP_2@
 #cmakedefine CabanaMD_MAXSYMMFUNC_NNP @CabanaMD_MAXSYMMFUNC_NNP@
 
 #endif
