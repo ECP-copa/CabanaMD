@@ -17,12 +17,12 @@ env:
     - CCACHE_CPP2=yes
   matrix:
     - BACKENDS="OPENMP"
-    - BACKENDS="PTHREAD"
-    - BACKENDS="SERIAL"
-    - BACKENDS="OPENMP" ArborX=ON
-    - BACKENDS="OPENMP" NNP=ON
-    - BACKENDS="OPENMP" ArborX=ON NNP=ON
-    - BACKENDS="PTHREAD" ArborX=ON NNP=ON
+    - BACKENDS="PTHREAD" LAYOUT=1
+    - BACKENDS="SERIAL" LAYOUT=2
+    - BACKENDS="OPENMP" ArborX=ON LAYOUT=6
+    - BACKENDS="OPENMP" NNP=ON LAYOUT=1 LAYOUT_NNP=1
+    - BACKENDS="OPENMP" ArborX=ON NNP=ON LAYOUT=2 LAYOUT_NNP=3
+    - BACKENDS="PTHREAD" ArborX=ON NNP=ON LAYOUT=6
     - BACKENDS="SERIAL" ArborX=ON NNP=ON
     - BACKENDS="OPENMP" Heffte=ON
     - BACKENDS="SERIAL" Heffte=ON
@@ -44,7 +44,8 @@ addons:
 before_script:
   - ccache -z
   - for i in ${BACKENDS}; do KOKKOS_OPTS+=( -DKokkos_ENABLE_${i}=ON ); done
-  - for i in ${BACKENDS}; do CABANAMD_OPTS+=( -DCabanaMD_REQUIRE_${i}=ON ); done
+  - for i in ${LAYOUT}; do CABANAMD_OPTS+=( -DCabanaMD_LAYOUT=${i} ); done
+  - for i in ${LAYOUT_NNP}; do CABANAMD_OPTS+=( -DCabanaMD_LAYOUT_NNP=${i} ); done
     # LD_LIBRARY_PATH workaround for libomp: https://github.com/travis-ci/travis-ci/issues/8613
   - if [[ ${CC} = clang ]]; then export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH; fi
   - if [[ ${CC} = gcc ]]; then export CXX=g++-6; export CC=gcc-6; export FC=gfortran-6; fi
