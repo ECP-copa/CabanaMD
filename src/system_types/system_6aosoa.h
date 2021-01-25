@@ -17,23 +17,29 @@
 #include <system.h>
 
 template <class t_device>
-class System<t_device, AoSoA6> : public SystemCommon<t_device>
+class System<t_device, 6> : public SystemCommon<t_device>
 {
     using t_tuple_x = Cabana::MemberTypes<T_FLOAT[3]>;
     using t_tuple_int = Cabana::MemberTypes<T_INT>;
     using t_tuple_fl = Cabana::MemberTypes<T_FLOAT>;
     using AoSoA_x =
-        typename Cabana::AoSoA<t_tuple_x, t_device, CabanaMD_VECTORLENGTH>;
-    using AoSoA_int =
-        typename Cabana::AoSoA<t_tuple_int, t_device, CabanaMD_VECTORLENGTH>;
-    using AoSoA_fl =
-        typename Cabana::AoSoA<t_tuple_fl, t_device, CabanaMD_VECTORLENGTH>;
+        typename Cabana::AoSoA<t_tuple_x, t_device, CabanaMD_VECTORLENGTH_0>;
+    using AoSoA_v =
+        typename Cabana::AoSoA<t_tuple_x, t_device, CabanaMD_VECTORLENGTH_1>;
+    using AoSoA_f =
+        typename Cabana::AoSoA<t_tuple_x, t_device, CabanaMD_VECTORLENGTH_2>;
+    using AoSoA_id =
+        typename Cabana::AoSoA<t_tuple_int, t_device, CabanaMD_VECTORLENGTH_3>;
+    using AoSoA_type =
+        typename Cabana::AoSoA<t_tuple_int, t_device, CabanaMD_VECTORLENGTH_4>;
+    using AoSoA_q =
+        typename Cabana::AoSoA<t_tuple_fl, t_device, CabanaMD_VECTORLENGTH_5>;
     AoSoA_x aosoa_x;
-    AoSoA_x aosoa_v;
-    AoSoA_x aosoa_f;
-    AoSoA_int aosoa_id;
-    AoSoA_int aosoa_type;
-    AoSoA_fl aosoa_q;
+    AoSoA_v aosoa_v;
+    AoSoA_f aosoa_f;
+    AoSoA_id aosoa_id;
+    AoSoA_type aosoa_type;
+    AoSoA_q aosoa_q;
 
     using SystemCommon<t_device>::N_max;
     // using SystemCommon<t_device>::mass;
@@ -41,26 +47,22 @@ class System<t_device, AoSoA6> : public SystemCommon<t_device>
   public:
     using SystemCommon<t_device>::SystemCommon;
 
-    using layout_type = AoSoA6;
     using memory_space = typename t_device::memory_space;
     using execution_space = typename t_device::execution_space;
 
     // Per Particle Property
-    using t_x = typename System<t_device,
-                                AoSoA6>::AoSoA_x::template member_slice_type<0>;
-    using t_v = typename System<t_device,
-                                AoSoA6>::AoSoA_x::template member_slice_type<0>;
-    using t_f = typename System<t_device,
-                                AoSoA6>::AoSoA_x::template member_slice_type<0>;
+    using t_x =
+        typename System<t_device, 6>::AoSoA_x::template member_slice_type<0>;
+    using t_v =
+        typename System<t_device, 6>::AoSoA_v::template member_slice_type<0>;
+    using t_f =
+        typename System<t_device, 6>::AoSoA_f::template member_slice_type<0>;
     using t_type =
-        typename System<t_device,
-                        AoSoA6>::AoSoA_int::template member_slice_type<0>;
+        typename System<t_device, 6>::AoSoA_type::template member_slice_type<0>;
     using t_id =
-        typename System<t_device,
-                        AoSoA6>::AoSoA_int::template member_slice_type<0>;
+        typename System<t_device, 6>::AoSoA_id::template member_slice_type<0>;
     using t_q =
-        typename System<t_device,
-                        AoSoA6>::AoSoA_fl::template member_slice_type<0>;
+        typename System<t_device, 6>::AoSoA_q::template member_slice_type<0>;
 
     t_x x;
     t_v v;
@@ -72,11 +74,11 @@ class System<t_device, AoSoA6> : public SystemCommon<t_device>
     void init() override
     {
         AoSoA_x aosoa_x( "X", N_max );
-        AoSoA_x aosoa_v( "V", N_max );
-        AoSoA_x aosoa_f( "F", N_max );
-        AoSoA_int aosoa_id( "ID", N_max );
-        AoSoA_int aosoa_type( "Type", N_max );
-        AoSoA_fl aosoa_q( "Q", N_max );
+        AoSoA_v aosoa_v( "V", N_max );
+        AoSoA_f aosoa_f( "F", N_max );
+        AoSoA_id aosoa_id( "ID", N_max );
+        AoSoA_type aosoa_type( "Type", N_max );
+        AoSoA_q aosoa_q( "Q", N_max );
     }
 
     void resize( T_INT N_new ) override
@@ -146,11 +148,11 @@ class System<t_device, AoSoA6> : public SystemCommon<t_device>
     const char *name() override { return "System:6AoSoA"; }
 
     AoSoA_x get_aosoa_x() { return aosoa_x; }
-    AoSoA_x get_aosoa_v() { return aosoa_v; }
-    AoSoA_x get_aosoa_f() { return aosoa_f; }
-    AoSoA_int get_aosoa_type() { return aosoa_type; }
-    AoSoA_int get_aosoa_id() { return aosoa_id; }
-    AoSoA_fl get_aosoa_q() { return aosoa_q; }
+    AoSoA_v get_aosoa_v() { return aosoa_v; }
+    AoSoA_f get_aosoa_f() { return aosoa_f; }
+    AoSoA_type get_aosoa_type() { return aosoa_type; }
+    AoSoA_id get_aosoa_id() { return aosoa_id; }
+    AoSoA_q get_aosoa_q() { return aosoa_q; }
 };
 
 #endif
