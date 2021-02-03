@@ -774,9 +774,8 @@ void InputFile<t_System>::create_velocities( Comm<t_System> *comm,
     // drift (bad for energy statistics)
 
     t_System s = *system;
-    using t_layout = typename t_System::layout_type;
     System<Kokkos::Device<Kokkos::DefaultHostExecutionSpace, Kokkos::HostSpace>,
-           t_layout>
+           CabanaMD_LAYOUT>
         host_system;
     host_system.resize( system->N_local );
     host_system.deep_copy( s );
