@@ -69,7 +69,7 @@ before_script:
           -DHeffte_ENABLE_FFTW=ON .. &&
        make -j2 VERBOSE=1 && make install &&
        popd && popd;
-       CABANA_OPTS+=( -DCabana_ENABLE_CAJITA=ON -DCabana_ENABLE_HEFFTE=ON);
+       CABANA_OPTS+=( -DCabana_REQUIRE_HEFFTE=ON);
     fi
   - if [[ ${ArborX} ]];  then
       git clone --depth=1 https://github.com/arborx/ArborX.git &&
@@ -80,7 +80,7 @@ before_script:
             .. &&
       make -j2 VERBOSE=1 && make install &&
       popd && popd;
-      CABANA_OPTS+=( -DCabana_ENABLE_ARBORX=ON );
+      CABANA_OPTS+=( -DCabana_REQUIRE_ARBORX=ON );
     fi
   - git clone --depth=1 https://github.com/ECP-copa/Cabana.git
   - pushd Cabana && mkdir build && pushd build &&
@@ -88,7 +88,7 @@ before_script:
           -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/ArborX;$HOME/heffte"
           -DCMAKE_INSTALL_PREFIX=$HOME/Cabana
           ${CABANA_OPTS[@]}
-          -DCabana_ENABLE_MPI=ON
+          -DCabana_REQUIRE_MPI=ON
           -DCabana_ENABLE_TESTING=OFF -DCabana_ENABLE_EXAMPLES=OFF
           -DCabana_ENABLE_PERFORMANCE_TESTING=OFF
           .. &&
@@ -130,7 +130,6 @@ after_success:
 branches:
   only:
   - master
-  - longrange_testtravis
 
 cache:
   directories:
