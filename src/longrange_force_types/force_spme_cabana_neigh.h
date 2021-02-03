@@ -59,7 +59,7 @@ class ForceSPME : public Force<t_System, t_Neighbor>
     std::shared_ptr<Cajita::Array<double, Cajita::Node,
                                   Cajita::UniformMesh<double>, device_type>>
         BC_array;
-    std::shared_ptr<Cajita::Array<Kokkos::complex<double>, Cajita::Node,
+    std::shared_ptr<Cajita::Array<double, Cajita::Node,
                                   Cajita::UniformMesh<double>, device_type>>
         Qcomplex;
 

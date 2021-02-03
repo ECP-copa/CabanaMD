@@ -279,16 +279,16 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
 
     // Copy mesh charge into complex view for FFT work
     auto vector_layout =
-        Cajita::createArrayLayout( local_grid, 1, Cajita::Node() );
-    Qcomplex = Cajita::createArray<Kokkos::complex<double>, device_type>(
-        "Qcomplex", vector_layout );
+        Cajita::createArrayLayout( local_grid, 2, Cajita::Node() );
+    Qcomplex =
+        Cajita::createArray<double, device_type>( "Qcomplex", vector_layout );
     auto Qcomplex_view = Qcomplex->view();
     auto Q_view = Q->view();
 
     auto copy_charge = KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
-        Qcomplex_view( i, j, k, 0 ).real( Q_view( i, j, k, 0 ) );
-        Qcomplex_view( i, j, k, 0 ).imag( 0.0 );
+        Qcomplex_view( i, j, k, 0 ) = Q_view( i, j, k, 0 );
+        Qcomplex_view( i, j, k, 0 ) = 0.0;
     };
     Kokkos::parallel_for( grid_policy, copy_charge );
     Kokkos::fence();
@@ -306,6 +306,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     auto mult_BC_Qr = KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
         Qcomplex_view( i, j, k, 0 ) *= BC_view( i, j, k, 0 );
+        Qcomplex_view( i, j, k, 1 ) *= BC_view( i, j, k, 0 );
     };
     Kokkos::parallel_for( grid_policy, mult_BC_Qr );
     Kokkos::fence();
@@ -316,7 +317,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     auto copy_back_charge =
         KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
-        Q_view( i, j, k, 0 ) = Qcomplex_view( i, j, k, 0 ).real();
+        Q_view( i, j, k, 0 ) = Qcomplex_view( i, j, k, 0 );
     };
     Kokkos::parallel_for( grid_policy, copy_back_charge );
     Kokkos::fence();
@@ -410,10 +411,8 @@ ForceSPME<t_System, t_Neighbor>::compute_energy( t_System *system,
         KOKKOS_LAMBDA( const int i, const int j, const int k, T_V_FLOAT &PE )
     {
         PE += ENERGY_CONVERSION_FACTOR * BC_view( i, j, k, 0 ) *
-              ( ( Qcomplex_view( i, j, k, 0 ).real() *
-                  Qcomplex_view( i, j, k, 0 ).real() ) +
-                ( Qcomplex_view( i, j, k, 0 ).imag() *
-                  Qcomplex_view( i, j, k, 0 ).imag() ) );
+              ( ( Qcomplex_view( i, j, k, 0 ) * Qcomplex_view( i, j, k, 0 ) ) +
+                ( Qcomplex_view( i, j, k, 1 ) * Qcomplex_view( i, j, k, 1 ) ) );
     };
     Kokkos::parallel_reduce(
         "ForceSPME::KspacePE",
