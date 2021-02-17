@@ -94,9 +94,9 @@ void Binning<t_System>::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in,
         minz = -dz * halo_depth - eps + system->local_mesh_lo_z;
         maxz = dz * halo_depth + eps + system->local_mesh_hi_z;
 
-        T_X_FLOAT delta[3] = {dx, dy, dz};
-        T_X_FLOAT min[3] = {minx, miny, minz};
-        T_X_FLOAT max[3] = {maxx, maxy, maxz};
+        T_X_FLOAT delta[3] = { dx, dy, dz };
+        T_X_FLOAT min[3] = { minx, miny, minz };
+        T_X_FLOAT max[3] = { maxx, maxy, maxz };
 
         system->slice_x();
         auto x = system->x;

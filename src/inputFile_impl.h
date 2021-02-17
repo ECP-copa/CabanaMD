@@ -56,8 +56,8 @@ std::vector<std::string> split( const std::string &line )
 {
     // Split line on spaces and tabs
     std::regex re( "[ \r\t\n]" );
-    std::sregex_token_iterator first{line.begin(), line.end(), re, -1}, last;
-    std::vector<std::string> words{first, last};
+    std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, last;
+    std::vector<std::string> words{ first, last };
     // Remove empty
     words.erase(
         std::remove_if( words.begin(), words.end(),
@@ -497,8 +497,8 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     T_X_FLOAT max_x = lattice_constant * lattice_nx;
     T_X_FLOAT max_y = lattice_constant * lattice_ny;
     T_X_FLOAT max_z = lattice_constant * lattice_nz;
-    std::array<T_X_FLOAT, 3> global_low = {0.0, 0.0, 0.0};
-    std::array<T_X_FLOAT, 3> global_high = {max_x, max_y, max_z};
+    std::array<T_X_FLOAT, 3> global_low = { 0.0, 0.0, 0.0 };
+    std::array<T_X_FLOAT, 3> global_high = { max_x, max_y, max_z };
     system->create_domain( global_low, global_high );
     s = *system;
 
@@ -723,7 +723,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     for ( T_INT i = 0; i < system->N_local; i++ )
     {
         LAMMPS_RandomVelocityGeom random;
-        double x_i[3] = {h_x( i, 0 ), h_x( i, 1 ), h_x( i, 2 )};
+        double x_i[3] = { h_x( i, 0 ), h_x( i, 1 ), h_x( i, 2 ) };
         random.reset( temperature_seed, x_i );
 
         T_FLOAT mass_i = h_mass( h_type( i ) );

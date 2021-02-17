@@ -141,7 +141,7 @@ class SystemCommon
         global_mesh_z = global_mesh->extent( 2 );
 
         // Create the global grid.
-        std::array<bool, 3> is_periodic = {true, true, true};
+        std::array<bool, 3> is_periodic = { true, true, true };
         auto global_grid = Cajita::createGlobalGrid(
             MPI_COMM_WORLD, global_mesh, is_periodic, partitioner );
 
