@@ -85,7 +85,7 @@ endif()
 ##---------------------------------------------------------------------------##
 ## Clang format
 ##---------------------------------------------------------------------------##
-find_package(CLANG_FORMAT)
+find_package(CLANG_FORMAT 10)
 if(CLANG_FORMAT_FOUND)
   file(GLOB_RECURSE FORMAT_SOURCES src/*.cpp src/*.h bin/*.cpp unit_test/*.cpp unit_test/*.hpp)
   add_custom_target(format
