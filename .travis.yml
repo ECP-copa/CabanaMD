@@ -1,5 +1,7 @@
 language: cpp
 
+dist: focal
+
 # against hwloc error (travis-ci/travis-ci#10019)
 sudo: required
 
@@ -27,14 +29,12 @@ env:
 
 addons:
   apt:
-    sources:
-      - sourceline: 'ppa:ubuntu-toolchain-r/test'
     packages:
       - ccache
       - libhwloc-dev
       - libopenmpi-dev
       - openmpi-bin
-      - g++-6
+      - clang-format
 
 before_script:
   - ccache -z
@@ -43,7 +43,6 @@ before_script:
   - for i in ${LAYOUT_NNP}; do CABANAMD_OPTS+=( -DCabanaMD_LAYOUT_NNP=${i} ); done
     # LD_LIBRARY_PATH workaround for libomp: https://github.com/travis-ci/travis-ci/issues/8613
   - if [[ ${CC} = clang ]]; then export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH; fi
-  - if [[ ${CC} = gcc ]]; then export CXX=g++-6; export CC=gcc-6; export FC=gfortran-6; fi
   - pushd $HOME/build
   - git clone --depth=1 https://github.com/kokkos/kokkos.git &&
     pushd kokkos && mkdir build && pushd build &&
@@ -95,9 +94,9 @@ script:
           -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Werror"
           -DCMAKE_PREFIX_PATH="$HOME/Cabana"
           -DCabanaMD_ENABLE_TESTING=ON
-          -DCabanaMD_REQUIRE_SERIAL=OFF
           -DCabanaMD_ENABLE_NNP=${NNP}
           -DN2P2_DIR=$HOME/build/n2p2
+          -DCLANG_FORMAT_EXECUTABLE=/usr/bin/clang-format
           ${CABANAMD_OPTS[@]}
           .. &&
     make -j4 VERBOSE=1 &&
