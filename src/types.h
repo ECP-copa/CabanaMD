@@ -64,6 +64,7 @@ enum
     CUDA,
     HIP,
     OPENMP,
+    PTHREAD,
     SERIAL,
     DEFAULT
 };

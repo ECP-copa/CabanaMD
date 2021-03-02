@@ -119,6 +119,16 @@ class MDfactory
                 "CabanaMD not compiled with Kokkos::Serial" );
 #endif
         }
+        else if ( device == PTHREAD )
+        {
+#ifdef KOKKOS_ENABLE_THREADS
+            using t_device = Kokkos::Threads::device_type;
+            return createImpl<t_device>( commandline );
+#else
+            throw std::runtime_error(
+                "CabanaMD not compiled with Kokkos::Threads" );
+#endif
+        }
         else if ( device == OPENMP )
         {
 #ifdef KOKKOS_ENABLE_OPENMP
