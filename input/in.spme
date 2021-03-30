@@ -4,12 +4,12 @@ units		metal
 atom_style	charge
 
 newton off
-lattice         fcc 5.5
+lattice         fcc 5.64
 region	        box block 0 10 0 10 0 10
 create_box      2 box
 create_atoms    1 box
 
-lattice         fcc 5.5 origin 0.5 0.0 0.0
+lattice         fcc 5.64 origin 0.5 0.0 0.0
 region          box block 0 10 0 10 0 10
 create_atoms    2 box
 
@@ -20,7 +20,7 @@ set             type 2 charge -1
 
 velocity        all create 300 87287 loop geom
 
-kspace_style    ewald 1.0e-6
+kspace_style    spme 1.0e-6
 pair_style      lj/cut/coul/long 8.0
 pair_coeff      1 1 0.00150286 2.52  8.0
 pair_coeff      2 2 0.01658406 3.85  8.0
