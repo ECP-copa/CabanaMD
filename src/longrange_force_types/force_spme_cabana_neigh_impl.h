@@ -160,7 +160,7 @@ template <class t_System, class t_Neighbor>
 void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
 {
     // TODO: This should be configurable
-    double cell_size = system->global_mesh_x / 100.0;
+    double cell_size = system->global_mesh_x / 10.0;
     std::array<double, 3> global_low_corner = {system->global_mesh_lo_x,
                                                system->global_mesh_lo_y,
                                                system->global_mesh_lo_z};
@@ -202,31 +202,36 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
 
     auto BC_functor = KOKKOS_LAMBDA( const int kx, const int ky, const int kz )
     {
-        int mx, my, mz;
-        if ( kx + ky + kz > 0 )
+      // shift to avoid ghost cells. need indexing from 0 to num_cells_x-1
+      int kxx, kyy, kzz;
+      kxx = kx - 3; //TODO: Is it always 3 here?
+      kyy = ky - 3;
+      kzz = kz - 3;
+      int mx, my, mz;
+        if ( kxx + kyy + kzz > 0 )
         {
             // Shift the C array
-            mx = kx;
-            my = ky;
-            mz = kz;
+            mx = kxx;
+            my = kyy;
+            mz = kzz;
             if ( mx > meshwidth_x / 2.0 )
             {
-                mx = kx - meshwidth_x;
+                mx = kxx - meshwidth_x;
             }
             if ( my > meshwidth_y / 2.0 )
             {
-                my = ky - meshwidth_y;
+                my = kyy - meshwidth_y;
             }
             if ( mz > meshwidth_z / 2.0 )
             {
-                mz = kz - meshwidth_z;
+                mz = kzz - meshwidth_z;
             }
             auto m2 = ( mx * mx + my * my + mz * mz );
             // Calculate BC.
             BC_view( kx, ky, kz, 0 ) =
-                ForceSPME::oneDeuler( kx, meshwidth_x ) *
-                ForceSPME::oneDeuler( ky, meshwidth_y ) *
-                ForceSPME::oneDeuler( kz, meshwidth_z ) *
+                ForceSPME::oneDeuler( mx, meshwidth_x ) *
+                ForceSPME::oneDeuler( my, meshwidth_y ) *
+                ForceSPME::oneDeuler( mz, meshwidth_z ) *
                 exp( -PI * PI * m2 / ( alpha * alpha ) ) /
                 ( PI * system->global_mesh_x * system->global_mesh_y *
                   system->global_mesh_z * m2 );
@@ -239,7 +244,6 @@ void ForceSPME<t_System, t_Neighbor>::create_mesh( t_System *system )
     Kokkos::parallel_for(
         Cajita::createExecutionPolicy( owned_space, exe_space() ), BC_functor );
     Kokkos::fence();
-    // TODO: check these indices
 }
 
 // Compute the forces
