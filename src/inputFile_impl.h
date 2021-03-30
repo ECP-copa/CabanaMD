@@ -810,7 +810,8 @@ void InputFile<t_System>::create_velocities( Comm<t_System> *comm,
         h_v( i, 1 ) = vy / sqrt( mass_i );
         h_v( i, 2 ) = vz / sqrt( mass_i );
 
-        h_q( i ) = 0.0;
+// TODO: Check this
+//        h_q( i ) = 0.0;
 
         total_mass += mass_i;
         total_momentum_x += mass_i * h_v( i, 0 );
