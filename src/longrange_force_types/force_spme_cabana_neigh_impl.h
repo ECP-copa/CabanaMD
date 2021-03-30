@@ -292,7 +292,7 @@ void ForceSPME<t_System, t_Neighbor>::compute( t_System *system,
     auto copy_charge = KOKKOS_LAMBDA( const int i, const int j, const int k )
     {
         Qcomplex_view( i, j, k, 0 ) = Q_view( i, j, k, 0 );
-        Qcomplex_view( i, j, k, 0 ) = 0.0;
+        Qcomplex_view( i, j, k, 1 ) = 0.0;
     };
     Kokkos::parallel_for( grid_policy, copy_charge );
     Kokkos::fence();
