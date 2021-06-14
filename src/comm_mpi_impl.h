@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2020 by the Cabana authors                            *
+ * Copyright (c) 2018-2021 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -100,9 +100,9 @@ void Comm<t_System>::create_domain_decomposition()
 
     for ( int p = 0; p < 6; p++ )
     {
-        neighbors_dist[p] = {proc_rank, proc_neighbors_send[p],
-                             proc_neighbors_recv[p]};
-        neighbors_halo[p] = {proc_neighbors_send[p], proc_neighbors_recv[p]};
+        neighbors_dist[p] = { proc_rank, proc_neighbors_send[p],
+                              proc_neighbors_recv[p] };
+        neighbors_halo[p] = { proc_neighbors_send[p], proc_neighbors_recv[p] };
 
         std::sort( neighbors_halo[p].begin(), neighbors_halo[p].end() );
         auto unique_end =

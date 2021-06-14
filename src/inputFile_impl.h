@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2020 by the Cabana authors                            *
+ * Copyright (c) 2018-2021 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -56,8 +56,8 @@ std::vector<std::string> split( const std::string &line )
 {
     // Split line on spaces and tabs
     std::regex re( "[ \r\t\n]" );
-    std::sregex_token_iterator first{line.begin(), line.end(), re, -1}, last;
-    std::vector<std::string> words{first, last};
+    std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, last;
+    std::vector<std::string> words{ first, last };
     // Remove empty
     words.erase(
         std::remove_if( words.begin(), words.end(),
@@ -798,7 +798,7 @@ void InputFile<t_System>::create_velocities( Comm<t_System> *comm,
     for ( T_INT i = 0; i < system->N_local; i++ )
     {
         LAMMPS_RandomVelocityGeom random;
-        double x_i[3] = {h_x( i, 0 ), h_x( i, 1 ), h_x( i, 2 )};
+        double x_i[3] = { h_x( i, 0 ), h_x( i, 1 ), h_x( i, 2 ) };
         random.reset( temperature_seed, x_i );
 
         T_FLOAT mass_i = h_mass( h_type( i ) );

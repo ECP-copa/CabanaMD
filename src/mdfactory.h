@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2020 by the Cabana authors                            *
+ * Copyright (c) 2018-2021 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -117,6 +117,16 @@ class MDfactory
 #else
             throw std::runtime_error(
                 "CabanaMD not compiled with Kokkos::Serial" );
+#endif
+        }
+        else if ( device == PTHREAD )
+        {
+#ifdef KOKKOS_ENABLE_THREADS
+            using t_device = Kokkos::Threads::device_type;
+            return createImpl<t_device>( commandline );
+#else
+            throw std::runtime_error(
+                "CabanaMD not compiled with Kokkos::Threads" );
 #endif
         }
         else if ( device == OPENMP )

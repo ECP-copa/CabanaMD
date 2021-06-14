@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2020 by the Cabana authors                            *
+ * Copyright (c) 2018-2021 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -260,8 +260,8 @@ t_System createAtoms( const int num_atom, const int num_ghost,
     system.N_local = num_atom - num_ghost;
     system.N_ghost = num_ghost;
 
-    system.create_domain( {box_min, box_min, box_min},
-                          {box_max, box_max, box_max} );
+    system.create_domain( { box_min, box_min, box_min },
+                          { box_max, box_max, box_max } );
 
     // Create random atom positions within the box.
     system.slice_x();

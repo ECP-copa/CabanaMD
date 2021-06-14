@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2020 by the Cabana authors                            *
+ * Copyright (c) 2018-2021 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -61,17 +61,19 @@ int main( int argc, char *argv[] )
 
     MPI_Init( &argc, &argv );
 
-    Kokkos::ScopeGuard scope_guard( argc, argv );
+    {
+        Kokkos::ScopeGuard scope_guard( argc, argv );
 
-    InputCL commandline;
-    commandline.read_args( argc, argv );
+        InputCL commandline;
+        commandline.read_args( argc, argv );
 
-    CabanaMD *cabanamd = MDfactory::create( commandline );
+        CabanaMD *cabanamd = MDfactory::create( commandline );
 
-    cabanamd->init( commandline );
-    cabanamd->run();
+        cabanamd->init( commandline );
+        cabanamd->run();
 
-    //   cabanamd.check_correctness();
+        //   cabanamd.check_correctness();
+    }
 
     MPI_Finalize();
 }

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2020 by the Cabana authors                            *
+ * Copyright (c) 2018-2021 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -83,11 +83,11 @@ void InputCL::read_args( int argc, char *argv[] )
             log( std::cout,
                  "  -e [FILE] (OR)\n"
                  "  --error-file [FILE]:    Provide error file name\n" );
-            log(
-                std::cout,
-                "  --device-type [TYPE]:     Kokkos device type to run ",
-                "with\n",
-                "                                (SERIAL, OPENMP, CUDA, HIP)" );
+            log( std::cout,
+                 "  --device-type [TYPE]:     Kokkos device type to run ",
+                 "with\n",
+                 "                                (SERIAL, PTHREAD, OPENMP, "
+                 "CUDA, HIP)" );
             log( std::cout,
                  "  --force-iteration [TYPE]: Specify iteration style for ",
                  "force calculations\n",
@@ -146,6 +146,8 @@ void InputCL::read_args( int argc, char *argv[] )
         {
             if ( ( strcmp( argv[i + 1], "SERIAL" ) == 0 ) )
                 device_type = SERIAL;
+            else if ( ( strcmp( argv[i + 1], "PTHREAD" ) == 0 ) )
+                device_type = PTHREAD;
             else if ( ( strcmp( argv[i + 1], "OPENMP" ) == 0 ) )
                 device_type = OPENMP;
             else if ( ( strcmp( argv[i + 1], "CUDA" ) == 0 ) )

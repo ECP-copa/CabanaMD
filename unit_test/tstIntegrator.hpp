@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright (c) 2018-2020 by the Cabana authors                            *
+ * Copyright (c) 2018-2021 by the Cabana authors                            *
  * All rights reserved.                                                     *
  *                                                                          *
  * This file is part of the Cabana library. Cabana is distributed under a   *
@@ -43,8 +43,8 @@ t_System createParticles( const int num_particle, const int num_ghost,
     system.N_local = num_particle - num_ghost;
     system.N_ghost = num_ghost;
 
-    system.create_domain( {box_min, box_min, box_min},
-                          {box_max, box_max, box_max} );
+    system.create_domain( { box_min, box_min, box_min },
+                          { box_max, box_max, box_max } );
 
     system.slice_integrate();
     auto x = system.x;
@@ -112,10 +112,11 @@ void testIntegratorReversibility( int steps )
     system.slice_v();
     auto v = system.v;
     Kokkos::RangePolicy<TEST_EXECSPACE> exec_policy( 0, num_particle );
-    Kokkos::parallel_for( exec_policy, KOKKOS_LAMBDA( const int p ) {
-        for ( int d = 0; d < 3; ++d )
-            v( p, d ) *= -1.0;
-    } );
+    Kokkos::parallel_for(
+        exec_policy, KOKKOS_LAMBDA( const int p ) {
+            for ( int d = 0; d < 3; ++d )
+                v( p, d ) *= -1.0;
+        } );
 
     // Integrate back
     for ( int s = 0; s < steps; ++s )

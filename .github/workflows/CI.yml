@@ -1,0 +1,162 @@
+name: CI
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  schedule:
+    - cron:  '0 5 * * *'
+
+jobs:
+  CI:
+    strategy:
+      matrix:
+        distro: ['ubuntu:latest']
+        cxx: ['g++', 'clang++']
+        backend: ['SERIAL', 'OPENMP']
+        cmake_build_type: ['Debug', 'Release']
+        kokkos_ver: ['3.2.01']
+        arborx: ['ArborX', 'NoArborX']
+        nnp: ['ON', 'OFF']
+        layout: ['1']
+        vector: ['1']
+        layout_nnp: ['1']
+        vector_nnp: ['1']
+        include:
+          - distro: 'ubuntu:latest'
+            cxx: 'g++'
+            openmp: 'ON'
+            cmake_build_type: 'Release'
+            kokkos_ver: '3.2.01'
+            arborx: 'NoArborX'
+            nnp: 'OFF'
+            layout: '2'
+            vector: '64'
+            layout_nnp: '1'
+            vector_nnp: '1'
+          - distro: 'ubuntu:latest'
+            cxx: 'g++'
+            openmp: 'ON'
+            cmake_build_type: 'Release'
+            kokkos_ver: '3.2.01'
+            arborx: 'NoArborX'
+            nnp: 'ON'
+            layout: '6'
+            vector: '32'
+            layout_nnp: '3'
+            vector_nnp: '32'
+          - distro: 'ubuntu:latest'
+            cxx: 'g++'
+            openmp: 'ON'
+            cmake_build_type: 'Release'
+            kokkos_ver: '3.2.01'
+            arborx: 'NoArborX'
+            nnp: 'OFF'
+            layout: '6'
+            vector: '"1;8;32;1;8;32"'
+            layout_nnp: '3'
+            vector_nnp: '"32;8;1"'
+    runs-on: ubuntu-20.04
+    container: ghcr.io/ecp-copa/ci-containers/${{ matrix.distro }}
+    steps:
+      - name: Get trail license
+        if: ${{ matrix.cxx == 'icpc' }}
+        run: |
+          mkdir ~/Licenses
+          curl https://dynamicinstaller.intel.com/api/v2/license > ~/Licenses/intel.lic
+      - name: Checkout kokkos
+        uses: actions/checkout@v2.2.0
+        with:
+          repository: kokkos/kokkos
+          ref: ${{ matrix.kokkos_ver }}
+          path: kokkos
+      - name: Build kokkos
+        working-directory: kokkos
+        run: |
+          cmake -B build \
+            -DCMAKE_INSTALL_PREFIX=$HOME/kokkos \
+            -DKokkos_ENABLE_OPENMP=${{ matrix.openmp }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DKokkos_ENABLE_HWLOC=ON \
+            -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
+          cmake --build build --parallel 2
+          cmake --install build
+      - name: Checkout arborx
+        if: ${{ matrix.arborx == 'ArborX' }}
+        uses: actions/checkout@v2.2.0
+        with:
+          repository: arborx/ArborX
+          ref: master
+          path: arborx
+      - name: Build arborx
+        if: ${{ matrix.arborx == 'ArborX' }}
+        working-directory: arborx
+        run: |
+          cmake -B build \
+            -DCMAKE_PREFIX_PATH=${HOME}/kokkos \
+            -DCMAKE_INSTALL_PREFIX=$HOME/arborx \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
+          cmake --build build --parallel 2
+          cmake --install build
+      - name: Checkout Cabana
+        uses: actions/checkout@v2.2.0
+        with:
+          repository: ECP-CoPA/Cabana
+          ref: master
+          path: cabana
+      - name: Build Cabana
+        working-directory: cabana
+        run: |
+          cmake -B build \
+            -DCMAKE_INSTALL_PREFIX=$HOME/Cabana \
+            -DMPIEXEC_MAX_NUMPROCS=2 -DMPIEXEC_PREFLAGS="--oversubscribe" \
+            -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/arborx" \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
+          cmake --build build --parallel 2
+          cmake --install build
+      - name: Checkout n2p2
+        if: ${{ matrix.nnp == 'ON' }}
+        uses: actions/checkout@v2.2.0
+        with:
+          repository: CompPhysVienna/n2p2
+          ref: v2.0.1
+          path: n2p2
+      - name: Build n2p2
+        if: ${{ matrix.nnp == 'ON' }}
+        working-directory: n2p2/src
+        run: |
+          mkdir -p $HOME/n2p2/include
+          mkdir -p $HOME/n2p2/lib
+          make libnnpif INTERFACES=CabanaMD PROJECT_INCLUDE=$HOME/n2p2/include PROJECT_LIB=$HOME/n2p2/lib
+      - name: Checkout CabanaMD
+        uses: actions/checkout@v2.2.0
+      - name: Build CabanaMD
+        run: |
+          cmake -B build \
+            -DCMAKE_INSTALL_PREFIX=$HOME/CabanaMD \
+            -DMPIEXEC_MAX_NUMPROCS=2 -DMPIEXEC_PREFLAGS="--oversubscribe" \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Werror" \
+            -DCMAKE_PREFIX_PATH="$HOME/Cabana" \
+            -DCabanaMD_ENABLE_TESTING=ON \
+            -DCabanaMD_LAYOUT=${{ matrix.layout }} \
+            -DCabanaMD_VECTORLENGTH=${{ matrix.vector }} \
+            -DCabanaMD_ENABLE_NNP=${{ matrix.nnp }} \
+            -DN2P2_DIR=$HOME/n2p2 \
+            -DCabanaMD_LAYOUT_NNP=${{ matrix.layout_nnp }} \
+            -DCabanaMD_VECTORLENGTH_NNP=${{ matrix.vector_nnp }}
+          cmake --build build --parallel 2
+          CTEST_OUTPUT_ON_FAILURE=1 cmake --build build --target test
+          cmake --install build
+      - name: Format CabanaMD
+        working-directory: build
+        run: |
+          make format
+          git diff --exit-code
+      - name: Upload Report to codecov.io
+        if: ${{ matrix.coverage }}
+        uses: codecov/codecov-action@v1
