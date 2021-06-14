@@ -114,6 +114,8 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     comm_exchange_rate = 20;
 
     force_cutoff = 2.5;
+
+    charge = { 0 };
 }
 
 template <class t_System>
@@ -562,8 +564,8 @@ void InputFile<t_System>::create_one_lattice( Comm<t_System> *comm,
     T_X_FLOAT max_x = curr_constant * curr_nx;
     T_X_FLOAT max_y = curr_constant * curr_ny;
     T_X_FLOAT max_z = curr_constant * curr_nz;
-    std::array<T_X_FLOAT, 3> global_low = {0.0, 0.0, 0.0};
-    std::array<T_X_FLOAT, 3> global_high = {max_x, max_y, max_z};
+    std::array<T_X_FLOAT, 3> global_low = { 0.0, 0.0, 0.0 };
+    std::array<T_X_FLOAT, 3> global_high = { max_x, max_y, max_z };
     system->create_domain( global_low, global_high );
     t_System s = *system;
 
@@ -809,9 +811,6 @@ void InputFile<t_System>::create_velocities( Comm<t_System> *comm,
         h_v( i, 0 ) = vx / sqrt( mass_i );
         h_v( i, 1 ) = vy / sqrt( mass_i );
         h_v( i, 2 ) = vz / sqrt( mass_i );
-
-// TODO: Check this
-//        h_q( i ) = 0.0;
 
         total_mass += mass_i;
         total_momentum_x += mass_i * h_v( i, 0 );
