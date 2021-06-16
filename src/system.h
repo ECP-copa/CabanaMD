@@ -83,6 +83,9 @@ class SystemCommon
 
     // Simulation total domain
     T_X_FLOAT global_mesh_x, global_mesh_y, global_mesh_z;
+    T_X_FLOAT global_mesh_lo_x, global_mesh_lo_y, global_mesh_lo_z;
+    T_X_FLOAT global_mesh_hi_x, global_mesh_hi_y, global_mesh_hi_z;
+    std::vector<T_X_FLOAT> lattice_constant;
 
     // Simulation sub domain (single MPI rank)
     T_X_FLOAT local_mesh_x, local_mesh_y, local_mesh_z;
@@ -96,6 +99,8 @@ class SystemCommon
     // Only needed for current comm
     std::array<int, 3> ranks_per_dim;
     std::array<int, 3> rank_dim_pos;
+
+    std::array<bool, 3> is_periodic;
 
     // Units
     T_FLOAT boltz, mvv2e, dt;
@@ -112,6 +117,8 @@ class SystemCommon
         mass = t_mass( "System::mass", ntypes );
 
         global_mesh_x = global_mesh_y = global_mesh_z = 0.0;
+        global_mesh_lo_x = global_mesh_lo_y = global_mesh_lo_z = 0.0;
+        global_mesh_hi_x = global_mesh_hi_y = global_mesh_hi_z = 0.0;
         local_mesh_lo_x = local_mesh_lo_y = local_mesh_lo_z = 0.0;
         local_mesh_hi_x = local_mesh_hi_y = local_mesh_hi_z = 0.0;
         ghost_mesh_lo_x = ghost_mesh_lo_y = ghost_mesh_lo_z = 0.0;
@@ -136,12 +143,8 @@ class SystemCommon
         auto global_mesh = Cajita::createUniformGlobalMesh(
             low_corner, high_corner, ranks_per_dim );
 
-        global_mesh_x = global_mesh->extent( 0 );
-        global_mesh_y = global_mesh->extent( 1 );
-        global_mesh_z = global_mesh->extent( 2 );
-
         // Create the global grid.
-        std::array<bool, 3> is_periodic = { true, true, true };
+        is_periodic = {true, true, true};
         auto global_grid = Cajita::createGlobalGrid(
             MPI_COMM_WORLD, global_mesh, is_periodic, partitioner );
 
@@ -154,6 +157,16 @@ class SystemCommon
         int halo_width = 1;
         local_grid = Cajita::createLocalGrid( global_grid, halo_width );
         auto local_mesh = Cajita::createLocalMesh<t_device>( *local_grid );
+
+        global_mesh_x = global_mesh->extent( 0 );
+        global_mesh_y = global_mesh->extent( 1 );
+        global_mesh_z = global_mesh->extent( 2 );
+        global_mesh_lo_x = low_corner[0];
+        global_mesh_lo_y = low_corner[1];
+        global_mesh_lo_z = low_corner[2];
+        global_mesh_hi_x = high_corner[0];
+        global_mesh_hi_y = high_corner[1];
+        global_mesh_hi_z = high_corner[2];
 
         local_mesh_lo_x = local_mesh.lowCorner( Cajita::Own(), 0 );
         local_mesh_lo_y = local_mesh.lowCorner( Cajita::Own(), 1 );

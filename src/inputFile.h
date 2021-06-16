@@ -150,6 +150,7 @@ class InputFile
 {
   private:
     bool timestepflag; // input timestep?
+
   public:
     InputCL commandline;
     t_System *system;
@@ -157,10 +158,12 @@ class InputFile
     bool _print_rank;
     int units_style;
     int lattice_style;
-    double lattice_constant, lattice_offset_x, lattice_offset_y,
-        lattice_offset_z;
-    int lattice_nx, lattice_ny, lattice_nz;
-    int box[6];
+    std::vector<double> lattice_constant;
+    std::vector<double> lattice_offset_x, lattice_offset_y, lattice_offset_z;
+    std::vector<int> lattice_nx, lattice_ny, lattice_nz;
+    std::vector<double> charge;
+
+    int num_lattice;
 
     char *data_file;
     int data_file_type;
@@ -180,11 +183,16 @@ class InputFile
     int comm_exchange_rate;
 
     int force_type;
+
+    int lrforce_type;
     int force_iteration_type;
+    int lrforce_iteration_type;
     int force_neigh_parallel_type;
 
     T_F_FLOAT force_cutoff;
+    T_F_FLOAT lrforce_cutoff;
     std::vector<std::vector<std::string>> force_coeff_lines;
+    std::vector<std::vector<std::string>> lrforce_coeff_lines;
 
     T_F_FLOAT neighbor_skin;
     int neighbor_type;
@@ -199,14 +207,20 @@ class InputFile
     std::string input_data_file;
     std::string output_data_file;
     bool read_data_flag = false;
+    bool create_velocity_flag = false;
     bool write_data_flag = false;
 
     InputFile( InputCL cl, t_System *s );
-    void read_file( const char *filename = NULL );
+    void read_file( std::ofstream &out, std::ofstream &err,
+                    const char *filename = NULL );
     void read_lammps_file( std::ifstream &in, std::ofstream &out,
                            std::ofstream &err );
     void check_lammps_command( std::string line, std::ofstream &err );
-    void create_lattice( Comm<t_System> *comm );
+    void create_lattices( Comm<t_System> *comm, std::ofstream &out );
+    template <class t_HostSystem>
+    void create_one_lattice( Comm<t_System> *comm, std::ofstream &out,
+                             const int type, t_HostSystem &host_system );
+    void create_velocities( Comm<t_System> *comm, std::ofstream &out );
 };
 
 #include <inputFile_impl.h>

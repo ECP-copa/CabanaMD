@@ -48,8 +48,17 @@
 
 #include <CabanaMD_config.hpp>
 
+#include <Cabana_Core.hpp>
+#include <Cajita.hpp>
+
 #include <force_lj_cabana_neigh.h>
 
 #ifdef CabanaMD_ENABLE_NNP
 #include <force_nnp_cabana_neigh.h>
+#endif
+
+// Include Module header files for longrange force
+#ifdef Cabana_ENABLE_HEFFTE
+#include <force_ewald_cabana_neigh.h>
+#include <force_spme_cabana_neigh.h>
 #endif

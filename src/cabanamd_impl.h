@@ -49,6 +49,7 @@
 #include <CabanaMD_config.hpp>
 
 #include <Cabana_Core.hpp>
+#include <Cajita.hpp>
 #include <Kokkos_Core.hpp>
 
 #include <output.h>
@@ -72,22 +73,34 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 
     // Create the Input class: Command line and LAMMPS input file
     input = new InputFile<t_System>( commandline, system );
+
+    // Create output/error streams and overwrite previous runs
+    std::ofstream out( input->output_file, std::ofstream::out );
+    std::ofstream err( input->error_file, std::ofstream::out );
+
     // Read input file
-    input->read_file();
+    input->read_file( out, err );
     nsteps = input->nsteps;
-    std::ofstream out( input->output_file, std::ofstream::app );
-    std::ofstream err( input->error_file, std::ofstream::app );
     log( out, "Read input file." );
 
     using exe_space = typename t_System::execution_space;
     if ( print_rank() )
+    {
         exe_space::print_configuration( out );
+    }
 
+    // Check that the requested pair_style/kspace_style was compiled
 #ifndef CabanaMD_ENABLE_NNP
-    // Check that the requested pair_style was compiled
     if ( input->force_type == FORCE_NNP )
     {
         log_err( err, "NNP requested, but not compiled!" );
+    }
+#endif
+#ifndef Cabana_ENABLE_HEFFTE
+    if ( input->lrforce_type != FORCE_NONE )
+    {
+        log_err( err, "LongRange requested, but heFFTe and/or Cajita was not "
+                      "compiled with Cabana!" );
     }
 #endif
     auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
@@ -174,6 +187,44 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     }
     force->init_coeff( input->force_coeff_lines );
 
+    // Create atoms - from LAMMPS data file or create FCC/SC lattice
+    if ( system->N == 0 && input->read_data_flag == true )
+    {
+        read_lammps_data_file<t_System>( input, system, comm, out, err );
+    }
+    else if ( system->N == 0 )
+    {
+        input->create_lattices( comm, out );
+    }
+    log( out, "Created atoms." );
+    if ( input->create_velocity_flag )
+    {
+        input->create_velocities( comm, out );
+    }
+
+    // Create long range Force class: options in longrangeforce_types/ folder
+    // Delay because tuning (within init) uses atom count, domain size
+#ifdef Cabana_ENABLE_HEFFTE
+    if ( input->lrforce_type != FORCE_NONE )
+    {
+        bool half_neigh =
+            input->lrforce_iteration_type == FORCE_ITER_NEIGH_HALF;
+        if ( !half_neigh )
+            log( err, "Full neighbor list not implemented "
+                      "for the SPME longrange solver." );
+
+        if ( input->lrforce_type == FORCE_EWALD )
+            lrforce = new ForceEwald<t_System, t_Neighbor>( system );
+        else if ( input->lrforce_type == FORCE_SPME )
+            lrforce = new ForceSPME<t_System, t_Neighbor>( system );
+        else
+            log( err, "Invalid LongRangeForceType" );
+
+        lrforce->init_coeff( input->lrforce_coeff_lines );
+        lrforce->init_longrange( system, neigh_cutoff );
+    }
+#endif
+
     log( out, "Using: SystemVectorLength: ", CabanaMD_VECTORLENGTH, " ",
          system->name() );
 #ifdef CabanaMD_ENABLE_NNP
@@ -181,20 +232,15 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         log( out, "Using: SystemNNPVectorLength: ", CabanaMD_VECTORLENGTH_NNP,
              " ", force->system_name() );
 #endif
-    log( out, "Using: ", force->name(), " ", neighbor->name(), " ",
-         comm->name(), " ", binning->name(), " ", integrator->name() );
+    if ( input->lrforce_type != FORCE_NONE )
+        log( out, "Using: ", force->name(), " ", lrforce->name(), " ",
+             neighbor->name(), " ", comm->name(), " ", binning->name(), " ",
+             integrator->name() );
+    else
+        log( out, "Using: ", force->name(), " ", neighbor->name(), " ",
+             comm->name(), " ", binning->name(), " ", integrator->name() );
 
-    // Create atoms - from LAMMPS data file or create FCC/SC lattice
-    if ( system->N == 0 && input->read_data_flag == true )
-    {
-        read_lammps_data_file<t_System>( input, system, comm );
-    }
-    else if ( system->N == 0 )
-    {
-        input->create_lattice( comm );
-    }
-    log( out, "Created atoms." );
-
+    // Run step 0
     // Set MPI rank neighbors
     comm->create_domain_decomposition();
 
@@ -210,12 +256,15 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 
     // Compute atom neighbors
     neighbor->create( system );
+    // TODO: option for separate long range neighbors
 
     // Compute initial forces
     system->slice_f();
     auto f = system->f;
     Cabana::deep_copy( f, 0.0 );
     force->compute( system, neighbor );
+    if ( input->lrforce_type != FORCE_NONE )
+        lrforce->compute( system, neighbor );
 
     // Scatter ghost atom forces back to original MPI rank
     //   (update force for pair_style nnp even if full neighbor list)
@@ -233,6 +282,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         KinE<t_System> kine( comm );
         auto T = temp.compute( system );
         auto PE = pote.compute( system, force, neighbor ) / system->N;
+        if ( input->lrforce_type != FORCE_NONE )
+            PE += pote.compute( system, lrforce, neighbor ) / system->N;
         auto KE = kine.compute( system ) / system->N;
         if ( !_print_lammps )
         {
@@ -273,16 +324,17 @@ void CbnMD<t_System, t_Neighbor>::run()
     KinE<t_System> kine( comm );
 
     double force_time = 0;
+    double lrforce_time = 0;
     double comm_time = 0;
     double neigh_time = 0;
     double integrate_time = 0;
     double other_time = 0;
 
     double last_time = 0;
-    Kokkos::Timer timer, force_timer, comm_timer, neigh_timer, integrate_timer,
-        other_timer;
+    Kokkos::Timer timer, force_timer, lrforce_timer, comm_timer, neigh_timer,
+        integrate_timer, other_timer;
 
-    // Main timestep loop
+    // Timestep Loop
     for ( int step = 1; step <= nsteps; step++ )
     {
         // Integrate atom positions - velocity Verlet first half
@@ -331,7 +383,15 @@ void CbnMD<t_System, t_Neighbor>::run()
         force->compute( system, neighbor );
         force_time += force_timer.seconds();
 
-        // This is where Bonds, Angles, and KSpace should go eventually
+        // Compute long range force
+        if ( input->lrforce_type != FORCE_NONE )
+        {
+            lrforce_timer.reset();
+            lrforce->compute( system, neighbor );
+            lrforce_time += lrforce_timer.seconds();
+        }
+
+        // This is where Bonds, Angles, etc. should go eventually
 
         // Scatter ghost atom forces back to original MPI rank
         //   (update force for pair_style nnp even if full neighbor list)
@@ -348,12 +408,13 @@ void CbnMD<t_System, t_Neighbor>::run()
         integrate_time += integrate_timer.seconds();
 
         other_timer.reset();
-
         // Print output
         if ( step % input->thermo_rate == 0 )
         {
             auto T = temp.compute( system );
             auto PE = pote.compute( system, force, neighbor ) / system->N;
+            if ( input->lrforce_type != FORCE_NONE )
+                PE += pote.compute( system, lrforce, neighbor ) / system->N;
             auto KE = kine.compute( system ) / system->N;
 
             if ( !_print_lammps )
@@ -391,16 +452,36 @@ void CbnMD<t_System, t_Neighbor>::run()
     {
         double steps_per_sec = 1.0 * nsteps / time;
         double atom_steps_per_sec = system->N * steps_per_sec;
-        log( out, std::fixed, std::setprecision( 2 ),
-             "\n#Procs Atoms | Time T_Force T_Neigh T_Comm T_Int ",
-             "T_Other |\n", comm->num_processes(), " ", system->N, " | ", time,
-             " ", force_time, " ", neigh_time, " ", comm_time, " ",
-             integrate_time, " ", other_time, " | PERFORMANCE\n", std::fixed,
-             comm->num_processes(), " ", system->N, " | ", 1.0, " ",
-             force_time / time, " ", neigh_time / time, " ", comm_time / time,
-             " ", integrate_time / time, " ", other_time / time,
-             " | FRACTION\n\n", "#Steps/s Atomsteps/s Atomsteps/(proc*s)\n",
-             std::scientific, steps_per_sec, " ", atom_steps_per_sec, " ",
+
+        if ( input->lrforce_type == FORCE_NONE )
+        {
+            log( out, std::fixed, std::setprecision( 2 ),
+                 "\n#Procs Atoms | Time T_Force T_Neigh T_Comm T_Int ",
+                 "T_Other |" );
+            log( out, comm->num_processes(), " ", system->N, " | ", time, " ",
+                 force_time, " ", neigh_time, " ", comm_time, " ",
+                 integrate_time, " ", other_time, " | PERFORMANCE" );
+            log( out, std::fixed, comm->num_processes(), " ", system->N, " | ",
+                 1.0, " ", force_time / time, " ", neigh_time / time, " ",
+                 comm_time / time, " ", integrate_time / time, " ",
+                 other_time / time, " | FRACTION\n" );
+        }
+        else
+        {
+            log( out, std::fixed, std::setprecision( 2 ),
+                 "\n#Procs Atoms | Time T_Force T_ForceLong T_Neigh T_Comm "
+                 "T_Int T_Other |" );
+            log( out, comm->num_processes(), " ", system->N, " | ", time, " ",
+                 force_time, " ", lrforce_time, " ", neigh_time, " ", comm_time,
+                 " ", integrate_time, " ", other_time, " | PERFORMANCE" );
+            log( out, std::fixed, comm->num_processes(), " ", system->N, " | ",
+                 1.0, " ", force_time / time, " ", lrforce_time / time, " ",
+                 neigh_time / time, " ", comm_time / time, " ",
+                 integrate_time / time, " ", other_time / time,
+                 " | FRACTION\n" );
+        }
+        log( out, "#Steps/s Atomsteps/s Atomsteps/(proc*s)\n", std::scientific,
+             steps_per_sec, " ", atom_steps_per_sec, " ",
              atom_steps_per_sec / comm->num_processes() );
     }
     else
@@ -456,13 +537,6 @@ void CbnMD<t_System, t_Neighbor>::dump_binary( int step )
     fclose( fp );
     err.close();
 }
-
-// TODO: 1. Add path to Reference [DONE]
-//     2. Add MPI Rank file ids in Reference [DONE]
-//     3. Move to separate class
-//     4. Add pressure to thermo output
-//     5. basis_offset [DONE]
-//     6. correctness output to file [DONE]
 
 template <class t_System, class t_Neighbor>
 void CbnMD<t_System, t_Neighbor>::check_correctness( int step )

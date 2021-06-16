@@ -77,6 +77,7 @@ class CbnMD : public CabanaMD
     t_System *system;
     t_Neighbor *neighbor;
     Force<t_System, t_Neighbor> *force;
+    Force<t_System, t_Neighbor> *lrforce;
     Integrator<t_System> *integrator;
     Comm<t_System> *comm;
     Binning<t_System> *binning;

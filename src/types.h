@@ -95,7 +95,10 @@ enum
 {
     FORCE_LJ,
     FORCE_SNAP,
-    FORCE_NNP
+    FORCE_NNP,
+    FORCE_EWALD,
+    FORCE_SPME,
+    FORCE_NONE
 };
 // Force Iteration Type
 enum
@@ -124,6 +127,11 @@ enum
 {
     INPUT_LAMMPS
 };
+
+constexpr double PI( 3.141592653589793238462643 );
+constexpr double PI_SQRT( 1.772453850905516 );
+constexpr double PI_SQ( PI *PI );          // 9.869604401089359
+constexpr double PI_DIV_SQ( 1.0 / PI_SQ ); // 0.101321183642338
 
 // Macros to work around the fact that std::max/min is not available on GPUs
 #define MAX( a, b ) ( a > b ? a : b )
