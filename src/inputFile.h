@@ -179,8 +179,9 @@ class InputFile
 
     int binning_type = BINNING_LINKEDCELL;
 
-    int comm_type = COMM_MPI;
-    int comm_exchange_rate = 20;
+    int comm_type;
+    int comm_exchange_rate;
+    double comm_ghost_cutoff;
 
     int force_type = FORCE_LJ;
     int force_iteration_type;
@@ -203,6 +204,9 @@ class InputFile
     std::string output_data_file;
     bool read_data_flag = false;
     bool write_data_flag = false;
+    bool write_vtk_flag = false;
+    int vtk_rate;
+    std::string vtk_file;
 
     InputFile( InputCL cl, t_System *s );
     void read_file( const char *filename = NULL );
