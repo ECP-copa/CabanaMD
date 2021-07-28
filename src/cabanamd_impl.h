@@ -224,6 +224,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         comm->update_force();
     }
 
+    lb = new LoadBalancer<t_System>( system );
+
     // Initial output
     int step = 0;
     if ( input->thermo_rate > 0 )
@@ -373,6 +375,7 @@ void CbnMD<t_System, t_Neighbor>::run()
                      " ", T, " ", PE, " ", PE + KE, " ", time );
                 last_time = time;
             }
+            lb->output( step );
         }
 
         if ( input->dumpbinaryflag )
@@ -380,6 +383,8 @@ void CbnMD<t_System, t_Neighbor>::run()
 
         if ( input->correctnessflag )
             check_correctness( step );
+
+        lb->balance();
 
         other_time += other_timer.seconds();
     }
