@@ -89,6 +89,7 @@ target_include_directories(CabanaMD PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
                                     ${CMAKE_CURRENT_SOURCE_DIR}/system_types
                                     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+target_link_libraries(CabanaMD ALL::ALL)
 
 #------------------------------------------------------------
 
