@@ -278,11 +278,12 @@ void CbnMD<t_System, t_Neighbor>::run()
     double comm_time = 0;
     double neigh_time = 0;
     double integrate_time = 0;
+    double lb_time = 0;
     double other_time = 0;
 
     double last_time = 0;
     Kokkos::Timer timer, force_timer, comm_timer, neigh_timer, integrate_timer,
-        other_timer;
+        lb_timer, other_timer;
 
     // Main timestep loop
     for ( int step = 1; step <= nsteps; step++ )
@@ -294,6 +295,11 @@ void CbnMD<t_System, t_Neighbor>::run()
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
         {
+            // Update domain decomposition
+            lb_timer.reset();
+            lb->balance();
+            lb_time += lb_timer.seconds();
+
             // Exchange atoms across MPI ranks
             comm_timer.reset();
             comm->exchange();
@@ -384,8 +390,6 @@ void CbnMD<t_System, t_Neighbor>::run()
         if ( input->correctnessflag )
             check_correctness( step );
 
-        lb->balance();
-
         other_time += other_timer.seconds();
     }
 
@@ -397,15 +401,16 @@ void CbnMD<t_System, t_Neighbor>::run()
         double steps_per_sec = 1.0 * nsteps / time;
         double atom_steps_per_sec = system->N * steps_per_sec;
         log( out, std::fixed, std::setprecision( 2 ),
-             "\n#Procs Atoms | Time T_Force T_Neigh T_Comm T_Int ",
+             "\n#Procs Atoms | Time T_Force T_Neigh T_Comm T_Int T_lb ",
              "T_Other |\n", comm->num_processes(), " ", system->N, " | ", time,
              " ", force_time, " ", neigh_time, " ", comm_time, " ",
-             integrate_time, " ", other_time, " | PERFORMANCE\n", std::fixed,
-             comm->num_processes(), " ", system->N, " | ", 1.0, " ",
+             integrate_time, " ", lb_time, " ", other_time, " | PERFORMANCE\n",
+             std::fixed, comm->num_processes(), " ", system->N, " | ", 1.0, " ",
              force_time / time, " ", neigh_time / time, " ", comm_time / time,
-             " ", integrate_time / time, " ", other_time / time,
-             " | FRACTION\n\n", "#Steps/s Atomsteps/s Atomsteps/(proc*s)\n",
-             std::scientific, steps_per_sec, " ", atom_steps_per_sec, " ",
+             " ", integrate_time / time, " ", lb_time / time, " ",
+             other_time / time, " | FRACTION\n\n",
+             "#Steps/s Atomsteps/s Atomsteps/(proc*s)\n", std::scientific,
+             steps_per_sec, " ", atom_steps_per_sec, " ",
              atom_steps_per_sec / comm->num_processes() );
     }
     else

@@ -175,7 +175,8 @@ class SystemCommon
         local_mesh_y = local_mesh.extent( Cajita::Own(), 1 );
         local_mesh_z = local_mesh.extent( Cajita::Own(), 2 );
     }
-    // low_corner and high_corner are local corners, not globa as in create_domain!
+    // low_corner and high_corner are local corners, not global as in
+    // create_domain!
     void update_domain( std::array<double, 3> low_corner,
                         std::array<double, 3> high_corner )
     {
@@ -188,12 +189,12 @@ class SystemCommon
         local_mesh_x = local_mesh_hi_x - local_mesh_lo_x;
         local_mesh_y = local_mesh_hi_y - local_mesh_lo_y;
         local_mesh_z = local_mesh_hi_z - local_mesh_lo_z;
-        ghost_mesh_lo_x = local_mesh_lo_x - halo_width*local_mesh_x;
-        ghost_mesh_lo_y = local_mesh_lo_y - halo_width*local_mesh_y;
-        ghost_mesh_lo_z = local_mesh_lo_z - halo_width*local_mesh_z;
-        ghost_mesh_hi_x = local_mesh_hi_x + halo_width*local_mesh_x;
-        ghost_mesh_hi_y = local_mesh_hi_y + halo_width*local_mesh_y;
-        ghost_mesh_hi_z = local_mesh_hi_z + halo_width*local_mesh_z;
+        ghost_mesh_lo_x = local_mesh_lo_x - halo_width * local_mesh_x;
+        ghost_mesh_lo_y = local_mesh_lo_y - halo_width * local_mesh_y;
+        ghost_mesh_lo_z = local_mesh_lo_z - halo_width * local_mesh_z;
+        ghost_mesh_hi_x = local_mesh_hi_x + halo_width * local_mesh_x;
+        ghost_mesh_hi_y = local_mesh_hi_y + halo_width * local_mesh_y;
+        ghost_mesh_hi_z = local_mesh_hi_z + halo_width * local_mesh_z;
     }
 
     void slice_all()
