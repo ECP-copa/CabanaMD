@@ -119,6 +119,8 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     neighbor_skin = 0.0; // for metal and real units
     max_neigh_guess = 50;
     comm_exchange_rate = 20;
+    comm_ghost_cutoff = std::pow( ( 4.0 / lattice_constant ), ( 1.0 / 3.0 ) ) *
+                        20.0; // 20 lattice constants
 
     force_cutoff = 2.5;
 }
@@ -416,6 +418,27 @@ void InputFile<t_System>::check_lammps_command( std::string line,
             }
         }
     }
+    if ( keyword.compare( "comm_modify" ) == 0 )
+    {
+        if ( words.at( 1 ).compare( "cutoff" ) == 0 )
+        {
+            if ( words.at( 2 ).compare( "*" ) == 0 )
+            {
+                known = true;
+                comm_ghost_cutoff = std::stod( words.at( 3 ) );
+            }
+            else
+            {
+                log_err( err, "LAMMPS-Command: 'comm_modify' command only "
+                              "supported for all atom types '*' in CabanaMD" );
+            }
+        }
+        else
+        {
+            log_err( err, "LAMMPS-Command: 'comm_modify' command only supports "
+                          "single cutoff 'cutoff' in CabanaMD" );
+        }
+    }
     if ( keyword.compare( "fix" ) == 0 )
     {
         if ( words.at( 3 ).compare( "nve" ) == 0 )
@@ -502,7 +525,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     // global_high[0] *= 2;
     // global_high[1] *= 2;
     // global_high[2] *= 2;
-    system->create_domain( global_low, global_high );
+    system->create_domain( global_low, global_high, comm_ghost_cutoff );
     s = *system;
 
     auto local_mesh_lo_x = s.local_mesh_lo_x;

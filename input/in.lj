@@ -17,6 +17,7 @@ pair_coeff	1 1 1.0 1.0 2.5
 
 neighbor	0.3 bin
 neigh_modify	every 20 one 50
+comm_modify	cutoff * 20
 fix		1 all nve
 thermo 10
 

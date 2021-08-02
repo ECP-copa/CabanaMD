@@ -38,7 +38,7 @@ class LoadBalancer
                                         _system->ranks_per_dim.end() );
         _liball->setProcGridParams( rank_dim_pos, ranks_per_dim );
         // todo(sschulz): Do we need a minimum domain size?
-        //std::vector<double> min_size( 3, 15 );
+        // std::vector<double> min_size( 3, 15 );
         //_liball->setMinDomainSize( min_size );
         _liball->setCommunicator( _comm );
         _liball->setProcTag( _rank );

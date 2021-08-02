@@ -178,6 +178,7 @@ class InputFile
 
     int comm_type;
     int comm_exchange_rate;
+    double comm_ghost_cutoff;
 
     int force_type;
     int force_iteration_type;

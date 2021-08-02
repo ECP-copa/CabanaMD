@@ -81,8 +81,6 @@ class SystemCommon
     typedef typename t_mass::HostMirror h_t_mass;
     t_mass mass;
 
-    int halo_width;
-
     // Simulation total domain
     T_X_FLOAT global_mesh_x, global_mesh_y, global_mesh_z;
 
@@ -92,6 +90,7 @@ class SystemCommon
     T_X_FLOAT local_mesh_hi_x, local_mesh_hi_y, local_mesh_hi_z;
     T_X_FLOAT ghost_mesh_lo_x, ghost_mesh_lo_y, ghost_mesh_lo_z;
     T_X_FLOAT ghost_mesh_hi_x, ghost_mesh_hi_y, ghost_mesh_hi_z;
+    T_X_FLOAT halo_width;
     std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
         local_grid;
     std::shared_ptr<Cajita::GlobalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
@@ -130,8 +129,9 @@ class SystemCommon
     ~SystemCommon() {}
 
     void create_domain( std::array<double, 3> low_corner,
-                        std::array<double, 3> high_corner )
+                        std::array<double, 3> high_corner, double ghost_cutoff )
     {
+        halo_width = ghost_cutoff;
         // Create the MPI partitions.
         Cajita::UniformDimPartitioner partitioner;
         ranks_per_dim = partitioner.ranksPerDimension( MPI_COMM_WORLD, {} );
@@ -155,8 +155,7 @@ class SystemCommon
         }
 
         // Create a local mesh
-        halo_width = 1;
-        local_grid = Cajita::createLocalGrid( global_grid, halo_width );
+        local_grid = Cajita::createLocalGrid( global_grid, 0 );
         auto local_mesh = Cajita::createLocalMesh<t_device>( *local_grid );
 
         local_mesh_lo_x = local_mesh.lowCorner( Cajita::Own(), 0 );
@@ -165,12 +164,12 @@ class SystemCommon
         local_mesh_hi_x = local_mesh.highCorner( Cajita::Own(), 0 );
         local_mesh_hi_y = local_mesh.highCorner( Cajita::Own(), 1 );
         local_mesh_hi_z = local_mesh.highCorner( Cajita::Own(), 2 );
-        ghost_mesh_lo_x = local_mesh.lowCorner( Cajita::Ghost(), 0 );
-        ghost_mesh_lo_y = local_mesh.lowCorner( Cajita::Ghost(), 1 );
-        ghost_mesh_lo_z = local_mesh.lowCorner( Cajita::Ghost(), 2 );
-        ghost_mesh_hi_x = local_mesh.highCorner( Cajita::Ghost(), 0 );
-        ghost_mesh_hi_y = local_mesh.highCorner( Cajita::Ghost(), 1 );
-        ghost_mesh_hi_z = local_mesh.highCorner( Cajita::Ghost(), 2 );
+        ghost_mesh_lo_x = local_mesh_lo_x - halo_width;
+        ghost_mesh_lo_y = local_mesh_lo_y - halo_width;
+        ghost_mesh_lo_z = local_mesh_lo_z - halo_width;
+        ghost_mesh_hi_x = local_mesh_hi_x + halo_width;
+        ghost_mesh_hi_y = local_mesh_hi_y + halo_width;
+        ghost_mesh_hi_z = local_mesh_hi_z + halo_width;
         local_mesh_x = local_mesh.extent( Cajita::Own(), 0 );
         local_mesh_y = local_mesh.extent( Cajita::Own(), 1 );
         local_mesh_z = local_mesh.extent( Cajita::Own(), 2 );
@@ -180,7 +179,7 @@ class SystemCommon
                 local_mesh_lo_y, local_mesh_lo_z, local_mesh_hi_x,
                 local_mesh_hi_y, local_mesh_hi_z );
     }
-    // low_corner and high_corner are local corners, not globa as in
+    // low_corner and high_corner are local corners, not global as in
     // create_domain!
     void update_domain( std::array<double, 3> low_corner,
                         std::array<double, 3> high_corner )
@@ -201,12 +200,12 @@ class SystemCommon
         local_mesh_x = local_mesh_hi_x - local_mesh_lo_x;
         local_mesh_y = local_mesh_hi_y - local_mesh_lo_y;
         local_mesh_z = local_mesh_hi_z - local_mesh_lo_z;
-        ghost_mesh_lo_x = local_mesh_lo_x - halo_width * local_mesh_x;
-        ghost_mesh_lo_y = local_mesh_lo_y - halo_width * local_mesh_y;
-        ghost_mesh_lo_z = local_mesh_lo_z - halo_width * local_mesh_z;
-        ghost_mesh_hi_x = local_mesh_hi_x + halo_width * local_mesh_x;
-        ghost_mesh_hi_y = local_mesh_hi_y + halo_width * local_mesh_y;
-        ghost_mesh_hi_z = local_mesh_hi_z + halo_width * local_mesh_z;
+        ghost_mesh_lo_x = local_mesh_lo_x - halo_width;
+        ghost_mesh_lo_y = local_mesh_lo_y - halo_width;
+        ghost_mesh_lo_z = local_mesh_lo_z - halo_width;
+        ghost_mesh_hi_x = local_mesh_hi_x + halo_width;
+        ghost_mesh_hi_y = local_mesh_hi_y + halo_width;
+        ghost_mesh_hi_z = local_mesh_hi_z + halo_width;
         printf( "%s: New extent: %g %g %g %g %g %g, %g %g %g\n", __func__,
                 local_mesh_lo_x, local_mesh_lo_y, local_mesh_lo_z,
                 local_mesh_hi_x, local_mesh_hi_y, local_mesh_hi_z, local_mesh_x,
