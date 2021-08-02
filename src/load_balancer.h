@@ -56,10 +56,18 @@ class LoadBalancer
 
     void balance()
     {
-        _liball->setWork( _system->N_local + _system->N_ghost );
+        int rank;
+        MPI_Comm_rank( _comm, &rank );
+        double work = ( _system->N_local + _system->N_ghost ) / ( rank + 1 );
+        printf( ">> Work: %g\n", work );
+        _liball->setWork( work );
         _liball->balance();
         std::vector<ALL::Point<double>> updated_vertices =
             _liball->getVertices();
+        printf( ">> New Vertices: %g %g %g %g %g %g\n",
+                updated_vertices.at( 0 )[0], updated_vertices.at( 0 )[1],
+                updated_vertices.at( 0 )[2], updated_vertices.at( 1 )[0],
+                updated_vertices.at( 1 )[1], updated_vertices.at( 1 )[2] );
         std::array<double, 3> low_corner = { updated_vertices.at( 0 )[0],
                                              updated_vertices.at( 0 )[1],
                                              updated_vertices.at( 0 )[2] };

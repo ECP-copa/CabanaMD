@@ -158,6 +158,10 @@ void read_lammps_header( std::ifstream &file, std::ofstream &err, t_System *s )
     }
 
     // Create mesh
+    //high_corner[0] *= 2;
+    //high_corner[1] *= 2;
+    //high_corner[2] *= 2;
+    printf( ">> %g %g %g\n", high_corner[0], high_corner[1], high_corner[2] );
     s->create_domain( low_corner, high_corner );
 }
 
