@@ -51,6 +51,8 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+#include <mpi.h>
+
 #include <output.h>
 #include <property_kine.h>
 #include <property_pote.h>
@@ -266,6 +268,7 @@ template <class t_System, class t_Neighbor>
 void CbnMD<t_System, t_Neighbor>::run()
 {
     std::ofstream out( input->output_file, std::ofstream::app );
+    std::ofstream err( input->error_file, std::ofstream::app );
 
     auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
@@ -384,6 +387,10 @@ void CbnMD<t_System, t_Neighbor>::run()
             lb->output( step );
         }
 
+        if ( step % input->vtk_rate == 0 )
+            VTKDomainWriter::writeParticles( MPI_COMM_WORLD, step, system,
+                                             input->vtk_file, err );
+
         if ( input->dumpbinaryflag )
             dump_binary( step );
 
@@ -419,6 +426,7 @@ void CbnMD<t_System, t_Neighbor>::run()
              " procs for ", nsteps, " steps with ", system->N, " atoms" );
     }
     out.close();
+    err.close();
 
     if ( input->write_data_flag )
         write_data( system, input->output_data_file );

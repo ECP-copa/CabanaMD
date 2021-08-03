@@ -201,6 +201,9 @@ class InputFile
     std::string output_data_file;
     bool read_data_flag = false;
     bool write_data_flag = false;
+    bool write_vtk_flag = false;
+    int vtk_rate;
+    std::string vtk_file;
 
     InputFile( InputCL cl, t_System *s );
     void read_file( const char *filename = NULL );

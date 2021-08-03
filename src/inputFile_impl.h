@@ -91,6 +91,7 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     thermo_rate = 0;
     dumpbinary_rate = 0;
     correctness_rate = 0;
+    vtk_rate = 0;
     dumpbinaryflag = false;
     correctnessflag = false;
     timestepflag = false;
@@ -336,6 +337,38 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         known = true;
         write_data_flag = true;
         output_data_file = words.at( 1 );
+    }
+    if ( keyword.compare( "dump" ) == 0 )
+    {
+        if ( words.at( 3 ).compare( "vtk" ) == 0 )
+        {
+            known = true;
+            write_vtk_flag = true;
+            vtk_file = words.at( 5 );
+            vtk_rate = std::stod( words.at( 4 ) );
+            if ( words.at( 2 ).compare( "all" ) != 0 )
+            {
+                log_err( err, "LAMMPS-Command: 'dump' command only supports "
+                              "dumping 'all' types in CabanaMD" );
+            }
+            size_t pos = 0;
+            pos = vtk_file.find( "*", pos );
+            if ( std::string::npos == pos )
+                log_err( err,
+                         "LAMMPS-Command: 'dump' requires '*' in file name, so "
+                         "it can be replaced by the time step in CabanaMD" );
+            pos = 0;
+            pos = vtk_file.find( "%", pos );
+            if ( std::string::npos == pos )
+                log_err( err,
+                         "LAMMPS-Command: 'dump' requires '%' in file name, so "
+                         "it can be replaced by the rank in CabanaMD" );
+        }
+        else
+        {
+            log_err( err, "LAMMPS-Command: 'dump' command only supports 'vtk' "
+                          "in CabanaMD" );
+        }
     }
     if ( keyword.compare( "pair_style" ) == 0 )
     {
