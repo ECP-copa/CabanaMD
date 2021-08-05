@@ -34,6 +34,7 @@ void writeDomainParallelFile( MPI_Comm comm, int time_step,
     fprintf( file, "<PUnstructuredGrid>\n" );
     fprintf( file, "\t<PCellData>\n" );
     fprintf( file, "\t\t<PDataArray type=\"Int32\" Name=\"rank\"/>\n" );
+    fprintf( file, "\t\t<PDataArray type=\"Float64\" Name=\"work\"/>\n" );
     fprintf( file, "\t</PCellData>\n" );
     fprintf( file, "\t<PPoints>\n" );
     fprintf( file, "\t\t<PDataArray type=\"Float64\" Name=\"Points\" "
@@ -48,9 +49,10 @@ void writeDomainParallelFile( MPI_Comm comm, int time_step,
 }
 
 // Write VTU for domain (low corner, high corner)
-// basename will be appended with the corresponding time step, rank and extension
+// basename will be appended with the corresponding time step, rank and
+// extension
 void writeDomain( MPI_Comm comm, int time_step,
-                  std::array<double, 6> &domain_vertices,
+                  std::array<double, 6> &domain_vertices, double work,
                   std::string &basename )
 {
     int rank;
@@ -98,6 +100,10 @@ void writeDomain( MPI_Comm comm, int time_step,
     fprintf( file, "\t\t<DataArray type=\"Int32\" Name=\"rank\" "
                    "NumberOfComponents=\"1\" format=\"ascii\">\n" );
     fprintf( file, "%d", rank );
+    fprintf( file, "\n\t\t</DataArray>\n" );
+    fprintf( file, "\t\t<DataArray type=\"Float64\" Name=\"work\" "
+                   "NumberOfComponents=\"1\" format=\"ascii\">\n" );
+    fprintf( file, "%g", work );
     fprintf( file, "\n\t\t</DataArray>\n" );
     fprintf( file, "\t</CellData>\n" );
     fprintf( file, "\t<Points>\n" );

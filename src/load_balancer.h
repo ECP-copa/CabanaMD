@@ -59,9 +59,9 @@ class LoadBalancer
     {
         int rank;
         MPI_Comm_rank( _comm, &rank );
-        double work = ( _system->N_local + _system->N_ghost );
-        printf( ">> Work: %g\n", work );
-        _liball->setWork( work );
+        _work = ( _system->N_local + _system->N_ghost );
+        printf( ">> Work: %g\n", _work );
+        _liball->setWork( _work );
         _liball->balance();
         std::vector<ALL::Point<double>> updated_vertices =
             _liball->getVertices();
@@ -88,8 +88,8 @@ class LoadBalancer
             _system->local_mesh_lo_x, _system->local_mesh_lo_y,
             _system->local_mesh_lo_z, _system->local_mesh_hi_x,
             _system->local_mesh_hi_y, _system->local_mesh_hi_z };
-        VTKWriter::writeDomain( _comm, t, vertices,
-                                      vtk_actual_domain_basename );
+        VTKWriter::writeDomain( _comm, t, vertices, _work,
+                                vtk_actual_domain_basename );
 
         std::vector<ALL::Point<double>> updated_vertices =
             _liball->getVertices();
@@ -97,8 +97,8 @@ class LoadBalancer
             vertices[d] = updated_vertices.at( 0 )[d];
         for ( std::size_t d = 3; d < 6; ++d )
             vertices[d] = updated_vertices.at( 1 )[d - 3];
-        VTKWriter::writeDomain( _comm, t, vertices,
-                                      vtk_lb_domain_basename );
+        VTKWriter::writeDomain( _comm, t, vertices, _work,
+                                vtk_lb_domain_basename );
     }
 
   private:
@@ -106,6 +106,7 @@ class LoadBalancer
     t_System *_system;
     std::shared_ptr<ALL::ALL<double, double>> _liball;
     int _rank;
+    double _work;
 };
 
 #endif

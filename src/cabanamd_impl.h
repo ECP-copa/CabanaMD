@@ -390,7 +390,7 @@ void CbnMD<t_System, t_Neighbor>::run()
 
         if ( step % input->vtk_rate == 0 )
             VTKWriter::writeParticles( MPI_COMM_WORLD, step, system,
-                                             input->vtk_file, err );
+                                       input->vtk_file, err );
 
         if ( input->dumpbinaryflag )
             dump_binary( step );
