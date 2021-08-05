@@ -16,8 +16,7 @@
 #include <sstream>
 #include <string>
 
-// todo(sschulz): Refactor name of VTKDomainWriter to VTKWriter
-namespace VTKDomainWriter
+namespace VTKWriter
 {
 // Write PVTU
 void writeDomainParallelFile( MPI_Comm comm, int time_step,
@@ -47,7 +46,9 @@ void writeDomainParallelFile( MPI_Comm comm, int time_step,
     fprintf( file, "</VTKFile>\n" );
     fclose( file );
 }
+
 // Write VTU for domain (low corner, high corner)
+// basename will be appended with the corresponding time step, rank and extension
 void writeDomain( MPI_Comm comm, int time_step,
                   std::array<double, 6> &domain_vertices,
                   std::string &basename )
@@ -275,5 +276,5 @@ void writeParticles( MPI_Comm comm, const int step, t_System *system,
     fclose( file );
 }
 
-} // end namespace VTKDomainWriter
+} // end namespace VTKWriter
 #endif

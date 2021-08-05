@@ -388,7 +388,7 @@ void CbnMD<t_System, t_Neighbor>::run()
         }
 
         if ( step % input->vtk_rate == 0 )
-            VTKDomainWriter::writeParticles( MPI_COMM_WORLD, step, system,
+            VTKWriter::writeParticles( MPI_COMM_WORLD, step, system,
                                              input->vtk_file, err );
 
         if ( input->dumpbinaryflag )

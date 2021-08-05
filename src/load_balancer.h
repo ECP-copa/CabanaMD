@@ -88,7 +88,7 @@ class LoadBalancer
             _system->local_mesh_lo_x, _system->local_mesh_lo_y,
             _system->local_mesh_lo_z, _system->local_mesh_hi_x,
             _system->local_mesh_hi_y, _system->local_mesh_hi_z };
-        VTKDomainWriter::writeDomain( _comm, t, vertices,
+        VTKWriter::writeDomain( _comm, t, vertices,
                                       vtk_actual_domain_basename );
 
         std::vector<ALL::Point<double>> updated_vertices =
@@ -97,7 +97,7 @@ class LoadBalancer
             vertices[d] = updated_vertices.at( 0 )[d];
         for ( std::size_t d = 3; d < 6; ++d )
             vertices[d] = updated_vertices.at( 1 )[d - 3];
-        VTKDomainWriter::writeDomain( _comm, t, vertices,
+        VTKWriter::writeDomain( _comm, t, vertices,
                                       vtk_lb_domain_basename );
     }
 
