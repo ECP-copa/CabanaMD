@@ -55,6 +55,7 @@
 
 #include <types.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 
@@ -126,6 +127,15 @@ class SystemCommon
 
     ~SystemCommon() {}
 
+    void create_domain( std::array<double, 3> low_corner,
+                        std::array<double, 3> high_corner )
+    {
+        double ghost_cutoff =
+            std::max( std::max( high_corner[0] - low_corner[0],
+                                high_corner[2] - low_corner[1] ),
+                      high_corner[2] - low_corner[2] );
+        create_domain( low_corner, high_corner, ghost_cutoff );
+    }
     void create_domain( std::array<double, 3> low_corner,
                         std::array<double, 3> high_corner, double ghost_cutoff )
     {
