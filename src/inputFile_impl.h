@@ -49,6 +49,7 @@
 #include <inputFile.h>
 #include <property_temperature.h>
 
+#include <algorithm>
 #include <iostream>
 #include <regex>
 
@@ -568,12 +569,34 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     auto local_mesh_hi_y = s.local_mesh_hi_y;
     auto local_mesh_hi_z = s.local_mesh_hi_z;
 
-    T_INT ix_start = local_mesh_lo_x / s.global_mesh_x * lattice_nx - 0.5;
-    T_INT iy_start = local_mesh_lo_y / s.global_mesh_y * lattice_ny - 0.5;
-    T_INT iz_start = local_mesh_lo_z / s.global_mesh_z * lattice_nz - 0.5;
-    T_INT ix_end = local_mesh_hi_x / s.global_mesh_x * lattice_nx + 0.5;
-    T_INT iy_end = local_mesh_hi_y / s.global_mesh_y * lattice_ny + 0.5;
-    T_INT iz_end = local_mesh_hi_z / s.global_mesh_z * lattice_nz + 0.5;
+    // T_INT ix_start = local_mesh_lo_x / s.global_mesh_x * lattice_nx - 0.5;
+    // T_INT iy_start = local_mesh_lo_y / s.global_mesh_y * lattice_ny - 0.5;
+    // T_INT iz_start = local_mesh_lo_z / s.global_mesh_z * lattice_nz - 0.5;
+    // T_INT ix_end = local_mesh_hi_x / s.global_mesh_x * lattice_nx + 0.5;
+    // T_INT iy_end = local_mesh_hi_y / s.global_mesh_y * lattice_ny + 0.5;
+    // T_INT iz_end = local_mesh_hi_z / s.global_mesh_z * lattice_nz + 0.5;
+    // todo(sschulz): This should be checked for missing boundary cells.
+    T_INT ix_start = local_mesh_lo_x / lattice_constant - 0.5;
+    T_INT iy_start = local_mesh_lo_y / lattice_constant - 0.5;
+    T_INT iz_start = local_mesh_lo_z / lattice_constant - 0.5;
+    T_INT ix_end =
+        std::max( std::min( static_cast<double>( lattice_nx ),
+                            local_mesh_hi_x / lattice_constant + 0.5 ),
+                  static_cast<double>( ix_start ) );
+    T_INT iy_end =
+        std::max( std::min( static_cast<double>( lattice_ny ),
+                            local_mesh_hi_y / lattice_constant + 0.5 ),
+                  static_cast<double>( iy_start ) );
+    T_INT iz_end =
+        std::max( std::min( static_cast<double>( lattice_nz ),
+                            local_mesh_hi_z / lattice_constant + 0.5 ),
+                  static_cast<double>( iz_start ) );
+    if ( ix_start == ix_end )
+        ix_end -= 1;
+    if ( iy_start == iy_end )
+        iy_end -= 1;
+    if ( iz_start == iz_end )
+        iz_end -= 1;
 
     // Create Simple Cubic Lattice
     if ( lattice_style == LATTICE_SC )
