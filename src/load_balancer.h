@@ -13,7 +13,7 @@
 #define LOADBALANCER_H
 
 #include <types.h>
-#include <vtk_domain_writer.h>
+#include <vtk_writer.h>
 
 #include <ALL.hpp>
 

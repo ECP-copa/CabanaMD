@@ -58,6 +58,7 @@
 #include <property_pote.h>
 #include <property_temperature.h>
 #include <read_data.h>
+#include <vtk_writer.h>
 
 #include <fstream>
 #include <iomanip>
