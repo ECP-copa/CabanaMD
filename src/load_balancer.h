@@ -59,7 +59,7 @@ class LoadBalancer
     {
         int rank;
         MPI_Comm_rank( _comm, &rank );
-        double work = ( _system->N_local + _system->N_ghost ) / ( rank + 1 );
+        double work = ( _system->N_local + _system->N_ghost );
         printf( ">> Work: %g\n", work );
         _liball->setWork( work );
         _liball->balance();
