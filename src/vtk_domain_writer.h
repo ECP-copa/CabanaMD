@@ -41,8 +41,8 @@ void writeDomainParallelFile( MPI_Comm comm, int time_step,
                    "NumberOfComponents=\"3\"/>\n" );
     fprintf( file, "\t</PPoints>\n" );
     for ( int i = 0; i < size; ++i )
-        fprintf( file, "\t<Piece Source=\"%s_%d_%d.vtu\"/>\n",
-                 basename.c_str(), time_step, i );
+        fprintf( file, "\t<Piece Source=\"%s_%d_%d.vtu\"/>\n", basename.c_str(),
+                 time_step, i );
     fprintf( file, "</PUnstructuredGrid>\n" );
     fprintf( file, "</VTKFile>\n" );
     fclose( file );
