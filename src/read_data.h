@@ -158,12 +158,7 @@ void read_lammps_header( std::ifstream &file, std::ofstream &err, t_System *s )
     }
 
     // Create mesh
-    // todo(sschulz): Is this retrievable from the data file?
-    double lattice_constant = 0.8442; // default lattice constant
-    double comm_ghost_cutoff =
-        std::pow( ( 4.0 / lattice_constant ), ( 1.0 / 3.0 ) ) *
-        20.0; // 20 default lattice constants
-    s->create_domain( low_corner, high_corner, comm_ghost_cutoff );
+    s->create_domain( low_corner, high_corner );
 }
 
 template <class t_System, class t_HostSystem>
