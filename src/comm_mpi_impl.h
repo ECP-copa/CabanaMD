@@ -230,7 +230,7 @@ void Comm<t_System>::exchange()
             // resized as well
             if ( pack_ranks_migrate_all.extent( 0 ) < x.size() )
             {
-                max_local *= 1.1;
+                max_local = x.size() * 1.1;
                 Kokkos::realloc( pack_ranks_migrate_all, max_local );
             }
             pack_ranks_migrate =
