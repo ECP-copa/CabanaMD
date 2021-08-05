@@ -93,8 +93,6 @@ class SystemCommon
     T_X_FLOAT halo_width;
     std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
         local_grid;
-    std::shared_ptr<Cajita::GlobalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
-        global_grid;
 
     // Only needed for current comm
     std::array<int, 3> ranks_per_dim;
@@ -146,8 +144,8 @@ class SystemCommon
 
         // Create the global grid.
         std::array<bool, 3> is_periodic = { true, true, true };
-        global_grid = Cajita::createGlobalGrid( MPI_COMM_WORLD, global_mesh,
-                                                is_periodic, partitioner );
+        auto global_grid = Cajita::createGlobalGrid(
+            MPI_COMM_WORLD, global_mesh, is_periodic, partitioner );
 
         for ( int d = 0; d < 3; d++ )
         {

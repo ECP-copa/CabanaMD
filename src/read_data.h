@@ -158,10 +158,6 @@ void read_lammps_header( std::ifstream &file, std::ofstream &err, t_System *s )
     }
 
     // Create mesh
-    // high_corner[0] *= 2;
-    // high_corner[1] *= 2;
-    // high_corner[2] *= 2;
-    printf( ">> %g %g %g\n", high_corner[0], high_corner[1], high_corner[2] );
     // todo(sschulz): Is this retrievable from the data file?
     double lattice_constant = 0.8442; // default lattice constant
     double comm_ghost_cutoff =
