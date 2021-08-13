@@ -44,14 +44,18 @@ if( NOT Cabana_ENABLE_CAJITA )
   message( FATAL_ERROR "Cabana must be compiled with Cajita" )
 endif()
 
-find_package(ALL 0.9.1 REQUIRED)
-
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
+endif()
+
+option(CabanaMD_ENABLE_ALL "Build CabanaMD with ALL load balancing" OFF)
+if(CabanaMD_ENABLE_ALL)
+  # todo(sschulz): All versions from 0.9.2 onwards should be fine.
+  find_package(ALL 0.9.2 REQUIRED)
 endif()
 
 ##---------------------------------------------------------------------------##
