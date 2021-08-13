@@ -55,8 +55,11 @@
 #include <inputCL.h>
 #include <inputFile.h>
 #include <integrator_nve.h>
-#include <load_balancer.h>
 #include <types.h>
+
+#ifdef CabanaMD_ENABLE_ALL
+#include <load_balancer.h>
+#endif
 
 class CabanaMD
 {
@@ -82,7 +85,9 @@ class CbnMD : public CabanaMD
     Comm<t_System> *comm;
     Binning<t_System> *binning;
     InputFile<t_System> *input;
+#ifdef CabanaMD_ENABLE_ALL
     LoadBalancer<t_System> *lb;
+#endif
 
     void init( InputCL cl ) override;
     void run() override;

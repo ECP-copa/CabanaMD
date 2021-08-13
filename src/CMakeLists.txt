@@ -62,6 +62,11 @@ configure_file(CabanaMD_config.hpp.cmakein CabanaMD_config.hpp @ONLY)
 file(GLOB HEADERS_PUBLIC
      GLOB *.h force_types/*.h neighbor_types/*.h system_types/*.h
     )
+if(NOT CabanaMD_ENABLE_ALL)
+  list(REMOVE_ITEM HEADERS_PUBLIC
+    "load_balancer.h"
+    )
+endif()
 
 file(GLOB SOURCES
      *.cpp
@@ -89,7 +94,9 @@ target_include_directories(CabanaMD PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
                                     ${CMAKE_CURRENT_SOURCE_DIR}/system_types
                                     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
                                     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
-target_link_libraries(CabanaMD ALL::ALL)
+if(CabanaMD_ENBALE_ALL)
+  target_link_libraries(CabanaMD ALL::ALL)
+endif()
 
 #------------------------------------------------------------
 

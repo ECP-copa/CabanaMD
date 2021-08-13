@@ -227,7 +227,9 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         comm->update_force();
     }
 
+#ifdef CabanaMD_ENABLE_ALL
     lb = new LoadBalancer<t_System>( system );
+#endif
 
     // Initial output
     int step = 0;
@@ -299,10 +301,12 @@ void CbnMD<t_System, t_Neighbor>::run()
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
         {
+#ifdef CabanaMD_ENABLE_ALL
             // Update domain decomposition
             lb_timer.reset();
             lb->balance();
             lb_time += lb_timer.seconds();
+#endif
 
             // Exchange atoms across MPI ranks
             comm_timer.reset();
@@ -385,7 +389,9 @@ void CbnMD<t_System, t_Neighbor>::run()
                      " ", T, " ", PE, " ", PE + KE, " ", time );
                 last_time = time;
             }
+#ifdef CabanaMD_ENABLE_ALL
             lb->output( step );
+#endif
         }
 
         if ( step % input->vtk_rate == 0 )
@@ -408,6 +414,7 @@ void CbnMD<t_System, t_Neighbor>::run()
     {
         double steps_per_sec = 1.0 * nsteps / time;
         double atom_steps_per_sec = system->N * steps_per_sec;
+        // todo(sschulz): Properly remove lb timing if not enabled.
         log( out, std::fixed, std::setprecision( 2 ),
              "\n#Procs Atoms | Time T_Force T_Neigh T_Comm T_Int T_lb ",
              "T_Other |\n", comm->num_processes(), " ", system->N, " | ", time,
