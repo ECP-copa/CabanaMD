@@ -101,11 +101,20 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
           cmake --build build --parallel 2
           cmake --install build
+      - name: Checkout ALL
+        run: |
+          git clone --depth 1 --branch master https://gitlab.jsc.fz-juelich.de/SLMS/loadbalancing ALL
+      - name: Build ALL
+        working-directory: ALL
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/ALL
+          cmake --build build --parallel 2
+          cmake --install build
       - name: Checkout Cabana
         uses: actions/checkout@v2.2.0
         with:
-          repository: ECP-CoPA/Cabana
-          ref: master
+          repository: aetx/Cabana
+          ref: cajita_loadbalancer
           path: cabana
       - name: Build Cabana
         working-directory: cabana
@@ -113,7 +122,7 @@ jobs:
           cmake -B build \
             -DCMAKE_INSTALL_PREFIX=$HOME/Cabana \
             -DMPIEXEC_MAX_NUMPROCS=2 -DMPIEXEC_PREFLAGS="--oversubscribe" \
-            -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/arborx" \
+            -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/arborx;$HOME/ALL" \
             -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
           cmake --build build --parallel 2
@@ -132,15 +141,6 @@ jobs:
           mkdir -p $HOME/n2p2/include
           mkdir -p $HOME/n2p2/lib
           make libnnpif INTERFACES=CabanaMD PROJECT_INCLUDE=$HOME/n2p2/include PROJECT_LIB=$HOME/n2p2/lib
-      - name: Checkout ALL
-        run: |
-          git clone --depth 1 --branch master https://gitlab.jsc.fz-juelich.de/SLMS/loadbalancing ALL
-      - name: Build ALL
-        working-directory: ALL
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/ALL
-          cmake --build build --parallel 2
-          cmake --install build
       - name: Checkout CabanaMD
         uses: actions/checkout@v2.2.0
       - name: Build CabanaMD
@@ -150,7 +150,7 @@ jobs:
             -DMPIEXEC_MAX_NUMPROCS=2 -DMPIEXEC_PREFLAGS="--oversubscribe" \
             -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
             -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Werror" \
-            -DCMAKE_PREFIX_PATH="$HOME/Cabana;$HOME/ALL" \
+            -DCMAKE_PREFIX_PATH="$HOME/Cabana" \
             -DCabanaMD_ENABLE_TESTING=ON \
             -DCabanaMD_ENBALE_ALL=ON \
             -DCabanaMD_LAYOUT=${{ matrix.layout }} \
