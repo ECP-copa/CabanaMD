@@ -45,6 +45,22 @@ if( NOT Cabana_ENABLE_CAJITA )
 endif()
 
 ##---------------------------------------------------------------------------##
+# Macro for optional dependencies (taken from Cabana)
+##---------------------------------------------------------------------------##
+macro(CabanaMD_add_dependency)
+  cmake_parse_arguments(CABANAMD_DEPENDENCY "" "PACKAGE;VERSION" "" ${ARGN})
+  find_package( ${CABANAMD_DEPENDENCY_PACKAGE} ${CABANAMD_DEPENDENCY_VERSION} QUIET )
+  string(TOUPPER "${CABANAMD_DEPENDENCY_PACKAGE}" CABANAMD_DEPENDENCY_OPTION )
+  option(
+    CabanaMD_REQUIRE_${CABANAMD_DEPENDENCY_OPTION}
+    "Require CabanaMD to build with ${CABANAMD_DEPENDENCY_PACKAGE} support" ${CABANAMD_DEPENDENCY_PACKAGE}_FOUND)
+  if(CabanaMD_REQUIRE_${CABANAMD_DEPENDENCY_OPTION})
+    find_package( ${CABANAMD_DEPENDENCY_PACKAGE} ${CABANAMD_DEPENDENCY_VERSION} REQUIRED )
+  endif()
+  set(CabanaMD_ENABLE_${CABANAMD_DEPENDENCY_OPTION} ${${CABANAMD_DEPENDENCY_PACKAGE}_FOUND})
+endmacro()
+
+##---------------------------------------------------------------------------##
 # Set up optional libraries
 ##---------------------------------------------------------------------------##
 option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2p2 libnnp)" OFF)
@@ -52,11 +68,8 @@ if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
 endif()
 
-option(CabanaMD_ENABLE_ALL "Build CabanaMD with ALL load balancing" OFF)
-if(CabanaMD_ENABLE_ALL)
-  # todo(sschulz): All versions from 0.9.2 onwards should be fine.
-  find_package(ALL 0.9.2 REQUIRED)
-endif()
+# todo(sschulz): All versions from 0.9.2 onwards should be fine.
+CabanaMD_add_dependency( PACKAGE "ALL" VERSION 0.9.2 )
 
 ##---------------------------------------------------------------------------##
 ## Print the Git revision number to stdout
