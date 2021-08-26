@@ -152,7 +152,6 @@ jobs:
             -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Werror" \
             -DCMAKE_PREFIX_PATH="$HOME/Cabana" \
             -DCabanaMD_ENABLE_TESTING=ON \
-            -DCabanaMD_ENBALE_ALL=ON \
             -DCabanaMD_LAYOUT=${{ matrix.layout }} \
             -DCabanaMD_VECTORLENGTH=${{ matrix.vector }} \
             -DCabanaMD_ENABLE_NNP=${{ matrix.nnp }} \

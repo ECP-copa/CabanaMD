@@ -69,7 +69,7 @@ if(NOT DEFINED N2P2_DIR)
 endif()
 
 # todo(sschulz): All versions from 0.9.2 onwards should be fine.
-CabanaMD_add_dependency( PACKAGE "ALL" VERSION 0.9.2 )
+#CabanaMD_add_dependency( PACKAGE "ALL" VERSION 0.9.2 )
 
 ##---------------------------------------------------------------------------##
 ## Print the Git revision number to stdout
