@@ -63,6 +63,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <string>
 
 #define MAXPATHLEN 1024
 
@@ -227,9 +228,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         comm->update_force();
     }
 
-#ifdef CabanaMD_ENABLE_ALL
-    lb = new LoadBalancer<t_System>( system );
-#endif
+    lb = new Cajita::LoadBalancer<Cajita::UniformMesh<double>>(
+        MPI_COMM_WORLD, system->global_grid );
 
     // Initial output
     int step = 0;
@@ -280,6 +280,9 @@ void CbnMD<t_System, t_Neighbor>::run()
     PotE<t_System, t_Neighbor> pote( comm );
     KinE<t_System> kine( comm );
 
+    std::string vtk_actual_domain_basename( "domain_act" );
+    std::string vtk_lb_domain_basename( "domain_lb" );
+
     double force_time = 0;
     double comm_time = 0;
     double neigh_time = 0;
@@ -301,12 +304,13 @@ void CbnMD<t_System, t_Neighbor>::run()
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
         {
-#ifdef CabanaMD_ENABLE_ALL
             // Update domain decomposition
             lb_timer.reset();
-            lb->balance();
+            double work = system->N_local + system->N_ghost;
+            auto new_global_grid = lb->createBalancedGlobalGrid(
+                system->global_mesh, *system->partitioner, work );
+            system->update_global_grid( new_global_grid );
             lb_time += lb_timer.seconds();
-#endif
 
             // Exchange atoms across MPI ranks
             comm_timer.reset();
@@ -389,9 +393,14 @@ void CbnMD<t_System, t_Neighbor>::run()
                      " ", T, " ", PE, " ", PE + KE, " ", time );
                 last_time = time;
             }
-#ifdef CabanaMD_ENABLE_ALL
-            lb->output( step );
-#endif
+            double work = system->N_local + system->N_ghost;
+            std::array<double, 6> vertices;
+            vertices = lb->getVertices();
+            VTKWriter::writeDomain( MPI_COMM_WORLD, step, vertices, work,
+                                    vtk_actual_domain_basename );
+            vertices = lb->getInternalVertices();
+            VTKWriter::writeDomain( MPI_COMM_WORLD, step, vertices, work,
+                                    vtk_lb_domain_basename );
         }
 
         if ( step % input->vtk_rate == 0 )

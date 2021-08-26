@@ -97,6 +97,9 @@ class SystemCommon
     T_X_FLOAT ghost_mesh_lo_x, ghost_mesh_lo_y, ghost_mesh_lo_z;
     T_X_FLOAT ghost_mesh_hi_x, ghost_mesh_hi_y, ghost_mesh_hi_z;
     T_X_FLOAT halo_width;
+    std::shared_ptr<Cajita::UniformDimPartitioner> partitioner;
+    std::shared_ptr<Cajita::GlobalMesh<Cajita::UniformMesh<T_X_FLOAT>>>
+        global_mesh;
     std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
         local_grid;
     std::shared_ptr<Cajita::GlobalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
@@ -151,10 +154,12 @@ class SystemCommon
     {
         halo_width = ghost_cutoff;
         // Create the MPI partitions.
-        Cajita::UniformDimPartitioner partitioner;
-        ranks_per_dim = partitioner.ranksPerDimension( MPI_COMM_WORLD, {} );
+        partitioner = std::make_shared<Cajita::UniformDimPartitioner>();
+        ranks_per_dim = partitioner->ranksPerDimension( MPI_COMM_WORLD, {} );
 
         // todo(sschulz): Generalize, so non cubic dimensions are allowed
+        // estimate suitable number of grid cells and use that constructor
+        // instead
         grid_cell_size = ( high_corner[0] - low_corner[0] ) / grid_num_cells;
         if ( std::abs( ( high_corner[0] - low_corner[0] ) -
                        ( high_corner[1] - low_corner[1] ) ) >
@@ -167,8 +172,8 @@ class SystemCommon
             throw std::logic_error( "Dimensions must be cubic" );
 
         // Create global mesh of MPI partitions.
-        auto global_mesh = Cajita::createUniformGlobalMesh(
-            low_corner, high_corner, grid_cell_size );
+        global_mesh = Cajita::createUniformGlobalMesh( low_corner, high_corner,
+                                                       grid_cell_size );
 
         global_mesh_x = global_mesh->extent( 0 );
         global_mesh_y = global_mesh->extent( 1 );
@@ -177,7 +182,7 @@ class SystemCommon
         // Create the global grid.
         std::array<bool, 3> is_periodic = { true, true, true };
         global_grid = Cajita::createGlobalGrid( MPI_COMM_WORLD, global_mesh,
-                                                is_periodic, partitioner );
+                                                is_periodic, *partitioner );
 
         for ( int d = 0; d < 3; d++ )
         {
@@ -185,26 +190,21 @@ class SystemCommon
         }
 
         // Create a local mesh
-        int halo_width = std::ceil( ghost_cutoff / grid_cell_size );
-        local_grid = Cajita::createLocalGrid( global_grid, halo_width );
-        // Update local_mesh_* and ghost_mesh_* info
-        update_mesh_info();
+        halo_width = std::ceil( ghost_cutoff / grid_cell_size );
+        // Update local_mesh_* and ghost_mesh_* info as well as create
+        // local_grid.
+        update_global_grid( global_grid );
     }
-    // low_corner and high_corner are local corners, not global as in
-    // create_domain!
-    void update_domain( std::array<double, 3> low_corner,
-                        std::array<double, 3> high_corner )
+
+    // Update domain info according to new global grid. We assume that the
+    // number of ranks (per dim) does not change. We also assume that the
+    // position of this rank in the cartesian grid of ranks does not change.
+    void update_global_grid( const std::shared_ptr<
+                             Cajita::GlobalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
+                                 &new_global_grid )
     {
-        // Calculate new local grid offset
-        std::array<int, 3> cell_index_lo, cell_index_hi;
-        for ( std::size_t d = 0; d < 3; ++d )
-            cell_index_lo[d] = std::rint( low_corner[d] / grid_cell_size );
-        for ( std::size_t d = 0; d < 3; ++d )
-            cell_index_hi[d] = std::rint( high_corner[d] / grid_cell_size );
-        std::array<int, 3> num_cell;
-        for ( std::size_t d = 0; d < 3; ++d )
-            num_cell[d] = cell_index_hi[d] - cell_index_lo[d];
-        global_grid->setNumCellAndOffset( num_cell, cell_index_lo );
+        global_grid = new_global_grid;
+        local_grid = Cajita::createLocalGrid( global_grid, halo_width );
         update_mesh_info();
     }
 
