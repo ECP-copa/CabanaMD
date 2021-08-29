@@ -155,6 +155,7 @@ jobs:
             -DCabanaMD_LAYOUT=${{ matrix.layout }} \
             -DCabanaMD_VECTORLENGTH=${{ matrix.vector }} \
             -DCabanaMD_ENABLE_NNP=${{ matrix.nnp }} \
+            -DCabanaMD_ENABLE_LB=ON \
             -DN2P2_DIR=$HOME/n2p2 \
             -DCabanaMD_LAYOUT_NNP=${{ matrix.layout_nnp }} \
             -DCabanaMD_VECTORLENGTH_NNP=${{ matrix.vector_nnp }}
