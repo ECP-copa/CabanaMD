@@ -49,6 +49,7 @@
 #ifndef CABANAMD_H
 #define CABANAMD_H
 
+
 #include <binning_cabana.h>
 #include <comm_mpi.h>
 #include <force.h>
@@ -57,8 +58,10 @@
 #include <integrator_nve.h>
 #include <types.h>
 
+#ifdef CabanaMD_ENABLE_LB
 #include <Cajita_LoadBalancer.hpp>
 #include <Cajita_Types.hpp>
+#endif
 
 class CabanaMD
 {
@@ -84,7 +87,9 @@ class CbnMD : public CabanaMD
     Comm<t_System> *comm;
     Binning<t_System> *binning;
     InputFile<t_System> *input;
+#ifdef CabanaMD_ENABLE_LB
     Cajita::LoadBalancer<Cajita::UniformMesh<double>> *lb;
+#endif
 
     void init( InputCL cl ) override;
     void run() override;

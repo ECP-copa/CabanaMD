@@ -62,11 +62,6 @@ configure_file(CabanaMD_config.hpp.cmakein CabanaMD_config.hpp @ONLY)
 file(GLOB HEADERS_PUBLIC
      GLOB *.h force_types/*.h neighbor_types/*.h system_types/*.h
     )
-if(NOT CabanaMD_ENABLE_ALL)
-  list(REMOVE_ITEM HEADERS_PUBLIC
-    "load_balancer.h"
-    )
-endif()
 
 file(GLOB SOURCES
      *.cpp

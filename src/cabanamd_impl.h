@@ -228,8 +228,10 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         comm->update_force();
     }
 
+#ifdef CabanaMD_ENABLE_LB
     lb = new Cajita::LoadBalancer<Cajita::UniformMesh<double>>(
         MPI_COMM_WORLD, system->global_grid );
+#endif
 
     // Initial output
     int step = 0;
@@ -306,10 +308,12 @@ void CbnMD<t_System, t_Neighbor>::run()
         {
             // Update domain decomposition
             lb_timer.reset();
+#ifdef CabanaMD_ENABLE_LB
             double work = system->N_local + system->N_ghost;
             auto new_global_grid = lb->createBalancedGlobalGrid(
                 system->global_mesh, *system->partitioner, work );
             system->update_global_grid( new_global_grid );
+#endif
             lb_time += lb_timer.seconds();
 
             // Exchange atoms across MPI ranks
@@ -393,6 +397,7 @@ void CbnMD<t_System, t_Neighbor>::run()
                      " ", T, " ", PE, " ", PE + KE, " ", time );
                 last_time = time;
             }
+#ifdef CabanaMD_ENABLE_LB
             double work = system->N_local + system->N_ghost;
             std::array<double, 6> vertices;
             vertices = lb->getVertices();
@@ -401,6 +406,7 @@ void CbnMD<t_System, t_Neighbor>::run()
             vertices = lb->getInternalVertices();
             VTKWriter::writeDomain( MPI_COMM_WORLD, step, vertices, work,
                                     vtk_lb_domain_basename );
+#endif
         }
 
         if ( step % input->vtk_rate == 0 )

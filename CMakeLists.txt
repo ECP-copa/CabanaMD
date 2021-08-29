@@ -44,21 +44,13 @@ if( NOT Cabana_ENABLE_CAJITA )
   message( FATAL_ERROR "Cabana must be compiled with Cajita" )
 endif()
 
-##---------------------------------------------------------------------------##
-# Macro for optional dependencies (taken from Cabana)
-##---------------------------------------------------------------------------##
-macro(CabanaMD_add_dependency)
-  cmake_parse_arguments(CABANAMD_DEPENDENCY "" "PACKAGE;VERSION" "" ${ARGN})
-  find_package( ${CABANAMD_DEPENDENCY_PACKAGE} ${CABANAMD_DEPENDENCY_VERSION} QUIET )
-  string(TOUPPER "${CABANAMD_DEPENDENCY_PACKAGE}" CABANAMD_DEPENDENCY_OPTION )
-  option(
-    CabanaMD_REQUIRE_${CABANAMD_DEPENDENCY_OPTION}
-    "Require CabanaMD to build with ${CABANAMD_DEPENDENCY_PACKAGE} support" ${CABANAMD_DEPENDENCY_PACKAGE}_FOUND)
-  if(CabanaMD_REQUIRE_${CABANAMD_DEPENDENCY_OPTION})
-    find_package( ${CABANAMD_DEPENDENCY_PACKAGE} ${CABANAMD_DEPENDENCY_VERSION} REQUIRED )
+# todo(sschulz): This should detect lb capability automatically.
+option(CabanaMD_ENABLE_LB "Utilize Cabana load balancer" ON)
+if(CabanaMD_ENABLE_LB)
+  if( NOT Cabana_ENABLE_ALL )
+    message( FATAL_ERROR "Cabana must be compiled with ALL library" )
   endif()
-  set(CabanaMD_ENABLE_${CABANAMD_DEPENDENCY_OPTION} ${${CABANAMD_DEPENDENCY_PACKAGE}_FOUND})
-endmacro()
+endif()
 
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
@@ -67,9 +59,6 @@ option(CabanaMD_ENABLE_NNP "Build CabanaMD with neural network potential (and n2
 if(NOT DEFINED N2P2_DIR)
   set(N2P2_DIR ~/n2p2/)
 endif()
-
-# todo(sschulz): All versions from 0.9.2 onwards should be fine.
-#CabanaMD_add_dependency( PACKAGE "ALL" VERSION 0.9.2 )
 
 ##---------------------------------------------------------------------------##
 ## Print the Git revision number to stdout
