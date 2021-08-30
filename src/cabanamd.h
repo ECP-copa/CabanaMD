@@ -49,7 +49,6 @@
 #ifndef CABANAMD_H
 #define CABANAMD_H
 
-
 #include <binning_cabana.h>
 #include <comm_mpi.h>
 #include <force.h>

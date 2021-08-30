@@ -87,8 +87,6 @@ class SystemCommon
 
     // Simulation total domain
     T_X_FLOAT global_mesh_x, global_mesh_y, global_mesh_z;
-    T_X_FLOAT grid_cell_size;
-    int grid_num_cells;
 
     // Simulation sub domain (single MPI rank)
     T_X_FLOAT local_mesh_x, local_mesh_y, local_mesh_z;
@@ -123,9 +121,6 @@ class SystemCommon
 
         mass = t_mass( "System::mass", ntypes );
 
-        // todo(sschulz): Choose a suitably small grid cell automatically
-        grid_cell_size = 0.0;
-        grid_num_cells = 2000;
         global_mesh_x = global_mesh_y = global_mesh_z = 0.0;
         local_mesh_lo_x = local_mesh_lo_y = local_mesh_lo_z = 0.0;
         local_mesh_hi_x = local_mesh_hi_y = local_mesh_hi_z = 0.0;
@@ -156,24 +151,19 @@ class SystemCommon
         // Create the MPI partitions.
         partitioner = std::make_shared<Cajita::UniformDimPartitioner>();
         ranks_per_dim = partitioner->ranksPerDimension( MPI_COMM_WORLD, {} );
+        int cells_per_dim_per_rank = 1;
 
-        // todo(sschulz): Generalize, so non cubic dimensions are allowed
-        // estimate suitable number of grid cells and use that constructor
-        // instead
-        grid_cell_size = ( high_corner[0] - low_corner[0] ) / grid_num_cells;
-        if ( std::abs( ( high_corner[0] - low_corner[0] ) -
-                       ( high_corner[1] - low_corner[1] ) ) >
-             T_X_FLOAT( 100.0 ) * std::numeric_limits<T_X_FLOAT>::epsilon() )
-            throw std::logic_error( "Dimensions must be cubic" );
-        else if ( std::abs( ( high_corner[1] - low_corner[1] ) -
-                            ( high_corner[2] - low_corner[2] ) ) >
-                  T_X_FLOAT( 100.0 ) *
-                      std::numeric_limits<T_X_FLOAT>::epsilon() )
-            throw std::logic_error( "Dimensions must be cubic" );
+        // The load balancing will be able to change the local domains with a
+        // resolution of 1/cells_per_dim_per_rank
+        cells_per_dim_per_rank = 100;
+        std::array<int, 3> cells_per_rank = {
+            cells_per_dim_per_rank * ranks_per_dim[0],
+            cells_per_dim_per_rank * ranks_per_dim[1],
+            cells_per_dim_per_rank * ranks_per_dim[2] };
 
         // Create global mesh of MPI partitions.
         global_mesh = Cajita::createUniformGlobalMesh( low_corner, high_corner,
-                                                       grid_cell_size );
+                                                       cells_per_rank );
 
         global_mesh_x = global_mesh->extent( 0 );
         global_mesh_y = global_mesh->extent( 1 );
@@ -190,7 +180,10 @@ class SystemCommon
         }
 
         // Create a local mesh
-        halo_width = std::ceil( ghost_cutoff / grid_cell_size );
+        double minimum_cell_size = std::min(
+            std::min( global_mesh->cellSize( 0 ), global_mesh->cellSize( 1 ) ),
+            global_mesh->cellSize( 2 ) );
+        halo_width = std::ceil( ghost_cutoff / minimum_cell_size );
         // Update local_mesh_* and ghost_mesh_* info as well as create
         // local_grid.
         update_global_grid( global_grid );
