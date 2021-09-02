@@ -10,6 +10,7 @@ endif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
 
 option(CMAKE_VERBOSE_MAKEFILE "Generate verbose Makefiles" OFF)
 include(GNUInstallDirs)
+include(CMakeDependentOption)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -44,13 +45,7 @@ if( NOT Cabana_ENABLE_CAJITA )
   message( FATAL_ERROR "Cabana must be compiled with Cajita" )
 endif()
 
-# todo(sschulz): This should detect lb capability automatically.
-option(CabanaMD_ENABLE_LB "Utilize Cabana load balancer" ON)
-if(CabanaMD_ENABLE_LB)
-  if( NOT Cabana_ENABLE_ALL )
-    message( FATAL_ERROR "Cabana must be compiled with ALL library" )
-  endif()
-endif()
+cmake_dependent_option(CabanaMD_ENABLE_LB "Utilize Cabana load balancer" ON Cabana_ENABLE_ALL OFF)
 
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
