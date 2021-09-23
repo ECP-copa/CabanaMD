@@ -245,10 +245,18 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         auto KE = kine.compute( system ) / system->N;
         if ( !_print_lammps )
         {
+#ifdef CabanaMD_ENABLE_LB
+            log( out, "\n", std::fixed, std::setprecision( 6 ),
+                 "#Timestep Temperature PotE ETot Time Atomsteps/s LBQuality\n",
+                 step, " ", T, " ", PE, " ", PE + KE, " ",
+                 std::setprecision( 2 ), 0.0, " ", std::scientific, 0.0,
+                 std::setprecision( 2 ), 0.0 );
+#else
             log( out, "\n", std::fixed, std::setprecision( 6 ),
                  "#Timestep Temperature PotE ETot Time Atomsteps/s\n", step,
                  " ", T, " ", PE, " ", PE + KE, " ", std::setprecision( 2 ),
                  0.0, " ", std::scientific, 0.0 );
+#endif
         }
         else
         {
@@ -385,9 +393,16 @@ void CbnMD<t_System, t_Neighbor>::run()
                 double time = timer.seconds();
                 double rate =
                     1.0 * system->N * input->thermo_rate / ( time - last_time );
+#ifdef CabanaMD_ENABLE_LB
+                log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
+                     PE, " ", PE + KE, " ", std::setprecision( 2 ), time, " ",
+                     std::scientific, rate, std::setprecision( 2 ),
+                     lb->getQuality() );
+#else
                 log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
                      PE, " ", PE + KE, " ", std::setprecision( 2 ), time, " ",
                      std::scientific, rate );
+#endif
                 last_time = time;
             }
             else
