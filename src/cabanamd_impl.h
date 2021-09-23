@@ -249,7 +249,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
             log( out, "\n", std::fixed, std::setprecision( 6 ),
                  "#Timestep Temperature PotE ETot Time Atomsteps/s LBQuality\n",
                  step, " ", T, " ", PE, " ", PE + KE, " ",
-                 std::setprecision( 2 ), 0.0, " ", std::scientific, 0.0,
+                 std::setprecision( 2 ), 0.0, " ", std::scientific, 0.0, " ",
                  std::setprecision( 2 ), 0.0 );
 #else
             log( out, "\n", std::fixed, std::setprecision( 6 ),
@@ -396,7 +396,7 @@ void CbnMD<t_System, t_Neighbor>::run()
 #ifdef CabanaMD_ENABLE_LB
                 log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
                      PE, " ", PE + KE, " ", std::setprecision( 2 ), time, " ",
-                     std::scientific, rate, std::setprecision( 2 ),
+                     std::scientific, rate, " ", std::setprecision( 2 ),
                      lb->getQuality() );
 #else
                 log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
