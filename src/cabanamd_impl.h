@@ -229,7 +229,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     }
 
 #ifdef CabanaMD_ENABLE_LB
-    lb = new Cajita::LoadBalancer<Cajita::UniformMesh<double>>(
+    lb = new Cajita::Experimental::LoadBalancer<Cajita::UniformMesh<double>>(
         MPI_COMM_WORLD, system->global_grid );
 #endif
 
@@ -247,7 +247,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         {
 #ifdef CabanaMD_ENABLE_LB
             log( out, "\n", std::fixed, std::setprecision( 6 ),
-                 "#Timestep Temperature PotE ETot Time Atomsteps/s LBImbalance\n",
+                 "#Timestep Temperature PotE ETot Time Atomsteps/s "
+                 "LBImbalance\n",
                  step, " ", T, " ", PE, " ", PE + KE, " ",
                  std::setprecision( 2 ), 0.0, " ", std::scientific, 0.0, " ",
                  std::setprecision( 2 ), 0.0 );
