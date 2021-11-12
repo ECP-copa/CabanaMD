@@ -178,6 +178,7 @@ class InputFile
 
     int comm_type;
     int comm_exchange_rate;
+    double comm_ghost_cutoff;
 
     int force_type;
     int force_iteration_type;
@@ -200,6 +201,9 @@ class InputFile
     std::string output_data_file;
     bool read_data_flag = false;
     bool write_data_flag = false;
+    bool write_vtk_flag = false;
+    int vtk_rate;
+    std::string vtk_file;
 
     InputFile( InputCL cl, t_System *s );
     void read_file( const char *filename = NULL );

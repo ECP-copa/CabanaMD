@@ -51,15 +51,19 @@
 #include <Cabana_Core.hpp>
 #include <Kokkos_Core.hpp>
 
+#include <mpi.h>
+
 #include <output.h>
 #include <property_kine.h>
 #include <property_pote.h>
 #include <property_temperature.h>
 #include <read_data.h>
+#include <vtk_writer.h>
 
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <string>
 
 #define MAXPATHLEN 1024
 
@@ -224,6 +228,11 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         comm->update_force();
     }
 
+#ifdef CabanaMD_ENABLE_LB
+    lb = new Cajita::Experimental::LoadBalancer<Cajita::UniformMesh<double>>(
+        MPI_COMM_WORLD, system->global_grid );
+#endif
+
     // Initial output
     int step = 0;
     if ( input->thermo_rate > 0 )
@@ -236,10 +245,19 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         auto KE = kine.compute( system ) / system->N;
         if ( !_print_lammps )
         {
+#ifdef CabanaMD_ENABLE_LB
+            log( out, "\n", std::fixed, std::setprecision( 6 ),
+                 "#Timestep Temperature PotE ETot Time Atomsteps/s "
+                 "LBImbalance\n",
+                 step, " ", T, " ", PE, " ", PE + KE, " ",
+                 std::setprecision( 2 ), 0.0, " ", std::scientific, 0.0, " ",
+                 std::setprecision( 2 ), 0.0 );
+#else
             log( out, "\n", std::fixed, std::setprecision( 6 ),
                  "#Timestep Temperature PotE ETot Time Atomsteps/s\n", step,
                  " ", T, " ", PE, " ", PE + KE, " ", std::setprecision( 2 ),
                  0.0, " ", std::scientific, 0.0 );
+#endif
         }
         else
         {
@@ -264,6 +282,7 @@ template <class t_System, class t_Neighbor>
 void CbnMD<t_System, t_Neighbor>::run()
 {
     std::ofstream out( input->output_file, std::ofstream::app );
+    std::ofstream err( input->error_file, std::ofstream::app );
 
     auto neigh_cutoff = input->force_cutoff + input->neighbor_skin;
     bool half_neigh = input->force_iteration_type == FORCE_ITER_NEIGH_HALF;
@@ -272,15 +291,19 @@ void CbnMD<t_System, t_Neighbor>::run()
     PotE<t_System, t_Neighbor> pote( comm );
     KinE<t_System> kine( comm );
 
+    std::string vtk_actual_domain_basename( "domain_act" );
+    std::string vtk_lb_domain_basename( "domain_lb" );
+
     double force_time = 0;
     double comm_time = 0;
     double neigh_time = 0;
     double integrate_time = 0;
+    double lb_time = 0;
     double other_time = 0;
 
     double last_time = 0;
     Kokkos::Timer timer, force_timer, comm_timer, neigh_timer, integrate_timer,
-        other_timer;
+        lb_timer, other_timer;
 
     // Main timestep loop
     for ( int step = 1; step <= nsteps; step++ )
@@ -292,6 +315,16 @@ void CbnMD<t_System, t_Neighbor>::run()
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
         {
+            // Update domain decomposition
+            lb_timer.reset();
+#ifdef CabanaMD_ENABLE_LB
+            double work = system->N_local + system->N_ghost;
+            auto new_global_grid = lb->createBalancedGlobalGrid(
+                system->global_mesh, *system->partitioner, work );
+            system->update_global_grid( new_global_grid );
+#endif
+            lb_time += lb_timer.seconds();
+
             // Exchange atoms across MPI ranks
             comm_timer.reset();
             comm->exchange();
@@ -361,9 +394,16 @@ void CbnMD<t_System, t_Neighbor>::run()
                 double time = timer.seconds();
                 double rate =
                     1.0 * system->N * input->thermo_rate / ( time - last_time );
+#ifdef CabanaMD_ENABLE_LB
+                log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
+                     PE, " ", PE + KE, " ", std::setprecision( 2 ), time, " ",
+                     std::scientific, rate, " ", std::setprecision( 2 ),
+                     lb->getImbalance() );
+#else
                 log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
                      PE, " ", PE + KE, " ", std::setprecision( 2 ), time, " ",
                      std::scientific, rate );
+#endif
                 last_time = time;
             }
             else
@@ -373,7 +413,21 @@ void CbnMD<t_System, t_Neighbor>::run()
                      " ", T, " ", PE, " ", PE + KE, " ", time );
                 last_time = time;
             }
+#ifdef CabanaMD_ENABLE_LB
+            double work = system->N_local + system->N_ghost;
+            std::array<double, 6> vertices;
+            vertices = lb->getVertices();
+            VTKWriter::writeDomain( MPI_COMM_WORLD, step, vertices, work,
+                                    vtk_actual_domain_basename );
+            vertices = lb->getInternalVertices();
+            VTKWriter::writeDomain( MPI_COMM_WORLD, step, vertices, work,
+                                    vtk_lb_domain_basename );
+#endif
         }
+
+        if ( step % input->vtk_rate == 0 )
+            VTKWriter::writeParticles( MPI_COMM_WORLD, step, system,
+                                       input->vtk_file, err );
 
         if ( input->dumpbinaryflag )
             dump_binary( step );
@@ -391,16 +445,18 @@ void CbnMD<t_System, t_Neighbor>::run()
     {
         double steps_per_sec = 1.0 * nsteps / time;
         double atom_steps_per_sec = system->N * steps_per_sec;
+        // todo(sschulz): Properly remove lb timing if not enabled.
         log( out, std::fixed, std::setprecision( 2 ),
-             "\n#Procs Atoms | Time T_Force T_Neigh T_Comm T_Int ",
+             "\n#Procs Atoms | Time T_Force T_Neigh T_Comm T_Int T_lb ",
              "T_Other |\n", comm->num_processes(), " ", system->N, " | ", time,
              " ", force_time, " ", neigh_time, " ", comm_time, " ",
-             integrate_time, " ", other_time, " | PERFORMANCE\n", std::fixed,
-             comm->num_processes(), " ", system->N, " | ", 1.0, " ",
+             integrate_time, " ", lb_time, " ", other_time, " | PERFORMANCE\n",
+             std::fixed, comm->num_processes(), " ", system->N, " | ", 1.0, " ",
              force_time / time, " ", neigh_time / time, " ", comm_time / time,
-             " ", integrate_time / time, " ", other_time / time,
-             " | FRACTION\n\n", "#Steps/s Atomsteps/s Atomsteps/(proc*s)\n",
-             std::scientific, steps_per_sec, " ", atom_steps_per_sec, " ",
+             " ", integrate_time / time, " ", lb_time / time, " ",
+             other_time / time, " | FRACTION\n\n",
+             "#Steps/s Atomsteps/s Atomsteps/(proc*s)\n", std::scientific,
+             steps_per_sec, " ", atom_steps_per_sec, " ",
              atom_steps_per_sec / comm->num_processes() );
     }
     else
@@ -409,6 +465,7 @@ void CbnMD<t_System, t_Neighbor>::run()
              " procs for ", nsteps, " steps with ", system->N, " atoms" );
     }
     out.close();
+    err.close();
 
     if ( input->write_data_flag )
         write_data( system, input->output_data_file );
