@@ -37,13 +37,6 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 ##---------------------------------------------------------------------------##
 find_package(Cabana REQUIRED)
 
-if( NOT Cabana_ENABLE_MPI )
-  message( FATAL_ERROR "Cabana must be compiled with MPI" )
-endif()
-if( NOT Cabana_ENABLE_CAJITA )
-  message( FATAL_ERROR "Cabana must be compiled with Cajita" )
-endif()
-
 ##---------------------------------------------------------------------------##
 # Set up optional libraries
 ##---------------------------------------------------------------------------##
