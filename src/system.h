@@ -129,7 +129,7 @@ class SystemCommon
                         std::array<double, 3> high_corner )
     {
         // Create the MPI partitions.
-        Cajita::UniformDimPartitioner partitioner;
+        Cajita::DimBlockPartitioner<3> partitioner;
         ranks_per_dim = partitioner.ranksPerDimension( MPI_COMM_WORLD, {} );
 
         // Create global mesh of MPI partitions.
