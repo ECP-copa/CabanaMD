@@ -6,8 +6,6 @@ on:
   pull_request:
     branches:
       - master
-  schedule:
-    - cron:  '0 5 * * *'
 
 jobs:
   CI:
@@ -17,7 +15,7 @@ jobs:
         cxx: ['g++', 'clang++']
         backend: ['SERIAL', 'OPENMP']
         cmake_build_type: ['Debug', 'Release']
-        kokkos_ver: ['3.2.01']
+        kokkos_ver: ['3.7.02']
         arborx: ['ArborX', 'NoArborX']
         nnp: ['ON', 'OFF']
         layout: ['1']
@@ -29,7 +27,7 @@ jobs:
             cxx: 'g++'
             openmp: 'ON'
             cmake_build_type: 'Release'
-            kokkos_ver: '3.2.01'
+            kokkos_ver: '3.7.02'
             arborx: 'NoArborX'
             nnp: 'OFF'
             layout: '2'
@@ -40,7 +38,7 @@ jobs:
             cxx: 'g++'
             openmp: 'ON'
             cmake_build_type: 'Release'
-            kokkos_ver: '3.2.01'
+            kokkos_ver: '3.7.02'
             arborx: 'NoArborX'
             nnp: 'ON'
             layout: '6'
@@ -51,7 +49,7 @@ jobs:
             cxx: 'g++'
             openmp: 'ON'
             cmake_build_type: 'Release'
-            kokkos_ver: '3.2.01'
+            kokkos_ver: '3.7.02'
             arborx: 'NoArborX'
             nnp: 'OFF'
             layout: '6'
@@ -61,13 +59,8 @@ jobs:
     runs-on: ubuntu-20.04
     container: ghcr.io/ecp-copa/ci-containers/${{ matrix.distro }}
     steps:
-      - name: Get trail license
-        if: ${{ matrix.cxx == 'icpc' }}
-        run: |
-          mkdir ~/Licenses
-          curl https://dynamicinstaller.intel.com/api/v2/license > ~/Licenses/intel.lic
       - name: Checkout kokkos
-        uses: actions/checkout@v2.2.0
+        uses: actions/checkout@v3
         with:
           repository: kokkos/kokkos
           ref: ${{ matrix.kokkos_ver }}
@@ -85,10 +78,10 @@ jobs:
           cmake --install build
       - name: Checkout arborx
         if: ${{ matrix.arborx == 'ArborX' }}
-        uses: actions/checkout@v2.2.0
+        uses: actions/checkout@v3
         with:
           repository: arborx/ArborX
-          ref: master
+          ref: v1.4.1
           path: arborx
       - name: Build arborx
         if: ${{ matrix.arborx == 'ArborX' }}
@@ -102,10 +95,10 @@ jobs:
           cmake --build build --parallel 2
           cmake --install build
       - name: Checkout Cabana
-        uses: actions/checkout@v2.2.0
+        uses: actions/checkout@v3
         with:
           repository: ECP-CoPA/Cabana
-          ref: master
+          ref: 0.6.1
           path: cabana
       - name: Build Cabana
         working-directory: cabana
@@ -115,12 +108,13 @@ jobs:
             -DMPIEXEC_MAX_NUMPROCS=2 -DMPIEXEC_PREFLAGS="--oversubscribe" \
             -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/arborx" \
             -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+            -DCabana_DISABLE_CAJITA_DEPRECATION_WARNINGS=ON \
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
           cmake --build build --parallel 2
           cmake --install build
       - name: Checkout n2p2
         if: ${{ matrix.nnp == 'ON' }}
-        uses: actions/checkout@v2.2.0
+        uses: actions/checkout@v3
         with:
           repository: CompPhysVienna/n2p2
           ref: v2.0.1
@@ -133,7 +127,7 @@ jobs:
           mkdir -p $HOME/n2p2/lib
           make libnnpif INTERFACES=CabanaMD PROJECT_INCLUDE=$HOME/n2p2/include PROJECT_LIB=$HOME/n2p2/lib
       - name: Checkout CabanaMD
-        uses: actions/checkout@v2.2.0
+        uses: actions/checkout@v3
       - name: Build CabanaMD
         run: |
           cmake -B build \
@@ -152,11 +146,3 @@ jobs:
           cmake --build build --parallel 2
           CTEST_OUTPUT_ON_FAILURE=1 cmake --build build --target test
           cmake --install build
-      - name: Format CabanaMD
-        working-directory: build
-        run: |
-          make format
-          git diff --exit-code
-      - name: Upload Report to codecov.io
-        if: ${{ matrix.coverage }}
-        uses: codecov/codecov-action@v1

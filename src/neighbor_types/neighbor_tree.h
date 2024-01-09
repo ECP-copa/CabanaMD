@@ -53,7 +53,7 @@ class NeighborTree<t_System, t_iteration, Cabana::VerletLayoutCSR>
         auto x = system->x;
 
         t_iteration tag;
-        list = Cabana::Experimental::makeNeighborList<device_type>(
+        list = Cabana::Experimental::makeNeighborList(
             tag, x, 0, N_local, neigh_cut, max_neigh_guess );
     }
 
@@ -100,7 +100,7 @@ class NeighborTree<t_System, t_iteration, Cabana::VerletLayout2D>
         auto x = system->x;
 
         t_iteration tag;
-        list = Cabana::Experimental::make2DNeighborList<device_type>(
+        list = Cabana::Experimental::make2DNeighborList(
             tag, x, 0, N_local, neigh_cut, max_neigh_guess );
     }
 

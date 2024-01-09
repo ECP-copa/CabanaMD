@@ -1,5 +1,3 @@
-set(gtest_args --gtest_color=yes)
-
 ##--------------------------------------------------------------------------##
 ## On-node tests
 ##--------------------------------------------------------------------------##
@@ -30,7 +28,7 @@ macro(CabanaMD_add_tests)
         set(_target ${_test}_test_${_uppercase_device})
         add_executable(${_target} ${_file} ${CABANAMD_UNIT_TEST_MAIN})
         target_include_directories(${_target} PRIVATE ${_dir} ${CMAKE_CURRENT_SOURCE_DIR})
-        target_link_libraries(${_target} PRIVATE CabanaMD gtest CabanaMD)
+        target_link_libraries(${_target} PRIVATE CabanaMD ${gtest_target} CabanaMD)
 
         foreach(_np ${CABANAMD_UNIT_TEST_MPIEXEC_NUMPROCS})
           if(_device STREQUAL PTHREAD OR _device STREQUAL OPENMP)

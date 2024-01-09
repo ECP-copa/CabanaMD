@@ -81,7 +81,7 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
 
     using exe_space = typename t_System::execution_space;
     if ( print_rank() )
-        exe_space::print_configuration( out );
+        exe_space().print_configuration( out );
 
 #ifndef CabanaMD_ENABLE_NNP
     // Check that the requested pair_style was compiled
