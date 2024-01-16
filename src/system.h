@@ -50,7 +50,7 @@
 #define SYSTEM_H
 
 #include <Cabana_Core.hpp>
-#include <Cajita.hpp>
+#include <Cabana_Grid.hpp>
 #include <Kokkos_Core.hpp>
 
 #include <types.h>
@@ -90,7 +90,8 @@ class SystemCommon
     T_X_FLOAT local_mesh_hi_x, local_mesh_hi_y, local_mesh_hi_z;
     T_X_FLOAT ghost_mesh_lo_x, ghost_mesh_lo_y, ghost_mesh_lo_z;
     T_X_FLOAT ghost_mesh_hi_x, ghost_mesh_hi_y, ghost_mesh_hi_z;
-    std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
+    std::shared_ptr<
+        Cabana::Grid::LocalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
         local_grid;
 
     // Only needed for current comm
@@ -129,11 +130,11 @@ class SystemCommon
                         std::array<double, 3> high_corner )
     {
         // Create the MPI partitions.
-        Cajita::DimBlockPartitioner<3> partitioner;
+        Cabana::Grid::DimBlockPartitioner<3> partitioner;
         ranks_per_dim = partitioner.ranksPerDimension( MPI_COMM_WORLD, {} );
 
         // Create global mesh of MPI partitions.
-        auto global_mesh = Cajita::createUniformGlobalMesh(
+        auto global_mesh = Cabana::Grid::createUniformGlobalMesh(
             low_corner, high_corner, ranks_per_dim );
 
         global_mesh_x = global_mesh->extent( 0 );
@@ -142,7 +143,7 @@ class SystemCommon
 
         // Create the global grid.
         std::array<bool, 3> is_periodic = { true, true, true };
-        auto global_grid = Cajita::createGlobalGrid(
+        auto global_grid = Cabana::Grid::createGlobalGrid(
             MPI_COMM_WORLD, global_mesh, is_periodic, partitioner );
 
         for ( int d = 0; d < 3; d++ )
@@ -152,24 +153,25 @@ class SystemCommon
 
         // Create a local mesh
         int halo_width = 1;
-        local_grid = Cajita::createLocalGrid( global_grid, halo_width );
-        auto local_mesh = Cajita::createLocalMesh<t_device>( *local_grid );
+        local_grid = Cabana::Grid::createLocalGrid( global_grid, halo_width );
+        auto local_mesh =
+            Cabana::Grid::createLocalMesh<t_device>( *local_grid );
 
-        local_mesh_lo_x = local_mesh.lowCorner( Cajita::Own(), 0 );
-        local_mesh_lo_y = local_mesh.lowCorner( Cajita::Own(), 1 );
-        local_mesh_lo_z = local_mesh.lowCorner( Cajita::Own(), 2 );
-        local_mesh_hi_x = local_mesh.highCorner( Cajita::Own(), 0 );
-        local_mesh_hi_y = local_mesh.highCorner( Cajita::Own(), 1 );
-        local_mesh_hi_z = local_mesh.highCorner( Cajita::Own(), 2 );
-        ghost_mesh_lo_x = local_mesh.lowCorner( Cajita::Ghost(), 0 );
-        ghost_mesh_lo_y = local_mesh.lowCorner( Cajita::Ghost(), 1 );
-        ghost_mesh_lo_z = local_mesh.lowCorner( Cajita::Ghost(), 2 );
-        ghost_mesh_hi_x = local_mesh.highCorner( Cajita::Ghost(), 0 );
-        ghost_mesh_hi_y = local_mesh.highCorner( Cajita::Ghost(), 1 );
-        ghost_mesh_hi_z = local_mesh.highCorner( Cajita::Ghost(), 2 );
-        local_mesh_x = local_mesh.extent( Cajita::Own(), 0 );
-        local_mesh_y = local_mesh.extent( Cajita::Own(), 1 );
-        local_mesh_z = local_mesh.extent( Cajita::Own(), 2 );
+        local_mesh_lo_x = local_mesh.lowCorner( Cabana::Grid::Own(), 0 );
+        local_mesh_lo_y = local_mesh.lowCorner( Cabana::Grid::Own(), 1 );
+        local_mesh_lo_z = local_mesh.lowCorner( Cabana::Grid::Own(), 2 );
+        local_mesh_hi_x = local_mesh.highCorner( Cabana::Grid::Own(), 0 );
+        local_mesh_hi_y = local_mesh.highCorner( Cabana::Grid::Own(), 1 );
+        local_mesh_hi_z = local_mesh.highCorner( Cabana::Grid::Own(), 2 );
+        ghost_mesh_lo_x = local_mesh.lowCorner( Cabana::Grid::Ghost(), 0 );
+        ghost_mesh_lo_y = local_mesh.lowCorner( Cabana::Grid::Ghost(), 1 );
+        ghost_mesh_lo_z = local_mesh.lowCorner( Cabana::Grid::Ghost(), 2 );
+        ghost_mesh_hi_x = local_mesh.highCorner( Cabana::Grid::Ghost(), 0 );
+        ghost_mesh_hi_y = local_mesh.highCorner( Cabana::Grid::Ghost(), 1 );
+        ghost_mesh_hi_z = local_mesh.highCorner( Cabana::Grid::Ghost(), 2 );
+        local_mesh_x = local_mesh.extent( Cabana::Grid::Own(), 0 );
+        local_mesh_y = local_mesh.extent( Cabana::Grid::Own(), 1 );
+        local_mesh_z = local_mesh.extent( Cabana::Grid::Own(), 2 );
     }
 
     void slice_all()
