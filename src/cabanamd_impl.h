@@ -494,7 +494,7 @@ void CbnMD<t_System, t_Neighbor>::check_correctness( int step )
         log_err( err, "Cannot open input file: ", filename );
     }
 
-    (void)fread( &ntmp, sizeof( T_INT ), 1, fpref );
+    T_INT n_ret = fread( &ntmp, sizeof( T_INT ), 1, fpref );
     if ( ntmp != n )
     {
         log_err( err, "Mismatch in current and reference atom counts" );
@@ -511,12 +511,15 @@ void CbnMD<t_System, t_Neighbor>::check_correctness( int step )
     Kokkos::View<T_F_FLOAT **, Kokkos::LayoutRight> fref( "Correctness::f", 3,
                                                           n );
 
-    (void)fread( idref.data(), sizeof( T_INT ), n, fpref );
-    (void)fread( typeref.data(), sizeof( T_INT ), n, fpref );
-    (void)fread( qref.data(), sizeof( T_FLOAT ), n, fpref );
-    (void)fread( xref.data(), sizeof( T_X_FLOAT ), 3 * n, fpref );
-    (void)fread( vref.data(), sizeof( T_V_FLOAT ), 3 * n, fpref );
-    (void)fread( fref.data(), sizeof( T_F_FLOAT ), 3 * n, fpref );
+    T_INT id_ret = fread( idref.data(), sizeof( T_INT ), n, fpref );
+    T_INT type_ret = fread( typeref.data(), sizeof( T_INT ), n, fpref );
+    T_INT q_ret = fread( qref.data(), sizeof( T_FLOAT ), n, fpref );
+    T_INT x_ret = fread( xref.data(), sizeof( T_X_FLOAT ), 3 * n, fpref );
+    T_INT v_ret = fread( vref.data(), sizeof( T_V_FLOAT ), 3 * n, fpref );
+    T_INT f_ret = fread( fref.data(), sizeof( T_F_FLOAT ), 3 * n, fpref );
+    if ( id_ret != n || type_ret != n || q_ret != n || x_ret != 3 * n ||
+         v_ret != 3 * n || f_ret != 3 * n || n_ret != 1 )
+        log_err( err, "Error reading reference data." );
 
     T_FLOAT sumdelrsq = 0.0;
     T_FLOAT sumdelvsq = 0.0;
