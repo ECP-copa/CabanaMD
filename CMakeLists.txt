@@ -10,7 +10,6 @@ endif(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CXX_FLAGS)
 
 option(CMAKE_VERBOSE_MAKEFILE "Generate verbose Makefiles" OFF)
 include(GNUInstallDirs)
-include(CMakeDependentOption)
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -19,14 +18,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 ##---------------------------------------------------------------------------##
 find_package(Cabana REQUIRED)
 
-if( NOT Cabana_ENABLE_MPI )
-  message( FATAL_ERROR "Cabana must be compiled with MPI" )
-endif()
-if( NOT Cabana_ENABLE_CAJITA )
-  message( FATAL_ERROR "Cabana must be compiled with Cajita" )
-endif()
-
-cmake_dependent_option(CabanaMD_ENABLE_LB "Utilize Cabana load balancer" ON Cabana_ENABLE_ALL OFF)
+option(CabanaMD_ENABLE_LB "Utilize Cabana load balancer" OFF)
 
 ##---------------------------------------------------------------------------##
 # Set up optional libraries

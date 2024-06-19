@@ -58,8 +58,8 @@
 #include <types.h>
 
 #ifdef CabanaMD_ENABLE_LB
-#include <Cajita_LoadBalancer.hpp>
-#include <Cajita_Types.hpp>
+#include <Cabana_Grid_LoadBalancer.hpp>
+#include <Cabana_Grid_Types.hpp>
 #endif
 
 class CabanaMD
@@ -87,7 +87,7 @@ class CbnMD : public CabanaMD
     Binning<t_System> *binning;
     InputFile<t_System> *input;
 #ifdef CabanaMD_ENABLE_LB
-    Cajita::Experimental::LoadBalancer<Cajita::UniformMesh<double>> *lb;
+    Cabana::Grid::Experimental::LoadBalancer<Cabana::Grid::UniformMesh<double>> *lb;
 #endif
 
     void init( InputCL cl ) override;

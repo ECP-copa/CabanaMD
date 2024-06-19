@@ -95,12 +95,12 @@ class SystemCommon
     T_X_FLOAT ghost_mesh_lo_x, ghost_mesh_lo_y, ghost_mesh_lo_z;
     T_X_FLOAT ghost_mesh_hi_x, ghost_mesh_hi_y, ghost_mesh_hi_z;
     T_X_FLOAT halo_width;
-    std::shared_ptr<Cajita::UniformDimPartitioner> partitioner;
-    std::shared_ptr<Cajita::GlobalMesh<Cajita::UniformMesh<T_X_FLOAT>>>
+    std::shared_ptr<Cabana::Grid::DimBlockPartitioner<3>> partitioner;
+    std::shared_ptr<Cabana::Grid::GlobalMesh<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
         global_mesh;
-    std::shared_ptr<Cajita::LocalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
+    std::shared_ptr<Cabana::Grid::LocalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
         local_grid;
-    std::shared_ptr<Cajita::GlobalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
+    std::shared_ptr<Cabana::Grid::GlobalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
         global_grid;
 
     // Only needed for current comm
@@ -149,7 +149,7 @@ class SystemCommon
     {
         halo_width = ghost_cutoff;
         // Create the MPI partitions.
-        partitioner = std::make_shared<Cajita::UniformDimPartitioner>();
+        partitioner = std::make_shared<Cabana::Grid::DimBlockPartitioner<3>>();
         ranks_per_dim = partitioner->ranksPerDimension( MPI_COMM_WORLD, {} );
         int cells_per_dim_per_rank = 1;
 
@@ -162,7 +162,7 @@ class SystemCommon
             cells_per_dim_per_rank * ranks_per_dim[2] };
 
         // Create global mesh of MPI partitions.
-        global_mesh = Cajita::createUniformGlobalMesh( low_corner, high_corner,
+        global_mesh = Cabana::Grid::createUniformGlobalMesh( low_corner, high_corner,
                                                        cells_per_rank );
 
         global_mesh_x = global_mesh->extent( 0 );
@@ -171,7 +171,7 @@ class SystemCommon
 
         // Create the global grid.
         std::array<bool, 3> is_periodic = { true, true, true };
-        global_grid = Cajita::createGlobalGrid( MPI_COMM_WORLD, global_mesh,
+        global_grid = Cabana::Grid::createGlobalGrid( MPI_COMM_WORLD, global_mesh,
                                                 is_periodic, *partitioner );
 
         for ( int d = 0; d < 3; d++ )
@@ -193,11 +193,11 @@ class SystemCommon
     // number of ranks (per dim) does not change. We also assume that the
     // position of this rank in the cartesian grid of ranks does not change.
     void update_global_grid( const std::shared_ptr<
-                             Cajita::GlobalGrid<Cajita::UniformMesh<T_X_FLOAT>>>
+                             Cabana::Grid::GlobalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
                                  &new_global_grid )
     {
         global_grid = new_global_grid;
-        local_grid = Cajita::createLocalGrid( global_grid, halo_width );
+        local_grid = Cabana::Grid::createLocalGrid( global_grid, halo_width );
         update_mesh_info();
     }
 
@@ -247,23 +247,23 @@ class SystemCommon
     // Update local_mesh_* and ghost_mesh* info from global grid
     void update_mesh_info()
     {
-        auto local_mesh = Cajita::createLocalMesh<t_device>( *local_grid );
+        auto local_mesh = Cabana::Grid::createLocalMesh<t_device>( *local_grid );
 
-        local_mesh_lo_x = local_mesh.lowCorner( Cajita::Own(), 0 );
-        local_mesh_lo_y = local_mesh.lowCorner( Cajita::Own(), 1 );
-        local_mesh_lo_z = local_mesh.lowCorner( Cajita::Own(), 2 );
-        local_mesh_hi_x = local_mesh.highCorner( Cajita::Own(), 0 );
-        local_mesh_hi_y = local_mesh.highCorner( Cajita::Own(), 1 );
-        local_mesh_hi_z = local_mesh.highCorner( Cajita::Own(), 2 );
-        ghost_mesh_lo_x = local_mesh.lowCorner( Cajita::Ghost(), 0 );
-        ghost_mesh_lo_y = local_mesh.lowCorner( Cajita::Ghost(), 1 );
-        ghost_mesh_lo_z = local_mesh.lowCorner( Cajita::Ghost(), 2 );
-        ghost_mesh_hi_x = local_mesh.highCorner( Cajita::Ghost(), 0 );
-        ghost_mesh_hi_y = local_mesh.highCorner( Cajita::Ghost(), 1 );
-        ghost_mesh_hi_z = local_mesh.highCorner( Cajita::Ghost(), 2 );
-        local_mesh_x = local_mesh.extent( Cajita::Own(), 0 );
-        local_mesh_y = local_mesh.extent( Cajita::Own(), 1 );
-        local_mesh_z = local_mesh.extent( Cajita::Own(), 2 );
+        local_mesh_lo_x = local_mesh.lowCorner( Cabana::Grid::Own(), 0 );
+        local_mesh_lo_y = local_mesh.lowCorner( Cabana::Grid::Own(), 1 );
+        local_mesh_lo_z = local_mesh.lowCorner( Cabana::Grid::Own(), 2 );
+        local_mesh_hi_x = local_mesh.highCorner( Cabana::Grid::Own(), 0 );
+        local_mesh_hi_y = local_mesh.highCorner( Cabana::Grid::Own(), 1 );
+        local_mesh_hi_z = local_mesh.highCorner( Cabana::Grid::Own(), 2 );
+        ghost_mesh_lo_x = local_mesh.lowCorner( Cabana::Grid::Ghost(), 0 );
+        ghost_mesh_lo_y = local_mesh.lowCorner( Cabana::Grid::Ghost(), 1 );
+        ghost_mesh_lo_z = local_mesh.lowCorner( Cabana::Grid::Ghost(), 2 );
+        ghost_mesh_hi_x = local_mesh.highCorner( Cabana::Grid::Ghost(), 0 );
+        ghost_mesh_hi_y = local_mesh.highCorner( Cabana::Grid::Ghost(), 1 );
+        ghost_mesh_hi_z = local_mesh.highCorner( Cabana::Grid::Ghost(), 2 );
+        local_mesh_x = local_mesh.extent( Cabana::Grid::Own(), 0 );
+        local_mesh_y = local_mesh.extent( Cabana::Grid::Own(), 1 );
+        local_mesh_z = local_mesh.extent( Cabana::Grid::Own(), 2 );
     }
 };
 
