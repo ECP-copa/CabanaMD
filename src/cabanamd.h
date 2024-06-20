@@ -87,7 +87,8 @@ class CbnMD : public CabanaMD
     Binning<t_System> *binning;
     InputFile<t_System> *input;
 #ifdef CabanaMD_ENABLE_LB
-    Cabana::Grid::Experimental::LoadBalancer<Cabana::Grid::UniformMesh<double>> *lb;
+    Cabana::Grid::Experimental::LoadBalancer<Cabana::Grid::UniformMesh<double>>
+        *lb;
 #endif
 
     void init( InputCL cl ) override;

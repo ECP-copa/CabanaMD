@@ -229,8 +229,9 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
     }
 
 #ifdef CabanaMD_ENABLE_LB
-    lb = new Cabana::Grid::Experimental::LoadBalancer<Cabana::Grid::UniformMesh<double>>(
-        MPI_COMM_WORLD, system->global_grid );
+    lb = new Cabana::Grid::Experimental::LoadBalancer<
+        Cabana::Grid::UniformMesh<double>>( MPI_COMM_WORLD,
+                                            system->global_grid );
 #endif
 
     // Initial output

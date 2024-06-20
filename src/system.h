@@ -96,11 +96,14 @@ class SystemCommon
     T_X_FLOAT ghost_mesh_hi_x, ghost_mesh_hi_y, ghost_mesh_hi_z;
     T_X_FLOAT halo_width;
     std::shared_ptr<Cabana::Grid::DimBlockPartitioner<3>> partitioner;
-    std::shared_ptr<Cabana::Grid::GlobalMesh<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
+    std::shared_ptr<
+        Cabana::Grid::GlobalMesh<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
         global_mesh;
-    std::shared_ptr<Cabana::Grid::LocalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
+    std::shared_ptr<
+        Cabana::Grid::LocalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
         local_grid;
-    std::shared_ptr<Cabana::Grid::GlobalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
+    std::shared_ptr<
+        Cabana::Grid::GlobalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
         global_grid;
 
     // Only needed for current comm
@@ -162,8 +165,8 @@ class SystemCommon
             cells_per_dim_per_rank * ranks_per_dim[2] };
 
         // Create global mesh of MPI partitions.
-        global_mesh = Cabana::Grid::createUniformGlobalMesh( low_corner, high_corner,
-                                                       cells_per_rank );
+        global_mesh = Cabana::Grid::createUniformGlobalMesh(
+            low_corner, high_corner, cells_per_rank );
 
         global_mesh_x = global_mesh->extent( 0 );
         global_mesh_y = global_mesh->extent( 1 );
@@ -171,8 +174,8 @@ class SystemCommon
 
         // Create the global grid.
         std::array<bool, 3> is_periodic = { true, true, true };
-        global_grid = Cabana::Grid::createGlobalGrid( MPI_COMM_WORLD, global_mesh,
-                                                is_periodic, *partitioner );
+        global_grid = Cabana::Grid::createGlobalGrid(
+            MPI_COMM_WORLD, global_mesh, is_periodic, *partitioner );
 
         for ( int d = 0; d < 3; d++ )
         {
@@ -192,9 +195,10 @@ class SystemCommon
     // Update domain info according to new global grid. We assume that the
     // number of ranks (per dim) does not change. We also assume that the
     // position of this rank in the cartesian grid of ranks does not change.
-    void update_global_grid( const std::shared_ptr<
-                             Cabana::Grid::GlobalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
-                                 &new_global_grid )
+    void update_global_grid(
+        const std::shared_ptr<
+            Cabana::Grid::GlobalGrid<Cabana::Grid::UniformMesh<T_X_FLOAT>>>
+            &new_global_grid )
     {
         global_grid = new_global_grid;
         local_grid = Cabana::Grid::createLocalGrid( global_grid, halo_width );
@@ -247,7 +251,8 @@ class SystemCommon
     // Update local_mesh_* and ghost_mesh* info from global grid
     void update_mesh_info()
     {
-        auto local_mesh = Cabana::Grid::createLocalMesh<t_device>( *local_grid );
+        auto local_mesh =
+            Cabana::Grid::createLocalMesh<t_device>( *local_grid );
 
         local_mesh_lo_x = local_mesh.lowCorner( Cabana::Grid::Own(), 0 );
         local_mesh_lo_y = local_mesh.lowCorner( Cabana::Grid::Own(), 1 );
