@@ -550,10 +550,13 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     T_X_FLOAT max_z = lattice_constant * lattice_nz;
     std::array<T_X_FLOAT, 3> global_low = { 0.0, 0.0, 0.0 };
     std::array<T_X_FLOAT, 3> global_high = { max_x, max_y, max_z };
-    // Uncomment the following to create a vacuum for an unbalanced system.
-    // global_high[0] *= 2;
-    // global_high[1] *= 2;
-    // global_high[2] *= 2;
+    if ( commandline.sparse )
+    {
+        // Create a vacuum for an unbalanced system.
+        global_high[0] *= 2;
+        global_high[1] *= 2;
+        global_high[2] *= 2;
+    }
     system->create_domain( global_low, global_high, comm_ghost_cutoff );
     s = *system;
 

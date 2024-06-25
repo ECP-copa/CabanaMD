@@ -116,6 +116,8 @@ void InputCL::read_args( int argc, char *argv[] )
                  "                                (N = positive integer)\n",
                  "                                (PATH = location of ",
                  "directory)\n" );
+            log( std::cout, "  --sparse : "
+                            "create a vacuum for an unbalanced system\n" );
         }
 
         // Read Lammps input deck
@@ -231,6 +233,11 @@ void InputCL::read_args( int argc, char *argv[] )
             correctness_file = argv[i + 3];
             correctnessflag = true;
             i += 3;
+        }
+
+        else if ( ( strcmp( argv[i], "--sparse" ) == 0 ) )
+        {
+            sparse = true;
         }
 
         else if ( ( strstr( argv[i], "--kokkos-" ) == NULL ) )
