@@ -13,13 +13,26 @@
 #define VTK_DOMAIN_WRITER_H
 #include <mpi.h>
 
+#include <iomanip>
 #include <sstream>
 #include <string>
+
+namespace
+{
+
+std::string set_width( const int value, const unsigned width = 3 )
+{
+    std::ostringstream oss;
+    oss << std::setw( width ) << std::setfill( '0' ) << value;
+    return oss.str();
+}
+
+} // namespace
 
 namespace VTKWriter
 {
 // Write PVTU
-void writeDomainParallelFile( MPI_Comm comm, int time_step,
+void writeDomainParallelFile( MPI_Comm comm, const std::string &time_step,
                               std::string &basename )
 {
     // Should only be called from a single rank
@@ -41,8 +54,8 @@ void writeDomainParallelFile( MPI_Comm comm, int time_step,
                    "NumberOfComponents=\"3\"/>\n" );
     fprintf( file, "\t</PPoints>\n" );
     for ( int i = 0; i < size; ++i )
-        fprintf( file, "\t<Piece Source=\"%s_%d_%d.vtu\"/>\n", basename.c_str(),
-                 time_step, i );
+        fprintf( file, "\t<Piece Source=\"%s_%d_%s.vtu\"/>\n", basename.c_str(),
+                 i, time_step.c_str() );
     fprintf( file, "</PUnstructuredGrid>\n" );
     fprintf( file, "</VTKFile>\n" );
     fclose( file );
@@ -57,11 +70,13 @@ void writeDomain( MPI_Comm comm, int time_step,
 {
     int rank;
     MPI_Comm_rank( comm, &rank );
+
+    auto time_step_fixed = set_width( time_step );
     if ( rank == 1 )
-        writeDomainParallelFile( comm, time_step, basename );
+        writeDomainParallelFile( comm, time_step_fixed, basename );
     std::stringstream filename;
     // todo(sschulz): properly format, according to max rank
-    filename << basename << "_" << time_step << "_" << rank << ".vtu";
+    filename << basename << "_" << rank << "_" << time_step_fixed << ".vtu";
     FILE *file = fopen( filename.str().c_str(), "w" );
     fprintf( file, "<?xml version=\"1.0\"?>\n" );
     fprintf( file, "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" "
@@ -134,7 +149,7 @@ void writeDomain( MPI_Comm comm, int time_step,
     fclose( file );
 }
 
-void writeParticlesParallelFile( MPI_Comm comm, const int step,
+void writeParticlesParallelFile( MPI_Comm comm, const std::string &time_step,
                                  std::string filename )
 {
     // Should only be called from a single rank
@@ -144,14 +159,11 @@ void writeParticlesParallelFile( MPI_Comm comm, const int step,
     // todo(sschulz): Also separate filename construction into function
     size_t pos = 0;
     pos = filename.find( "*", pos );
-    std::stringstream time_string;
-    time_string << step;
-    filename.replace( pos, 1, time_string.str() );
+    filename.replace( pos, 1, time_step );
     std::string parallel_filename( filename );
     pos = 0;
     pos = parallel_filename.find( "%", pos );
-    std::string empty_string( "" );
-    parallel_filename.replace( pos, 1, empty_string );
+    parallel_filename.erase( pos, 1 );
     pos = 0;
     pos = parallel_filename.find( ".vtu", pos );
     parallel_filename.replace( pos, 4, ".pvtu" );
@@ -188,26 +200,25 @@ void writeParticlesParallelFile( MPI_Comm comm, const int step,
 
 // Write particles to vtu file
 // filename must contain * and % which will be replaced by time step and _rank.
-// The filename dump_*%.vtu will be create the file dump_43_325.vtu in time
+// The filename dump_*%.vtu will create the file dump_043_325.vtu in time
 // step 43 on rank 325.
 template <class t_System>
-void writeParticles( MPI_Comm comm, const int step, t_System *system,
+void writeParticles( MPI_Comm comm, const int time_step, t_System *system,
                      std::string filename, std::ofstream &err )
 {
     int rank;
     MPI_Comm_rank( comm, &rank );
+    auto time_step_fixed = set_width( time_step );
     // Write parallel file
     if ( rank == 1 )
-        writeParticlesParallelFile( comm, step, filename );
+        writeParticlesParallelFile( comm, time_step_fixed, filename );
     // Prepare actual filename
     // todo(sschulz): Separate filename construction into function
     size_t pos = 0;
     pos = filename.find( "*", pos );
     if ( std::string::npos == pos )
         log_err( err, "VTK output file does not contain required '*'" );
-    std::stringstream time_string;
-    time_string << step;
-    filename.replace( pos, 1, time_string.str() );
+    filename.replace( pos, 1, time_step_fixed );
     pos = 0;
     pos = filename.find( "%", pos );
     if ( std::string::npos == pos )
