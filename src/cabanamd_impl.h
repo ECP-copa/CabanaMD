@@ -328,6 +328,7 @@ void CbnMD<t_System, t_Neighbor>::run()
 
             // Exchange atoms across MPI ranks
             comm_timer.reset();
+            log( std::cout, "Comm::exchange()\tstep ", step );
             comm->exchange();
             comm_time += comm_timer.seconds();
 
