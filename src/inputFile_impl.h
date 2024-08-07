@@ -240,6 +240,8 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     }
     if ( keyword.compare( "region" ) == 0 )
     {
+        // FIXME-group: multiple regions support required
+        // auto region_id = words.at(1);
         if ( words.at( 2 ).compare( "block" ) == 0 )
         {
             known = true;
@@ -252,7 +254,7 @@ void InputFile<t_System>::check_lammps_command( std::string line,
             box[5] = std::stoi( words.at( 8 ) );
             if ( ( box[0] != 0 ) || ( box[2] != 0 ) || ( box[4] != 0 ) )
                 log_err( err, "LAMMPS-Command: region only allows for boxes "
-                              "with 0,0,0 offset in CabanaMD" );
+                              "with 0,0,0 offset in CabanaMD" ); // FIXME-group
             lattice_nx = box[1];
             lattice_ny = box[3];
             lattice_nz = box[5];
@@ -484,6 +486,19 @@ void InputFile<t_System>::check_lammps_command( std::string line,
                  "Warning: Overriding LAMMPS-Command: 'newton' replaced by "
                  "commandline --force-iteration" );
         }
+    }
+    if ( keyword.compare( "group" ) == 0 )
+    {
+        // supported version:
+        // group GROUP-ID region REGION-ID
+        known = true;
+        [[maybe_unused]] auto group_id = words.at(1);
+        if ( words.at( 2 ) != "region" )
+        {
+            log_err( err, "LAMMPS-Command: 'group' command can only be "
+                          "used with 'region' in CabanaMD" );
+        }
+        [[ maybe_unused]] auto region_id = words.at(3);
     }
 
     if ( !known )
