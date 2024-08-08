@@ -245,19 +245,12 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         if ( words.at( 2 ).compare( "block" ) == 0 )
         {
             known = true;
-            int box[6];
-            box[0] = std::stoi( words.at( 3 ) );
-            box[1] = std::stoi( words.at( 4 ) );
-            box[2] = std::stoi( words.at( 5 ) );
-            box[3] = std::stoi( words.at( 6 ) );
-            box[4] = std::stoi( words.at( 7 ) );
-            box[5] = std::stoi( words.at( 8 ) );
-            if ( ( box[0] != 0 ) || ( box[2] != 0 ) || ( box[4] != 0 ) )
-                log_err( err, "LAMMPS-Command: region only allows for boxes "
-                              "with 0,0,0 offset in CabanaMD" ); // FIXME-group
-            lattice_nx = box[1];
-            lattice_ny = box[3];
-            lattice_nz = box[5];
+            box.xlo = std::stod( words.at( 3 ) );
+            box.xhi = std::stod( words.at( 4 ) );
+            box.ylo = std::stod( words.at( 5 ) );
+            box.yhi = std::stod( words.at( 6 ) );
+            box.zlo = std::stod( words.at( 7 ) );
+            box.zhi = std::stod( words.at( 8 ) );
         }
         else
         {
@@ -522,9 +515,9 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     Kokkos::deep_copy( h_mass, s.mass );
 
     // Create the mesh.
-    T_X_FLOAT max_x = lattice_constant * lattice_nx;
-    T_X_FLOAT max_y = lattice_constant * lattice_ny;
-    T_X_FLOAT max_z = lattice_constant * lattice_nz;
+    T_X_FLOAT max_x = lattice_constant * box.xhi;
+    T_X_FLOAT max_y = lattice_constant * box.yhi;
+    T_X_FLOAT max_z = lattice_constant * box.zhi;
     std::array<T_X_FLOAT, 3> global_low = { 0.0, 0.0, 0.0 };
     std::array<T_X_FLOAT, 3> global_high = { max_x, max_y, max_z };
     if ( commandline.vacuum )
@@ -548,16 +541,13 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     T_INT iy_start = local_mesh_lo_y / lattice_constant - 0.5;
     T_INT iz_start = local_mesh_lo_z / lattice_constant - 0.5;
     T_INT ix_end =
-        std::max( std::min( static_cast<double>( lattice_nx ),
-                            local_mesh_hi_x / lattice_constant + 0.5 ),
+        std::max( std::min( box.xhi, local_mesh_hi_x / lattice_constant + 0.5 ),
                   static_cast<double>( ix_start ) );
     T_INT iy_end =
-        std::max( std::min( static_cast<double>( lattice_ny ),
-                            local_mesh_hi_y / lattice_constant + 0.5 ),
+        std::max( std::min( box.yhi, local_mesh_hi_y / lattice_constant + 0.5 ),
                   static_cast<double>( iy_start ) );
     T_INT iz_end =
-        std::max( std::min( static_cast<double>( lattice_nz ),
-                            local_mesh_hi_z / lattice_constant + 0.5 ),
+        std::max( std::min( box.zhi, local_mesh_hi_z / lattice_constant + 0.5 ),
                   static_cast<double>( iz_start ) );
     if ( ix_start == ix_end )
         ix_end -= 1;

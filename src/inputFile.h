@@ -162,8 +162,12 @@ class InputFile
     int lattice_style = LATTICE_FCC;
     double lattice_constant = 0.8442, lattice_offset_x = 0.0,
            lattice_offset_y = 0.0, lattice_offset_z = 0.0;
-    int lattice_nx, lattice_ny, lattice_nz;
-    std::array<int, 6> box = { 0, 40, 0, 40, 0, 40 };
+
+    struct Block
+    {
+        double xlo, xhi, ylo, yhi, zlo, zhi;
+    };
+    Block box = { 0.0, 40.0, 0.0, 40.0, 0.0, 40.0 };
 
     char *data_file;
     int data_file_type;
