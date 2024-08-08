@@ -58,6 +58,7 @@
 #include <system.h>
 #include <types.h>
 
+#include <array>
 #include <fstream>
 #include <vector>
 
@@ -149,18 +150,20 @@ template <class t_System>
 class InputFile
 {
   private:
-    bool timestepflag; // input timestep?
+    bool timestepflag = false; // input timestep?
   public:
     InputCL commandline;
     t_System *system;
 
     bool _print_rank;
-    int units_style;
-    int lattice_style;
-    double lattice_constant, lattice_offset_x, lattice_offset_y,
-        lattice_offset_z;
+
+    // defaults match ExaMiniMD LJ example
+    int units_style = UNITS_LJ;
+    int lattice_style = LATTICE_FCC;
+    double lattice_constant = 0.8442, lattice_offset_x = 0.0,
+           lattice_offset_y = 0.0, lattice_offset_z = 0.0;
     int lattice_nx, lattice_ny, lattice_nz;
-    int box[6];
+    std::array<int, 6> box = { 0, 40, 0, 40, 0, 40 };
 
     char *data_file;
     int data_file_type;
@@ -168,33 +171,33 @@ class InputFile
     std::string output_file;
     std::string error_file;
 
-    double temperature_target;
-    int temperature_seed;
+    double temperature_target = 1.4;
+    int temperature_seed = 87287;
 
-    int integrator_type;
-    int nsteps;
+    int integrator_type = INTEGRATOR_NVE;
+    int nsteps = 100;
 
-    int binning_type;
+    int binning_type = BINNING_LINKEDCELL;
 
-    int comm_type;
-    int comm_exchange_rate;
+    int comm_type = COMM_MPI;
+    int comm_exchange_rate = 20;
 
-    int force_type;
+    int force_type = FORCE_LJ;
     int force_iteration_type;
     int force_neigh_parallel_type;
 
-    T_F_FLOAT force_cutoff;
+    T_F_FLOAT force_cutoff = 2.5;
     std::vector<std::vector<std::string>> force_coeff_lines;
 
-    T_F_FLOAT neighbor_skin;
-    int neighbor_type;
-    T_INT max_neigh_guess;
+    T_F_FLOAT neighbor_skin = 0.0;
+    int neighbor_type = NEIGH_VERLET_2D;
+    T_INT max_neigh_guess = 50;
 
     int layout_type;
     int nnp_layout_type;
 
-    int thermo_rate, dumpbinary_rate, correctness_rate;
-    bool dumpbinaryflag, correctnessflag;
+    int thermo_rate = 10, dumpbinary_rate = 0, correctness_rate = 0;
+    bool dumpbinaryflag = false, correctnessflag = false;
     char *dumpbinary_path, *reference_path, *correctness_file;
     std::string input_data_file;
     std::string output_data_file;

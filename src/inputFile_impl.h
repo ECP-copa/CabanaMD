@@ -49,7 +49,7 @@
 #include <inputFile.h>
 #include <property_temperature.h>
 
-#include <iostream>
+#include <algorithm>
 #include <regex>
 
 std::vector<std::string> split( const std::string &line )
@@ -71,56 +71,12 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     : commandline( commandline_ )
     , system( system_ )
 {
-    comm_type = COMM_MPI;
-    integrator_type = INTEGRATOR_NVE;
-    neighbor_type = NEIGH_VERLET_2D;
-    force_type = FORCE_LJ;
-    binning_type = BINNING_LINKEDCELL;
-
     neighbor_type = commandline.neighbor_type;
     force_iteration_type = commandline.force_iteration_type;
     force_neigh_parallel_type = commandline.force_neigh_parallel_type;
 
     output_file = commandline.output_file;
     error_file = commandline.error_file;
-
-    // set defaults (matches ExaMiniMD LJ example)
-
-    nsteps = 0;
-
-    thermo_rate = 0;
-    dumpbinary_rate = 0;
-    correctness_rate = 0;
-    dumpbinaryflag = false;
-    correctnessflag = false;
-    timestepflag = false;
-
-    lattice_offset_x = 0.0;
-    lattice_offset_y = 0.0;
-    lattice_offset_z = 0.0;
-    box[0] = 0;
-    box[2] = 0;
-    box[4] = 0;
-    box[1] = 40;
-    box[3] = 40;
-    box[5] = 40;
-
-    units_style = UNITS_LJ;
-    lattice_style = LATTICE_FCC;
-    lattice_constant = 0.8442;
-
-    temperature_target = 1.4;
-    temperature_seed = 87287;
-
-    nsteps = 100;
-    thermo_rate = 10;
-
-    neighbor_skin = 0.3;
-    neighbor_skin = 0.0; // for metal and real units
-    max_neigh_guess = 50;
-    comm_exchange_rate = 20;
-
-    force_cutoff = 2.5;
 }
 
 template <class t_System>
