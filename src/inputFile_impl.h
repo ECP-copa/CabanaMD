@@ -515,10 +515,13 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     Kokkos::deep_copy( h_mass, s.mass );
 
     // Create the mesh.
+    T_X_FLOAT min_x = lattice_constant * box.xlo;
+    T_X_FLOAT min_y = lattice_constant * box.ylo;
+    T_X_FLOAT min_z = lattice_constant * box.zlo;
     T_X_FLOAT max_x = lattice_constant * box.xhi;
     T_X_FLOAT max_y = lattice_constant * box.yhi;
     T_X_FLOAT max_z = lattice_constant * box.zhi;
-    std::array<T_X_FLOAT, 3> global_low = { 0.0, 0.0, 0.0 };
+    std::array<T_X_FLOAT, 3> global_low = { min_x, min_y, min_z };
     std::array<T_X_FLOAT, 3> global_high = { max_x, max_y, max_z };
     if ( commandline.vacuum )
     {
