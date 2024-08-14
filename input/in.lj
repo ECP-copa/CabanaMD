@@ -15,7 +15,8 @@ mass		2 8.0
 create_atoms	1 box
 create_atoms	2 box
 
-velocity	all create 1.4 87287 loop geom
+velocity	1 create 100.4 87287 loop geom
+velocity	2 create 1.4 87287 loop geom
 
 pair_style	lj/cut 2.5
 pair_coeff	1 1 1.0 1.0 2.5

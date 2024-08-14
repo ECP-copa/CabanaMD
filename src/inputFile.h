@@ -175,8 +175,12 @@ class InputFile
     std::string output_file;
     std::string error_file;
 
-    double temperature_target = 1.4;
-    int temperature_seed = 87287;
+    struct Velocity
+    {
+      double temp;
+      int seed;
+    };
+    std::unordered_map<int, Velocity> type_to_temperature;
 
     int integrator_type = INTEGRATOR_NVE;
     int nsteps = 100;

@@ -362,18 +362,21 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     if ( keyword.compare( "velocity" ) == 0 )
     {
         known = true;
-        if ( words.at( 1 ).compare( "all" ) != 0 )
-        {
-            log_err( err, "LAMMPS-Command: 'velocity' command can only be "
-                          "applied to 'all' in CabanaMD" );
-        }
+        // if ( words.at( 1 ).compare( "all" ) != 0 )
+        // {
+        //     log_err( err, "LAMMPS-Command: 'velocity' command can only be "
+        //                   "applied to 'all' in CabanaMD" );
+        // }
         if ( words.at( 2 ).compare( "create" ) != 0 )
         {
             log_err( err, "LAMMPS-Command: 'velocity' command can only be used "
                           "with option 'create' in CabanaMD" );
         }
-        temperature_target = std::stod( words.at( 3 ) );
-        temperature_seed = std::stoi( words.at( 4 ) );
+        auto atom_type = std::stoi( words.at( 1 ) );
+        auto temperature_target = std::stod( words.at( 3 ) );
+        auto temperature_seed = std::stoi( words.at( 4 ) );
+        type_to_temperature[atom_type] = { temperature_target,
+                                           temperature_seed };
     }
     if ( keyword.compare( "neighbor" ) == 0 )
     {
@@ -771,7 +774,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     {
         LAMMPS_RandomVelocityGeom random;
         double x_i[3] = { h_x( i, 0 ), h_x( i, 1 ), h_x( i, 2 ) };
-        random.reset( temperature_seed, x_i );
+        random.reset( type_to_temperature[h_type( i )].seed, x_i );
 
         T_FLOAT mass_i = h_mass( h_type( i ) );
         T_FLOAT vx = random.uniform() - 0.5;
@@ -810,13 +813,16 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     Temperature<t_System> temp( comm );
     T_V_FLOAT T = temp.compute( system );
 
-    T_V_FLOAT T_init_scale = sqrt( temperature_target / T );
-
+    auto T_init_scale = [=]( int i )
+    {
+        auto target = type_to_temperature[h_type( i )].temp;
+        return sqrt( target / T );
+    };
     for ( T_INT i = 0; i < system->N_local; i++ )
     {
-        h_v( i, 0 ) *= T_init_scale;
-        h_v( i, 1 ) *= T_init_scale;
-        h_v( i, 2 ) *= T_init_scale;
+        h_v( i, 0 ) *= T_init_scale( i );
+        h_v( i, 1 ) *= T_init_scale( i );
+        h_v( i, 2 ) *= T_init_scale( i );
     }
     system->deep_copy( host_system );
 
