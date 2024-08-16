@@ -273,12 +273,33 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     }
     if ( keyword.compare( "create_atoms" ) == 0 )
     {
+        // supported version:
+        // create_atoms TYPE-ID region REGION-ID
         known = true;
+        if ( words.at( 2 ) == "region" )
+        {
+            auto type = std::stoi( words.at( 1 ) );
+            auto region_id = words.at( 3 );
+            if ( regions.find( region_id ) == regions.end() )
+            {
+                log_err( err, "LAMMPS-Command: region '", region_id,
+                         "' is not defined" );
+            }
+            regions_to_type[region_id] = type;
+        }
+        else
+        {
+            log_err( err,
+                     "LAMMPS-Command: 'create_atoms' command only supports "
+                     "'region' option in CabanaMD" );
+        }
     }
     if ( keyword.compare( "mass" ) == 0 )
     {
         known = true;
-        int type = std::stoi( words.at( 1 ) ) - 1;
+        int type = std::stoi( words.at( 1 ) ) -
+                   1; // this is annoying because all other commands have to do
+                      // the +1 / -1 thing
         if ( type >= (int)system->mass.extent( 0 ) )
             Kokkos::resize( system->mass, type + 1 );
         using exe_space = typename t_System::execution_space;
@@ -733,14 +754,18 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                              ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
                              ( ytmp < max_y ) && ( ztmp < max_z ) )
                         {
-                            if ( in_any_region( xtmp, ytmp, ztmp ) )
+                            if ( auto region_ids =
+                                     get_regions( xtmp, ytmp, ztmp );
+                                 !region_ids.empty() )
                             {
                                 h_x( n, 0 ) = xtmp;
                                 h_x( n, 1 ) = ytmp;
                                 h_x( n, 2 ) = ztmp;
-                                h_type( n ) = xtmp < max_x / 2
-                                                  ? 1
-                                                  : rand() % s.ntypes; // FIXME?
+
+                                auto rnd = rand() % region_ids.size();
+                                auto type_id = regions_to_type[region_ids[rnd]];
+
+                                h_type( n ) = type_id - 1;
                                 h_id( n ) = n + 1;
                                 n++;
                             }
@@ -786,7 +811,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     {
         LAMMPS_RandomVelocityGeom random;
         double x_i[3] = { h_x( i, 0 ), h_x( i, 1 ), h_x( i, 2 ) };
-        random.reset( type_to_temperature[h_type( i )].seed, x_i );
+        random.reset( type_to_temperature[h_type( i ) + 1].seed, x_i );
 
         T_FLOAT mass_i = h_mass( h_type( i ) );
         T_FLOAT vx = random.uniform() - 0.5;
@@ -827,7 +852,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
 
     auto T_init_scale = [=]( int i )
     {
-        auto target = type_to_temperature[h_type( i )].temp;
+        auto target = type_to_temperature[h_type( i ) + 1].temp;
         return sqrt( target / T );
     };
     for ( T_INT i = 0; i < system->N_local; i++ )

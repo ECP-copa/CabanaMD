@@ -7,17 +7,25 @@ newton off
 
 lattice		fcc 0.8442
 region		lo-box block 0 10 0 10 0 10
-region		hi-box block 10 20 10 20 10 20
-create_box	2 box
+region		mid-box block 5 10 5 10 5 10
+region		hi-box block 0 5 15 20 15 20
+region		hj-box block 15 20 15 20 0 5
+create_box	4 box
 
 mass		1 2.0
 mass		2 8.0
+mass		3 9.0
+mass		4 1.0
 
-create_atoms	1 box
-create_atoms	2 box
+create_atoms	1 region lo-box
+create_atoms	2 region mid-box
+create_atoms	3 region hi-box
+create_atoms	4 region hj-box
 
-velocity	1 create 100.4 87287 loop geom
-velocity	2 create 1.4 87287 loop geom
+velocity	1 create 10.4 87287 loop geom
+velocity	2 create 41.6 87287 loop geom
+velocity	3 create 20.8 87287 loop geom
+velocity	4 create 10.4 87287 loop geom
 
 pair_style	lj/cut 2.5
 pair_coeff	1 1 1.0 1.0 2.5

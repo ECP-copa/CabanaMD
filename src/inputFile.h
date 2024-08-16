@@ -169,21 +169,39 @@ class InputFile
         double xlo, xhi, ylo, yhi, zlo, zhi;
     };
     std::unordered_map<std::string, Block> regions;
+    std::unordered_map<std::string, int> regions_to_type;
 
-    bool in_any_region( T_FLOAT xtmp, T_FLOAT ytmp, T_FLOAT ztmp )
+    bool in_region( T_FLOAT xtmp, T_FLOAT ytmp, T_FLOAT ztmp,
+                    const Block &block ) const
     {
-        return std::any_of( regions.cbegin(), regions.cend(),
-                            [=]( auto pair )
-                            {
-                                auto block = pair.second;
-                                return (
-                                    ( xtmp >= lattice_constant * block.xlo ) &&
-                                    ( ytmp >= lattice_constant * block.ylo ) &&
-                                    ( ztmp >= lattice_constant * block.zlo ) &&
-                                    ( xtmp < lattice_constant * block.xhi ) &&
-                                    ( ytmp < lattice_constant * block.yhi ) &&
-                                    ( ztmp < lattice_constant * block.zhi ) );
-                            } );
+        return ( ( xtmp >= lattice_constant * block.xlo ) &&
+                 ( ytmp >= lattice_constant * block.ylo ) &&
+                 ( ztmp >= lattice_constant * block.zlo ) &&
+                 ( xtmp < lattice_constant * block.xhi ) &&
+                 ( ytmp < lattice_constant * block.yhi ) &&
+                 ( ztmp < lattice_constant * block.zhi ) );
+    }
+
+    bool in_any_region( T_FLOAT xtmp, T_FLOAT ytmp, T_FLOAT ztmp ) const
+    {
+        return std::any_of(
+            regions.cbegin(), regions.cend(), [=]( auto &pair )
+            { return in_region( xtmp, ytmp, ztmp, pair.second ); } );
+    }
+
+    std::vector<std::string> get_regions( T_FLOAT xtmp, T_FLOAT ytmp,
+                                          T_FLOAT ztmp ) const
+    {
+        std::vector<std::string> ret;
+        for ( auto &[region_id, block] : regions )
+        {
+            if ( in_region( xtmp, ytmp, ztmp, block ) )
+            {
+                ret.emplace_back( region_id );
+            }
+        }
+
+        return ret;
     }
 
     T_X_FLOAT min_x = std::numeric_limits<T_X_FLOAT>::max();
