@@ -240,17 +240,25 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     }
     if ( keyword.compare( "region" ) == 0 )
     {
-        // FIXME-group: multiple regions support required
-        // auto region_id = words.at(1);
         if ( words.at( 2 ).compare( "block" ) == 0 )
         {
             known = true;
-            box.xlo = std::stod( words.at( 3 ) );
-            box.xhi = std::stod( words.at( 4 ) );
-            box.ylo = std::stod( words.at( 5 ) );
-            box.yhi = std::stod( words.at( 6 ) );
-            box.zlo = std::stod( words.at( 7 ) );
-            box.zhi = std::stod( words.at( 8 ) );
+            auto region_id = words.at( 1 );
+            Block block;
+            block.xlo = std::stod( words.at( 3 ) );
+            block.xhi = std::stod( words.at( 4 ) );
+            block.ylo = std::stod( words.at( 5 ) );
+            block.yhi = std::stod( words.at( 6 ) );
+            block.zlo = std::stod( words.at( 7 ) );
+            block.zhi = std::stod( words.at( 8 ) );
+            regions[region_id] = block;
+
+            min_x = std::min( min_x, lattice_constant * block.xlo );
+            min_y = std::min( min_y, lattice_constant * block.ylo );
+            min_z = std::min( min_z, lattice_constant * block.zlo );
+            max_x = std::max( max_x, lattice_constant * block.xhi );
+            max_y = std::max( max_y, lattice_constant * block.yhi );
+            max_z = std::max( max_z, lattice_constant * block.zhi );
         }
         else
         {
@@ -518,12 +526,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     Kokkos::deep_copy( h_mass, s.mass );
 
     // Create the mesh.
-    T_X_FLOAT min_x = lattice_constant * box.xlo;
-    T_X_FLOAT min_y = lattice_constant * box.ylo;
-    T_X_FLOAT min_z = lattice_constant * box.zlo;
-    T_X_FLOAT max_x = lattice_constant * box.xhi;
-    T_X_FLOAT max_y = lattice_constant * box.yhi;
-    T_X_FLOAT max_z = lattice_constant * box.zhi;
     std::array<T_X_FLOAT, 3> global_low = { min_x, min_y, min_z };
     std::array<T_X_FLOAT, 3> global_high = { max_x, max_y, max_z };
     if ( commandline.vacuum )
@@ -547,13 +549,16 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     T_INT iy_start = local_mesh_lo_y / lattice_constant - 0.5;
     T_INT iz_start = local_mesh_lo_z / lattice_constant - 0.5;
     T_INT ix_end =
-        std::max( std::min( box.xhi, local_mesh_hi_x / lattice_constant + 0.5 ),
+        std::max( std::min( max_x / lattice_constant,
+                            local_mesh_hi_x / lattice_constant + 0.5 ),
                   static_cast<double>( ix_start ) );
     T_INT iy_end =
-        std::max( std::min( box.yhi, local_mesh_hi_y / lattice_constant + 0.5 ),
+        std::max( std::min( max_y / lattice_constant,
+                            local_mesh_hi_y / lattice_constant + 0.5 ),
                   static_cast<double>( iy_start ) );
     T_INT iz_end =
-        std::max( std::min( box.zhi, local_mesh_hi_z / lattice_constant + 0.5 ),
+        std::max( std::min( max_z / lattice_constant,
+                            local_mesh_hi_z / lattice_constant + 0.5 ),
                   static_cast<double>( iz_start ) );
     if ( ix_start == ix_end )
         ix_end -= 1;
@@ -662,7 +667,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
         }
 
         T_INT n = 0;
-
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
         {
             for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
@@ -685,7 +689,10 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                              ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
                              ( ytmp < max_y ) && ( ztmp < max_z ) )
                         {
-                            n++;
+                            if ( in_any_region( xtmp, ytmp, ztmp ) )
+                            {
+                                n++;
+                            }
                         }
                     }
                 }
@@ -726,12 +733,17 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                              ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
                              ( ytmp < max_y ) && ( ztmp < max_z ) )
                         {
-                            h_x( n, 0 ) = xtmp;
-                            h_x( n, 1 ) = ytmp;
-                            h_x( n, 2 ) = ztmp;
-                            h_type( n ) = rand() % s.ntypes;
-                            h_id( n ) = n + 1;
-                            n++;
+                            if ( in_any_region( xtmp, ytmp, ztmp ) )
+                            {
+                                h_x( n, 0 ) = xtmp;
+                                h_x( n, 1 ) = ytmp;
+                                h_x( n, 2 ) = ztmp;
+                                h_type( n ) = xtmp < max_x / 2
+                                                  ? 1
+                                                  : rand() % s.ntypes; // FIXME?
+                                h_id( n ) = n + 1;
+                                n++;
+                            }
                         }
                     }
                 }

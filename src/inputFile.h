@@ -58,8 +58,9 @@
 #include <system.h>
 #include <types.h>
 
-#include <array>
 #include <fstream>
+#include <limits>
+#include <unordered_map>
 #include <vector>
 
 // Class replicating LAMMPS Random velocity initialization with GEOM option
@@ -167,7 +168,30 @@ class InputFile
     {
         double xlo, xhi, ylo, yhi, zlo, zhi;
     };
-    Block box = { 0.0, 40.0, 0.0, 40.0, 0.0, 40.0 };
+    std::unordered_map<std::string, Block> regions;
+
+    bool in_any_region( T_FLOAT xtmp, T_FLOAT ytmp, T_FLOAT ztmp )
+    {
+        return std::any_of( regions.cbegin(), regions.cend(),
+                            [=]( auto pair )
+                            {
+                                auto block = pair.second;
+                                return (
+                                    ( xtmp >= lattice_constant * block.xlo ) &&
+                                    ( ytmp >= lattice_constant * block.ylo ) &&
+                                    ( ztmp >= lattice_constant * block.zlo ) &&
+                                    ( xtmp < lattice_constant * block.xhi ) &&
+                                    ( ytmp < lattice_constant * block.yhi ) &&
+                                    ( ztmp < lattice_constant * block.zhi ) );
+                            } );
+    }
+
+    T_X_FLOAT min_x = std::numeric_limits<T_X_FLOAT>::max();
+    T_X_FLOAT min_y = std::numeric_limits<T_X_FLOAT>::max();
+    T_X_FLOAT min_z = std::numeric_limits<T_X_FLOAT>::max();
+    T_X_FLOAT max_x = std::numeric_limits<T_X_FLOAT>::min();
+    T_X_FLOAT max_y = std::numeric_limits<T_X_FLOAT>::min();
+    T_X_FLOAT max_z = std::numeric_limits<T_X_FLOAT>::min();
 
     char *data_file;
     int data_file_type;
