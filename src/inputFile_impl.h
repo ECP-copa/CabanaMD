@@ -273,7 +273,8 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     }
     if ( keyword.compare( "create_atoms" ) == 0 )
     {
-        // supported version:
+        // supported versions:
+        // create_atoms TYPE-ID box
         // create_atoms TYPE-ID region REGION-ID
         known = true;
         if ( words.at( 2 ) == "region" )
@@ -285,6 +286,12 @@ void InputFile<t_System>::check_lammps_command( std::string line,
                 log_err( err, "LAMMPS-Command: region '", region_id,
                          "' is not defined" );
             }
+            regions_to_type[region_id] = type;
+        }
+        else if ( words.at( 2 ) == "box" )
+        {
+            auto type = std::stoi( words.at( 1 ) );
+            auto region_id = regions.begin()->first;
             regions_to_type[region_id] = type;
         }
         else
@@ -391,17 +398,13 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     if ( keyword.compare( "velocity" ) == 0 )
     {
         known = true;
-        // if ( words.at( 1 ).compare( "all" ) != 0 )
-        // {
-        //     log_err( err, "LAMMPS-Command: 'velocity' command can only be "
-        //                   "applied to 'all' in CabanaMD" );
-        // }
         if ( words.at( 2 ).compare( "create" ) != 0 )
         {
             log_err( err, "LAMMPS-Command: 'velocity' command can only be used "
                           "with option 'create' in CabanaMD" );
         }
-        auto atom_type = std::stoi( words.at( 1 ) );
+        auto atom_type =
+            ( words.at( 1 ) == "all" ) ? 1 : std::stoi( words.at( 1 ) );
         auto temperature_target = std::stod( words.at( 3 ) );
         auto temperature_seed = std::stoi( words.at( 4 ) );
         type_to_temperature[atom_type] = { temperature_target,
