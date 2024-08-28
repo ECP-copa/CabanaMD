@@ -185,8 +185,9 @@ class InputFile
     bool in_any_region( T_FLOAT xtmp, T_FLOAT ytmp, T_FLOAT ztmp ) const
     {
         return std::any_of(
-            regions.cbegin(), regions.cend(), [=]( auto &pair )
-            { return in_region( xtmp, ytmp, ztmp, pair.second ); } );
+            regions.cbegin(), regions.cend(), [=]( auto &pair ) {
+                return in_region( xtmp, ytmp, ztmp, pair.second );
+            } );
     }
 
     std::vector<std::string> get_regions( T_FLOAT xtmp, T_FLOAT ytmp,
@@ -219,8 +220,8 @@ class InputFile
 
     struct Velocity
     {
-      double temp;
-      int seed;
+        double temp;
+        int seed;
     };
     std::unordered_map<int, Velocity> type_to_temperature;
 

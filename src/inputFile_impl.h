@@ -517,13 +517,13 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         // supported version:
         // group GROUP-ID region REGION-ID
         known = true;
-        [[maybe_unused]] auto group_id = words.at(1);
+        [[maybe_unused]] auto group_id = words.at( 1 );
         if ( words.at( 2 ) != "region" )
         {
             log_err( err, "LAMMPS-Command: 'group' command can only be "
                           "used with 'region' in CabanaMD" );
         }
-        [[ maybe_unused]] auto region_id = words.at(3);
+        [[maybe_unused]] auto region_id = words.at( 3 );
     }
 
     if ( !known )
@@ -850,8 +850,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     Temperature<t_System> temp( comm );
     T_V_FLOAT T = temp.compute( system );
 
-    auto T_init_scale = [=]( int i )
-    {
+    auto T_init_scale = [=]( int i ) {
         auto target = type_to_temperature[h_type( i ) + 1].temp;
         return sqrt( target / T );
     };
