@@ -64,10 +64,8 @@ void Integrator<t_System>::initial_integrate( t_System *system )
     f = system->f;
     type = system->type;
 
-    static int step = 1;
     Kokkos::parallel_for( "IntegratorNVE::initial_integrate",
                           t_policy_initial( 0, system->N_local ), *this );
-    step++;
 }
 
 template <class t_System>
@@ -80,10 +78,8 @@ void Integrator<t_System>::final_integrate( t_System *system )
     f = system->f;
     type = system->type;
 
-    static int step = 1;
     Kokkos::parallel_for( "IntegratorNVE::final_integrate",
                           t_policy_final( 0, system->N_local ), *this );
-    step++;
 }
 
 template <class t_System>
