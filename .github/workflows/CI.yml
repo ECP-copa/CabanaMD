@@ -15,7 +15,7 @@ jobs:
         cxx: ['g++', 'clang++']
         backend: ['SERIAL', 'OPENMP']
         cmake_build_type: ['Debug', 'Release']
-        kokkos_ver: ['3.7.02']
+        kokkos_ver: ['4.3.01']
         arborx: ['ArborX', 'NoArborX']
         nnp: ['ON', 'OFF']
         layout: ['1']
@@ -27,7 +27,7 @@ jobs:
             cxx: 'g++'
             openmp: 'ON'
             cmake_build_type: 'Release'
-            kokkos_ver: '3.7.02'
+            kokkos_ver: '4.3.01'
             arborx: 'NoArborX'
             nnp: 'OFF'
             layout: '2'
@@ -38,7 +38,7 @@ jobs:
             cxx: 'g++'
             openmp: 'ON'
             cmake_build_type: 'Release'
-            kokkos_ver: '3.7.02'
+            kokkos_ver: '4.3.01'
             arborx: 'NoArborX'
             nnp: 'ON'
             layout: '6'
@@ -49,7 +49,7 @@ jobs:
             cxx: 'g++'
             openmp: 'ON'
             cmake_build_type: 'Release'
-            kokkos_ver: '3.7.02'
+            kokkos_ver: '4.3.01'
             arborx: 'NoArborX'
             nnp: 'OFF'
             layout: '6'
