@@ -106,8 +106,8 @@ jobs:
       - name: Checkout Cabana
         uses: actions/checkout@v3
         with:
-          repository: aetx/Cabana
-          ref: cajita_loadbalancer
+          repository: ECP-CoPA/Cabana
+          ref: 0.6.1
           path: cabana
       - name: Build Cabana
         working-directory: cabana
