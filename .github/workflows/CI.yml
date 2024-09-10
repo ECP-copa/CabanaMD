@@ -117,7 +117,6 @@ jobs:
             -DMPIEXEC_MAX_NUMPROCS=2 -DMPIEXEC_PREFLAGS="--oversubscribe" \
             -DCMAKE_PREFIX_PATH="$HOME/kokkos;$HOME/arborx;$HOME/ALL" \
             -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
-            -DCabana_DISABLE_CAJITA_DEPRECATION_WARNINGS=ON \
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
           cmake --build build --parallel 2
           cmake --install build

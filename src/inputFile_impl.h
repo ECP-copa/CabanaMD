@@ -79,46 +79,8 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
     output_file = commandline.output_file;
     error_file = commandline.error_file;
 
-    // set defaults (matches ExaMiniMD LJ example)
-
-    nsteps = 0;
-
-    thermo_rate = 0;
-    dumpbinary_rate = 0;
-    correctness_rate = 0;
-    vtk_rate = 0;
-    dumpbinaryflag = false;
-    correctnessflag = false;
-    timestepflag = false;
-
-    lattice_offset_x = 0.0;
-    lattice_offset_y = 0.0;
-    lattice_offset_z = 0.0;
-    box[0] = 0;
-    box[2] = 0;
-    box[4] = 0;
-    box[1] = 40;
-    box[3] = 40;
-    box[5] = 40;
-
-    units_style = UNITS_LJ;
-    lattice_style = LATTICE_FCC;
-    lattice_constant = 0.8442;
-
-    temperature_target = 1.4;
-    temperature_seed = 87287;
-
-    nsteps = 100;
-    thermo_rate = 10;
-
-    neighbor_skin = 0.3;
-    neighbor_skin = 0.0; // for metal and real units
-    max_neigh_guess = 50;
-    comm_exchange_rate = 20;
     comm_ghost_cutoff = std::pow( ( 4.0 / lattice_constant ), ( 1.0 / 3.0 ) ) *
                         20.0; // 20 lattice constants
-
-    force_cutoff = 2.5;
 }
 
 template <class t_System>

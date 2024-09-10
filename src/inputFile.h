@@ -179,8 +179,8 @@ class InputFile
 
     int binning_type = BINNING_LINKEDCELL;
 
-    int comm_type;
-    int comm_exchange_rate;
+    int comm_type = COMM_MPI;
+    int comm_exchange_rate = 20;
     double comm_ghost_cutoff;
 
     int force_type = FORCE_LJ;
