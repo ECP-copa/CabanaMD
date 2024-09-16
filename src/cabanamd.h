@@ -57,6 +57,11 @@
 #include <integrator_nve.h>
 #include <types.h>
 
+#ifdef CabanaMD_ENABLE_LB
+#include <Cabana_Grid_LoadBalancer.hpp>
+#include <Cabana_Grid_Types.hpp>
+#endif
+
 class CabanaMD
 {
   public:
@@ -81,6 +86,10 @@ class CbnMD : public CabanaMD
     Comm<t_System> *comm;
     Binning<t_System> *binning;
     InputFile<t_System> *input;
+#ifdef CabanaMD_ENABLE_LB
+    Cabana::Grid::Experimental::LoadBalancer<Cabana::Grid::UniformMesh<double>>
+        *lb;
+#endif
 
     void init( InputCL cl ) override;
     void run() override;

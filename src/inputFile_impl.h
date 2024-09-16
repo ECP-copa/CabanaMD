@@ -50,6 +50,7 @@
 #include <property_temperature.h>
 
 #include <algorithm>
+#include <iostream>
 #include <regex>
 
 std::vector<std::string> split( const std::string &line )
@@ -77,6 +78,9 @@ InputFile<t_System>::InputFile( InputCL commandline_, t_System *system_ )
 
     output_file = commandline.output_file;
     error_file = commandline.error_file;
+
+    comm_ghost_cutoff = std::pow( ( 4.0 / lattice_constant ), ( 1.0 / 3.0 ) ) *
+                        20.0; // 20 lattice constants
 }
 
 template <class t_System>
@@ -291,6 +295,38 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         write_data_flag = true;
         output_data_file = words.at( 1 );
     }
+    if ( keyword.compare( "dump" ) == 0 )
+    {
+        if ( words.at( 3 ).compare( "vtk" ) == 0 )
+        {
+            known = true;
+            write_vtk_flag = true;
+            vtk_file = words.at( 5 );
+            vtk_rate = std::stod( words.at( 4 ) );
+            if ( words.at( 2 ).compare( "all" ) != 0 )
+            {
+                log_err( err, "LAMMPS-Command: 'dump' command only supports "
+                              "dumping 'all' types in CabanaMD" );
+            }
+            size_t pos = 0;
+            pos = vtk_file.find( "*", pos );
+            if ( std::string::npos == pos )
+                log_err( err,
+                         "LAMMPS-Command: 'dump' requires '*' in file name, so "
+                         "it can be replaced by the time step in CabanaMD" );
+            pos = 0;
+            pos = vtk_file.find( "%", pos );
+            if ( std::string::npos == pos )
+                log_err( err,
+                         "LAMMPS-Command: 'dump' requires '%' in file name, so "
+                         "it can be replaced by the rank in CabanaMD" );
+        }
+        else
+        {
+            log_err( err, "LAMMPS-Command: 'dump' command only supports 'vtk' "
+                          "in CabanaMD" );
+        }
+    }
     if ( keyword.compare( "pair_style" ) == 0 )
     {
         if ( words.at( 1 ).compare( "lj/cut" ) == 0 )
@@ -370,6 +406,27 @@ void InputFile<t_System>::check_lammps_command( std::string line,
                 log_err( err, "LAMMPS-Command: 'neigh_modify' only supports "
                               "'every' and 'one' in CabanaMD" );
             }
+        }
+    }
+    if ( keyword.compare( "comm_modify" ) == 0 )
+    {
+        if ( words.at( 1 ).compare( "cutoff" ) == 0 )
+        {
+            if ( words.at( 2 ).compare( "*" ) == 0 )
+            {
+                known = true;
+                comm_ghost_cutoff = std::stod( words.at( 3 ) );
+            }
+            else
+            {
+                log_err( err, "LAMMPS-Command: 'comm_modify' command only "
+                              "supported for all atom types '*' in CabanaMD" );
+            }
+        }
+        else
+        {
+            log_err( err, "LAMMPS-Command: 'comm_modify' command only supports "
+                          "single cutoff 'cutoff' in CabanaMD" );
         }
     }
     if ( keyword.compare( "fix" ) == 0 )
@@ -455,7 +512,14 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     T_X_FLOAT max_z = lattice_constant * lattice_nz;
     std::array<T_X_FLOAT, 3> global_low = { 0.0, 0.0, 0.0 };
     std::array<T_X_FLOAT, 3> global_high = { max_x, max_y, max_z };
-    system->create_domain( global_low, global_high );
+    if ( commandline.vacuum )
+    {
+        // Create a vacuum for an unbalanced system.
+        global_high[0] *= commandline.vacuum_rate;
+        global_high[1] *= commandline.vacuum_rate;
+        global_high[2] *= commandline.vacuum_rate;
+    }
+    system->create_domain( global_low, global_high, comm_ghost_cutoff );
     s = *system;
 
     auto local_mesh_lo_x = s.local_mesh_lo_x;
@@ -465,12 +529,27 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     auto local_mesh_hi_y = s.local_mesh_hi_y;
     auto local_mesh_hi_z = s.local_mesh_hi_z;
 
-    T_INT ix_start = local_mesh_lo_x / s.global_mesh_x * lattice_nx - 0.5;
-    T_INT iy_start = local_mesh_lo_y / s.global_mesh_y * lattice_ny - 0.5;
-    T_INT iz_start = local_mesh_lo_z / s.global_mesh_z * lattice_nz - 0.5;
-    T_INT ix_end = local_mesh_hi_x / s.global_mesh_x * lattice_nx + 0.5;
-    T_INT iy_end = local_mesh_hi_y / s.global_mesh_y * lattice_ny + 0.5;
-    T_INT iz_end = local_mesh_hi_z / s.global_mesh_z * lattice_nz + 0.5;
+    T_INT ix_start = local_mesh_lo_x / lattice_constant - 0.5;
+    T_INT iy_start = local_mesh_lo_y / lattice_constant - 0.5;
+    T_INT iz_start = local_mesh_lo_z / lattice_constant - 0.5;
+    T_INT ix_end =
+        std::max( std::min( static_cast<double>( lattice_nx ),
+                            local_mesh_hi_x / lattice_constant + 0.5 ),
+                  static_cast<double>( ix_start ) );
+    T_INT iy_end =
+        std::max( std::min( static_cast<double>( lattice_ny ),
+                            local_mesh_hi_y / lattice_constant + 0.5 ),
+                  static_cast<double>( iy_start ) );
+    T_INT iz_end =
+        std::max( std::min( static_cast<double>( lattice_nz ),
+                            local_mesh_hi_z / lattice_constant + 0.5 ),
+                  static_cast<double>( iz_start ) );
+    if ( ix_start == ix_end )
+        ix_end -= 1;
+    if ( iy_start == iy_end )
+        iy_end -= 1;
+    if ( iz_start == iz_end )
+        iz_end -= 1;
 
     // Create Simple Cubic Lattice
     if ( lattice_style == LATTICE_SC )
@@ -491,7 +570,8 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                          ( ztmp >= local_mesh_lo_z ) &&
                          ( xtmp < local_mesh_hi_x ) &&
                          ( ytmp < local_mesh_hi_y ) &&
-                         ( ztmp < local_mesh_hi_z ) )
+                         ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
+                         ( ytmp < max_y ) && ( ztmp < max_z ) )
                     {
                         n++;
                     }
@@ -524,7 +604,8 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                          ( ztmp >= local_mesh_lo_z ) &&
                          ( xtmp < local_mesh_hi_x ) &&
                          ( ytmp < local_mesh_hi_y ) &&
-                         ( ztmp < local_mesh_hi_z ) )
+                         ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
+                         ( ytmp < max_y ) && ( ztmp < max_z ) )
                     {
                         x( n, 0 ) = xtmp;
                         x( n, 1 ) = ytmp;
@@ -590,7 +671,8 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                              ( ztmp >= local_mesh_lo_z ) &&
                              ( xtmp < local_mesh_hi_x ) &&
                              ( ytmp < local_mesh_hi_y ) &&
-                             ( ztmp < local_mesh_hi_z ) )
+                             ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
+                             ( ytmp < max_y ) && ( ztmp < max_z ) )
                         {
                             n++;
                         }
@@ -630,7 +712,8 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                              ( ztmp >= local_mesh_lo_z ) &&
                              ( xtmp < local_mesh_hi_x ) &&
                              ( ytmp < local_mesh_hi_y ) &&
-                             ( ztmp < local_mesh_hi_z ) )
+                             ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
+                             ( ytmp < max_y ) && ( ztmp < max_z ) )
                         {
                             h_x( n, 0 ) = xtmp;
                             h_x( n, 1 ) = ytmp;

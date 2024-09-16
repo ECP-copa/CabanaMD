@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.14)
 project(CabanaMD LANGUAGES CXX VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,6 +17,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # Set up main options (inherit from Kokkos and Cabana CMake)
 ##---------------------------------------------------------------------------##
 find_package(Cabana REQUIRED)
+
+option(CabanaMD_ENABLE_LB "Utilize Cabana load balancer" OFF)
 
 ##---------------------------------------------------------------------------##
 # Set up optional libraries

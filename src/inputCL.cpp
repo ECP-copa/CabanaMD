@@ -48,6 +48,7 @@
 
 #include <Cabana_Core.hpp>
 
+#include <cstdlib>
 #include <inputCL.h>
 #include <output.h>
 #include <types.h>
@@ -116,6 +117,12 @@ void InputCL::read_args( int argc, char *argv[] )
                  "                                (N = positive integer)\n",
                  "                                (PATH = location of ",
                  "directory)\n" );
+            log( std::cout,
+                 "  --vacuum [N]:             Create a vacuum for "
+                 "an unbalanced system, enlarging the simulation "
+                 "box N times\n"
+                 "                                (N = floating-point "
+                 "multiplier, must be bigger than 1.0)\n" );
         }
 
         // Read Lammps input deck
@@ -231,6 +238,16 @@ void InputCL::read_args( int argc, char *argv[] )
             correctness_file = argv[i + 3];
             correctnessflag = true;
             i += 3;
+        }
+
+        else if ( ( strcmp( argv[i], "--vacuum" ) == 0 ) )
+        {
+            vacuum = true;
+            vacuum_rate = std::atof( argv[i + 1] );
+            if ( vacuum_rate <= 1.0 )
+                log_err( std::cout,
+                         "Vacuum multiplier must be bigger than 1.0" );
+            i += 2;
         }
 
         else if ( ( strstr( argv[i], "--kokkos-" ) == NULL ) )
