@@ -63,7 +63,8 @@ class InputCL
     int layout_type;
     int nnp_layout_type;
     int device_type;
-    bool sparse = false;
+    bool vacuum = false;
+    double vacuum_rate = 1.0;
 
     int dumpbinary_rate, correctness_rate;
     bool dumpbinaryflag, correctnessflag;
