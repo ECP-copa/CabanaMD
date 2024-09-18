@@ -256,7 +256,7 @@ class InputFile
     bool read_data_flag = false;
     bool write_data_flag = false;
     bool write_vtk_flag = false;
-    int vtk_rate;
+    int vtk_rate = 0;
     std::string vtk_file;
 
     InputFile( InputCL cl, t_System *s );
