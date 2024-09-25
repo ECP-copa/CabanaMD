@@ -304,9 +304,7 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     if ( keyword.compare( "mass" ) == 0 )
     {
         known = true;
-        int type = std::stoi( words.at( 1 ) ) -
-                   1; // this is annoying because all other commands have to do
-                      // the +1 / -1 thing
+        int type = std::stoi( words.at( 1 ) ) - 1;
         if ( type >= (int)system->mass.extent( 0 ) )
             Kokkos::resize( system->mass, type + 1 );
         using exe_space = typename t_System::execution_space;
