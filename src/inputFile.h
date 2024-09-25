@@ -182,12 +182,20 @@ class InputFile
                  ( ztmp < lattice_constant * block.zhi ) );
     }
 
+    bool is_empty_region( const std::string &region_id ) const
+    {
+        return regions_to_type.count( region_id ) == 0;
+    }
+
     bool in_any_region( T_FLOAT xtmp, T_FLOAT ytmp, T_FLOAT ztmp ) const
     {
-        return std::any_of(
-            regions.cbegin(), regions.cend(), [=]( auto &pair ) {
-                return in_region( xtmp, ytmp, ztmp, pair.second );
-            } );
+        return std::any_of( regions.cbegin(), regions.cend(),
+                            [=]( auto &pair )
+                            {
+                                return in_region( xtmp, ytmp, ztmp,
+                                                  pair.second ) &&
+                                       !is_empty_region( pair.first );
+                            } );
     }
 
     std::vector<std::string> get_regions( T_FLOAT xtmp, T_FLOAT ytmp,
@@ -196,7 +204,8 @@ class InputFile
         std::vector<std::string> ret;
         for ( auto &[region_id, block] : regions )
         {
-            if ( in_region( xtmp, ytmp, ztmp, block ) )
+            if ( in_region( xtmp, ytmp, ztmp, block ) &&
+                 !is_empty_region( region_id ) )
             {
                 ret.emplace_back( region_id );
             }
