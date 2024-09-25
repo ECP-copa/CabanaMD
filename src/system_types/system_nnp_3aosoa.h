@@ -16,17 +16,21 @@
 
 #include <system_nnp.h>
 
-template <class t_device>
-class System_NNP<t_device, 3>
+template <class DeviceType>
+class System_NNP<DeviceType, 3>
 {
+  public:
+    using memory_space = typename DeviceType::memory_space;
+
+  protected:
     using t_tuple_NNP_SF =
         Cabana::MemberTypes<T_FLOAT[CabanaMD_MAXSYMMFUNC_NNP]>;
     using t_tuple_NNP_fl = Cabana::MemberTypes<T_FLOAT>;
-    using AoSoA_NNP_G = typename Cabana::AoSoA<t_tuple_NNP_SF, t_device,
+    using AoSoA_NNP_G = typename Cabana::AoSoA<t_tuple_NNP_SF, memory_space,
                                                CabanaMD_VECTORLENGTH_NNP_0>;
-    using AoSoA_NNP_dEdG = typename Cabana::AoSoA<t_tuple_NNP_SF, t_device,
+    using AoSoA_NNP_dEdG = typename Cabana::AoSoA<t_tuple_NNP_SF, memory_space,
                                                   CabanaMD_VECTORLENGTH_NNP_1>;
-    using AoSoA_NNP_E = typename Cabana::AoSoA<t_tuple_NNP_fl, t_device,
+    using AoSoA_NNP_E = typename Cabana::AoSoA<t_tuple_NNP_fl, memory_space,
                                                CabanaMD_VECTORLENGTH_NNP_2>;
     AoSoA_NNP_G aosoa_G;
     AoSoA_NNP_dEdG aosoa_dEdG;
@@ -34,25 +38,25 @@ class System_NNP<t_device, 3>
 
   public:
     using t_G =
-        typename System_NNP<t_device,
+        typename System_NNP<DeviceType,
                             3>::AoSoA_NNP_G::template member_slice_type<0>;
     using t_dEdG =
-        typename System_NNP<t_device,
+        typename System_NNP<DeviceType,
                             3>::AoSoA_NNP_dEdG::template member_slice_type<0>;
     using t_E =
-        typename System_NNP<t_device,
+        typename System_NNP<DeviceType,
                             3>::AoSoA_NNP_E::template member_slice_type<0>;
     t_G G;
     t_dEdG dEdG;
     t_E E;
 
-    System_NNP<t_device, 3>()
+    System_NNP<DeviceType, 3>()
     {
         AoSoA_NNP_G aosoa_G( "G", 0 );
         AoSoA_NNP_dEdG aosoa_dEdG( "dEdG", 0 );
         AoSoA_NNP_E aosoa_E( "E", 0 );
     }
-    ~System_NNP<t_device, 3>() {}
+    ~System_NNP<DeviceType, 3>() {}
 
     void resize( T_INT N_new )
     {

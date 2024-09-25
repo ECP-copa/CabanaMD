@@ -62,11 +62,11 @@
 #include <stdexcept>
 #include <string>
 
-template <class t_device>
+template <class DeviceType>
 class SystemCommon
 {
   public:
-    using device_type = t_device;
+    using device_type = DeviceType;
     using memory_space = typename device_type::memory_space;
     using execution_space = typename device_type::execution_space;
 
@@ -79,9 +79,8 @@ class SystemCommon
     std::string atom_style;
 
     // Per Type Property
-    // typedef typename t_device::array_layout layout;
-    typedef Kokkos::View<T_V_FLOAT *, t_device> t_mass;
-    typedef Kokkos::View<const T_V_FLOAT *, t_device> t_mass_const;
+    typedef Kokkos::View<T_V_FLOAT *, memory_space> t_mass;
+    typedef Kokkos::View<const T_V_FLOAT *, memory_space> t_mass_const;
     typedef typename t_mass::HostMirror h_t_mass;
     t_mass mass;
 
@@ -241,10 +240,10 @@ class SystemCommon
 
     virtual void init() = 0;
     virtual void resize( T_INT N_new ) = 0;
-    virtual void permute( Cabana::LinkedCellList<t_device> cell_list ) = 0;
-    virtual void
-    migrate( std::shared_ptr<Cabana::Distributor<t_device>> distributor ) = 0;
-    virtual void gather( std::shared_ptr<Cabana::Halo<t_device>> halo ) = 0;
+    virtual void permute( Cabana::LinkedCellList<memory_space> cell_list ) = 0;
+    virtual void migrate(
+        std::shared_ptr<Cabana::Distributor<memory_space>> distributor ) = 0;
+    virtual void gather( std::shared_ptr<Cabana::Halo<memory_space>> halo ) = 0;
     virtual const char *name() { return "SystemNone"; }
 
   private:
@@ -252,7 +251,7 @@ class SystemCommon
     void update_mesh_info()
     {
         auto local_mesh =
-            Cabana::Grid::createLocalMesh<t_device>( *local_grid );
+            Cabana::Grid::createLocalMesh<memory_space>( *local_grid );
 
         local_mesh_lo_x = local_mesh.lowCorner( Cabana::Grid::Own(), 0 );
         local_mesh_lo_y = local_mesh.lowCorner( Cabana::Grid::Own(), 1 );
@@ -272,11 +271,11 @@ class SystemCommon
     }
 };
 
-template <class t_device, int layout>
-class System : public SystemCommon<t_device>
+template <class DeviceType, int layout>
+class System : public SystemCommon<DeviceType>
 {
   public:
-    using SystemCommon<t_device>::SystemCommon;
+    using SystemCommon<DeviceType>::SystemCommon;
 };
 
 #include <modules_system.h>
