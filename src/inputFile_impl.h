@@ -60,10 +60,10 @@ std::vector<std::string> split( const std::string &line )
     std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, last;
     std::vector<std::string> words{ first, last };
     // Remove empty
-    words.erase(
-        std::remove_if( words.begin(), words.end(),
-                        []( std::string const &s ) { return s.empty(); } ),
-        words.end() );
+    words.erase( std::remove_if( words.begin(), words.end(),
+                                 []( std::string const &s )
+                                 { return s.empty(); } ),
+                 words.end() );
     return words;
 }
 

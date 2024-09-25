@@ -191,7 +191,6 @@ void Comm<t_System>::reduce_min_float( T_FLOAT *vals, T_INT count )
 template <class t_System>
 void Comm<t_System>::exchange()
 {
-
     Kokkos::Profiling::pushRegion( "Comm::exchange" );
 
     N_local = system->N_local;
@@ -277,7 +276,6 @@ void Comm<t_System>::exchange()
 template <class t_System>
 void Comm<t_System>::exchange_halo()
 {
-
     Kokkos::Profiling::pushRegion( "Comm::exchange_halo" );
 
     N_local = system->N_local;
@@ -367,7 +365,6 @@ void Comm<t_System>::exchange_halo()
 template <class t_System>
 void Comm<t_System>::update_halo()
 {
-
     Kokkos::Profiling::pushRegion( "Comm::update_halo" );
 
     N_local = system->N_local;
@@ -409,7 +406,6 @@ void Comm<t_System>::update_halo()
 template <class t_System>
 void Comm<t_System>::update_force()
 {
-
     Kokkos::Profiling::pushRegion( "Comm::update_force" );
 
     N_local = system->N_local;

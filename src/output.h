@@ -27,7 +27,7 @@ void log( t_stream &stream, t_last &&last )
 }
 
 template <class t_stream, class t_head, class... t_tail>
-void log( t_stream &stream, t_head &&head, t_tail &&... tail )
+void log( t_stream &stream, t_head &&head, t_tail &&...tail )
 {
     if ( print_rank() )
         stream << head;
@@ -46,7 +46,7 @@ void log_err( t_stream &stream, t_last &&last )
 }
 
 template <class t_stream, class t_head, class... t_tail>
-void log_err( t_stream &stream, t_head &&head, t_tail &&... tail )
+void log_err( t_stream &stream, t_head &&head, t_tail &&...tail )
 {
     if ( print_rank() )
         stream << head;
