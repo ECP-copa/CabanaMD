@@ -323,7 +323,6 @@ class Comm
     KOKKOS_INLINE_FUNCTION
     void operator()( const TagHaloPBC, const T_INT &i ) const
     {
-
         switch ( phase )
         {
         case 0:

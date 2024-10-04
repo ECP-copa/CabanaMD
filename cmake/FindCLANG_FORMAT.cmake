@@ -18,17 +18,7 @@
 
 find_program(CLANG_FORMAT_EXECUTABLE
              NAMES clang-format
-                   clang-format-7
-                   clang-format-6.0
-                   clang-format-5.0
-                   clang-format-4.0
-                   clang-format-3.9
-                   clang-format-3.8
-                   clang-format-3.7
-                   clang-format-3.6
-                   clang-format-3.5
-                   clang-format-3.4
-                   clang-format-3.3
+                   clang-format-14
              DOC "clang-format executable")
 mark_as_advanced(CLANG_FORMAT_EXECUTABLE)
 
@@ -38,11 +28,11 @@ if(CLANG_FORMAT_EXECUTABLE)
                   OUTPUT_VARIABLE clang_format_version
                   ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-  if(clang_format_version MATCHES "^clang-format version .*")
+  if(clang_format_version MATCHES "^.*clang-format version .*")
     # clang_format_version sample: "clang-format version 3.9.1-4ubuntu3~16.04.1
     # (tags/RELEASE_391/rc2)"
     string(REGEX
-           REPLACE "clang-format version ([.0-9]+).*"
+           REPLACE "^.*clang-format version ([.0-9]+).*"
                    "\\1"
                    CLANG_FORMAT_VERSION
                    "${clang_format_version}")
