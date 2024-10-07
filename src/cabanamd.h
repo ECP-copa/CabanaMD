@@ -96,6 +96,10 @@ class CbnMD : public CabanaMD
 
     void dump_binary( int ) override;
     void check_correctness( int ) override;
+
+  private:
+    void print_summary( std::ofstream &out, int step, T_V_FLOAT T, T_F_FLOAT PE,
+                        T_V_FLOAT KE, double time, double rate );
 };
 
 #include <cabanamd_impl.h>
