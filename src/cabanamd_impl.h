@@ -294,6 +294,7 @@ void CbnMD<t_System, t_Neighbor>::run()
         integrate_timer.reset();
         integrator->initial_integrate( system );
         integrate_time += integrate_timer.seconds();
+        T_INT exchanged = -1;
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
         {
@@ -309,8 +310,7 @@ void CbnMD<t_System, t_Neighbor>::run()
 
             // Exchange atoms across MPI ranks
             comm_timer.reset();
-            log( std::cout, "Comm::exchange()\tstep ", step );
-            comm->exchange();
+            exchanged = comm->exchange();
             comm_time += comm_timer.seconds();
 
             // Sort atoms
@@ -375,7 +375,7 @@ void CbnMD<t_System, t_Neighbor>::run()
             double rate =
                 1.0 * system->N * input->thermo_rate / ( time - last_time );
 
-            print_summary( out, step, T, PE, KE, time, rate );
+            print_summary( out, step, T, PE, KE, time, rate, exchanged );
 
             last_time = time;
 
@@ -651,7 +651,7 @@ template <class t_System, class t_Neighbor>
 void CbnMD<t_System, t_Neighbor>::print_summary( std::ofstream &out, int step,
                                                  T_V_FLOAT T, T_F_FLOAT PE,
                                                  T_V_FLOAT KE, double time,
-                                                 double rate )
+                                                 double rate, T_INT exchanged )
 {
     if ( !_print_lammps )
     {
@@ -659,7 +659,7 @@ void CbnMD<t_System, t_Neighbor>::print_summary( std::ofstream &out, int step,
         {
             log( out, "\n#Timestep Temperature PotE ETot Time Atomsteps/s "
 #ifdef CabanaMD_ENABLE_LB
-                      "LBImbalance"
+                      "LBImbalance Exchanged"
 #endif
             );
         }
@@ -669,7 +669,8 @@ void CbnMD<t_System, t_Neighbor>::print_summary( std::ofstream &out, int step,
              std::scientific, rate
 #ifdef CabanaMD_ENABLE_LB
              ,
-             "\t", std::setprecision( 2 ), lb->getImbalance()
+             "\t", std::setprecision( 2 ), lb->getImbalance(), "\t",
+             ( exchanged != -1 ) ? std::to_string( exchanged ) : "-"
 #endif
         );
     }

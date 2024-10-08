@@ -125,7 +125,7 @@ class Comm
     Comm( t_System *s, T_X_FLOAT comm_depth_ );
     void init();
     void create_domain_decomposition();
-    void exchange();
+    T_INT exchange();
     void exchange_halo();
     void update_halo();
     void update_force();

@@ -189,7 +189,7 @@ void Comm<t_System>::reduce_min_float( T_FLOAT *vals, T_INT count )
 }
 
 template <class t_System>
-void Comm<t_System>::exchange()
+T_INT Comm<t_System>::exchange()
 {
     Kokkos::Profiling::pushRegion( "Comm::exchange" );
 
@@ -267,15 +267,14 @@ void Comm<t_System>::exchange()
 
     N_local = N_local + N_total_recv - N_total_send;
 
-    std::cout << '[' << proc_rank << "] "
-              << "N_local: " << N_local << "\tN_total_recv: " << N_total_recv
-              << "\tN_total_send: " << N_total_send << std::endl
-              << std::flush;
-
     system->N_local = N_local;
     system->N_ghost = 0;
 
+    T_INT global_send = N_total_send;
+    reduce_int( &global_send, 1 );
+
     Kokkos::Profiling::popRegion();
+    return global_send;
 }
 
 template <class t_System>

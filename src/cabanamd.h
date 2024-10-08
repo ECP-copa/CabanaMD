@@ -99,7 +99,8 @@ class CbnMD : public CabanaMD
 
   private:
     void print_summary( std::ofstream &out, int step, T_V_FLOAT T, T_F_FLOAT PE,
-                        T_V_FLOAT KE, double time, double rate );
+                        T_V_FLOAT KE, double time, double rate,
+                        T_INT exchanged = -1 );
 };
 
 #include <cabanamd_impl.h>
