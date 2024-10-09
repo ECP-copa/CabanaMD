@@ -25,7 +25,6 @@ template <class t_System, class t_iteration>
 class NeighborTree<t_System, t_iteration, Cabana::VerletLayoutCSR>
     : public Neighbor<t_System>
 {
-    using device_type = typename t_System::device_type;
     using memory_space = typename t_System::memory_space;
 
   public:
@@ -73,7 +72,6 @@ template <class t_System, class t_iteration>
 class NeighborTree<t_System, t_iteration, Cabana::VerletLayout2D>
     : public Neighbor<t_System>
 {
-    using device_type = typename t_System::device_type;
     using memory_space = typename t_System::memory_space;
 
   public:

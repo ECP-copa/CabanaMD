@@ -101,9 +101,9 @@ void Binning<t_System>::create_binning( T_X_FLOAT dx_in, T_X_FLOAT dy_in,
         system->slice_x();
         auto x = system->x;
 
-        using device_type = typename t_System::device_type;
-        Cabana::LinkedCellList<device_type> cell_list( x, begin, end, delta,
-                                                       min, max );
+        using memory_space = typename t_System::memory_space;
+        Cabana::LinkedCellList<memory_space> cell_list( x, begin, end, delta,
+                                                        min, max );
 
         if ( sort )
         {

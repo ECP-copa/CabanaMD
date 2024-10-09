@@ -61,12 +61,12 @@ Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
     MPI_Comm_size( MPI_COMM_WORLD, &proc_size );
     MPI_Comm_rank( MPI_COMM_WORLD, &proc_rank );
 
-    pack_count = Kokkos::View<int, Kokkos::LayoutRight, device_type>(
+    pack_count = Kokkos::View<int, Kokkos::LayoutRight, memory_space>(
         "CommMPI::pack_count" );
     pack_indicies_all =
-        Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type>(
+        Kokkos::View<T_INT **, Kokkos::LayoutRight, memory_space>(
             "CommMPI::pack_indicies_all", 6, 200 );
-    pack_ranks_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, device_type>(
+    pack_ranks_all = Kokkos::View<T_INT **, Kokkos::LayoutRight, memory_space>(
         "CommMPI::pack_ranks_all", 6, 200 );
 }
 
@@ -201,10 +201,10 @@ T_INT Comm<t_System>::exchange()
 
     max_local = x.size() * 1.1;
 
-    std::shared_ptr<Cabana::Distributor<device_type>> distributor;
+    std::shared_ptr<Cabana::Distributor<memory_space>> distributor;
 
     pack_ranks_migrate_all =
-        Kokkos::View<T_INT *, Kokkos::LayoutRight, device_type>(
+        Kokkos::View<T_INT *, Kokkos::LayoutRight, memory_space>(
             "pack_ranks_migrate", max_local );
     Kokkos::parallel_for(
         "CommMPI::exchange_self",
@@ -246,7 +246,7 @@ T_INT Comm<t_System>::exchange()
             Kokkos::deep_copy( count, pack_count );
             proc_num_send[phase] = count;
 
-            distributor = std::make_shared<Cabana::Distributor<device_type>>(
+            distributor = std::make_shared<Cabana::Distributor<memory_space>>(
                 MPI_COMM_WORLD, pack_ranks_migrate, neighbors_dist[phase] );
             system->migrate( distributor );
             system->resize(
@@ -332,7 +332,7 @@ void Comm<t_System>::exchange_halo()
         pack_ranks = Kokkos::subview(
             pack_ranks, std::pair<size_t, size_t>( 0, proc_num_send[phase] ) );
 
-        halo_all[phase] = std::make_shared<Cabana::Halo<device_type>>(
+        halo_all[phase] = std::make_shared<Cabana::Halo<memory_space>>(
             MPI_COMM_WORLD, N_local + N_ghost, pack_indicies, pack_ranks,
             neighbors_halo[phase] );
         system->resize( halo_all[phase]->numLocal() +

@@ -135,39 +135,33 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
                           "for the neural network potential." );
         else
         {
-            using t_device = typename t_System::device_type;
+            using device_type = typename t_System::device_type;
 #if ( CabanaMD_LAYOUT_NNP == 1 )
             if ( serial_neigh )
-                force =
-                    new ForceNNP<t_System, System_NNP<t_device, 1>, t_Neighbor,
-                                 Cabana::SerialOpTag, Cabana::SerialOpTag>(
-                        system );
+                force = new ForceNNP<t_System, System_NNP<device_type, 1>,
+                                     t_Neighbor, Cabana::SerialOpTag,
+                                     Cabana::SerialOpTag>( system );
             if ( team_neigh )
-                force =
-                    new ForceNNP<t_System, System_NNP<t_device, 1>, t_Neighbor,
-                                 Cabana::TeamOpTag, Cabana::TeamOpTag>(
-                        system );
+                force = new ForceNNP<t_System, System_NNP<device_type, 1>,
+                                     t_Neighbor, Cabana::TeamOpTag,
+                                     Cabana::TeamOpTag>( system );
             if ( vector_angle )
-                force =
-                    new ForceNNP<t_System, System_NNP<t_device, 1>, t_Neighbor,
-                                 Cabana::TeamOpTag, Cabana::TeamVectorOpTag>(
-                        system );
+                force = new ForceNNP<t_System, System_NNP<device_type, 1>,
+                                     t_Neighbor, Cabana::TeamOpTag,
+                                     Cabana::TeamVectorOpTag>( system );
 #elif ( CabanaMD_LAYOUT_NNP == 3 )
             if ( serial_neigh )
-                force =
-                    new ForceNNP<t_System, System_NNP<t_device, 3>, t_Neighbor,
-                                 Cabana::SerialOpTag, Cabana::SerialOpTag>(
-                        system );
+                force = new ForceNNP<t_System, System_NNP<device_type, 3>,
+                                     t_Neighbor, Cabana::SerialOpTag,
+                                     Cabana::SerialOpTag>( system );
             if ( team_neigh )
-                force =
-                    new ForceNNP<t_System, System_NNP<t_device, 3>, t_Neighbor,
-                                 Cabana::TeamOpTag, Cabana::TeamOpTag>(
-                        system );
+                force = new ForceNNP<t_System, System_NNP<device_type, 3>,
+                                     t_Neighbor, Cabana::TeamOpTag,
+                                     Cabana::TeamOpTag>( system );
             if ( vector_angle )
-                force =
-                    new ForceNNP<t_System, System_NNP<t_device, 3>, t_Neighbor,
-                                 Cabana::TeamOpTag, Cabana::TeamVectorOpTag>(
-                        system );
+                force = new ForceNNP<t_System, System_NNP<device_type, 3>,
+                                     t_Neighbor, Cabana::TeamOpTag,
+                                     Cabana::TeamVectorOpTag>( system );
 #endif
         }
     }

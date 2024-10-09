@@ -16,24 +16,31 @@
 
 #include <system.h>
 
-template <class t_device>
-class System<t_device, 6> : public SystemCommon<t_device>
+template <class DeviceType>
+class System<DeviceType, 6> : public SystemCommon<DeviceType>
 {
+  public:
+    using SystemCommon<DeviceType>::SystemCommon;
+
+    using memory_space = typename DeviceType::memory_space;
+    using execution_space = typename DeviceType::execution_space;
+
+  protected:
     using t_tuple_x = Cabana::MemberTypes<T_FLOAT[3]>;
     using t_tuple_int = Cabana::MemberTypes<T_INT>;
     using t_tuple_fl = Cabana::MemberTypes<T_FLOAT>;
-    using AoSoA_x =
-        typename Cabana::AoSoA<t_tuple_x, t_device, CabanaMD_VECTORLENGTH_0>;
-    using AoSoA_v =
-        typename Cabana::AoSoA<t_tuple_x, t_device, CabanaMD_VECTORLENGTH_1>;
-    using AoSoA_f =
-        typename Cabana::AoSoA<t_tuple_x, t_device, CabanaMD_VECTORLENGTH_2>;
-    using AoSoA_id =
-        typename Cabana::AoSoA<t_tuple_int, t_device, CabanaMD_VECTORLENGTH_3>;
-    using AoSoA_type =
-        typename Cabana::AoSoA<t_tuple_int, t_device, CabanaMD_VECTORLENGTH_4>;
-    using AoSoA_q =
-        typename Cabana::AoSoA<t_tuple_fl, t_device, CabanaMD_VECTORLENGTH_5>;
+    using AoSoA_x = typename Cabana::AoSoA<t_tuple_x, memory_space,
+                                           CabanaMD_VECTORLENGTH_0>;
+    using AoSoA_v = typename Cabana::AoSoA<t_tuple_x, memory_space,
+                                           CabanaMD_VECTORLENGTH_1>;
+    using AoSoA_f = typename Cabana::AoSoA<t_tuple_x, memory_space,
+                                           CabanaMD_VECTORLENGTH_2>;
+    using AoSoA_id = typename Cabana::AoSoA<t_tuple_int, memory_space,
+                                            CabanaMD_VECTORLENGTH_3>;
+    using AoSoA_type = typename Cabana::AoSoA<t_tuple_int, memory_space,
+                                              CabanaMD_VECTORLENGTH_4>;
+    using AoSoA_q = typename Cabana::AoSoA<t_tuple_fl, memory_space,
+                                           CabanaMD_VECTORLENGTH_5>;
     AoSoA_x aosoa_x;
     AoSoA_v aosoa_v;
     AoSoA_f aosoa_f;
@@ -41,28 +48,24 @@ class System<t_device, 6> : public SystemCommon<t_device>
     AoSoA_type aosoa_type;
     AoSoA_q aosoa_q;
 
-    using SystemCommon<t_device>::N_max;
-    // using SystemCommon<t_device>::mass;
+    using SystemCommon<DeviceType>::N_max;
+    // using SystemCommon<DeviceType>::mass;
 
   public:
-    using SystemCommon<t_device>::SystemCommon;
-
-    using memory_space = typename t_device::memory_space;
-    using execution_space = typename t_device::execution_space;
-
     // Per Particle Property
     using t_x =
-        typename System<t_device, 6>::AoSoA_x::template member_slice_type<0>;
+        typename System<DeviceType, 6>::AoSoA_x::template member_slice_type<0>;
     using t_v =
-        typename System<t_device, 6>::AoSoA_v::template member_slice_type<0>;
+        typename System<DeviceType, 6>::AoSoA_v::template member_slice_type<0>;
     using t_f =
-        typename System<t_device, 6>::AoSoA_f::template member_slice_type<0>;
+        typename System<DeviceType, 6>::AoSoA_f::template member_slice_type<0>;
     using t_type =
-        typename System<t_device, 6>::AoSoA_type::template member_slice_type<0>;
+        typename System<DeviceType,
+                        6>::AoSoA_type::template member_slice_type<0>;
     using t_id =
-        typename System<t_device, 6>::AoSoA_id::template member_slice_type<0>;
+        typename System<DeviceType, 6>::AoSoA_id::template member_slice_type<0>;
     using t_q =
-        typename System<t_device, 6>::AoSoA_q::template member_slice_type<0>;
+        typename System<DeviceType, 6>::AoSoA_q::template member_slice_type<0>;
 
     t_x x;
     t_v v;
@@ -114,7 +117,7 @@ class System<t_device, 6> : public SystemCommon<t_device>
     void slice_id() override { id = Cabana::slice<0>( aosoa_id ); }
     void slice_q() override { q = Cabana::slice<0>( aosoa_q ); }
 
-    void permute( Cabana::LinkedCellList<t_device> cell_list ) override
+    void permute( Cabana::LinkedCellList<memory_space> cell_list ) override
     {
         Cabana::permute( cell_list, aosoa_x );
         Cabana::permute( cell_list, aosoa_v );
@@ -124,8 +127,8 @@ class System<t_device, 6> : public SystemCommon<t_device>
         Cabana::permute( cell_list, aosoa_q );
     }
 
-    void migrate(
-        std::shared_ptr<Cabana::Distributor<t_device>> distributor ) override
+    void migrate( std::shared_ptr<Cabana::Distributor<memory_space>>
+                      distributor ) override
     {
         Cabana::migrate( *distributor, aosoa_x );
         Cabana::migrate( *distributor, aosoa_v );
@@ -135,7 +138,7 @@ class System<t_device, 6> : public SystemCommon<t_device>
         Cabana::migrate( *distributor, aosoa_q );
     }
 
-    void gather( std::shared_ptr<Cabana::Halo<t_device>> halo ) override
+    void gather( std::shared_ptr<Cabana::Halo<memory_space>> halo ) override
     {
         Cabana::gather( *halo, aosoa_x );
         Cabana::gather( *halo, aosoa_v );
