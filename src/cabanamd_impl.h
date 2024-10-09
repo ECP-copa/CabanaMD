@@ -244,27 +244,8 @@ void CbnMD<t_System, t_Neighbor>::init( InputCL commandline )
         auto T = temp.compute( system );
         auto PE = pote.compute( system, force, neighbor ) / system->N;
         auto KE = kine.compute( system ) / system->N;
-        if ( !_print_lammps )
-        {
-#ifdef CabanaMD_ENABLE_LB
-            log( out, "\n", std::fixed, std::setprecision( 6 ),
-                 "#Timestep Temperature PotE ETot Time Atomsteps/s "
-                 "LBImbalance\n",
-                 step, " ", T, " ", PE, " ", PE + KE, " ",
-                 std::setprecision( 2 ), 0.0, " ", std::scientific, 0.0, " ",
-                 std::setprecision( 2 ), 0.0 );
-#else
-            log( out, "\n", std::fixed, std::setprecision( 6 ),
-                 "#Timestep Temperature PotE ETot Time Atomsteps/s\n", step,
-                 " ", T, " ", PE, " ", PE + KE, " ", std::setprecision( 2 ),
-                 0.0, " ", std::scientific, 0.0 );
-#endif
-        }
-        else
-        {
-            log( out, "\nStep Temp E_pair TotEng CPU\n", step, " ", T, " ", PE,
-                 " ", PE + KE, " ", 0.0 );
-        }
+
+        print_summary( out, step, T, PE, KE, 0.0, 0.0 );
     }
 
     if ( input->dumpbinaryflag )
@@ -313,6 +294,7 @@ void CbnMD<t_System, t_Neighbor>::run()
         integrate_timer.reset();
         integrator->initial_integrate( system );
         integrate_time += integrate_timer.seconds();
+        T_INT exchanged = -1;
 
         if ( step % input->comm_exchange_rate == 0 && step > 0 )
         {
@@ -328,7 +310,7 @@ void CbnMD<t_System, t_Neighbor>::run()
 
             // Exchange atoms across MPI ranks
             comm_timer.reset();
-            comm->exchange();
+            exchanged = comm->exchange();
             comm_time += comm_timer.seconds();
 
             // Sort atoms
@@ -389,31 +371,14 @@ void CbnMD<t_System, t_Neighbor>::run()
             auto T = temp.compute( system );
             auto PE = pote.compute( system, force, neighbor ) / system->N;
             auto KE = kine.compute( system ) / system->N;
+            double time = timer.seconds();
+            double rate =
+                1.0 * system->N * input->thermo_rate / ( time - last_time );
 
-            if ( !_print_lammps )
-            {
-                double time = timer.seconds();
-                double rate =
-                    1.0 * system->N * input->thermo_rate / ( time - last_time );
-#ifdef CabanaMD_ENABLE_LB
-                log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
-                     PE, " ", PE + KE, " ", std::setprecision( 2 ), time, " ",
-                     std::scientific, rate, " ", std::setprecision( 2 ),
-                     lb->getImbalance() );
-#else
-                log( out, std::fixed, std::setprecision( 6 ), step, " ", T, " ",
-                     PE, " ", PE + KE, " ", std::setprecision( 2 ), time, " ",
-                     std::scientific, rate );
-#endif
-                last_time = time;
-            }
-            else
-            {
-                double time = timer.seconds();
-                log( out, std::fixed, std::setprecision( 6 ), "     ", step,
-                     " ", T, " ", PE, " ", PE + KE, " ", time );
-                last_time = time;
-            }
+            print_summary( out, step, T, PE, KE, time, rate, exchanged );
+
+            last_time = time;
+
 #ifdef CabanaMD_ENABLE_LB
             double work = system->N_local + system->N_ghost;
             std::array<double, 6> vertices;
@@ -680,4 +645,38 @@ void CbnMD<t_System, t_Neighbor>::check_correctness( int step )
         fclose( fpout );
     }
     err.close();
+}
+
+template <class t_System, class t_Neighbor>
+void CbnMD<t_System, t_Neighbor>::print_summary( std::ofstream &out, int step,
+                                                 T_V_FLOAT T, T_F_FLOAT PE,
+                                                 T_V_FLOAT KE, double time,
+                                                 double rate, T_INT exchanged )
+{
+    if ( !_print_lammps )
+    {
+        if ( step == 0 )
+        {
+            log( out, "\n#Timestep Temperature PotE ETot Time Atomsteps/s "
+#ifdef CabanaMD_ENABLE_LB
+                      "LB-Imbalance MPI-Exchanged"
+#endif
+            );
+        }
+
+        log( out, step, "\t", std::fixed, std::setprecision( 6 ), T, "\t", PE,
+             "\t", PE + KE, "\t", std::setprecision( 2 ), time, "\t",
+             std::scientific, rate
+#ifdef CabanaMD_ENABLE_LB
+             ,
+             "\t", std::setprecision( 2 ), lb->getImbalance(), "\t",
+             ( exchanged != -1 ) ? std::to_string( exchanged ) : "-"
+#endif
+        );
+    }
+    else
+    {
+        log( out, "\nStep Temp E_pair TotEng CPU\n", step, " ", T, " ", PE, " ",
+             PE + KE, " ", time );
+    }
 }

@@ -2,3 +2,9 @@
 build
 .cproject
 .project
+*.jpg
+*.pvtu
+*.vtu
+
+cabanaMD.err
+cabanaMD.out

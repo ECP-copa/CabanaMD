@@ -48,7 +48,7 @@
 
 #include <mpi.h>
 
-#include <algorithm>
+#include <output.h>
 
 template <class t_System>
 Comm<t_System>::Comm( t_System *s, T_X_FLOAT comm_depth_ )
@@ -189,7 +189,7 @@ void Comm<t_System>::reduce_min_float( T_FLOAT *vals, T_INT count )
 }
 
 template <class t_System>
-void Comm<t_System>::exchange()
+T_INT Comm<t_System>::exchange()
 {
     Kokkos::Profiling::pushRegion( "Comm::exchange" );
 
@@ -270,7 +270,11 @@ void Comm<t_System>::exchange()
     system->N_local = N_local;
     system->N_ghost = 0;
 
+    T_INT global_send = N_total_send;
+    reduce_int( &global_send, 1 );
+
     Kokkos::Profiling::popRegion();
+    return global_send;
 }
 
 template <class t_System>

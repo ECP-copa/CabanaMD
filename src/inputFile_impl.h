@@ -243,19 +243,22 @@ void InputFile<t_System>::check_lammps_command( std::string line,
         if ( words.at( 2 ).compare( "block" ) == 0 )
         {
             known = true;
-            int box[6];
-            box[0] = std::stoi( words.at( 3 ) );
-            box[1] = std::stoi( words.at( 4 ) );
-            box[2] = std::stoi( words.at( 5 ) );
-            box[3] = std::stoi( words.at( 6 ) );
-            box[4] = std::stoi( words.at( 7 ) );
-            box[5] = std::stoi( words.at( 8 ) );
-            if ( ( box[0] != 0 ) || ( box[2] != 0 ) || ( box[4] != 0 ) )
-                log_err( err, "LAMMPS-Command: region only allows for boxes "
-                              "with 0,0,0 offset in CabanaMD" );
-            lattice_nx = box[1];
-            lattice_ny = box[3];
-            lattice_nz = box[5];
+            auto region_id = words.at( 1 );
+            Block block;
+            block.xlo = std::stod( words.at( 3 ) );
+            block.xhi = std::stod( words.at( 4 ) );
+            block.ylo = std::stod( words.at( 5 ) );
+            block.yhi = std::stod( words.at( 6 ) );
+            block.zlo = std::stod( words.at( 7 ) );
+            block.zhi = std::stod( words.at( 8 ) );
+            regions[region_id] = block;
+
+            min_x = std::min( min_x, lattice_constant * block.xlo );
+            min_y = std::min( min_y, lattice_constant * block.ylo );
+            min_z = std::min( min_z, lattice_constant * block.zlo );
+            max_x = std::max( max_x, lattice_constant * block.xhi );
+            max_y = std::max( max_y, lattice_constant * block.yhi );
+            max_z = std::max( max_z, lattice_constant * block.zhi );
         }
         else
         {
@@ -270,7 +273,33 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     }
     if ( keyword.compare( "create_atoms" ) == 0 )
     {
+        // supported versions:
+        // create_atoms TYPE-ID box
+        // create_atoms TYPE-ID region REGION-ID
         known = true;
+        if ( words.at( 2 ) == "region" )
+        {
+            auto type = std::stoi( words.at( 1 ) );
+            auto region_id = words.at( 3 );
+            if ( regions.find( region_id ) == regions.end() )
+            {
+                log_err( err, "LAMMPS-Command: region '", region_id,
+                         "' is not defined" );
+            }
+            regions_to_type[region_id] = type;
+        }
+        else if ( words.at( 2 ) == "box" )
+        {
+            auto type = std::stoi( words.at( 1 ) );
+            auto region_id = regions.begin()->first;
+            regions_to_type[region_id] = type;
+        }
+        else
+        {
+            log_err( err,
+                     "LAMMPS-Command: 'create_atoms' command only supports "
+                     "'region' option in CabanaMD" );
+        }
     }
     if ( keyword.compare( "mass" ) == 0 )
     {
@@ -367,18 +396,17 @@ void InputFile<t_System>::check_lammps_command( std::string line,
     if ( keyword.compare( "velocity" ) == 0 )
     {
         known = true;
-        if ( words.at( 1 ).compare( "all" ) != 0 )
-        {
-            log_err( err, "LAMMPS-Command: 'velocity' command can only be "
-                          "applied to 'all' in CabanaMD" );
-        }
         if ( words.at( 2 ).compare( "create" ) != 0 )
         {
             log_err( err, "LAMMPS-Command: 'velocity' command can only be used "
                           "with option 'create' in CabanaMD" );
         }
-        temperature_target = std::stod( words.at( 3 ) );
-        temperature_seed = std::stoi( words.at( 4 ) );
+        auto atom_type =
+            ( words.at( 1 ) == "all" ) ? 1 : std::stoi( words.at( 1 ) );
+        auto temperature_target = std::stod( words.at( 3 ) );
+        auto temperature_seed = std::stoi( words.at( 4 ) );
+        type_to_temperature[atom_type] = { temperature_target,
+                                           temperature_seed };
     }
     if ( keyword.compare( "neighbor" ) == 0 )
     {
@@ -485,6 +513,19 @@ void InputFile<t_System>::check_lammps_command( std::string line,
                  "commandline --force-iteration" );
         }
     }
+    if ( keyword.compare( "group" ) == 0 )
+    {
+        // supported version:
+        // group GROUP-ID region REGION-ID
+        known = true;
+        [[maybe_unused]] auto group_id = words.at( 1 );
+        if ( words.at( 2 ) != "region" )
+        {
+            log_err( err, "LAMMPS-Command: 'group' command can only be "
+                          "used with 'region' in CabanaMD" );
+        }
+        [[maybe_unused]] auto region_id = words.at( 3 );
+    }
 
     if ( !known )
     {
@@ -507,10 +548,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     Kokkos::deep_copy( h_mass, s.mass );
 
     // Create the mesh.
-    T_X_FLOAT max_x = lattice_constant * lattice_nx;
-    T_X_FLOAT max_y = lattice_constant * lattice_ny;
-    T_X_FLOAT max_z = lattice_constant * lattice_nz;
-    std::array<T_X_FLOAT, 3> global_low = { 0.0, 0.0, 0.0 };
+    std::array<T_X_FLOAT, 3> global_low = { min_x, min_y, min_z };
     std::array<T_X_FLOAT, 3> global_high = { max_x, max_y, max_z };
     if ( commandline.vacuum )
     {
@@ -533,15 +571,15 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     T_INT iy_start = local_mesh_lo_y / lattice_constant - 0.5;
     T_INT iz_start = local_mesh_lo_z / lattice_constant - 0.5;
     T_INT ix_end =
-        std::max( std::min( static_cast<double>( lattice_nx ),
+        std::max( std::min( max_x / lattice_constant,
                             local_mesh_hi_x / lattice_constant + 0.5 ),
                   static_cast<double>( ix_start ) );
     T_INT iy_end =
-        std::max( std::min( static_cast<double>( lattice_ny ),
+        std::max( std::min( max_y / lattice_constant,
                             local_mesh_hi_y / lattice_constant + 0.5 ),
                   static_cast<double>( iy_start ) );
     T_INT iz_end =
-        std::max( std::min( static_cast<double>( lattice_nz ),
+        std::max( std::min( max_z / lattice_constant,
                             local_mesh_hi_z / lattice_constant + 0.5 ),
                   static_cast<double>( iz_start ) );
     if ( ix_start == ix_end )
@@ -651,7 +689,6 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
         }
 
         T_INT n = 0;
-
         for ( T_INT iz = iz_start; iz <= iz_end; iz++ )
         {
             for ( T_INT iy = iy_start; iy <= iy_end; iy++ )
@@ -674,7 +711,10 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                              ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
                              ( ytmp < max_y ) && ( ztmp < max_z ) )
                         {
-                            n++;
+                            if ( in_any_region( xtmp, ytmp, ztmp ) )
+                            {
+                                n++;
+                            }
                         }
                     }
                 }
@@ -715,12 +755,21 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
                              ( ztmp < local_mesh_hi_z ) && ( xtmp < max_x ) &&
                              ( ytmp < max_y ) && ( ztmp < max_z ) )
                         {
-                            h_x( n, 0 ) = xtmp;
-                            h_x( n, 1 ) = ytmp;
-                            h_x( n, 2 ) = ztmp;
-                            h_type( n ) = rand() % s.ntypes;
-                            h_id( n ) = n + 1;
-                            n++;
+                            if ( auto region_ids =
+                                     get_regions( xtmp, ytmp, ztmp );
+                                 !region_ids.empty() )
+                            {
+                                h_x( n, 0 ) = xtmp;
+                                h_x( n, 1 ) = ytmp;
+                                h_x( n, 2 ) = ztmp;
+
+                                auto rnd = rand() % region_ids.size();
+                                auto type_id = regions_to_type[region_ids[rnd]];
+
+                                h_type( n ) = type_id - 1;
+                                h_id( n ) = n + 1;
+                                n++;
+                            }
                         }
                     }
                 }
@@ -763,7 +812,7 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     {
         LAMMPS_RandomVelocityGeom random;
         double x_i[3] = { h_x( i, 0 ), h_x( i, 1 ), h_x( i, 2 ) };
-        random.reset( temperature_seed, x_i );
+        random.reset( type_to_temperature[h_type( i ) + 1].seed, x_i );
 
         T_FLOAT mass_i = h_mass( h_type( i ) );
         T_FLOAT vx = random.uniform() - 0.5;
@@ -802,13 +851,16 @@ void InputFile<t_System>::create_lattice( Comm<t_System> *comm )
     Temperature<t_System> temp( comm );
     T_V_FLOAT T = temp.compute( system );
 
-    T_V_FLOAT T_init_scale = sqrt( temperature_target / T );
-
+    auto T_init_scale = [=]( int i )
+    {
+        auto target = type_to_temperature[h_type( i ) + 1].temp;
+        return sqrt( target / T );
+    };
     for ( T_INT i = 0; i < system->N_local; i++ )
     {
-        h_v( i, 0 ) *= T_init_scale;
-        h_v( i, 1 ) *= T_init_scale;
-        h_v( i, 2 ) *= T_init_scale;
+        h_v( i, 0 ) *= T_init_scale( i );
+        h_v( i, 1 ) *= T_init_scale( i );
+        h_v( i, 2 ) *= T_init_scale( i );
     }
     system->deep_copy( host_system );
 

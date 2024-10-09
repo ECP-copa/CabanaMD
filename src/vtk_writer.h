@@ -20,7 +20,7 @@
 namespace
 {
 
-std::string set_width( const int value, const unsigned width = 3 )
+std::string set_width( const int value, const unsigned width = 4 )
 {
     std::ostringstream oss;
     oss << std::setw( width ) << std::setfill( '0' ) << value;

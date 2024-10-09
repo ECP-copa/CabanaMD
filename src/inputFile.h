@@ -58,8 +58,9 @@
 #include <system.h>
 #include <types.h>
 
-#include <array>
 #include <fstream>
+#include <limits>
+#include <unordered_map>
 #include <vector>
 
 // Class replicating LAMMPS Random velocity initialization with GEOM option
@@ -162,8 +163,63 @@ class InputFile
     int lattice_style = LATTICE_FCC;
     double lattice_constant = 0.8442, lattice_offset_x = 0.0,
            lattice_offset_y = 0.0, lattice_offset_z = 0.0;
-    int lattice_nx, lattice_ny, lattice_nz;
-    std::array<int, 6> box = { 0, 40, 0, 40, 0, 40 };
+
+    struct Block
+    {
+        double xlo, xhi, ylo, yhi, zlo, zhi;
+    };
+    std::unordered_map<std::string, Block> regions;
+    std::unordered_map<std::string, int> regions_to_type;
+
+    bool in_region( T_FLOAT xtmp, T_FLOAT ytmp, T_FLOAT ztmp,
+                    const Block &block ) const
+    {
+        return ( ( xtmp >= lattice_constant * block.xlo ) &&
+                 ( ytmp >= lattice_constant * block.ylo ) &&
+                 ( ztmp >= lattice_constant * block.zlo ) &&
+                 ( xtmp < lattice_constant * block.xhi ) &&
+                 ( ytmp < lattice_constant * block.yhi ) &&
+                 ( ztmp < lattice_constant * block.zhi ) );
+    }
+
+    bool is_empty_region( const std::string &region_id ) const
+    {
+        return regions_to_type.count( region_id ) == 0;
+    }
+
+    bool in_any_region( T_FLOAT xtmp, T_FLOAT ytmp, T_FLOAT ztmp ) const
+    {
+        return std::any_of( regions.cbegin(), regions.cend(),
+                            [=]( auto &pair )
+                            {
+                                return in_region( xtmp, ytmp, ztmp,
+                                                  pair.second ) &&
+                                       !is_empty_region( pair.first );
+                            } );
+    }
+
+    std::vector<std::string> get_regions( T_FLOAT xtmp, T_FLOAT ytmp,
+                                          T_FLOAT ztmp ) const
+    {
+        std::vector<std::string> ret;
+        for ( auto &[region_id, block] : regions )
+        {
+            if ( in_region( xtmp, ytmp, ztmp, block ) &&
+                 !is_empty_region( region_id ) )
+            {
+                ret.emplace_back( region_id );
+            }
+        }
+
+        return ret;
+    }
+
+    T_X_FLOAT min_x = std::numeric_limits<T_X_FLOAT>::max();
+    T_X_FLOAT min_y = std::numeric_limits<T_X_FLOAT>::max();
+    T_X_FLOAT min_z = std::numeric_limits<T_X_FLOAT>::max();
+    T_X_FLOAT max_x = std::numeric_limits<T_X_FLOAT>::min();
+    T_X_FLOAT max_y = std::numeric_limits<T_X_FLOAT>::min();
+    T_X_FLOAT max_z = std::numeric_limits<T_X_FLOAT>::min();
 
     char *data_file;
     int data_file_type;
@@ -171,8 +227,12 @@ class InputFile
     std::string output_file;
     std::string error_file;
 
-    double temperature_target = 1.4;
-    int temperature_seed = 87287;
+    struct Velocity
+    {
+        double temp;
+        int seed;
+    };
+    std::unordered_map<int, Velocity> type_to_temperature;
 
     int integrator_type = INTEGRATOR_NVE;
     int nsteps = 100;
@@ -205,7 +265,7 @@ class InputFile
     bool read_data_flag = false;
     bool write_data_flag = false;
     bool write_vtk_flag = false;
-    int vtk_rate;
+    int vtk_rate = 0;
     std::string vtk_file;
 
     InputFile( InputCL cl, t_System *s );
