@@ -1,4 +1,4 @@
-# Example using Lennard-Jones potential
+# Example for exercising load balancing (not intended to be physical)
 
 units		lj
 atom_style	atomic

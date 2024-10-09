@@ -659,7 +659,7 @@ void CbnMD<t_System, t_Neighbor>::print_summary( std::ofstream &out, int step,
         {
             log( out, "\n#Timestep Temperature PotE ETot Time Atomsteps/s "
 #ifdef CabanaMD_ENABLE_LB
-                      "LBImbalance Exchanged"
+                      "LB-Imbalance MPI-Exchanged"
 #endif
             );
         }
